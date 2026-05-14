@@ -12,13 +12,13 @@ export default function BenefitsSection() {
     {
       icon: Infinity,
       title: 'No limits',
-      description: 'Scale infinitely without worrying about infrastructure constraints or technical debt.',
+      description: 'Leverage the professional services and support of our team to build the fintech you envision, without constraints.',
       color: 'from-blue-400 to-cyan-400',
     },
     {
       icon: PlugIcon,
       title: '50+ integrations',
-      description: 'Connect seamlessly with your existing core banking systems and third-party services.',
+      description: 'Get instant access to payment and compliance services provided by the leading companies.',
       color: 'from-emerald-400 to-teal-400',
     },
   ];

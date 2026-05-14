@@ -9,36 +9,8 @@ export default function FeaturesSection() {
       description: 'Monitor your transactions and balances with instant updates and comprehensive insights.',
       image: '/feature-analytics.png',
     },
-    {
-      icon: Lock,
-      title: 'Bank-Grade Security',
-      description: 'Enterprise-level encryption and compliance with international security standards.',
-      image: '/feature-security.png',
-    },
-    {
-      icon: Zap,
-      title: 'Instant Transfers',
-      description: 'Send and receive funds globally in seconds with competitive exchange rates.',
-      image: '/feature-transfers.png',
-    },
-    {
-      icon: Globe,
-      title: 'Multi-Currency Support',
-      description: 'Manage accounts in 50+ currencies with real-time conversion rates.',
-      image: '/feature-currency.png',
-    },
-    {
-      icon: BarChart3,
-      title: 'Advanced Reporting',
-      description: 'Generate detailed reports for compliance, audits, and strategic planning.',
-      image: '/feature-reporting.png',
-    },
-    {
-      icon: Shield,
-      title: 'Fraud Protection',
-      description: 'AI-powered detection systems to protect your accounts and transactions.',
-      image: '/feature-fraud.png',
-    },
+    
+    
   ];
 
   return (
