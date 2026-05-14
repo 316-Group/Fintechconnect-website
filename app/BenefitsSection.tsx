@@ -24,59 +24,57 @@ export default function BenefitsSection() {
   ];
 
   return (
-    <section className="relative py-6 lg:py-10 bg-gradient-to-br from-slate-700 via-slate-600 to-slate-700">
+    <section className="relative py-6 lg:py-10 bg-gray-300 overflow-hidden">
       {/* Decorative background pattern */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-500/5 rounded-full blur-3xl"></div>
         <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-slate-400/5 rounded-full blur-3xl"></div>
       </div>
 
-      <div className="relative max-w-7xl mx-auto px-8">
+      <div className="relative max-w-7xl mx-auto px-6">
         {/* Heading */}
         <div className="text-center mb-4 lg:mb-8">
-          <h2 className="text-2xl lg:text-5xl font-bold text-white mb-4 leading-tight">
-            Your fintech,
-            <span className="bg-gradient-to-r from-blue-300 to-cyan-300 bg-clip-text text-transparent">
+          <h2 className="text-2xl lg:text-5xl font-semibold text-slate-800 mb-4 leading-tight">
+            Your Fintech,
+            <span className="bg-blue-600 bg-clip-text text-transparent">
               powered by us
             </span>
             </h2>
         </div>
 
         {/* Benefits Grid */}
-        <div className="grid lg:grid-cols-3 gap-6">
+        <div className="grid lg:grid-cols-3 gap-0 lg:gap-12">
           {benefits.map((benefit, index) => {
             const Icon = benefit.icon;
             return (
               <div
                 key={index}
-                className="group relative"
+                className="group relative px-6 lg:px-0"
                 style={{
                   animation: `slideUp 0.6s ease-out ${index * 0.1}s both`,
                 }}
               >
-
-                {/* Card */}
-                <div className="relative bg-white/5 backdrop-blur-sm rounded-2xl p-8 border border-white/10 hover:border-white/30 hover:bg-white/10 transition-all duration-300 group-hover:shadow-xl h-full">
-                  {/* Icon background */}
-                  <div
-                    className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-br ${benefit.color} rounded-full blur-3xl opacity-0 group-hover:opacity-20 transition-opacity duration-300 -z-10`}
-                  ></div>
-
+                {/* White vertical separator line (visible between columns) */}
+                {/*{index > 0 && index % 3 !== 0 && (
+                  <div className="hidden lg:block absolute left-0 top-1/4 bottom-1/4 w-px bg-white/40"></div>
+                )}*/}
+ 
+                {/* Content - no card background */}
+                <div className="relative py-8 lg:py-0 text-center">
                   {/* Icon */}
-                  <div className={`inline-flex p-3 rounded-xl bg-gradient-to-br ${benefit.color} text-white mb-6 group-hover:scale-110 transition-transform duration-300`}>
+                  <div className={`inline-flex p-3 rounded-xl bg-gradient-to-br ${benefit.color} text-slate-800 mb-6 group-hover:scale-110 transition-transform duration-300`}>
                     <Icon size={28} />
                   </div>
-
-                  {/* Content */}
-                  <h3 className="text-2xl lg:text-3xl font-bold text-white mb-3">
+ 
+                  {/* Title */}
+                  <h3 className="text-2xl lg:text-3xl font-bold text-slate-800 mb-3">
                     {benefit.title}
                   </h3>
-                  <p className="text-slate-300 leading-relaxed">
+ 
+                  {/* Description */}
+                  <p className="text-slate-800 leading-relaxed">
                     {benefit.description}
                   </p>
-
-                  {/* Bottom accent line */}
-                  <div className="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-white/0 via-white/50 to-white/0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300 w-full"></div>
                 </div>
               </div>
             );

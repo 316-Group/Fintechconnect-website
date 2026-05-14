@@ -127,7 +127,7 @@ export default function Navbar() {
         <img 
                   src="/Group 2085662741.png" 
                   alt="Logo"
-                  className="w-12 h-10 object-contain shadow-2xl brightness-0 invert"
+                  className="w-20 h-12 object-contain shadow-2xl brightness-0 invert"
                 />
 
         {/* Nav Items */}
@@ -156,52 +156,85 @@ export default function Navbar() {
                 </svg>
               </button>
 
-              {/* Dropdown */}
+              {/* Dropdown - 2 Column Layout with Right Sidebar */}
               {openMenu === menu && (
-                <div className="absolute top-full left-0 mt-2 w-[600px] bg-white rounded-2xl shadow-2xl p-6 z-50">
-                  <div className="grid grid-cols-2 gap-6">
-                    {getColumnLayout(navItems[menu]).col1.map((item) => (
-                      <a
-                        key={item.label}
-                        href={item.href}
-                        className="p-4 rounded-xl border border-slate-200 hover:border-blue-600 hover:bg-blue-50 transition cursor-pointer group"
-                        onClick={() => setOpenMenu(null)}
-                      >
-                        <h3 className="font-semibold text-slate-900 group-hover:text-blue-600 transition mb-1">
-                          {item.label}
-                        </h3>
-                        <p className="text-sm text-slate-600 group-hover:text-slate-700">
-                          {item.description}
-                        </p>
-                      </a>
-                    ))}
-                    {getColumnLayout(navItems[menu]).col2.map((item) => (
-                      <a
-                        key={item.label}
-                        href={item.href}
-                        className="p-4 rounded-xl border border-slate-200 hover:border-blue-600 hover:bg-blue-50 transition cursor-pointer group"
-                        onClick={() => setOpenMenu(null)}
-                      >
-                        <h3 className="font-semibold text-slate-900 group-hover:text-blue-600 transition mb-1">
-                          {item.label}
-                        </h3>
-                        <p className="text-sm text-slate-600 group-hover:text-slate-700">
-                          {item.description}
-                        </p>
-                      </a>
-                    ))}
+                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-[95vw] max-w-[750px] bg-white shadow-2xl overflow-hidden z-50">
+                  {/* Header with light blue background */}
+                  <div className="bg-blue-200 px-5 py-3 border-b border-blue-300">
+                    <h2 className="text-2xl font-bold text-blue-900">{menu}</h2>
                   </div>
-                </div>
-              )}
-            </div>
-          ))}
-            </div>
+ 
+                  <div className="flex">
+                    {/* Left Content - 2 Column Layout */}
+                    <div className="flex-1 p-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        {getColumnLayout(navItems[menu]).col1.map((item) => (
+                          <a
+                            key={item.label}
+                            href={item.href}
+                            className="p-3 rounded-xl border border-slate-200 hover:border-blue-600 hover:bg-blue-50 transition cursor-pointer group"
+                            onClick={() => setOpenMenu(null)}
+                          >
+                            <h3 className="font-semibold text-slate-900 group-hover:text-blue-600 transition mb-1">
+                              {item.label}
+                            </h3>
+                            <p className="text-sm text-slate-600 group-hover:text-slate-700">
+                              {item.description}
+                            </p>
+                          </a>
+                        ))}
+                        {getColumnLayout(navItems[menu]).col2.map((item) => (
+                          <a
+                            key={item.label}
+                            href={item.href}
+                            className="p-3 rounded-xl border border-slate-200 hover:border-blue-600 hover:bg-blue-50 transition cursor-pointer group"
+                            onClick={() => setOpenMenu(null)}
+                          >
+                            <h3 className="font-semibold text-slate-900 group-hover:text-blue-600 transition mb-1">
+                              {item.label}
+                            </h3>
+                            <p className="text-sm text-slate-600 group-hover:text-slate-700">
+                              {item.description}
+                            </p>
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+ 
+                    {/* Right Sidebar - Blue section with screenshot area and CTA */}
+                    <div className="w-72 bg-gradient-to-br from-blue-600 to-blue-700 p-6 flex flex-col justify-between">
+                      {/* Screenshot Area */}
+                      <img 
+                        src="/menu screenshot.png" 
+                        alt="menu screenshot"
+                        className="object-contain shadow-2xl"
+                      />
+ 
+                      {/* Heading */}
+                      <h3 className="text-xl font-bold text-white mb-4">
+                        Ready to get started?
+                      </h3>
 
         {/* CTA Button */}
         <button className="bg-white text-blue-900 px-5 py-2.5 rounded-full font-medium hover:bg-blue-100 transition">
           Book a Demo
         </button>
-      </nav>
+
+              </div>
+
+            </div>
+
+          </div>
+
+        )}
+
+      </div>
+
+    ))}
+
+  </div>
+
+</nav>
     </header>
   );
 }
