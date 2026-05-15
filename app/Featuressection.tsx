@@ -5,8 +5,8 @@ export default function FeaturesSection() {
   const features = [
     {
       icon: TrendingUp,
-      title: 'Real-time Analytics',
-      description: 'Monitor your transactions and balances with instant updates and comprehensive insights.',
+      title: 'Connected Accounts',
+      description: 'Progamatically create accounts for customers, equipping them with rich financial capabilities.',
       image: '/feature-analytics.png',
     },
     
@@ -22,7 +22,7 @@ export default function FeaturesSection() {
       <div className="max-w-7xl mx-auto px-8">
         {/* Heading Section */}
         <div className="text-center mb-12 lg:mb-16">
-          <h2 className="text-4xl lg:text-5xl font-bold text-slate-900 mb-4 leading-tight">
+          <h2 className="text-3xl lg:text-6xl font-bold text-slate-900 mb-4 leading-tight">
             Build from scratch,
             <span className="text-blue-600">launch in weeks.</span>
           </h2>
