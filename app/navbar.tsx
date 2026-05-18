@@ -7,11 +7,19 @@ export default function Navbar() {
 
 
   const toggleMenu = (menu: string) => {
-    setOpenMenu(openMenu === menu ? null : menu);
-    if (menu === "Products" || menu === "Solutions") {
-      setSelectedModule("Core Infrastructure");
-    }
-  };
+  if (openMenu === menu) {
+    setOpenMenu(null);
+  } else {
+    setOpenMenu(menu);
+    
+    // Dynamically grab the very first key of whatever dataset we are opening
+    const firstModule = menu === "Products" 
+      ? Object.keys(platformModules)[0] 
+      : Object.keys(solutionModules)[0];
+      
+    setSelectedModule(firstModule);
+  }
+};
 
   const navItems: Record<string, { label: string; description: string; href: string }[]> = {
     Products: [
@@ -28,7 +36,7 @@ export default function Navbar() {
     "Resources": [
       { 
         label: "Contact", 
-        description: "Modernise your intitution without replacing your legacy core. Launch a secure parallel digital brand, add real timepayments and connect to global rails",
+        description: "Modernise your intitution without replacing your legacy core. Launch a secure digital brand, real time payments.",
         href: "#encryption" 
       },
       { 
@@ -192,10 +200,10 @@ export default function Navbar() {
     const activeData = menu === "Products" ? platformModules : solutionModules;
 
     return (
-    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-[90vw] max-w-[1000px] bg-white shadow-2xl overflow-hidden z-50 flex flex-col">
+    <div className="absolute top-full left-1/2 -translate-x-1/4 mt-2 w-[90vw] max-w-[1000px] bg-white shadow-2xl overflow-hidden z-50 flex flex-col">
       
       {/* 1. Shrunk Header */}
-      <div className="bg-[#b8d7ff] px-6 py-3">
+      <div className="bg-[#b8d7ff] px-6 py-2">
         <h2 className="text-xl font-bold text-[#0066ff]">
           {menu === "Products" ? "Platform Modules" : "Who We Serve"}
         </h2>
@@ -203,12 +211,12 @@ export default function Navbar() {
 
       <div className="flex min-h-[350px]">
         {/* 2. Scaled Left Sidebar (w-72 -> w-56) */}
-        <div className="w-55 bg-[#ebefff] p-1 flex flex-col gap-1">
+        <div className="w-56 bg-[#ebefff] pt-8 pb-4 px-1 flex flex-col gap-1">
           {Object.keys(activeData).map((module) => (
             <button
               key={module}
               onClick={() => setSelectedModule(module)}
-              className={`text-left px-4 py-3 rounded-l-lg font-semibold transition-all text-sm ${
+              className={`text-left px-4 py-3 rounded-0 font-semibold transition-all text-sm ${
                 selectedModule === module
                   ? "bg-white text-black shadow-[-3px_0_0_0_#0066ff] translate-x-1" 
                   : "text-slate-500 hover:text-slate-900"
@@ -231,9 +239,7 @@ export default function Navbar() {
                   {module.description}
                 </p>
               </div>
-            )) || (
-              <p className="text-slate-400 text-xs">Select a category to view details.</p>
-            )}
+            )) }
           </div>
         </div>
 
@@ -248,12 +254,12 @@ export default function Navbar() {
           </div>
  
                       {/* Heading */}
-                        <h3 className="text-lg font-bold text-white mb-3">
+                        <h3 className="text-lg font-bold text-white mb-8">
                           Ready to get started?
                         </h3>
  
                         {/* CTA Button */}
-                        <button className="w-full bg-cyan-400 hover:bg-cyan-300 text-blue-900 font-semibold py-2 px-4 rounded-lg transition text-sm">
+                        <button className="w-full bg-[#70e6d8] hover:bg-cyan-300 text-blue-900 font-semibold py-2 px-4 rounded-lg transition text-sm">
                           Get in touch
                         </button>
                       </div>
@@ -264,37 +270,89 @@ export default function Navbar() {
   })()
 )}
  
-            {/* Standard Dropdown for other menus */}
-              {menu !== "Products" && menu !== "Solutions" && openMenu === menu && (
-                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-[95vw] max-w-[600px] bg-white rounded-2xl shadow-2xl overflow-hidden z-50">
-                  <div className="bg-blue-200 px-6 py-4 border-b border-blue-300">
-                    <h2 className="text-2xl font-bold text-blue-900">{menu}</h2>
-                  </div>
-                  <div className="p-6 space-y-3">
-                    {navItems[menu as keyof typeof navItems]?.map((item) => (
-                      <a
-                        key={item.label}
-                        href={item.href}
-                        className="p-4 rounded-xl border border-slate-200 hover:border-blue-600 hover:bg-blue-50 transition cursor-pointer group block"
-                        onClick={() => setOpenMenu(null)}
-                      >
-                        <h3 className="font-semibold text-slate-900 group-hover:text-blue-600 transition mb-1">
-                          {item.label}
-                        </h3>
-                        <p className="text-sm text-slate-600 group-hover:text-slate-700">
-                          {item.description}
-                        </p>
-                      </a>
-                    ))}
-                  </div>
-                </div>
-              )}
+            {/* 1. New Dedicated Resources Dropdown Style */}
+{menu === "Resources" && openMenu === menu && (
+  <div className="absolute top-full left-1/2 -translate-x-2/3 mt-2 w-[90vw] max-w-[1000px] bg-white shadow-2xl overflow-hidden z-50 flex flex-col">
+    
+    {/* Header - Matching layout style */}
+    <div className="bg-[#b8d7ff] px-6 py-2">
+      <h2 className="text-xl font-bold text-[#0066ff]">Resources</h2>
+    </div>
+
+    <div className="flex">
+      {/* Main Content Area - Expanding to fill the left side (No Sidebar) */}
+      <div className="flex-1 p-6 bg-white">
+        <div className="grid grid-cols-3 gap-x-8 gap-y-6">
+          {navItems.Resources.map((item) => (
+            <a 
+              key={item.label} 
+              href={item.href}
+              className="block group hover:bg-slate-50 p-2 rounded-0 transition-colors"
+            >
+              <h3 className="text-base font-bold text-black mb-1 border-b border-blue-100 group-hover:border-blue-600 group-hover:text-[#0066ff] pb-0.5 inline-block transition-colors">
+                {item.label}
+              </h3>
+              <p className="text-slate-500 leading-snug text-xs">
+                {item.description}
+              </p>
+            </a>
+          ))}
+        </div>
+      </div>
+
+      {/* Right Sidebar - Matching layout style */}
+      <div className="w-60 bg-[#0066ff] p-6 flex flex-col justify-center text-center">
+        <div className="mb-4 transform scale-90">
+          <img 
+            src="/menu screenshot.png" 
+            alt="Resource Feature"
+            className="rounded-lg shadow-xl border border-white/10"
+          />
+        </div>
+
+        <h3 className="text-lg font-bold text-white mb-8">
+          Ready to get started?
+        </h3>
+
+        <button className="w-full bg-[#70e6d8] hover:bg-[#5cd3c5] text-[#0044aa] font-bold py-2.5 px-4 rounded-lg transition-colors text-sm">
+          Get in touch
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
+{/* 2. Fallback Dropdown for any other standard items (like Connectors) */}
+{menu !== "Products" && menu !== "Solutions" && menu !== "Resources" && openMenu === menu && (
+  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-[95vw] max-w-[600px] bg-white rounded-2xl shadow-2xl overflow-hidden z-50">
+    <div className="bg-blue-200 px-6 py-4 border-b border-blue-300">
+      <h2 className="text-2xl font-bold text-blue-900">{menu}</h2>
+    </div>
+    <div className="p-6 space-y-3">
+      {navItems[menu as keyof typeof navItems]?.map((item) => (
+        <a
+          key={item.label}
+          href={item.href}
+          className="p-4 rounded-xl border border-slate-200 hover:border-blue-600 hover:bg-blue-50 transition cursor-pointer group block"
+          onClick={() => setOpenMenu(null)}
+        >
+          <h3 className="font-semibold text-slate-900 group-hover:text-blue-600 transition mb-1">
+            {item.label}
+          </h3>
+          <p className="text-sm text-slate-600 group-hover:text-slate-700">
+            {item.description}
+          </p>
+        </a>
+      ))}
+    </div>
+  </div>
+)}
             </div>
           ))}
         </div>
  
         {/* CTA Button */}
-        <button className="bg-white text-blue-900 px-5 py-2.5 rounded-full font-medium hover:bg-blue-100 transition">
+        <button className="bg-blue-600 text-white px-5 py-2.5 rounded-full font-medium hover:bg-blue-100 transition">
           Book a Demo
         </button>
       </nav>

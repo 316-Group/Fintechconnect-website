@@ -1,99 +1,71 @@
 import React from 'react';
-import { Zap, Infinity, PlugIcon } from 'lucide-react';
 
 export default function BenefitsSection() {
+  // Structured to separate the blue highlight from the dark text
   const benefits = [
     {
-      icon: Zap,
-      title: '6x faster',
-      description: 'Deploy banking solutions in weeks, not years. Get to market faster than ever before.',
-      color: 'from-amber-400 to-orange-400',
+      highlight: '6x',
+      text: 'Faster',
+      description: 'Than the industry average to go live with a new fintech product.',
     },
     {
-      icon: Infinity,
-      title: 'No limits',
-      description: 'Leverage the professional services and support of our team to build the fintech you envision, without constraints.',
-      color: 'from-blue-400 to-cyan-400',
+      highlight: 'No',
+      text: 'limits',
+      description: 'Leverage the professional services provided by our team to build a bespoke solution.',
     },
     {
-      icon: PlugIcon,
-      title: '50+ integrations',
-      description: 'Get instant access to payment and compliance services provided by the leading companies.',
-      color: 'from-emerald-400 to-teal-400',
+      highlight: '50 +',
+      text: 'Integrations',
+      description: 'Get instant access to payments and compliance services provided by the leading companies.',
     },
   ];
 
   return (
-    <section className="relative py-6 lg:py-10 bg-gray-300 overflow-hidden">
-      {/* Decorative background pattern */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-500/5 rounded-full blur-3xl"></div>
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-slate-400/5 rounded-full blur-3xl"></div>
-      </div>
-
+    // 1. Replaced bg-gray-300 with the exact light lavender tint matching your design
+    <section className="relative py-16 lg:py-24 bg-[#ebefff] overflow-hidden">
       <div className="relative max-w-7xl mx-auto px-6">
+        
         {/* Heading */}
-        <div className="text-center mb-4 lg:mb-8">
-          <h2 className="text-2xl lg:text-5xl font-semibold text-slate-800 mb-4 leading-tight">
-            Your Fintech,
-            <span className="bg-blue-600 bg-clip-text text-transparent">
+        <div className="text-center mb-12 lg:mb-20">
+          <h2 className="text-3xl lg:text-4xl font-semibold text-slate-900 tracking-tight">
+            Your Fintech,{' '}
+            <span className="text-[#0066ff]">
               powered by us
             </span>
-            </h2>
+          </h2>
         </div>
 
         {/* Benefits Grid */}
-        <div className="grid lg:grid-cols-3 gap-0 lg:gap-12">
-          {benefits.map((benefit, index) => {
-            const Icon = benefit.icon;
-            return (
-              <div
-                key={index}
-                className="group relative px-6 lg:px-0"
-                style={{
-                  animation: `slideUp 0.6s ease-out ${index * 0.1}s both`,
-                }}
-              >
-                {/* White vertical separator line (visible between columns) */}
-                {/*{index > 0 && index % 3 !== 0 && (
-                  <div className="hidden lg:block absolute left-0 top-1/4 bottom-1/4 w-px bg-white/40"></div>
-                )}*/}
- 
-                {/* Content - no card background */}
-                <div className="relative py-8 lg:py-0 text-center">
-                  {/* Icon */}
-                  <div className={`inline-flex p-3 rounded-xl bg-gradient-to-br ${benefit.color} text-slate-800 mb-6 group-hover:scale-110 transition-transform duration-300`}>
-                    <Icon size={28} />
-                  </div>
- 
-                  {/* Title */}
-                  <h3 className="text-2xl lg:text-3xl font-bold text-slate-800 mb-3">
-                    {benefit.title}
-                  </h3>
- 
-                  {/* Description */}
-                  <p className="text-slate-800 leading-relaxed">
-                    {benefit.description}
-                  </p>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
+        <div className="grid lg:grid-cols-3 gap-0">
+          {benefits.map((benefit, index) => (
+            <div
+              key={index}
+              className="relative px-8 lg:px-12 text-center py-6 lg:py-2"
+            >
+              {/*White Vertical Dividers between columns */}
+              {index > 0 && (
+                <div className="hidden lg:block absolute left-0 top-1/2 -translate-y-1/2 h-32 w-1 bg-white"></div>
+              )}
 
-      <style jsx>{`
-        @keyframes slideUp {
-          from {
-            opacity: 0;
-            transform: translateY(20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-      `}</style>
+              {/* Content Block */}
+              <div className="flex flex-col items-center">
+                
+                {/* 3. Two-Tone Split Title (Blue prefix + Dark suffix) */}
+                <h3 className="text-xl lg:text-2xl font-semibold text-slate-900 mb-4">
+                  <span className="text-[#0066ff]">{benefit.highlight}</span>{' '}
+                  {benefit.text}
+                </h3>
+
+                {/* 4. Exact copy-matched descriptions */}
+                <p className="text-slate-500 text-sm lg:text-[15px] leading-relaxed max-w-sm">
+                  {benefit.description}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+
+      </div>
     </section>
   );
 }

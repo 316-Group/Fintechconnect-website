@@ -1,111 +1,76 @@
 import React from 'react';
-import { TrendingUp, Lock, Zap, Globe, BarChart3, Shield } from 'lucide-react';
 
-export default function FeaturesSection() {
-  const features = [
-    {
-      icon: TrendingUp,
-      title: 'Connected Accounts',
-      description: 'Progamatically create accounts for customers, equipping them with rich financial capabilities.',
-      image: '/feature-analytics.png',
-    },
-    
-    
-  ];
 
+
+const features = [
+  {
+    iconPath: '/icons/speed icon.png',
+    title: 'Speed to Market',
+    description: 'Our pre-built modules and ready-made UI components eliminate the infrastructure groundwork entirely, so your team ships faster than the competition.',
+  },
+  {
+    iconPath: '/icons/cost icon.png', 
+    title: 'Cost Efficient',
+    description: 'Avoid the upfront cost of building financial infrastructure from scratch. Fintech Connect operates on a transparent, modular model, you only pay for the modules you use.',
+  },
+  {
+    iconPath: '/icons/flexible icon.png', 
+    title: 'Flexible & Modular',
+    description: 'Pick only the modules your product needs. Start with a single module and expand over time, or launch a full-stack solution from day one. Every module is independently deployable and works seamlessly with the others.',
+  },
+  {
+    iconPath: '/icons/crypto icon.png', 
+    title: 'Fiat & Crypto in one platform',
+    description: 'Our infrastructure is purpose-built to support both traditional banking and digital assets natively. Manage fiat accounts, crypto wallets, and on/off ramps from a single, unified platform.',
+  },
+  {
+    iconPath: '/icons/compliance icon.png',
+    title: 'Compliance Ready',
+    description: 'Every module ships with pre-certified compliance tools : KYC/KYB, AML screening, transaction monitoring, and audit-ready reporting. Stay ahead of regulators from day one.',
+  },
+  {
+    iconPath: '/icons/regulatory icon.png', 
+    title: 'Regulatory Readiness',
+    description: 'Fintech Connect meets the essential regulatory requirements for modular core banking and crypto platforms across multiple jurisdictions. Our infrastructure is built to support EMI, BaaS, and crypto licensing frameworks globally.',
+  },
+];
+
+const FeaturesSection = () => {
   return (
-    <section className="relative py-16 lg:py-24 bg-white overflow-hidden">
-      {/* Decorative background elements */}
-      <div className="absolute top-0 right-0 w-96 h-96 bg-blue-50 rounded-full blur-3xl -z-10"></div>
-      <div className="absolute bottom-0 left-0 w-96 h-96 bg-indigo-50 rounded-full blur-3xl -z-10"></div>
-
-      <div className="max-w-7xl mx-auto px-8">
-        {/* Heading Section */}
-        <div className="text-center mb-12 lg:mb-16">
-          <h2 className="text-3xl lg:text-6xl font-bold text-slate-900 mb-4 leading-tight">
-            Build from scratch,
-            <span className="text-blue-600">launch in weeks.</span>
+    <section className="bg-white py-16 md:py-24">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="text-center mb-16 md:mb-20">
+          <h2 className="text-4xl md:text-4xl font-extrabold text-gray-900 leading-tight">
+            Build from scratch, launch in <span className="text-gray-900 line-through">Months</span> <span className="text-blue-600">weeks</span>
           </h2>
-          <p className="text-center text-slate-600">
-            Our global account allows you to easily convert funds between different assets,
-            either manually or automatically, ensuring access to favorable exchange rates 
-            and seamless international transactions.
+          <p className="mt-6 max-w-4xl mx-auto text-xl text-gray-600">
+            Fintech Connect gives your team a modular, pre-integrated platform of financial building blocks. Pick the modules you need, configure them to your brand, and go live with a fully regulated fintech product
           </p>
         </div>
 
-        {/* Features Grid */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {features.map((feature, index) => {
-            const Icon = feature.icon;
-            return (
-              <div
-                key={index}
-                className="group relative"
-                style={{
-                  animation: `slideUp 0.6s ease-out ${index * 0.08}s both`,
-                }}
-              >
-                {/* Card Container */}
-                <div className="relative h-full bg-white rounded-2xl border border-slate-200 overflow-hidden hover:border-blue-300 hover:shadow-xl transition-all duration-300 flex flex-col">
-                  {/* Image Area */}
-                  <div className="relative w-full h-48 bg-gradient-to-br from-slate-100 to-slate-50 overflow-hidden border-b border-slate-200 group-hover:from-slate-200 group-hover:to-slate-100 transition-colors duration-300">
-                    {/* Placeholder for product screenshot */}
-                    <img
-                      src={feature.image}
-                      alt={feature.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                      onError={(e) => {
-                        // Fallback: show gradient with icon if image fails to load
-                        (e.target as HTMLImageElement).style.display = 'none';
-                      }}
-                    />
-                    {/* Icon placeholder when image is not available */}
-                    <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-50">
-                      <Icon size={48} className="text-blue-400 opacity-40" />
-                    </div>
-                  </div>
-
-                  {/* Content Area */}
-                  <div className="p-6 flex flex-col flex-grow">
-                    {/* Icon Badge */}
-                    <div className="inline-flex p-2.5 rounded-lg bg-blue-100 text-blue-600 mb-4 w-fit group-hover:bg-blue-200 transition-colors duration-300">
-                      <Icon size={20} />
-                    </div>
-
-                    {/* Title */}
-                    <h3 className="text-xl font-bold text-slate-900 mb-2 group-hover:text-blue-600 transition-colors duration-300">
-                      {feature.title}
-                    </h3>
-
-                    {/* Description */}
-                    <p className="text-slate-600 text-sm leading-relaxed flex-grow">
-                      {feature.description}
-                    </p>
-
-                    {/* Bottom accent line */}
-                    <div className="mt-4 pt-4 border-t border-slate-100 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                      <span className="text-sm font-semibold text-blue-600">Learn more →</span>
-                    </div>
-                  </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+          {features.map((feature, index) => (
+            <div 
+            key={index} 
+            className="p-8 bg-white rounded-2xl border border-blue-50/50 shadow-lg shadow-blue-600/10 hover:shadow-2xl hover:shadow-blue-600/50 transition-all duration-300"
+            >
+              <div className="flex flex-col h-full">
+                <div className="mb-6">
+                  <img 
+                    src={feature.iconPath} 
+                    alt={`${feature.title} icon`} 
+                    className="w-12 h-12 object-contain"
+                  />
                 </div>
+                <h3 className="text-2xl font-bold text-gray-900 mb-4">{feature.title}</h3>
+                <p className="text-gray-600 text-base leading-relaxed flex-grow">{feature.description}</p>
               </div>
-            );
-          })}
+            </div>
+          ))}
         </div>
       </div>
-
-      <style jsx>{`
-        @keyframes slideUp {
-          from {
-            opacity: 0;
-            transform: translateY(20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-      `}</style>
     </section>
   );
-}
+};
+
+export default FeaturesSection;
