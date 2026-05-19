@@ -152,7 +152,7 @@ export default function Navbar() {
 
   return (
     <header className="sticky top-0 z-50 bg-black shadow-md">
-      <nav className="flex items-center justify-between px-8 py-6 max-w-7xl mx-auto">
+      <nav className="flex items-center justify-between w-full pl-20 pr-6 lg:pr-8 py-4">
         {/* Logo */}
         <svg width="150" height="50" viewBox="0 0 354 201" fill="none" xmlns="http://www.w3.org/2000/svg">
         <rect width="7.24888" height="52.7191" rx="3.62444" transform="matrix(0.0129111 -0.999917 -0.999917 -0.0129111 353.906 103.367)" fill="#0A63F8"/>
@@ -200,10 +200,10 @@ export default function Navbar() {
     const activeData = menu === "Products" ? platformModules : solutionModules;
 
     return (
-    <div className="absolute top-full left-1/2 -translate-x-1/4 mt-2 w-[90vw] max-w-[1000px] bg-white shadow-2xl overflow-hidden z-50 flex flex-col">
+    <div className="absolute top-full left-1/2 -translate-x-1/4 mt-2 w-[90vw] max-w-[1100px] bg-white shadow-2xl overflow-hidden z-50 flex flex-col">
       
       {/* 1. Shrunk Header */}
-      <div className="bg-[#b8d7ff] px-6 py-2">
+      <div className="bg-[#b8d7ff] px-6 py-3">
         <h2 className="text-xl font-bold text-[#0066ff]">
           {menu === "Products" ? "Platform Modules" : "Who We Serve"}
         </h2>
@@ -254,7 +254,7 @@ export default function Navbar() {
           </div>
  
                       {/* Heading */}
-                        <h3 className="text-lg font-bold text-white mb-8">
+                        <h3 className="text-lg font-bold text-white py-3 mb-8">
                           Ready to get started?
                         </h3>
  
@@ -272,10 +272,10 @@ export default function Navbar() {
  
             {/* 1. New Dedicated Resources Dropdown Style */}
 {menu === "Resources" && openMenu === menu && (
-  <div className="absolute top-full left-1/2 -translate-x-2/3 mt-2 w-[90vw] max-w-[1000px] bg-white shadow-2xl overflow-hidden z-50 flex flex-col">
+  <div className="absolute top-full left-1/2 -translate-x-4/9 mt-2 w-[90vw] max-w-[1100px] bg-white shadow-2xl overflow-hidden z-50 flex flex-col">
     
     {/* Header - Matching layout style */}
-    <div className="bg-[#b8d7ff] px-6 py-2">
+    <div className="bg-[#b8d7ff] px-6 py-3">
       <h2 className="text-xl font-bold text-[#0066ff]">Resources</h2>
     </div>
 
@@ -310,7 +310,7 @@ export default function Navbar() {
           />
         </div>
 
-        <h3 className="text-lg font-bold text-white mb-8">
+        <h3 className="text-lg font-bold text-white py-3 mb-8">
           Ready to get started?
         </h3>
 
@@ -324,7 +324,7 @@ export default function Navbar() {
 
 {/* 2. Fallback Dropdown for any other standard items (like Connectors) */}
 {menu !== "Products" && menu !== "Solutions" && menu !== "Resources" && openMenu === menu && (
-  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-[95vw] max-w-[600px] bg-white rounded-2xl shadow-2xl overflow-hidden z-50">
+  <div className="absolute top-full left-1/3 -translate-x-2/5 mt-2 w-[95vw] max-w-[600px] bg-white rounded-2xl shadow-2xl overflow-hidden z-50">
     <div className="bg-blue-200 px-6 py-4 border-b border-blue-300">
       <h2 className="text-2xl font-bold text-blue-900">{menu}</h2>
     </div>

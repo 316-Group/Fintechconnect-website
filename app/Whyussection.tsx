@@ -102,7 +102,7 @@ export default function WhyUsSection() {
         {/* ========================================================
             PART 2: Extended Section (Image Left, Text Right)
            ======================================================== */}
-        <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-center ">
+        <div className="w-full pl-25 pr-20 lg:pr-25 grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-center ">
           
           {/* Left Side: 1 Large Dashboard Image Placeholder */}
           <div className="relative w-full max-w-xl mx-auto lg:mx-0 py-4">
