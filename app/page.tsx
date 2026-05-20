@@ -8,7 +8,7 @@ import FooterSection from './Footersection';
 import GlobalAccountsSection from './Globalaccounts';
 import FeelProtectedSection from './Feelprotectedsection';
 import CarouselSection from './Carouselsection';
-
+import ModulesSection from './Modulessection';
 
 export default function MarketingHome() {
   return (
@@ -74,6 +74,9 @@ export default function MarketingHome() {
       {/* Carousel Section */}
       <CarouselSection />
 
+      {/* Modules Section */}
+      <ModulesSection />
+      
       {/* Why Us Section */}
       <WhyUsSection />
 
