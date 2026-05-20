@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+
 
 // data structure
 const categories = [
@@ -69,25 +70,21 @@ const categories = [
 ];
 
 const Card = ({ item }: { item: any }) => {
-  const [isHovered, setIsHovered] = useState(false);
+  const [isHovered, setIsHovered] = React.useState(false);
 
   return (
     <div 
-      className="relative min-w-[400px] h-[280px] border border-slate-800 rounded-2xl overflow-hidden cursor-pointer group transition-all duration-300"
+      className="relative min-w-[400px] h-[280px] border border-slate-800 rounded-2xl overflow-hidden cursor-pointer group transition-all duration-300 snap-start"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      {/* Image Rendering */}
       <img
-        src={item.image} 
+        src={item.image}
         alt={item.name}
-        className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-300"
+        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
       />
-      
-      {/* Dark overlay for text readability */}
       <div className="absolute inset-0 bg-black/40 group-hover:bg-black/60 transition-colors" />
       
-      {/* Content Container */}
       <div className="absolute inset-0 p-6 flex flex-col justify-end">
         <motion.div 
           animate={{ y: isHovered ? -40 : 0 }} 
@@ -114,25 +111,41 @@ const Card = ({ item }: { item: any }) => {
 };
 
 export default function CarouselSection() {
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  
+
+  const scroll = (direction: 'left' | 'right') => {
+    if (scrollContainerRef.current) {
+      const scrollAmount = 300; 
+      scrollContainerRef.current.scrollBy({
+        left: direction === 'left' ? -scrollAmount : scrollAmount,
+        behavior: 'smooth'
+      });
+    }
+  };
+
   return (
-    <section className="bg-slate-900 py-24 text-white">
-      <div className="w-full pl-25 pr-6 lg:pr-10">
-        <h2 className="text-center text-4xl font-bold mb-4">Fintech Connect powers {' '}
-            <span className="text-blue-500">innovators</span>
-        </h2>
-        <p className="text-center text-slate-400 max-w-3xl mx-auto mb-16">Fintech Connect gives your team a modular, pre-integrated platform of financial building blocks. Pick the modules you need, configure them to your brand, and go live with a fully regulated fintech product</p>
+    <section className="bg-[#0a0a0a] py-24 text-white overflow-hidden">
+      <div className="w-full pl-25 pr-20 lg:pr-25">
+        <h2 className="text-center text-4xl font-bold mb-4">Fintech Connect powers <span className="text-blue-500">innovators</span></h2>
+        <p className="mt-6 w-full pl-35 pr-6 lg:pr-35 text-center text-slate-400 mb-16">Fintech Connect gives your team a modular, pre-integrated platform of financial building blocks. Pick the modules you need, configure them to your brand, and go live with a fully regulated fintech product </p>
 
         {categories.map((cat, idx) => (
           <div key={idx} className="mb-12">
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-2xl font-medium text-[#0066ff]">{cat.title}</h3>
+              <h3 className="text-xl font-medium text-[#0066ff]">{cat.title}</h3>
               <div className="flex gap-2">
-                <button className="p-2 bg-slate-900 rounded-full hover:bg-blue-600 transition"><ChevronLeft size={18} /></button>
-                <button className="p-2 bg-slate-900 rounded-full hover:bg-blue-600 transition"><ChevronRight size={18} /></button>
+                <button onClick={() => scroll('left')} className="p-2 bg-slate-900 rounded-full hover:bg-blue-600 transition"><ChevronLeft size={18} /></button>
+                <button onClick={() => scroll('right')} className="p-2 bg-slate-900 rounded-full hover:bg-blue-600 transition"><ChevronRight size={18} /></button>
               </div>
             </div>
             
-            <div className="flex gap-3 overflow-x-hidden">
+            <div 
+              ref={scrollContainerRef}
+              className="flex gap-3 overflow-x-auto scrollbar-hide scroll-smooth snap-x pb-4"
+              style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+            >
               {cat.items.map((item, i) => <Card key={i} item={item} />)}
             </div>
           </div>

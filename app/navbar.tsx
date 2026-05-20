@@ -200,7 +200,7 @@ export default function Navbar() {
     const activeData = menu === "Products" ? platformModules : solutionModules;
 
     return (
-    <div className="absolute top-full left-1/2 -translate-x-1/4 mt-2 w-[90vw] max-w-[1100px] bg-white shadow-2xl overflow-hidden z-50 flex flex-col">
+    <div className="absolute top-full left-1/2 -translate-x-1/3 mt-2 w-[90vw] max-w-[1100px] bg-white shadow-2xl overflow-hidden z-50 flex flex-col">
       
       {/* 1. Shrunk Header */}
       <div className="bg-[#b8d7ff] px-6 py-3">
@@ -272,7 +272,7 @@ export default function Navbar() {
  
             {/* 1. New Dedicated Resources Dropdown Style */}
 {menu === "Resources" && openMenu === menu && (
-  <div className="absolute top-full left-1/2 -translate-x-4/9 mt-2 w-[90vw] max-w-[1100px] bg-white shadow-2xl overflow-hidden z-50 flex flex-col">
+  <div className="absolute top-full left-1/2 -translate-x-2/3 mt-2 w-[90vw] max-w-[1100px] bg-white shadow-2xl overflow-hidden z-50 flex flex-col">
     
     {/* Header - Matching layout style */}
     <div className="bg-[#b8d7ff] px-6 py-3">

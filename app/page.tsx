@@ -34,7 +34,7 @@ export default function MarketingHome() {
         <span className="text-[#0066ff] inline-block">Fintechs</span>
       </h1>
 
-      <p className="text-slate-400 text-sm lg:text-[15px] leading-relaxed mb-10 max-w-[500px] font-light">
+      <p className="text-slate-400 text-sm lg:text-[15px] leading-relaxed mb-10 max-w-[550px] font-light">
         We are infrastructure builders for the financial industry. Fintech Connect by 316 
         Group gives banks, fintechs, and financial institutions a modular, production 
         ready platform to design, assemble, and launch regulated financial products in 
