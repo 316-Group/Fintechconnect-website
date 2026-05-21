@@ -1,6 +1,6 @@
 import React from 'react';
 
-
+import { getPath } from '@/utils/helper';
 
 const features = [
   {
@@ -57,7 +57,7 @@ const FeaturesSection = () => {
               <div className="flex flex-col h-full">
                 <div className="mb-6">
                   <img 
-                    src={feature.iconPath} 
+                    src={getPath(feature.iconPath)} 
                     alt={`${feature.title} icon`} 
                     className="w-25 h-22 object-contain"
                   />

@@ -1,3 +1,4 @@
+import { getPath } from '@/utils/helper';
 import React from 'react';
 
 export default function FeelProtectedSection() {
@@ -30,7 +31,7 @@ export default function FeelProtectedSection() {
             
             {/* 3D glass cube image asset */}
             <img 
-              src="/blocks image.png" 
+              src={getPath("/blocks image.png")} 
               alt="Translucent interlocking 3D compliance and security glass cubes illustration" 
               className="w-full h-full object-contain object-center drop-shadow-[0_15px_30px_rgba(0,0,0,0.06)] animate-fade-in"
               

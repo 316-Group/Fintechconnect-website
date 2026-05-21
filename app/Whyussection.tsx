@@ -1,6 +1,9 @@
 import React from 'react';
 import { Check } from 'lucide-react';
 
+import { getPath } from '@/utils/helper';
+
+
 export default function WhyUsSection() {
   return (
     <section className="relative bg-white text-black py-16 lg:py-24 overflow-hidden">
@@ -43,7 +46,7 @@ export default function WhyUsSection() {
           <div className="w-full aspect-[4/3] bg-slate-100 rounded-[36px] overflow-hidden shadow-sm border border-slate-200/50 relative">
             {/* image */}
             <img 
-              src="/whyUs image.png" 
+              src={getPath("/whyUs image.png")} 
               alt="Why Us image" 
               className="w-full h-full object-cover object-center"
               
@@ -102,7 +105,7 @@ export default function WhyUsSection() {
         {/* ========================================================
             PART 2: Extended Section (Image Left, Text Right)
            ======================================================== */}
-        <div className="w-full pl-25 pr-20 lg:pr-25 grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-center ">
+        <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-center ">
           
           {/* Left Side: 1 Large Dashboard Image Placeholder */}
           <div className="relative w-full max-w-xl mx-auto lg:mx-0 py-4">
@@ -110,7 +113,7 @@ export default function WhyUsSection() {
             <div className="w-full">
               {/* PLACEHOLDER: Replace this path with your combined dashboard asset */}
               <img 
-                src="/transfersimage.png" 
+                src={getPath("/transfersimage.png")} 
                 alt="Transfers dashboard image" 
                 className="w-full h-full object-contain object-center"
               /> 

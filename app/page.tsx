@@ -10,6 +10,8 @@ import FeelProtectedSection from './Feelprotectedsection';
 import CarouselSection from './Carouselsection';
 import ModulesSection from './Modulessection';
 
+import { getPath } from '@/utils/helper';
+
 export default function MarketingHome() {
   return (
     <div className="bg-black">
@@ -56,7 +58,7 @@ export default function MarketingHome() {
   <div className="relative lg:absolute w-full lg:w-[50vw] h-[800px] sm:min-h-[650px] lg:h-full top-0 right-0 order-1 lg:order-2 ">
     <div className="w-full pl-10 pr-0 lg:pr-0 h-full flex items-center">
       <img 
-        src="/Group 2085662636.png" 
+        src={getPath("/Group 2085662636.png")} 
         alt="Fintech Connect desktop dashboard interface"
         className="w-full max-w-none lg:w-auto lg:h-[85%] object-contain object-left pointer-events-none drop-shadow-[0_20px_50px_rgba(0,0,0,0.5)]"
       />

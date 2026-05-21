@@ -1,15 +1,17 @@
 import React from 'react';
+import { getPath } from '@/utils/helper';
+
 
 const modules = [
-  { title: "Client Dashboard", desc: "Overview of customer accounts, recent transactions, and activity.", img: "https://via.placeholder.com/400x250?text=Dashboard" },
-  { title: "KYC & AML Compliance", desc: "Automated identity verification, PEP screening, and risk scoring.", img: "https://via.placeholder.com/400x250?text=Compliance" },
-  { title: "Payments API", desc: "Real-time payment initiation, scheduled transfers, and local rail access.", img: "https://via.placeholder.com/400x250?text=API" },
-  { title: "Core Ledger", desc: "Immutable, real-time balance tracking for internal accounts.", img: "https://via.placeholder.com/400x250?text=Ledger" },
-  { title: "Card Issuing", desc: "Virtual and physical card creation, BIN management, and spend controls.", img: "https://via.placeholder.com/400x250?text=Cards" },
-  { title: "FX Engine", desc: "Live currency conversion with competitive rates and swap functionality.", img: "https://via.placeholder.com/400x250?text=FX+Engine" },
-  { title: "Product Factory", desc: "Define and configure specific account types, loans, and investment products.", img: "https://via.placeholder.com/400x250?text=Product+Factory" },
-  { title: "Fraud Monitoring", desc: "AI-driven transaction monitoring, anomaly detection, and rule-based alerts.", img: "https://via.placeholder.com/400x250?text=Fraud+AI" },
-  { title: "Customer Support Hub", desc: "In-app chat, ticket management, and integrated support tools.", img: "https://via.placeholder.com/400x250?text=Support" },
+  { title: "Client Dashboard", desc: "Overview of customer accounts, recent transactions, and activity.", img: '/frontend.png' },
+  { title: "KYC & AML Compliance", desc: "Automated identity verification, PEP screening, and risk scoring.", img: '/rates.png' },
+  { title: "Payments API", desc: "Real-time payment initiation, scheduled transfers, and local rail access.", img: '/rates.png' },
+  { title: "Core Ledger", desc: "Immutable, real-time balance tracking for internal accounts.", img: '/frontend.png' },
+  { title: "Card Issuing", desc: "Virtual and physical card creation, BIN management, and spend controls.", img: '/rates.png' },
+  { title: "FX Engine", desc: "Live currency conversion with competitive rates and swap functionality.", img: '/rates.png' },
+  { title: "Product Factory", desc: "Define and configure specific account types, loans, and investment products.", img: '/frontend.png' },
+  { title: "Fraud Monitoring", desc: "AI-driven transaction monitoring, anomaly detection, and rule-based alerts.", img: '/rates.png' },
+  { title: "Customer Support Hub", desc: "In-app chat, ticket management, and integrated support tools.", img: '/rates.png' },
 ];
 
 export default function ModulesSection() {
@@ -31,15 +33,15 @@ export default function ModulesSection() {
           {modules.map((module, index) => (
             <div 
               key={index} 
-              className="bg-slate-100 p-6 rounded-3xl flex flex-col items-start text-left transition-transform hover:shadow-lg"
+              className="bg-blue-100 px-6 rounded-2xl flex flex-col items-start text-left transition-transform hover:shadow-lg"
             >
-              <h3 className="text-xl font-bold text-slate-900 mb-2">{module.title}</h3>
-              <p className="text-sm text-slate-500 mb-6 flex-grow">{module.desc}</p>
+              <h3 className="text-xl font-bold text-slate-900 mb-2 py-6">{module.title}</h3>
+              <p className="text-sm text-slate-500 mb-6 flex-grow py-2">{module.desc}</p>
               
               {/* Image Placeholder */}
-              <div className="w-full h-48 bg-slate-200 rounded-2xl overflow-hidden mt-auto">
+              <div className="w-full h-65 rounded-2xl">
                 <img 
-                  src={module.img} 
+                  src={getPath(module.img)} 
                   alt={module.title} 
                   className="w-full h-full object-cover"
                 />

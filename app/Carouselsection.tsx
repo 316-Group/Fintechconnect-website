@@ -2,6 +2,7 @@
 import React, { useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { getPath } from '@/utils/helper';
 
 // Data structure
 const categories = [
@@ -43,7 +44,7 @@ const Card = ({ item }: { item: any }) => {
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+      <img src={getPath(item.image)} alt={item.name} className="w-full h-full object-cover" />
 
       {/* Persistent Title */}
 
@@ -59,7 +60,7 @@ const Card = ({ item }: { item: any }) => {
       <div className="absolute bottom-6 left-6 right-6 z-20">
         <AnimatePresence>
           {isHovered && (
-            <motion.p 
+            <motion.div 
               initial={{ opacity: 5, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 10 }}
@@ -68,7 +69,7 @@ const Card = ({ item }: { item: any }) => {
               {/* We group the title and desc together so they animate up synchronously */}
               <h3 className="text-white text-xl font-bold mb-1">{item.name}</h3>
               {item.desc}
-            </motion.p>
+            </motion.div>
           )}
           {/* If you are not hovering, show ONLY the title in its normal position */}
           {!isHovered && (
