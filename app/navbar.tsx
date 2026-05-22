@@ -1,5 +1,7 @@
 "use client";
 import { useState } from "react";
+import { getPath } from '@/utils/helper';   
+
 
 export default function Navbar() {
   const [openMenu, setOpenMenu] = useState<string | null>(null);
@@ -247,7 +249,7 @@ export default function Navbar() {
         <div className="w-60 bg-[#0066ff] p-6 flex flex-col justify-center text-center">
           <div className="mb-4 transform scale-90">
             <img 
-              src="/menu screenshot.png" 
+              src={getPath("/menu screenshot.png")}   
               alt="Product Mockup"
               className="rounded-lg shadow-xl border border-white/10"
             />
@@ -304,7 +306,7 @@ export default function Navbar() {
       <div className="w-60 bg-[#0066ff] p-6 flex flex-col justify-center text-center">
         <div className="mb-4 transform scale-90">
           <img 
-            src="/menu screenshot.png" 
+            src={getPath("/menu screenshot.png")}   
             alt="Resource Feature"
             className="rounded-lg shadow-xl border border-white/10"
           />

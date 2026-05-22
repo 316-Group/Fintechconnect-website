@@ -1,5 +1,7 @@
 import React from 'react';
 import { Plus, ArrowRight } from 'lucide-react';
+import { getPath } from '@/utils/helper';
+
 
 export default function GlobalAccountsSection() {
   const features = [
@@ -52,7 +54,7 @@ export default function GlobalAccountsSection() {
           <div className="relative w-full max-w-xl mx-auto lg:mx-0 order-1 lg:order-2">
             {/*image*/}
               <img 
-                src="/globalaccounts image.png" 
+                src={getPath("/globalaccounts image.png")} 
                 alt="Latest transactions overview ledger interface" 
                 className="w-full h-full object-contain object-center"
               />
