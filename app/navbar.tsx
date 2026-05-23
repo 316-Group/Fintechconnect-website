@@ -1,10 +1,11 @@
 "use client";
 import { useState } from "react";
 import { getPath } from '@/utils/helper';   
-
+import { Menu, X } from "lucide-react";
 
 export default function Navbar() {
   const [openMenu, setOpenMenu] = useState<string | null>(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false); // Mobile menu state
   const [selectedModule, setSelectedModule] = useState<string>("Core Infrastructure");
 
 
@@ -155,6 +156,13 @@ export default function Navbar() {
   return (
     <header className="sticky top-0 z-50 bg-black shadow-md">
       <nav className="flex items-center justify-between w-full pl-20 pr-6 lg:pr-8 py-4">
+        {/* Hamburger Icon (Only visible on mobile) */}
+        <button 
+        className="md:hidden text-white" 
+        onClick={() => setMobileMenuOpen(true)}
+        >
+        <Menu size={24} />
+        </button>
         {/* Logo */}
         <svg width="150" height="50" viewBox="0 0 354 201" fill="none" xmlns="http://www.w3.org/2000/svg">
         <rect width="7.24888" height="52.7191" rx="3.62444" transform="matrix(0.0129111 -0.999917 -0.999917 -0.0129111 353.906 103.367)" fill="#0A63F8"/>
