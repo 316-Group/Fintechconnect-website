@@ -23,7 +23,7 @@ export default function BenefitsSection() {
   return (
     // 1. Replaced bg-gray-300 with the exact light lavender tint matching your design
     <section className="relative py-16 lg:py-24 bg-[#ebefff] overflow-hidden">
-      <div className="relative max-w-7xl mx-auto px-6">
+      <div className="w-full px-6 lg:px-6 max-w-[92.5%] mx-auto">
         
         {/* Heading */}
         <div className="text-center mb-12 lg:mb-20">

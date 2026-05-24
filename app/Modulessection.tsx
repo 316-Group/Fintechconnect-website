@@ -17,7 +17,7 @@ const modules = [
 export default function ModulesSection() {
   return (
     <section className="py-24 bg-white">
-      <div className="max-w-7xl mx-auto px-6 text-center">
+      <div className="w-full px-6 lg:px-6 max-w-[92.5%] mx-auto text-center">
         {/* Header Section */}
         <h2 className="text-4xl font-bold text-slate-900 mb-6">
           Fintech Connect powers <span className="text-blue-600">innovators</span>

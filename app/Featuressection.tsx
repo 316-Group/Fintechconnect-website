@@ -38,7 +38,7 @@ const features = [
 const FeaturesSection = () => {
   return (
     <section className="bg-white py-16 md:py-24">
-      <div className="w-full px-6 lg:px-6 max-w-[1400px] mx-auto">
+      <div className="w-full px-6 lg:px-6 max-w-[92.5%] mx-auto">
         
         <div className="text-center mb-16 md:mb-20">
           <h2 className="text-4xl md:text-5xl font-extrabold text-gray-900 leading-tight">
