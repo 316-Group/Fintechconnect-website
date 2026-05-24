@@ -7,7 +7,7 @@ export default function Navbar() {
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false); // Mobile menu state
   const [selectedModule, setSelectedModule] = useState<string>("Core Infrastructure");
-
+  const [mobileOpenSubMenu, setMobileOpenSubMenu] = useState<string | null>(null);
 
   const toggleMenu = (menu: string) => {
   if (openMenu === menu) {
@@ -155,7 +155,7 @@ export default function Navbar() {
 
   return (
     <header className="sticky top-0 z-50 bg-black shadow-md">
-      <nav className="flex items-center justify-between w-full pl-20 pr-6 lg:pr-8 py-4">
+      <nav className="flex items-center justify-between w-full pl-12 pr-6 lg:pr-8 py-4">
         {/* Hamburger Icon (Only visible on mobile) */}
         <button 
         className="md:hidden text-white" 
@@ -204,7 +204,7 @@ export default function Navbar() {
               </button>
  
               {/* Platform Modules Style Dropdown */}
-{(menu === "Products" || menu === "Solutions") && openMenu === menu && (
+            {(menu === "Products" || menu === "Solutions") && openMenu === menu && (
   // Logic to switch data based on which menu is open
   (() => {
     const activeData = menu === "Products" ? platformModules : solutionModules;
@@ -361,10 +361,32 @@ export default function Navbar() {
           ))}
         </div>
  
-        {/* CTA Button */}
-        <button className="bg-blue-600 text-white px-5 py-2.5 rounded-full font-medium hover:bg-blue-100 transition">
+        {/* Desktop CTA Button (Hidden md:block so it hides on mobile) */}
+        <button className="hidden md:block bg-blue-600 text-white px-5 py-2.5 rounded-full font-medium hover:bg-blue-100 transition">
           Book a Demo
         </button>
+
+        <div className={`fixed inset-0 bg-black z-[100] transform transition-transform duration-300 ease-in-out ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} md:hidden`}>
+          <div className="flex justify-between items-center p-6 border-b border-slate-800">
+            <span className="text-white font-bold">Menu</span>
+            <button onClick={() => setMobileMenuOpen(false)} className="text-white">
+              <X size={24} />
+            </button>
+          </div>
+          
+          <div className="flex flex-col p-6 gap-6">
+            {Object.keys(navItems).map((menu) => (
+              <div key={menu} className="text-white text-lg font-semibold cursor-pointer">
+                {menu}
+              </div>
+            ))}
+            
+            {/* CTA button inside the mobile menu */}
+            <button className="mt-4 bg-blue-600 text-white px-5 py-3 rounded-full font-medium w-full">
+              Book a Demo
+            </button>
+          </div>
+        </div>
       </nav>
     </header>
   );
