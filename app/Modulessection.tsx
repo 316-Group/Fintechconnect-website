@@ -36,13 +36,12 @@ export default function ModulesSection() {
   // Removed px-6 from the parent
   className="bg-blue-100 rounded-2xl flex flex-col items-start text-left transition-transform hover:shadow-lg overflow-hidden group cursor-pointer"
 >
-  {/* Added px-8 directly to the text elements */}
+  {/* Added px-6 directly to the text elements instead */}
   <h3 className="text-xl font-bold text-slate-900 mb-2 py-6 px-8">{module.title}</h3>
   <p className="text-sm text-slate-500 mb-4 flex-grow px-8">{module.desc}</p>
 
   {/* 2. The Blue Arrow Container */}
-  {/* FIX: Added shrink-0 to prevent squishing, and px-8 to align with text */}
-  <div className="px-8 mb-6 shrink-0">
+  <div className="px-6 mb-6">
     <svg 
       className="w-6 h-6 text-blue-600 transition-transform duration-300 group-hover:translate-x-2" 
       fill="none" 
@@ -53,13 +52,13 @@ export default function ModulesSection() {
     </svg>
   </div>
   
-  {/* Image Container */}
-  {/* Note: I removed mt-auto because flex-grow on the paragraph already pushes this to the bottom naturally. */}
-  <div className="w-full h-64 px-6 shrink-0">
+  {/* Now w-full naturally hits the very edges of the card */}
+  <div className="w-full h-64 mt-auto px-6">
     <img 
       src={getPath(module.img)} 
       alt={module.title} 
-      className="w-full h-full object-cover rounded-b-2xl"
+      // object-cover ensures no blank space is left inside the image block
+      className="w-full h-full object-cover"
     />
   </div>
 </div>
