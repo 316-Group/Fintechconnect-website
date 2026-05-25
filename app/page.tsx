@@ -19,16 +19,16 @@ export default function MarketingHome() {
       <Navbar />
 
       {/* Hero Section */}
-      <section className="relative bg-black text-white pt-20 pb-16 lg:pt-32 lg:pb-32 overflow-hidden w-full">
+      <section className="relative bg-black text-white pt-5 pb-10 lg:pt-32 lg:pb-32 overflow-hidden w-full">
         
         {/* 1. Replaced 'container mx-auto px-6 lg:px-20' with 'w-full' */}
-        <div className="w-full flex flex-col lg:flex-row items-center justify-between">
+        <div className="w-full flex flex-col lg:flex-row items-start justify-between">
           
           {/* 2. Text Box: Moved padding (pl-6 lg:pl-20) directly here to pin it to the left */}
-          <div className="w-full lg:w-[45%] flex flex-col items-start z-10 order-2 lg:order-1 mt-10 lg:mt-0 pl-6 lg:pl-20 pr-6 lg:pr-10">
-            <div className="inline-flex items-center rounded-md border border-slate-800 bg-black px-3 py-2 text-xs text-[#00ebcd] font-light mb-6 tracking-wide">
-              Modular. Integrated. Compliant.
-            </div>
+          <div className="w-full lg:w-[55%] flex flex-col items-start z-10 order-1 lg:order-1 mt-6 lg:mt-12 pl-6 lg:pl-20 pr-6 lg:pr-10">
+      <div className="inline-flex items-center rounded-md border border-slate-800 bg-black px-3 py-2 text-xs text-[#00ebcd] font-light mb-6 tracking-wide">
+        Modular. Integrated. Compliant.
+      </div>
 
       <h1 className="text-4xl md:text-5xl font-bold tracking-tight leading-[1.1] mb-6">
         White label bespoke <br className="hidden lg:block" /> 
@@ -36,7 +36,7 @@ export default function MarketingHome() {
         <span className="text-[#0066ff] inline-block">Fintechs</span>
       </h1>
 
-      <p className="text-slate-400 text-sm md:text-base leading-relaxed mb-10 max-w-[550px] font-light">
+      <p className="text-slate-400 text-sm md:text-base leading-relaxed mb-10 max-w-[650px] font-light">
         We are infrastructure builders for the financial industry. Fintech Connect by 316 
         Group gives banks, fintechs, and financial institutions a modular, production 
         ready platform to design, assemble, and launch regulated financial products in 
@@ -54,13 +54,13 @@ export default function MarketingHome() {
     </div>
 
     {/* Image Container */}
-    {/* We remove the fixed h-[800px] and use aspect ratios for better control */}
-    <div className="w-full lg:w-[55%] order-1 lg:order-2 flex justify-end pr-0">
+    {/* fixed h-[800px] and use aspect ratios for better control */}
+    <div className="w-full lg:w-[50%] order-1 lg:order-2 flex justify-end pr-0 pl-6 lg:pr-0 mt-10 lg:mt-0">
             <img 
               src={getPath("/Group 2085662636.png")} 
               alt="Fintech Connect dashboard"
-              // 4. Added lg:object-right to anchor the image to the right edge
-              className="w-full max-w-[500px] lg:max-w-none h-auto object-contain lg:object-right pointer-events-none"
+              // 4. lg:object-right to anchor the image to the right edge
+              className="w-full max-w-[600px] lg:max-w-none h-auto object-contain lg:object-right pointer-events-none"
       />
     </div>
   </div>

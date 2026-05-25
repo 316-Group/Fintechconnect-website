@@ -38,15 +38,15 @@ const features = [
 const FeaturesSection = () => {
   return (
     <section className="bg-white py-16 md:py-24">
-      <div className="w-full px-6 lg:px-6 max-w-[92.5%] mx-auto">
+      <div className="w-full px-3 lg:px-6 max-w-[92.5%] mx-auto">
         
-        <div className="text-center mb-16 md:mb-20">
-          <h2 className="text-4xl md:text-5xl font-extrabold text-gray-900 leading-tight">
+        <div className="text-center mb-10 md:mb-20">
+          <h2 className="text-4xl md:text-5xl font-extrabold text-gray-900">
             Build from scratch, launch in <span className="text-gray-900 line-through">months</span> <span className="text-blue-600">weeks</span>
           </h2>
           
           {/* To center the text beautifully on all screens */}
-          <p className="mt-6 mx-auto max-w-3xl text-lg md:text-xl text-gray-600">
+          <p className="mt-6 mx-auto max-w-3xl text-lg md:text-xl text-gray-600 text-center">
             Fintech Connect gives your team a modular, pre-integrated platform of financial building blocks. Pick the modules you need, configure them to your brand, and go live with a fully regulated fintech product
           </p>
         </div>

@@ -5,22 +5,22 @@ import { getPath } from '@/utils/helper';
 const modules = [
   { title: "Client Dashboard", desc: "Overview of customer accounts, recent transactions, and activity.", img: '/frontend.png' },
   { title: "KYC & AML Compliance", desc: "Automated identity verification, PEP screening, and risk scoring.", img: '/rates.png' },
-  { title: "Payments API", desc: "Real-time payment initiation, scheduled transfers, and local rail access.", img: '/rates.png' },
+  { title: "Payments API", desc: "Real-time payment initiation, scheduled transfers, and local rail access.", img: '/modules3.png' },
   { title: "Core Ledger", desc: "Immutable, real-time balance tracking for internal accounts.", img: '/frontend.png' },
   { title: "Card Issuing", desc: "Virtual and physical card creation, BIN management, and spend controls.", img: '/rates.png' },
-  { title: "FX Engine", desc: "Live currency conversion with competitive rates and swap functionality.", img: '/rates.png' },
+  { title: "FX Engine", desc: "Live currency conversion with competitive rates and swap functionality.", img: '/modules3.png' },
   { title: "Product Factory", desc: "Define and configure specific account types, loans, and investment products.", img: '/frontend.png' },
   { title: "Fraud Monitoring", desc: "AI-driven transaction monitoring, anomaly detection, and rule-based alerts.", img: '/rates.png' },
-  { title: "Customer Support Hub", desc: "In-app chat, ticket management, and integrated support tools.", img: '/rates.png' },
+  { title: "Customer Support Hub", desc: "In-app chat, ticket management, and integrated support tools.", img: '/modules3.png' },
 ];
 
 export default function ModulesSection() {
   return (
     <section className="py-24 bg-white">
-      <div className="w-full px-6 lg:px-6 max-w-[92.5%] mx-auto text-center">
+      <div className="w-full px-3 lg:px-6 max-w-[92.5%] mx-auto text-center">
         {/* Header Section */}
         <h2 className="text-4xl font-bold text-slate-900 mb-6">
-          Fintech Connect powers <span className="text-blue-600">innovators</span>
+          Modular first <span className="text-blue-600">architecture to customize your banking ecosystem</span>
         </h2>
         <p className="text-slate-600 max-w-4xl mx-auto mb-16">
           Fintech Connect gives your team a modular, pre-integrated platform of financial 
@@ -32,21 +32,37 @@ export default function ModulesSection() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {modules.map((module, index) => (
             <div 
-              key={index} 
-              className="bg-blue-100 px-6 rounded-2xl flex flex-col items-start text-left transition-transform hover:shadow-lg"
-            >
-              <h3 className="text-xl font-bold text-slate-900 mb-2 py-6">{module.title}</h3>
-              <p className="text-sm text-slate-500 mb-6 flex-grow py-2">{module.desc}</p>
-              
-              {/* Image Placeholder */}
-              <div className="w-full h-65 rounded-2xl">
-                <img 
-                  src={getPath(module.img)} 
-                  alt={module.title} 
-                  className="w-full h-full object-cover"
-                />
-              </div>
-            </div>
+  key={index} 
+  // Removed px-6 from the parent
+  className="bg-blue-100 rounded-2xl flex flex-col items-start text-left transition-transform hover:shadow-lg overflow-hidden group cursor-pointer"
+>
+  {/* Added px-8 directly to the text elements */}
+  <h3 className="text-xl font-bold text-slate-900 mb-2 py-6 px-8">{module.title}</h3>
+  <p className="text-sm text-slate-500 mb-4 flex-grow px-8">{module.desc}</p>
+
+  {/* 2. The Blue Arrow Container */}
+  {/* FIX: Added shrink-0 to prevent squishing, and px-8 to align with text */}
+  <div className="px-8 mb-6 shrink-0">
+    <svg 
+      className="w-6 h-6 text-blue-600 transition-transform duration-300 group-hover:translate-x-2" 
+      fill="none" 
+      stroke="currentColor" 
+      viewBox="0 0 24 24"
+    >
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+    </svg>
+  </div>
+  
+  {/* Image Container */}
+  {/* Note: I removed mt-auto because flex-grow on the paragraph already pushes this to the bottom naturally. */}
+  <div className="w-full h-64 px-6 shrink-0">
+    <img 
+      src={getPath(module.img)} 
+      alt={module.title} 
+      className="w-full h-full object-cover rounded-b-2xl"
+    />
+  </div>
+</div>
           ))}
         </div>
       </div>
