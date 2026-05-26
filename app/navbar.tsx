@@ -383,7 +383,7 @@ export default function Navbar() {
         )}
 
         {/* 2. Side Drawer Pane (Changed width to w-2/3 and handles animation) */}
-        <div className={`fixed top-0 left-0 bottom-0 w-2/3 sm:w-1/2 bg-black border-r border-slate-800 z-[100] transform transition-transform duration-300 ease-in-out ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} md:hidden overflow-y-auto`}>
+        <div className={`fixed top-0 left-0 bottom-0 w-3/3 sm:w-1/2 bg-black border-r border-slate-800 z-[100] transform transition-transform duration-300 ease-in-out ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} md:hidden overflow-y-auto`}>
           <div className="flex justify-between items-center p-6 border-b border-slate-800">
             <span className="text-white font-bold text-lg">Menu</span>
             <button onClick={() => setMobileMenuOpen(false)} className="text-white hover:text-blue-500 transition">

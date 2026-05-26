@@ -1,6 +1,12 @@
+"use client";
 import React from "react";
 import Navbar from "@/app/navbar";
 import { getPath } from "@/utils/helper";
+import ParallaxSection from "@/app/solutions/fintech-startups/parallaxsection";
+import DynamicSection from "@/app/solutions/fintech-startups/dynamicsection";
+import { Globe } from "@/components/ui/globe";
+import Footersection from "@/app/Footersection";
+import Newmodulessection from "@/app/solutions/fintech-startups/newmodulessection";
 
 export default function FintechStartups() {
   return (
@@ -8,11 +14,9 @@ export default function FintechStartups() {
       
       <Navbar />
 
-      {/* NEW: A master wrapper for all page content below the navbar. 
-        pt-32 (128px) clears standard fixed navbars on mobile.
-        md:pt-40 (160px) adds even more breathing room on desktop. 
+      {/* NEW: A master wrapper for all page content below the navbar.
       */}
-      <div className="pt-32 md:pt-80 w-full">
+      <div className="pt-10 md:pt-12 w-full">
         
         {/* Hero Header & Description Section */}
         <section className="text-center pb-12 px-4 max-w-4xl mx-auto">
@@ -20,7 +24,7 @@ export default function FintechStartups() {
             White label bespoke solutions for <span className="text-blue-600">Fintechs</span>
           </h1>
           
-          <p className="text-slate-600 font-normal text-base md:text-lg mb-8 leading-relaxed max-w-[200px] mx-auto">
+          <p className="text-slate-600 font-normal text-base md:text-lg mb-8 leading-relaxed max-w-[80%] mx-auto">
             We are infrastructure builders for the financial industry. Fintech Connect by 316 Group gives 
             banks, fintechs, and financial institutions a modular, production ready platform to design.
           </p>
@@ -32,20 +36,31 @@ export default function FintechStartups() {
         </section>
 
         {/* Single Large Bottom Image Asset */}
-        <section className="max-w-[1000px] mx-auto px-8 mt-12 md:mt-16">
-          <div className="w-full flex justify-center lg:px-16">
+        
             
             {/*ACTUAL IMAGE PATH */}
             <img 
               src={getPath("/solutions/solutionsmodule.png")} 
               alt="Fintech Connect dashboard visualization"
-              className="w-full h-auto object-contain rounded-2xl shadow-2xl shadow-slate-300/60"
+              className="w-full h-auto px-6 md:px-20 py-8 md:py-12 md:mb-20 object-contain rounded-2xl shadow-2xl shadow-slate-300/60"
             />
             
-          </div>
-        </section>
+          
+
+        
 
       </div>
+
+      <ParallaxSection />
+
+      <Newmodulessection />
+
+      <DynamicSection />
+
+      
+
+      <Footersection/>
+
     </div>
   );
 }

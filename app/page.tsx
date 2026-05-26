@@ -24,8 +24,8 @@ export default function MarketingHome() {
         {/* 1. Replaced 'container mx-auto px-6 lg:px-20' with 'w-full' */}
         <div className="w-full flex flex-col lg:flex-row items-start justify-between">
           
-          {/* 2. Text Box: Moved padding (pl-6 lg:pl-20) directly here to pin it to the left */}
-          <div className="w-full lg:w-[55%] flex flex-col items-start z-10 order-1 lg:order-1 mt-6 lg:mt-12 pl-6 lg:pl-20 pr-6 lg:pr-10">
+          {/* 2. Text Box*/}
+          <div className="w-full lg:w-[55%] flex flex-col items-start z-10 order-1 lg:order-1 mt-6 lg:mt-20 pl-6 lg:pl-20 pr-6 lg:pr-10">
       <div className="inline-flex items-center rounded-md border border-slate-800 bg-black px-3 py-2 text-xs text-[#00ebcd] font-light mb-6 tracking-wide">
         Modular. Integrated. Compliant.
       </div>

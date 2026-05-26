@@ -14,19 +14,15 @@ const modules = [
   { title: "Customer Support Hub", desc: "In-app chat, ticket management, and integrated support tools.", img: '/modules3.png' },
 ];
 
-export default function ModulesSection() {
+export default function NewmodulesSection() {
   return (
     <section className="py-24 bg-white">
-      <div className="w-full px-3 lg:px-6 max-w-[92.5%] mx-auto text-center">
+      <div className="w-full px-3 lg:px-6 max-w-[92.5%] mx-auto">
         {/* Header Section */}
-        <h2 className="text-4xl font-bold text-slate-900 mb-6">
-          Modular first <span className="text-blue-600">architecture to customize your banking ecosystem</span>
+        <h2 className="text-4xl font-bold text-slate-900 mb-16">
+          Essential Building Blocks to <><br /></>Launch Fintech Today
         </h2>
-        <p className="text-slate-600 max-w-4xl mx-auto mb-16">
-          Fintech Connect gives your team a modular, pre-integrated platform of financial 
-          building blocks. Pick the modules you need, configure them to your brand, 
-          and go live with a fully regulated fintech product.
-        </p>
+        
 
         {/* 3x3 Grid Section */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
