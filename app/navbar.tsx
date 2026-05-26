@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { getPath } from '@/utils/helper';   
 import { Menu, X } from "lucide-react";
+import Link from "next/link";
 
 export default function Navbar() {
   const [openMenu, setOpenMenu] = useState<string | null>(null);
@@ -136,7 +137,7 @@ export default function Navbar() {
     { title: "For Insurance Companies", description: "Corporate treasury and SME lending solutions." },
   ],
   "Digital Finance": [
-    { title: "Fintech Startups", description: "Integrate credit products into any platform.", href: "/solutions/fintech-startups" },
+    { title: "Fintech Startups", description: "Integrate credit products into any platform.", href: "/solutions/fintech-startups/" },
     { title: "Neobanks & Challenger Banks", description: "Seamless checkout experiences for marketplaces." },
   ],
   "Payments": [
@@ -243,7 +244,7 @@ export default function Navbar() {
         <div className="flex-1 p-10 bg-white">
   <div className="grid grid-cols-2 gap-x-16 gap-y-12">
     {activeData[selectedModule]?.map((module, idx) => (
-      <a 
+      <Link 
         key={idx}
         href={module.href || "#"}
         target={module.href ? "_blank" : undefined}
@@ -256,7 +257,7 @@ export default function Navbar() {
         <p className="text-slate-500 leading-snug text-xs group-hover:text-slate-700 transition-colors">
           {module.description}
         </p>
-      </a>
+      </Link>
     ))}
   </div>
   </div>
