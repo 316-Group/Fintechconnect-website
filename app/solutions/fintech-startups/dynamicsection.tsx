@@ -14,7 +14,7 @@ export default function DynamicSection() {
   </div>
 
       {/* CONTENT INNER WRAPPER */}
-      <div className="relative z-10 max-w-full mx-auto px-0 md:px-16 w-full flex flex-col md:gap-24">
+      <div className="relative z-10 max-w-full mx-auto px-1 md:px-16 w-full flex flex-col md:gap-24">
         
         {/* Top Text Block (Asymmetric split wrapper) */}
         <div className="max-w-2xl">

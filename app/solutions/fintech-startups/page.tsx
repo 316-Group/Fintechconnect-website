@@ -46,7 +46,7 @@ export default function FintechStartups() {
             <img 
               src={getPath("/solutions/solutionsmodule.png")} 
               alt="Fintech Connect dashboard visualization"
-              className="w-full h-auto px-6 md:px-20 py-8 md:py-12 md:mb-0 object-contain rounded-2xl shadow-2xl shadow-slate-300/60"
+              className="w-full h-auto px-4 md:px-20 py-4 md:py-12 md:mb-0 md:object-contain rounded-2xl shadow-2xl shadow-slate-300/60"
             />
             
           

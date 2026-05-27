@@ -213,30 +213,30 @@ export default function Navbar() {
     const activeData = menu === "Products" ? platformModules : solutionModules;
 
     return (
-    <div className="absolute top-full left-1/2 -translate-x-1/3 mt-2 w-[90vw] max-w-[1100px] bg-white shadow-2xl overflow-hidden z-50 flex flex-col">
-      
-      {/* 1. Shrunk Header */}
-      <div className="bg-[#b8d7ff] px-6 py-3">
-        <h2 className="text-xl font-bold text-[#0066ff]">
-          {menu === "Products" ? "Platform Modules" : "Who We Serve"}
-        </h2>
-      </div>
+  <div className="fixed top-[70px] left-1/2 -translate-x-1/2 w-[90vw] max-w-[75vw] bg-white shadow-2xl overflow-hidden z-50 flex flex-col">
+    
+    {/* 1. Shrunk Header */}
+    <div className="bg-[#b8d7ff] px-6 py-3">
+      <h2 className="text-xl font-bold text-[#0066ff]">
+        {menu === "Products" ? "Platform Modules" : "Who We Serve"}
+      </h2>
+    </div>
 
-      <div className="flex min-h-[350px]">
-        {/* 2. Scaled Left Sidebar (w-72 -> w-56) */}
-        <div className="w-56 bg-[#ebefff] pt-8 pb-4 px-1 flex flex-col gap-1">
-          {Object.keys(activeData).map((module) => (
-            <button
-              key={module}
-              onClick={() => setSelectedModule(module)}
-              className={`text-left px-4 py-3 rounded-0 font-semibold transition-all text-sm ${
-                selectedModule === module
-                  ? "bg-white text-black shadow-[-3px_0_0_0_#0066ff] translate-x-1" 
-                  : "text-slate-500 hover:text-slate-900"
-              }`}
-           >
-              {module}
-            </button>
+    <div className="flex min-h-[350px]">
+      {/* 2. Scaled Left Sidebar (w-72 -> w-56) */}
+      <div className="w-56 bg-[#ebefff] pt-8 pb-4 px-1 flex flex-col gap-1">
+        {Object.keys(activeData).map((module) => (
+          <button
+            key={module}
+            onClick={() => setSelectedModule(module)}
+            className={`text-left px-4 py-3 rounded-0 font-semibold transition-all text-sm ${
+              selectedModule === module
+                ? "bg-white text-black shadow-[-3px_0_0_0_#0066ff] translate-x-1" 
+                : "text-slate-500 hover:text-slate-900"
+            }`}
+         >
+            {module}
+          </button>
           ))}
         </div>
 
@@ -291,7 +291,7 @@ export default function Navbar() {
  
             {/* 1. New Dedicated Resources Dropdown Style */}
 {menu === "Resources" && openMenu === menu && (
-  <div className="absolute top-full left-1/2 -translate-x-2/3 mt-2 w-[90vw] max-w-[1100px] bg-white shadow-2xl overflow-hidden z-50 flex flex-col">
+  <div className="fixed top-[70px] left-1/2 -translate-x-1/2 w-[90vw] max-w-[75vw] bg-white shadow-2xl overflow-hidden z-50 flex flex-col">
     
     {/* Header - Matching layout style */}
     <div className="bg-[#b8d7ff] px-6 py-3">
@@ -428,7 +428,7 @@ export default function Navbar() {
     {/* Scenario A: Products & Solutions layout mapping */}
     {activeModules && Object.keys(activeModules).map((subCategory) => (
       <div key={subCategory} className="mt-1">
-        <h4 className="text-xs font-bold text-blue-400 uppercase tracking-wider mb-1.5">{subCategory}</h4>
+        <h4 className="text-xs font-bold text-blue-400 inline-block border-b border-blue-400 uppercase tracking-wider mb-1.5">{subCategory}</h4>
         <div className="pl-2 flex flex-col gap-2">
           {activeModules[subCategory].map((module, idx) => (
 
@@ -439,7 +439,7 @@ export default function Navbar() {
               rel={module.href ? "noopener noreferrer" : undefined}
               className="block cursor-pointer group active:opacity-70 transition-all duration-100"
             >
-              <p className="text-white text-sm font-medium pb-0.5 inline-block border-b border-blue-400 transition-colors group-hover:text-blue-400 group-hover:border-blue-400 active:text-blue-300 active:border-blue-300">
+              <p className="text-white text-sm font-medium pb-0.5 inline-block transition-colors group-hover:text-blue-400 group-hover:border-blue-400 active:text-blue-300 active:border-blue-300">
                 {module.title}
               </p>
             </Link>

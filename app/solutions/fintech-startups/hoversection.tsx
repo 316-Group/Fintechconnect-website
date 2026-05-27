@@ -47,10 +47,10 @@ export default function HoverSection() {
   ];
 
   return (
-    <section className="w-full bg-[#fcfcfd] py-20 px-6 md:px-12 flex flex-col items-center overflow-hidden">
+    <section className="w-full bg-[#fcfcfd] py-20 px-6 md:px-12 flex flex-col md:items-center overflow-hidden">
       
       {/* HEADER BLOCK */}
-      <div className="text-center mb-16 max-w-3xl">
+      <div className="md:text-center mb-16 max-w-3xl">
         <span className="text-sm font-bold text-blue-600 uppercase tracking-wider block mb-3">
           Customer Stories
         </span>
