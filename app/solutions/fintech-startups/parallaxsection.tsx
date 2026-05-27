@@ -60,11 +60,11 @@ export default function ParallaxSection() {
   }, []);
 
   return (
-    <section className="bg-slate-900 text-white py-24 px-6 md:px-6 lg:px-16 font-sans">
+    <section className="bg-slate-900 text-white py-12 md:py-20 px-6 md:px-6 lg:px-16 font-sans">
       <div className="w-full mx-auto">
         
         {/* Main Heading */}
-        <h2 className="text-3xl md:text-3xl font-bold mb-20 md:max-w-[40%] leading-tight text-white tracking-tight">
+        <h2 className="text-3xl md:text-3xl font-bold mb-2 md:pl-4 md:max-w-[40%] leading-tight text-white tracking-tight">
           What Fintech Founders Struggle With and How Fintech Connect Fixes It
         </h2>
 

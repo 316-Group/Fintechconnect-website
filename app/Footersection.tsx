@@ -36,10 +36,10 @@ export default function FooterSection() {
 
   return (
     <footer className="bg-black text-white pt-16 pb-12 w-full font-sans selection:bg-[#0066ff]/30">
-      <div className="max-w-7xl mx-auto px-6 lg:px-8">
+      <div className="max-w-full pl:6 md:pl-10 mx-auto ">
         
         {/* Main Content Area */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-10 lg:gap-6 pb-16">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-10 lg:gap-6 pb-16 pl-6 md:pl-16 md:pr-10">
           
           {/* Column 1: Brand Identifier & Contact (Spans 2 columns width on large displays) */}
           <div className="lg:col-span-2 flex flex-col items-start justify-between min-h-[140px]">

@@ -3,15 +3,15 @@ import { getPath } from '@/utils/helper';
 
 
 const modules = [
-  { title: "Client Dashboard", desc: "Overview of customer accounts, recent transactions, and activity.", img: '/frontend.png' },
-  { title: "KYC & AML Compliance", desc: "Automated identity verification, PEP screening, and risk scoring.", img: '/rates.png' },
-  { title: "Payments API", desc: "Real-time payment initiation, scheduled transfers, and local rail access.", img: '/modules3.png' },
-  { title: "Core Ledger", desc: "Immutable, real-time balance tracking for internal accounts.", img: '/frontend.png' },
-  { title: "Card Issuing", desc: "Virtual and physical card creation, BIN management, and spend controls.", img: '/rates.png' },
-  { title: "FX Engine", desc: "Live currency conversion with competitive rates and swap functionality.", img: '/modules3.png' },
-  { title: "Product Factory", desc: "Define and configure specific account types, loans, and investment products.", img: '/frontend.png' },
-  { title: "Fraud Monitoring", desc: "AI-driven transaction monitoring, anomaly detection, and rule-based alerts.", img: '/rates.png' },
-  { title: "Customer Support Hub", desc: "In-app chat, ticket management, and integrated support tools.", img: '/modules3.png' },
+  { title: "KYC & AML Compliance", desc: "Verify individuals and businesses across 190+ countries in minutes. Automated document checks, biometric liveness detection, and UBO identification ", img: '/frontend.png' },
+  { title: "Core Banking Engine", desc: "Launch a fully featured banking core without building one. Manage multi-currency accounts, automate transaction processing, and connect to global payment rails", img: '/rates.png' },
+  { title: "Global Payments Infrastructure", desc: "Power payments across and local and international rails in 180+ countries. Real-time transaction processing with full payment traceability at every step.", img: '/modules3.png' },
+  { title: " AI Fraud Monitoring", desc: "A self-learning fraud engine that scores every transaction in under 50ms. Behavioural profiling, anomaly detection, and automated alerts.", img: '/frontend.png' },
+  { title: "Card Issuing", desc: "Issue branded virtual and physical  cards without owning any card infrastructure. Configure spend controls, and go live with your card programme in weeks.", img: '/rates.png' },
+  { title: "White Label Bank Portal", desc: "Deploy a fully branded web and mobile banking experience with account dashboards, transfers, card management, and a powerful admin back-office. No frontend development required.", img: '/modules3.png' },
+  { title: "Wallet-as-a-Service", desc: "Launch branded, secure digital wallets with multi-currency support, instant P2P transfers, and integrated KYC onboarding  without building wallet infrastructure from scratch.", img: '/frontend.png' },
+  { title: "Real-Time Ledger", desc: "A robust, double-entry accounting engine built for regulatory-grade transparency and financial accuracy. Every transaction processed on your platform is automatically recorded, traceable, and auditable.", img: '/rates.png' },
+  { title: "Crypto Wallets", desc: "Offer your users institutional-grade, multi-asset crypto wallets with real-time balance tracking, full transaction histories, and configurable hot/cold storage tiering. ", img: '/modules3.png' },
 ];
 
 export default function NewmodulesSection() {
@@ -33,7 +33,7 @@ export default function NewmodulesSection() {
   className="bg-blue-100 rounded-2xl flex flex-col items-start text-left transition-transform hover:shadow-lg overflow-hidden group cursor-pointer"
 >
   {/* Added px-6 directly to the text elements instead */}
-  <h3 className="text-xl font-bold text-slate-900 mb-2 py-6 px-8">{module.title}</h3>
+  <h3 className="text-xl font-bold text-slate-900 mb-2 md:mt-3 py-6 px-8">{module.title}</h3>
   <p className="text-sm text-slate-500 mb-4 flex-grow px-8">{module.desc}</p>
 
   {/* 2. The Blue Arrow Container */}

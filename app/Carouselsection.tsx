@@ -141,10 +141,10 @@ export default function CarouselSection() {
         
         {/* 7. Responsive right padding for the text container */}
         <div className="pr-6 lg:pr-20">
-          <h2 className="text-center text-3xl md:text-4xl font-bold mb-4">
+          <h2 className="md:text-center text-3xl md:text-4xl font-bold mb-4">
             Fintech Connect powers <span className="text-blue-500">innovators</span>
           </h2>
-          <p className="mt-4 md:mt-6 text-center text-slate-400 mb-12 md:mb-16 max-w-3xl mx-auto text-sm md:text-base">
+          <p className="mt-4 md:mt-6 md:text-center text-slate-400 mb-12 md:mb-16 max-w-3xl mx-auto text-sm md:text-base">
             Fintech Connect gives your team a modular, pre-integrated platform of financial building blocks. Pick the modules you need, configure them to your brand, and go live with a fully regulated fintech product.
           </p>
         </div>

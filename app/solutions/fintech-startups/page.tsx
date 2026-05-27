@@ -7,10 +7,14 @@ import DynamicSection from "@/app/solutions/fintech-startups/dynamicsection";
 import { Globe } from "@/components/ui/globe";
 import Footersection from "@/app/Footersection";
 import Newmodulessection from "@/app/solutions/fintech-startups/newmodulessection";
+import BackgroundSection from "@/app/solutions/fintech-startups/backgroundsection";
+import HoverSection from "@/app/solutions/fintech-startups/hoversection";
+import NewfeaturesSection from "@/app/solutions/fintech-startups/newfeaturessection";
+
 
 export default function FintechStartups() {
   return (
-    <div className="min-h-screen bg-blue-100 font-sans pb-24">
+    <div className="bg-blue-100 font-sans">
       
       <Navbar />
 
@@ -19,12 +23,12 @@ export default function FintechStartups() {
       <div className="pt-10 md:pt-12 w-full">
         
         {/* Hero Header & Description Section */}
-        <section className="text-center pb-12 px-4 max-w-4xl mx-auto">
+        <section className="md:text-center pl-6 pb-12 px-4 max-w-4xl mx-auto">
           <h1 className="text-3xl md:text-4xl font-bold text-slate-900 mb-6 tracking-tight">
             White label bespoke solutions for <span className="text-blue-600">Fintechs</span>
           </h1>
           
-          <p className="text-slate-600 font-normal text-base md:text-lg mb-8 leading-relaxed max-w-[80%] mx-auto">
+          <p className="text-slate-600 font-normal text-base md:text-lg mb-8 leading-relaxed max-w-[100%] mx-auto">
             We are infrastructure builders for the financial industry. Fintech Connect by 316 Group gives 
             banks, fintechs, and financial institutions a modular, production ready platform to design.
           </p>
@@ -42,7 +46,7 @@ export default function FintechStartups() {
             <img 
               src={getPath("/solutions/solutionsmodule.png")} 
               alt="Fintech Connect dashboard visualization"
-              className="w-full h-auto px-6 md:px-20 py-8 md:py-12 md:mb-20 object-contain rounded-2xl shadow-2xl shadow-slate-300/60"
+              className="w-full h-auto px-6 md:px-20 py-8 md:py-12 md:mb-0 object-contain rounded-2xl shadow-2xl shadow-slate-300/60"
             />
             
           
@@ -55,9 +59,13 @@ export default function FintechStartups() {
 
       <Newmodulessection />
 
+      <NewfeaturesSection />
+
       <DynamicSection />
 
-      
+      <BackgroundSection />
+
+      <HoverSection />
 
       <Footersection/>
 

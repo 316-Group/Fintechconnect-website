@@ -303,7 +303,7 @@ export default function Navbar() {
       <div className="flex-1 p-6 bg-white">
         <div className="grid grid-cols-3 gap-x-8 gap-y-6">
           {navItems.Resources.map((item) => (
-            <a 
+            <Link 
               key={item.label} 
               href={item.href}
               className="block group hover:bg-slate-50 p-2 rounded-0 transition-colors"
@@ -314,7 +314,7 @@ export default function Navbar() {
               <p className="text-slate-500 leading-snug text-xs">
                 {item.description}
               </p>
-            </a>
+            </Link>
           ))}
         </div>
       </div>
@@ -349,7 +349,7 @@ export default function Navbar() {
     </div>
     <div className="p-6 space-y-3">
       {navItems[menu as keyof typeof navItems]?.map((item) => (
-        <a
+        <Link
           key={item.label}
           href={item.href}
           className="p-4 rounded-xl border border-slate-200 hover:border-blue-600 hover:bg-blue-50 transition cursor-pointer group block"
@@ -361,7 +361,7 @@ export default function Navbar() {
           <p className="text-sm text-slate-600 group-hover:text-slate-700">
             {item.description}
           </p>
-        </a>
+        </Link>
       ))}
     </div>
   </div>
@@ -383,7 +383,7 @@ export default function Navbar() {
           />
         )}
 
-        {/* 2. Side Drawer Pane (Changed width to w-2/3 and handles animation) */}
+        {/* 2. Side Drawer Pane (handles animation) */}
         <div className={`fixed top-0 left-0 bottom-0 w-3/3 sm:w-1/2 bg-black border-r border-slate-800 z-[100] transform transition-transform duration-300 ease-in-out ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} md:hidden overflow-y-auto`}>
           <div className="flex justify-between items-center p-6 border-b border-slate-800">
             <span className="text-white font-bold text-lg">Menu</span>
@@ -423,29 +423,38 @@ export default function Navbar() {
                   </button>
 
                   {/* 3. Dropdown Content Accordion for Mobile */}
-                  {isSubMenuOpen && (
-                    <div className="mt-3 pl-3 border-l-2 border-blue-600/30 flex flex-col gap-3 animate-fadeIn">
-                      {/* Scenario A: Products & Solutions layout mapping */}
-                      {activeModules && Object.keys(activeModules).map((subCategory) => (
-                        <div key={subCategory} className="mt-1">
-                          <h4 className="text-xs font-bold text-blue-400 uppercase tracking-wider mb-1.5">{subCategory}</h4>
-                          <div className="pl-2 flex flex-col gap-2">
-                            {activeModules[subCategory].map((module, idx) => (
-                              <div key={idx} className="group">
-                                <p className="text-white text-sm font-medium">{module.title}</p>
-                                <p className="text-slate-400 text-[11px] leading-tight mt-0.5">{module.description}</p>
-                              </div>
-                            ))}
+{isSubMenuOpen && (
+  <div className="mt-3 pl-3 border-l-2 border-blue-600/30 flex flex-col gap-3 animate-fadeIn">
+    {/* Scenario A: Products & Solutions layout mapping */}
+    {activeModules && Object.keys(activeModules).map((subCategory) => (
+      <div key={subCategory} className="mt-1">
+        <h4 className="text-xs font-bold text-blue-400 uppercase tracking-wider mb-1.5">{subCategory}</h4>
+        <div className="pl-2 flex flex-col gap-2">
+          {activeModules[subCategory].map((module, idx) => (
+
+            <Link 
+              key={idx}
+              href={module.href || "#"}
+              target={module.href ? "_blank" : undefined}
+              rel={module.href ? "noopener noreferrer" : undefined}
+              className="block cursor-pointer group active:opacity-70 transition-all duration-100"
+            >
+              <p className="text-white text-sm font-medium pb-0.5 inline-block border-b border-blue-400 transition-colors group-hover:text-blue-400 group-hover:border-blue-400 active:text-blue-300 active:border-blue-300">
+                {module.title}
+              </p>
+            </Link>
+
+                      ))}
                           </div>
                         </div>
                       ))}
 
                       {/* Scenario B: Resources flat array mapping */}
                       {menu === "Resources" && navItems.Resources.map((item) => (
-                        <a key={item.label} href={item.href} className="block py-1">
+                        <Link key={item.label} href={item.href} className="block py-1">
                           <p className="text-white text-sm font-medium hover:text-blue-400">{item.label}</p>
                           <p className="text-slate-400 text-[11px] leading-tight mt-0.5">{item.description}</p>
-                        </a>
+                        </Link>
                       ))}
                     </div>
                   )}

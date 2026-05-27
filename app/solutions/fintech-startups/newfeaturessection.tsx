@@ -19,39 +19,29 @@ const features = [
     description: 'Pick only the modules your product needs. Start with a single module and expand over time, or launch a full-stack solution from day one. Every module is independently deployable and works seamlessly with the others.',
   },
   {
-    iconPath: '/icons/crypto icon.png', 
-    title: 'Fiat & Crypto in one platform',
-    description: 'Our infrastructure is purpose-built to support both traditional banking and digital assets natively. Manage fiat accounts, crypto wallets, and on/off ramps from a single, unified platform.',
-  },
-  {
     iconPath: '/icons/compliance icon.png',
     title: 'Compliance Ready',
     description: 'Every module ships with pre-certified compliance tools : KYC/KYB, AML screening, transaction monitoring, and audit-ready reporting. Stay ahead of regulators from day one.',
-  },
-  {
-    iconPath: '/icons/regulatory icon.png', 
-    title: 'Regulatory Readiness',
-    description: 'Fintech Connect meets the essential regulatory requirements for modular core banking and crypto platforms across multiple jurisdictions. Our infrastructure is built to support EMI, BaaS, and crypto licensing frameworks globally.',
   },
 ];
 
 const FeaturesSection = () => {
   return (
-    <section className="bg-white py-16 md:py-24">
+    <section className="bg-blue-150 py-16 md:py-24">
       <div className="w-full px-3 lg:px-6 max-w-[92.5%] mx-auto">
         
-        <div className="md:text-center mb-6 md:mb-20">
-          <h2 className="text-4xl md:text-5xl font-extrabold text-gray-900">
-            Build from scratch, launch in <span className="text-gray-900 line-through">months</span> <span className="text-blue-600">weeks</span>
+        <div className="mb-6 md:mb-20">
+          <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900">
+            Don't Choose Between Speed and Trust
           </h2>
           
           {/* To center the text beautifully on all screens */}
-          <p className="mt-6 mb-6 md:text-center mx-auto max-w-3xl text-lg md:text-xl text-gray-600">
-            Fintech Connect gives your team a modular, pre-integrated platform of financial building blocks. Pick the modules you need, configure them to your brand, and go live with a fully regulated fintech product
+          <p className="mt-6 mb-6 mx-auto max-w-full text-lg md:text-xl text-gray-600">
+            Many startups fail when their platforms can’t scale or suffer persistent latency.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-8">
           {features.map((feature, index) => (
             <div 
               key={index} 
