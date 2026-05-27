@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
+import { getPath } from "@/utils/helper";
 
 interface CardData {
   title: string;
@@ -20,28 +21,28 @@ export default function HoverSection() {
       description: "Issue branded virtual and physical cards without owning any card infrastructure. Configure spend controls, and go live with your card programme in weeks.",
       author: "Noah Garden",
       role: "Chief Product Officer",
-      bgImage: "/cards/insurancecompanies.png"
+      bgImage: getPath("/cards/insurancecompanies.png")
     },
     {
       title: "Scale global operations seamlessly",
       description: "Automate multi-currency payouts, connect domestic rails instantly, and eliminate cross-border friction points for your entire user base.",
       author: "Sarah Jenkins",
       role: "Head of Engineering",
-      bgImage: "/cards/neobanks.png"
+      bgImage: getPath("/cards/neobanks.png")
     },
     {
       title: "Uncompromising security and compliance",
       description: "Leverage bank-grade security protocols, built-in KYC, and robust fraud mitigation infrastructure out of the box.",
       author: "Marcus Vance",
       role: "Director of Compliance",
-      bgImage: "/cards/finance.png"
+      bgImage: getPath("/cards/finance.png")
     },
     {
       title: "Maximize checkout conversion rates",
       description: "Offer dynamic local payment methods, optimized smart routing, and seamless layout elements designed to convert.",
       author: "Elena Rostova",
       role: "VP of Product",
-      bgImage: "/cards/web3.png"
+      bgImage: getPath("/cards/web3.png")
     }
   ];
 

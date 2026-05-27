@@ -1,8 +1,9 @@
 import React from 'react';
+import { getPath } from "@/utils/helper";
 
 export default function BackgroundSection() {
   // PLACEHOLDER: Replace this string with your actual imported image path later
-  const backgroundImageSrc = "/background.png"; 
+  const backgroundImageSrc = getPath("/background.png");
 
   return (
     <section className="relative w-full min-h-[60vh] md:min-h-[62vh] flex items-center justify-center overflow-hidden bg-[#1532a8] px-6 py-12 md:text-center">
