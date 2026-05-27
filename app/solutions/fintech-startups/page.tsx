@@ -40,15 +40,20 @@ export default function FintechStartups() {
         </section>
 
         {/* Single Large Bottom Image Asset */}
-        
-            
-            {/*ACTUAL IMAGE PATH */}
-            <img 
-              src={getPath("/solutions/solutionsmodule.png")} 
-              alt="Fintech Connect dashboard visualization"
-              className="w-full h-auto px-4 md:px-20 py-4 md:py-12 md:mb-0 md:object-contain rounded-2xl shadow-2xl shadow-slate-300/60"
-            />
-            
+
+{/* MOBILE ONLY IMAGE - Hidden on medium screens (md) and up */}
+<img 
+  src={getPath("/mobileimage.png")} 
+  alt="Fintech Connect dashboard visualization mobile"
+  className="block md:hidden w-full h-auto px-4 py-4 pb-6 rounded-2xl shadow-2xl shadow-slate-300/60"
+/>
+
+{/* DESKTOP ONLY IMAGE - Hidden on mobile, blocks out on medium screens (md) and up */}
+<img 
+  src={getPath("/solutions/solutionsmodule.png")} 
+  alt="Fintech Connect dashboard visualization"
+  className="hidden md:block w-full h-auto md:px-20 md:py-12 md:mb-0 md:object-contain rounded-2xl shadow-2xl shadow-slate-300/60"
+/>
           
 
         
