@@ -114,7 +114,7 @@ export default function ParallaxSection() {
                 <div className="w-full lg:w-[150%] relative pt-8 md:pb-12">
                 {/* The main sticky container */}
                 <div className="sticky top-24 h-full max-w-[full] bg-[#1e1e1e] rounded-3xl overflow-hidden flex flex-col md:flex-row shadow-2xl transition-all duration-500">
-                <div className="w-full md:w-[45%] h-60 md:h-auto bg-slate-200 relative flex items-start p-6 border-b md:border-b-0 md:border-r border-gray-700 shrink-0 order-2">
+                <div className="w-full md:w-[45%] h-60 md:h-auto bg-slate-200 relative flex items-start p-6 border-b md:border-b-0 md:border-r border-gray-700 shrink-0 order-1">
                   <img 
                     src={getPath("/frontend.png")} 
                     alt="Fintech Connect Visual Architecture" 
@@ -122,7 +122,7 @@ export default function ParallaxSection() {
                   />
                 </div>
 
-                <div className="w-full md:w-1/2 p-8 lg:p-10 flex flex-col justify-center shrink-0 order-1">
+                <div className="w-full md:w-1/2 p-8 lg:p-10 flex flex-col justify-center shrink-0 order-2">
                   <h4 className="text-2xl font-bold text-blue-400 mb-4 tracking-tight">
                     {struggles[activeIndex].solutionTitle}
                   </h4>
@@ -166,13 +166,13 @@ export default function ParallaxSection() {
             {/* LEFT COLUMN: Clickable Items (Accordion Style) */}
             <div className="w-full lg:w-[1/3] relative pt-0 pb-6 ">
             {/* The vertical timeline line */}
-            <div className="absolute left-[31px] top-10 bottom-20 w-0.5 bg-slate-800 z-0"></div>
+            <div className="absolute left-[31px] top-20 bottom-20 w-0.5 bg-slate-800 z-0"></div>
 
               {struggles.map((item, index) => (
                 <div 
                   key={item.id}
                   data-index={index}
-                  className="parallax-step relative flex flex-col justify-center py-6 pl-6"
+                  className="parallax-step relative flex flex-col justify-center py-12 pl-6"
                 >
                   <div 
                     onClick={() => setActiveIndex(index)}
@@ -205,7 +205,7 @@ export default function ParallaxSection() {
             </div>
 
             {/* RIGHT COLUMN: Sticky Solution Box */}
-<div className="w-full lg:w-[150%] relative pt-8 pb-12">
+<div className="w-full lg:w-[150%] relative pt-0 pb-12">
   {/* The main sticky container */}
   <div className="sticky top-24 h-full max-w-[full] bg-[#1e1e1e] rounded-3xl overflow-hidden flex flex-col md:flex-row shadow-2xl transition-all duration-500">
                 <div className="w-full md:w-[45%] h-60 md:h-auto bg-slate-200 relative flex items-start p-6 border-b md:border-b-0 md:border-r border-gray-700 shrink-0">
