@@ -70,7 +70,7 @@ export default function ParallaxSection() {
   };
 
   return (
-    <section className="bg-slate-900 text-white py-12 md:py-20 px-6 md:px-6 lg:px-16 font-sans">
+    <section className="bg-gray-950 text-white py-12 md:py-20 px-6 md:px-6 lg:px-16 font-sans">
       <div className="w-full mx-auto">
         
       {/* ========================================================== */}
