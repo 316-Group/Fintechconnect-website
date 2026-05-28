@@ -3,7 +3,7 @@ import { Globe } from "@/components/ui/globe";
 
 export default function DynamicSection() {
   return (
-    <section className="relative w-full bg-[#fcfcfd] py-10 md:py-16 px-6 md:px-5 overflow-hidden min-h-[82vh] flex items-center">
+    <section className="relative w-full bg-[#fcfcfd] py-10 md:py-16 px-6 md:px-5 overflow-hidden min-h-[75vh] flex items-center">
       
       {/* GLOBE CONTAINER 
           Positions the Magic UI globe absolutely on the right side, 

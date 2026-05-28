@@ -11,6 +11,7 @@ const MOVEMENT_DAMPING = 1400
 const GLOBE_CONFIG: COBEOptions = {
   width: 1200,
   height: 1200,
+  scale: 1.3,
   onRender: () => {},
   devicePixelRatio: 2,
   phi: 0,
