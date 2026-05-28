@@ -106,7 +106,7 @@ export default function ParallaxSection() {
                 </div>
 
                 {/* Left Side Problem Context Box */}
-                <div className="bg-[#22252a] p-5 text-slate-300 text-sm leading-relaxed font-normal">
+                <div className=" p-5 text-slate-300 text-sm leading-relaxed font-normal">
                   {item.struggleDesc}
                 </div>
 
@@ -195,7 +195,7 @@ export default function ParallaxSection() {
                     activeIndex === index ? 'grid-rows-[1fr] opacity-100 mt-5' : 'grid-rows-[0fr] opacity-0 mt-0'
                   }`}>
                     <div className="overflow-hidden">
-                      <div className="bg-[#2a2a2a] p-6 md:p-8 text-slate-200 leading-relaxed text-sm md:text-base">
+                      <div className="p-6 md:p-8 text-slate-200 leading-relaxed text-sm md:text-base">
                         {item.struggleDesc}
                       </div>
                     </div>
