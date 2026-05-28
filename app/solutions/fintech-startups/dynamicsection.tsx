@@ -3,13 +3,13 @@ import { Globe } from "@/components/ui/globe";
 
 export default function DynamicSection() {
   return (
-    <section className="relative w-full bg-[#fcfcfd] py-10 md:py-16 px-6 md:px-5 overflow-hidden min-h-[95vh] flex items-center">
+    <section className="relative w-full bg-[#fcfcfd] py-10 md:py-16 px-6 md:px-5 overflow-hidden min-h-[85vh] flex items-center">
       
       {/* GLOBE CONTAINER 
           Positions the Magic UI globe absolutely on the right side, 
           letting it bleed beautifully off-screen to match the layout.
       */}
-      <div className="absolute top-3/5 md:top-135 -translate-y-2/3 -right-29 md:-right-85 w-[600px] h-[600px] md:w-[1000px] md:h-[1000px] pointer-events-none z-0">
+      <div className="absolute top-3/5 md:top-145 -translate-y-2/3 -right-29 md:-right-85 w-[600px] h-[600px] md:w-[1000px] md:h-[1000px] pointer-events-none z-0">
     <Globe className="w-full h-full" />
   </div>
 
