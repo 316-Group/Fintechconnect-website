@@ -3,13 +3,13 @@ import { Globe } from "@/components/ui/globe";
 
 export default function DynamicSection() {
   return (
-    <section className="relative w-full bg-[#fcfcfd] py-10 md:py-8 px-6 md:px-5 overflow-hidden min-h-[85vh] flex items-center">
+    <section className="relative w-full bg-[#fcfcfd] py-10 md:py-16 px-6 md:px-5 overflow-hidden min-h-[95vh] flex items-center">
       
       {/* GLOBE CONTAINER 
           Positions the Magic UI globe absolutely on the right side, 
           letting it bleed beautifully off-screen to match the layout.
       */}
-      <div className="absolute top-1/2 -translate-y-2/3 -right-32 md:-right-40 w-[600px] h-[600px] md:w-[900px] md:h-[900px] pointer-events-none z-0">
+      <div className="absolute top-3/5 md:top-135 -translate-y-2/3 -right-29 md:-right-85 w-[600px] h-[600px] md:w-[1000px] md:h-[1000px] pointer-events-none z-0">
     <Globe className="w-full h-full" />
   </div>
 
@@ -21,7 +21,7 @@ export default function DynamicSection() {
           <h2 className="text-4xl md:text-5xl font-bold text-slate-900 tracking-tight leading-[1.15] mb-6">
             Tap into the world’s local payments network
           </h2>
-          <p className="text-sm md:text-base text-slate-500 leading-relaxed font-normal mb-6">
+          <p className="text-sm md:text-base md:text-slate-500 leading-relaxed font-normal mb-6">
             Airwallex’s proprietary local payments network offers you a faster, more cost-effective, and
             transparent alternative to legacy banking. Operate like a local business from anywhere in the
             world - open accounts with local bank details in minutes, accept payments in local currency to

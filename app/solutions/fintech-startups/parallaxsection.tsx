@@ -35,6 +35,7 @@ const struggles = [
 
 export default function ParallaxSection() {
   const [activeIndex, setActiveIndex] = useState(0);
+  const mobileScrollRef = useRef<HTMLDivElement>(null);
 
   // Intersection Observer to detect which item is currently in focus
   useEffect(() => {
@@ -59,111 +60,179 @@ export default function ParallaxSection() {
     return () => observer.disconnect();
   }, []);
 
+  // Mobile Scroll Swipe Handler to recalculate card active index matching pagination metrics
+  const handleMobileScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const container = e.currentTarget;
+    const index = Math.round(container.scrollLeft / container.clientWidth);
+    if (index !== activeIndex && index >= 0 && index < struggles.length) {
+      setActiveIndex(index);
+    }
+  };
+
   return (
     <section className="bg-slate-900 text-white py-12 md:py-20 px-6 md:px-6 lg:px-16 font-sans">
       <div className="w-full mx-auto">
         
-        {/* Main Heading */}
-        <h2 className="text-3xl md:text-3xl font-bold mb-2 md:pl-4 md:max-w-[40%] leading-tight text-white tracking-tight">
-          What Fintech Founders Struggle With and How Fintech Connect Fixes It
-        </h2>
+      {/* ========================================================== */}
+        {/* 1. MOBILE-ONLY CAROUSEL VIEW (Visible on mobile/tablet)     */}
+        {/* ========================================================== */}
+        <div className="block lg:hidden w-full">
+          {/* Main Mobile Heading */}
+          <h2 className="text-2xl font-bold mb-8 text-white tracking-tight leading-tight">
+            What Fintech Founders Struggle With and How Fintech Connect Fixes It
+          </h2>
 
-        <div className="flex flex-col lg:flex-row gap-16 relative">
-          
-          {/* LEFT COLUMN: Clickable Items (Accordion Style) */}
-<div className="w-full lg:w-[1/3] relative py-12 ">
-  {/* The vertical timeline line */}
-  <div className="absolute left-[31px] top-20 bottom-20 w-0.5 bg-slate-800 z-0 hidden lg:block"></div>
+          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">
+            The Problems
+          </p>
 
-  {struggles.map((item, index) => (
-    <div 
-      key={item.id}
-      // Reduced vertical padding slightly for a cleaner click interaction flow
-      className="relative flex flex-col justify-center py-6 pl-6"
-    >
-      
-      {/* CLICKABLE HEADER ROW: Updates activeIndex on click */}
-      <div 
-        onClick={() => setActiveIndex(index)}
-        className="relative flex items-center gap-6 cursor-pointer group select-none"
-      >
-        {/* Timeline Dot (Glows when active, highlights on hover) */}
-        <div 
-          className={`w-4 h-4 shrink-0 rounded-full z-10 transition-all duration-500 ${
-            activeIndex === index 
-              ? 'bg-blue-500 shadow-[0_0_12px_rgba(59,130,246,0.6)] scale-110' 
-              : 'bg-slate-600 group-hover:bg-slate-400'
-          }`}
-        ></div>
+          {/* Swipe Container utilizing native layout snapping mechanism */}
+          <div 
+            ref={mobileScrollRef}
+            onScroll={handleMobileScroll}
+            className="flex w-full overflow-x-auto snap-x snap-mandatory gap-6 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+          >
+            {struggles.map((item, index) => (
+              <div 
+                key={item.id} 
+                className="w-full shrink-0 snap-center flex flex-col gap-4"
+              >
+                {/* Active Module Indicator Row */}
+                <div className="flex items-center gap-3">
+                  <div className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.8)]"></div>
+                  <h3 className="text-lg font-bold text-blue-400 tracking-tight">
+                    {item.struggleTitle}
+                  </h3>
+                </div>
 
-        {/* Heading (Changes color when active, subtle highlight on hover) */}
-        <h3 
-          className={`text-2xl md:text-3xl font-bold tracking-tight transition-colors duration-500 ${
-            activeIndex === index 
-              ? 'text-blue-500' 
-              : 'text-slate-500 group-hover:text-slate-400'
-          }`}
-        >
-          {item.struggleTitle}
-        </h3>
-      </div>
-      
-      {/* DESCRIPTION PANEL: Remains using the perfect grid-collapse transition */}
-      <div 
-        className={`pl-10 grid transition-all duration-500 ease-in-out ${
-          activeIndex === index 
-            ? 'grid-rows-[1fr] opacity-100 mt-5' 
-            : 'grid-rows-[0fr] opacity-0 mt-0'
-        }`}
-      >
-        <div className="overflow-hidden">
-          <div className="bg-[#2a2a2a] p-6 md:p-8 rounded-md text-slate-200 leading-relaxed text-sm md:text-base">
-            {item.struggleDesc}
+                {/* Left Side Problem Context Box */}
+                <div className="bg-[#22252a] p-5 text-slate-300 text-sm leading-relaxed font-normal">
+                  {item.struggleDesc}
+                </div>
+
+                {/* Right Side Strategy Content Box */}
+                <div className="w-full lg:w-[150%] relative pt-8 md:pb-12">
+                {/* The main sticky container */}
+                <div className="sticky top-24 h-full max-w-[full] bg-[#1e1e1e] rounded-3xl overflow-hidden flex flex-col md:flex-row shadow-2xl transition-all duration-500">
+                <div className="w-full md:w-[45%] h-60 md:h-auto bg-slate-200 relative flex items-start p-6 border-b md:border-b-0 md:border-r border-gray-700 shrink-0 order-2">
+                  <img 
+                    src={getPath("/frontend.png")} 
+                    alt="Fintech Connect Visual Architecture" 
+                    className="w-full h-full object-contain"
+                  />
+                </div>
+
+                <div className="w-full md:w-1/2 p-8 lg:p-10 flex flex-col justify-center shrink-0 order-1">
+                  <h4 className="text-2xl font-bold text-blue-400 mb-4 tracking-tight">
+                    {struggles[activeIndex].solutionTitle}
+                  </h4>
+                  <p className="text-slate-300 text-sm md:text-base mb-8 leading-relaxed">
+                    {struggles[activeIndex].solutionDesc}
+                  </p>
+                  <button className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-8 rounded-lg w-max transition-colors text-sm shadow-md shadow-blue-900/40">
+                    Book demo
+                  </button>
+                </div>
+              </div>
+            </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Pagination Counter Indicator & Vector Component */}
+          <div className="flex items-center justify-end gap-3 mt-6 text-sm font-semibold text-slate-400 tracking-wide">
+            <span>{activeIndex + 1} of {struggles.length}</span>
+            <div className="w-14 h-[1px] bg-slate-500 relative flex items-center justify-end">
+              <span className="absolute right-0 border-t border-r border-slate-500 w-1.5 h-1.5 rotate-45 transform -translate-y-[0.5px]"></span>
+            </div>
           </div>
         </div>
-      </div>
+        
+        {/* ========================================================== */}
+        {/* 2. DESKTOP PARALLAX VIEW (Hidden on mobile/tablet)         */}
+        {/* ========================================================== */}
+        <div className="hidden lg:block w-full">
+          {/* Desktop Main Heading */}
+          <h2 className="text-3xl md:text-3xl font-bold mb-2 md:pl-4 md:max-w-[40%] leading-tight text-white tracking-tight">
+            What Fintech Founders Struggle With and How Fintech Connect Fixes It
+          </h2>
 
-    </div>
-  ))}
-</div>
+          <p className="text-white text-sm md:text-base mb-12 md:mt-16 md:mb-0 md:pl-4 md:max-w-[40%] leading-relaxed">
+          The Problems.
+        </p>
 
-          {/* RIGHT COLUMN: Sticky Solution Box */}
-<div className="w-full lg:w-[150%] relative">
+          <div className="flex flex-col lg:flex-row gap-16 relative items-stretch">
+            
+            {/* LEFT COLUMN: Clickable Items (Accordion Style) */}
+            <div className="w-full lg:w-[1/3] relative pt-0 pb-6 ">
+            {/* The vertical timeline line */}
+            <div className="absolute left-[31px] top-10 bottom-20 w-0.5 bg-slate-800 z-0"></div>
+
+              {struggles.map((item, index) => (
+                <div 
+                  key={item.id}
+                  data-index={index}
+                  className="parallax-step relative flex flex-col justify-center py-6 pl-6"
+                >
+                  <div 
+                    onClick={() => setActiveIndex(index)}
+                    className="relative flex items-center gap-12 cursor-pointer group select-none"
+                  >
+                    <div className={`w-4 h-4 shrink-0 rounded-full z-10 transition-all duration-500 ${
+                      activeIndex === index 
+                        ? 'bg-blue-500 shadow-[0_0_12px_rgba(59,130,246,0.6)] scale-110' 
+                        : 'bg-slate-600 group-hover:bg-slate-400'
+                    }`}></div>
+
+                    <h3 className={`text-2xl md:text-3xl font-bold tracking-tight transition-colors duration-500 ${
+                      activeIndex === index ? 'text-blue-500' : 'text-slate-500 group-hover:text-slate-400'
+                    }`}>
+                      {item.struggleTitle}
+                    </h3>
+                  </div>
+                  
+                  <div className={`pl-10 grid transition-all duration-500 ease-in-out ${
+                    activeIndex === index ? 'grid-rows-[1fr] opacity-100 mt-5' : 'grid-rows-[0fr] opacity-0 mt-0'
+                  }`}>
+                    <div className="overflow-hidden">
+                      <div className="bg-[#2a2a2a] p-6 md:p-8 text-slate-200 leading-relaxed text-sm md:text-base">
+                        {item.struggleDesc}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* RIGHT COLUMN: Sticky Solution Box */}
+<div className="w-full lg:w-[150%] relative pt-8 pb-12">
   {/* The main sticky container */}
-  <div className="sticky top-1/4 h-full max-w-[full] bg-[#1e1e1e] rounded-3xl overflow-hidden flex flex-col md:flex-row shadow-2xl transition-all duration-500">
-    
-    {/* LEFT HALF: Image Container */}
-    <div className="w-full md:w-[45%] h-60 md:h-full bg-slate-200 relative flex items-start p-6 border-b md:border-b-0 md:border-r border-gray-700 shrink-0">
-      <img 
-        src={getPath("/frontend.png")} 
-        alt="Fintech Connect dashboard and mobile app visualization composite" 
-        className="w-full h-full object-contain"
-      />
-    </div>
+  <div className="sticky top-24 h-full max-w-[full] bg-[#1e1e1e] rounded-3xl overflow-hidden flex flex-col md:flex-row shadow-2xl transition-all duration-500">
+                <div className="w-full md:w-[45%] h-60 md:h-auto bg-slate-200 relative flex items-start p-6 border-b md:border-b-0 md:border-r border-gray-700 shrink-0">
+                  <img 
+                    src={getPath("/frontend.png")} 
+                    alt="Fintech Connect Visual Architecture" 
+                    className="w-full h-full object-contain"
+                  />
+                </div>
 
-    {/* RIGHT HALF: Text & Button Content */}
-    <div className="w-full md:w-1/2 p-8 lg:p-10 flex flex-col justify-center shrink-0">
-      
-      {/* FIX: Dynamic Solution Title based on active struggle in focus */}
-      <h4 className="text-2xl font-bold text-blue-400 mb-4 tracking-tight">
-        {struggles[activeIndex].solutionTitle}
-      </h4>
-      
-      {/* FIX: Dynamic Solution Description based on active struggle in focus */}
-      <p className="text-slate-300 text-sm md:text-base mb-8 leading-relaxed">
-        {struggles[activeIndex].solutionDesc}
-      </p>
-      
-      {/* Primary CTA Button */}
-      <button className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-8 rounded-lg w-max transition-colors text-sm shadow-md shadow-blue-900/40">
-        Book demo
-      </button>
-    </div>
+                <div className="w-full md:w-1/2 p-8 lg:p-10 flex flex-col justify-center shrink-0">
+                  <h4 className="text-2xl font-bold text-blue-400 mb-4 tracking-tight">
+                    {struggles[activeIndex].solutionTitle}
+                  </h4>
+                  <p className="text-slate-300 text-sm md:text-base mb-8 leading-relaxed">
+                    {struggles[activeIndex].solutionDesc}
+                  </p>
+                  <button className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-8 rounded-lg w-max transition-colors text-sm shadow-md shadow-blue-900/40">
+                    Book demo
+                  </button>
+                </div>
+              </div>
+            </div>
 
-  </div>
-</div>
-
+          </div>
         </div>
+
       </div>
     </section>
   );

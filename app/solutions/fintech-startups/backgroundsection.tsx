@@ -6,7 +6,7 @@ export default function BackgroundSection() {
   const backgroundImageSrc = getPath("/background.png");
 
   return (
-    <section className="relative w-full min-h-[60vh] md:min-h-[62vh] flex items-center justify-center overflow-hidden bg-[#1532a8] px-6 py-12 md:text-center">
+    <section className="relative w-full min-h-[60vh] md:min-h-[70vh] flex items-center justify-center overflow-hidden bg-[#1532a8] px-6 py-12 md:text-center">
       
       {/* BACKGROUND IMAGE PLACEHOLDER 
           This absolute layer sits underneath the text content.

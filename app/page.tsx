@@ -84,22 +84,6 @@ export default function MarketingHome() {
       {/* Global Accounts Section */}
       <GlobalAccountsSection />
 
-      {/* Trust Bar */}
-      <section className="bg-slate-50 py-12 border-y border-slate-200">
-        <div className="w-full pl-25 pr-6 lg:pr-25">
-          <p className="text-center text-sm font-semibold text-slate-400 uppercase tracking-widest mb-8">
-            Trusted by forward-thinking institutions
-          </p>
-          <div className="flex flex-wrap justify-center gap-12 opacity-50 grayscale">
-            {/* Partner Logos later */}
-            <div className="text-2xl font-bold text-slate-400 italic">GLOBAL BANK</div>
-            <div className="text-2xl font-bold text-slate-400 italic">MERIDIAN</div>
-            <div className="text-2xl font-bold text-slate-400 italic">EQUITY TRUST</div>
-            <div className="text-2xl font-bold text-slate-400 italic">NEO-FIN</div>
-          </div>
-        </div>
-      </section>
-
       {/* Feel Protected Section */}
       <FeelProtectedSection />
 
