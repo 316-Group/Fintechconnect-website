@@ -23,7 +23,7 @@ export default function NewmodulesSection() {
       <div className="w-full px-3 lg:px-6 max-w-[92.5%] mx-auto">
         {/* Header Section */}
         <h2 className="text-4xl font-bold text-slate-900 mb-16">
-          Essential Building Blocks to <br />Launch Fintech Today
+          Essential Building Blocks to <br className="hidden md:inline" />Launch Fintech Today
         </h2>
         
         {/* 3x3 Grid Section */}
@@ -36,7 +36,7 @@ export default function NewmodulesSection() {
                 but forces them to display inside the grid on tablet/desktop layouts.
               */
               className={`bg-blue-100 rounded-2xl flex flex-col items-start text-left transition-transform hover:shadow-lg overflow-hidden group cursor-pointer
-                ${index >= 2 && !showAll ? 'hidden md:flex' : 'flex'}`}
+                ${index >= 4 && !showAll ? 'hidden md:flex' : 'flex'}`}
             >
               <h3 className="text-xl font-bold text-slate-900 mb-2 md:mt-3 py-6 px-8">{module.title}</h3>
               <p className="text-sm text-slate-500 mb-4 flex-grow px-8">{module.desc}</p>
