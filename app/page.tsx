@@ -10,6 +10,7 @@ import FeelProtectedSection from './Feelprotectedsection';
 import CarouselSection from './Carouselsection';
 import ModulesSection from './Modulessection';
 
+
 import { getPath } from '@/utils/helper';
 
 export default function MarketingHome() {

@@ -336,9 +336,10 @@ export default function Navbar() {
         </div>
  
         {/* Desktop CTA Button */}
-        <button className="hidden md:block bg-blue-600 text-white px-5 py-2.5 rounded-full font-medium hover:bg-blue-100 transition">
+        <Link 
+        href="/book-demo" className="hidden md:block bg-blue-600 text-white px-5 py-2.5 rounded-full font-medium hover:bg-blue-100 transition">
           Book a Demo
-        </button>
+        </Link>
 
         {/* Mobile Sidebar Section remains unaffected... */}
         {mobileMenuOpen && (
