@@ -81,25 +81,40 @@ export default function BookingSection() {
     return Object.keys(tempErrors).length === 0
   }
 
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault()
-    
-    if (!validateForm()) return
+  // Inside bookingsection.tsx -> handleSubmit function
 
-    setIsSubmitting(true)
+const handleSubmit = async (e: FormEvent) => {
+  e.preventDefault()
+  
+  if (!validateForm()) return
 
-    try {
-      // Simulate API deployment wrapper or endpoint processing
-      await new Promise((resolve) => setTimeout(resolve, 1800))
-      
-      console.log("Form successfully submitted:", formData)
-      setIsSubmitted(true)
-    } catch (error) {
-      console.error("Submission failed:", error)
-    } finally {
-      setIsSubmitting(false)
+  setIsSubmitting(true)
+
+  try {
+    // 🔗 HIT THE LIVE BACKEND ROUTE
+    const response = await fetch("/api/booking", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(formData),
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      throw new Error(data.error || "Something went wrong")
     }
+    
+    console.log("Form successfully saved to DB:", data)
+    setIsSubmitted(true)
+  } catch (error) {
+    console.error("Submission failed:", error)
+    // Optional: Set an error state here to show a banner to the user
+  } finally {
+    setIsSubmitting(false)
   }
+}
 
   return (
     <div className="min-h-screen bg-slate-500 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-6 font-sans">
