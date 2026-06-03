@@ -33,7 +33,6 @@ jobs:
         uses: actions/checkout@v4
       - name: Detect package manager
         id: detect-package-manager
-        working-directory: ./client
         run: |
           if [ -f "${{ github.workspace }}/yarn.lock" ]; then
             echo "manager=yarn" >> $GITHUB_OUTPUT
@@ -73,18 +72,16 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-nextjs-${{ hashFiles('**/package-lock.json', '**/yarn.lock') }}-
       - name: Install dependencies
-        working-directory: ./client
         run: ${{ steps.detect-package-manager.outputs.manager }} ${{ steps.detect-package-manager.outputs.command }}
+        # 🔑 ADD THIS STEP HERE:
       - name: Generate Prisma Client
-        working-directory: ./client
         run: npx prisma generate
         env:
           # Prisma occasionally checks the schema format during generation.
-          # Passing a placeholder string keeps it happy without needing your real database credentials.
+          # Passing a placeholder string keeps it happy without needing your real database credentials here.
           DATABASE_URL: "postgresql://mock:mock@localhost:5432/mock"
 
       - name: Build with Next.js
-        working-directory: ./client
         run: ${{ steps.detect-package-manager.outputs.runner }} next build
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
