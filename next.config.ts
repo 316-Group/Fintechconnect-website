@@ -6,8 +6,7 @@ const nextConfig: NextConfig = {
   trailingSlash: true,
   basePath: process.env.NODE_ENV === 'production' ? '/Fintechconnect-website' : '',
   assetPrefix: process.env.NODE_ENV === 'production' ? '/Fintechconnect-website/' : '',
-  // 🚀 Tell Turbopack to leave Prisma and Postgres alone during compilation
-  serverExternalPackages: ["@prisma/client", "pg"],
+
   // This is required for images to work on static exports
   images: {
     unoptimized: true,
