@@ -80,7 +80,7 @@ jobs:
         run: npx prisma generate
         env:
           # Prisma occasionally checks the schema format during generation.
-          # Passing a placeholder string keeps it happy without needing your real database credentials here.
+          # Passing a placeholder string keeps it happy without needing your real database credentials.
           DATABASE_URL: "postgresql://mock:mock@localhost:5432/mock"
 
       - name: Build with Next.js
