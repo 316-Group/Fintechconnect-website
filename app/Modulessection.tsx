@@ -17,7 +17,7 @@ const modules = [
 export default function ModulesSection() {
   return (
     <section className="py-24 bg-white">
-      <div className="w-full px-3 lg:px-6 max-w-[92.5%] mx-auto md:text-center">
+      <div className="w-full px-3 md:px-20 max-w-[full] mx-auto md:text-center">
         {/* Header Section */}
         <h2 className="text-4xl font-bold text-slate-900 mb-6">
           Modular first <span className="text-blue-600">architecture to customize your banking ecosystem</span>

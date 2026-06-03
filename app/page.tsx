@@ -10,8 +10,8 @@ import FeelProtectedSection from './Feelprotectedsection';
 import CarouselSection from './Carouselsection';
 import ModulesSection from './Modulessection';
 
-
 import { getPath } from '@/utils/helper';
+import FAQSection from '@/app/Faqsection';
 
 export default function MarketingHome() {
   return (
@@ -84,6 +84,9 @@ export default function MarketingHome() {
 
       {/* Global Accounts Section */}
       <GlobalAccountsSection />
+
+      {/* FAQ Section */}
+      <FAQSection />
 
       {/* Feel Protected Section */}
       <FeelProtectedSection />

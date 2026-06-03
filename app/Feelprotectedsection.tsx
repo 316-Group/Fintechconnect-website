@@ -3,14 +3,14 @@ import React from 'react';
 
 export default function FeelProtectedSection() {
   return (
-    <section className="w-full bg-[#a4f6f0] text-slate-900 py-10 lg:py-14 overflow-hidden">
-      <div className="max-w-7xl mx-auto px-6 lg:px-8 grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-8 items-center">
+    <section className="w-full bg-[#a4f6f0] text-slate-900 py-10 lg:py-14 px-6 md:px-12 overflow-hidden">
+      <div className="max-w-full mx-auto px-6 lg:px-8 grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-8 items-center">
         
         {/* Left Column: Messaging & Compliance Metrics */}
         <div className="flex flex-col items-start max-w-3xl lg:max-w-none z-10">
           
           {/* Section Main Title */}
-          <h2 className="text-2xl lg:text-[34px] font-bold tracking-tight leading-[1.15] mb-8">
+          <h2 className="text-2xl lg:text-[40px] font-semibold tracking-tight leading-[1.15] mb-8">
             Feel protected.{' '}
             <span className="text-[#00c04b] inline">
               Stay compliant.
@@ -18,14 +18,14 @@ export default function FeelProtectedSection() {
           </h2>
 
           {/* Inline Compliance Highlights (Separated by matching middle dots) */}
-          <p className="text-slate-850 text-base lg:text-[19px] font-normal leading-relaxed tracking-tight">
+          <p className="text-slate-850 max-w-1xl text-base lg:text-[25px] font-normal leading-relaxed tracking-tight">
             High authorization rates <span className="mx-1.5 text-slate-700/60 font-bold">·</span> 
-            Full compliance with PSD2, PCI Level 1, SCA, and 3D Secure 2.0 <span className="mx-1.5 text-slate-700/60 font-bold">·</span> 
+            Full compliance with PSD2, PCI Level 1,<br className="hidden md:block" /> SCA, and 3D Secure 2.0 <span className="mx-1.5 text-slate-700/60 font-bold">·</span> 
             Regulator-compliant
           </p>
         </div>
 
-        {/* Right Column: 3D Abstract Cube Graphic Placeholder */}
+        {/* Right Column: 3D Cube Graphic */}
         <div className="relative w-full flex items-center justify-center lg:justify-end min-h-[200px] sm:min-h-[200px]">
           <div className="w-full max-w-[300px] aspect-square relative flex items-center justify-center">
             
