@@ -61,7 +61,7 @@ export default function Navbar() {
       { 
         label: "Support Hub", 
         description: "Meet regulatory requirements across all jurisdictions",
-        href: "#compliance" 
+        href: "/About" 
       },
       { 
         label: "Resource Hub", 
