@@ -1,5 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
+import { getPath } from '@/utils/helper';
 
 export default function FooterSection() {
   // update links/hrefs in the future
