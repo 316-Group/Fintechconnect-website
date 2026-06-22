@@ -2,6 +2,7 @@
 import LegalPageLayout from "@/components/LegalPageLayout";
 import Navbar from "../navbar";
 import FooterSection from "@/app/Footersection";
+import { getPath } from "@/utils/helper";
 
 export default function PrivacyPolicyPage() {
   return (

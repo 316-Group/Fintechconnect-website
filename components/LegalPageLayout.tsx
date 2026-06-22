@@ -1,5 +1,6 @@
 // components/LegalPageLayout.tsx
 import React from 'react';
+import { getPath } from '@/utils/helper';
 
 interface LegalPageLayoutProps {
   title: string;
