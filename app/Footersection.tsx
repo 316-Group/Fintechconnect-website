@@ -1,4 +1,5 @@
 import React from 'react';
+import Link from 'next/link';
 
 export default function FooterSection() {
   // update links/hrefs in the future
@@ -31,6 +32,11 @@ export default function FooterSection() {
     helpSupport: [
       { name: 'Contact', href: '#' },
       { name: 'Digital Advisory', href: '#' },
+    ],
+    Legal: [
+      { name: 'Privacy Policy', href: '/privacy' },
+      { name: 'Cookie policy', href: '/cookie' },
+      { name: 'Terms & Conditions', href: '/terms' },
     ],
   };
 
@@ -128,6 +134,21 @@ export default function FooterSection() {
             </h3>
             <ul className="space-y-3">
               {footerNavigation.helpSupport.map((item) => (
+                <li key={item.name}>
+                  <a href={item.href} className="text-sm text-slate-300 hover:text-[#0066ff] font-light transition-colors duration-200 block">
+                    {item.name}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div className="flex flex-col space-y-4">
+            <h3 className="text-base lg:text-lg font-medium text-white tracking-wide">
+              Legal
+            </h3>
+            <ul className="space-y-3">
+              {footerNavigation.Legal.map((item) => (
                 <li key={item.name}>
                   <a href={item.href} className="text-sm text-slate-300 hover:text-[#0066ff] font-light transition-colors duration-200 block">
                     {item.name}
