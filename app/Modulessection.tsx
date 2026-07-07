@@ -1,6 +1,7 @@
-import React from 'react';
-import { getPath } from '@/utils/helper';
+"use client";
 
+import React, { useState, useEffect, useRef } from 'react';
+import { getPath } from '@/utils/helper';
 
 const modules = [
   { title: "KYC & AML Compliance", desc: "Verify individuals and businesses across 190+ countries in minutes. Automated document checks, biometric liveness detection, and UBO identification ", img: '/frontend.png' },
@@ -14,6 +15,73 @@ const modules = [
   { title: "Crypto Wallets", desc: "Offer your users institutional-grade, multi-asset crypto wallets with real-time balance tracking, full transaction histories, and configurable hot/cold storage tiering. ", img: '/modules3.png' },
 ];
 
+// 1. Separate Self-Observing Card Component
+const ModuleCard = ({ module, index }: { module: any; index: number }) => {
+  const [isVisible, setIsVisible] = useState(false);
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+          if (cardRef.current) observer.unobserve(cardRef.current);
+        }
+      },
+      { 
+        threshold: 0.15, // Triggers when 15% of the individual card is visible
+        rootMargin: "0px 0px -50px 0px" // Slight offset so it triggers cleanly as you scroll down
+      }
+    );
+
+    if (cardRef.current) {
+      observer.observe(cardRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, []);
+
+  // Dynamically resets stagger delays per row on desktop (0ms, 100ms, 200ms)
+  const desktopStaggerDelay = (index % 3) * 100;
+
+  return (
+    <div 
+      ref={cardRef} 
+      className={`bg-blue-100 rounded-2xl flex flex-col items-start text-left overflow-hidden group cursor-pointer transition-all duration-700 ease-out hover:shadow-lg ${
+        isVisible 
+          ? 'opacity-100 translate-y-0' 
+          : 'opacity-0 -translate-y-12 pointer-events-none'
+      }`}
+      style={{ transitionDelay: `${desktopStaggerDelay}ms` }}
+    >
+      <h3 className="text-xl font-bold text-slate-900 mb-2 py-6 px-8">{module.title}</h3>
+      <p className="text-sm text-slate-500 mb-4 flex-grow px-8">{module.desc}</p>
+
+      {/* Blue Arrow Container */}
+      <div className="px-6 mb-6">
+        <svg 
+          className="w-6 h-6 text-blue-600 transition-transform duration-300 group-hover:translate-x-2" 
+          fill="none" 
+          stroke="currentColor" 
+          viewBox="0 0 24 24"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+        </svg>
+      </div>
+      
+      {/* Image Container */}
+      <div className="w-full h-full mt-auto px-6">
+        <img 
+          src={getPath(module.img)} 
+          alt={module.title} 
+          className="rounded-lg w-full h-full object-cover"
+        />
+      </div>
+    </div>
+  );
+};
+
+// 2. Main Section Component
 export default function ModulesSection() {
   return (
     <section className="py-24 bg-white">
@@ -31,37 +99,7 @@ export default function ModulesSection() {
         {/* 3x3 Grid Section */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {modules.map((module, index) => (
-            <div 
-  key={index} 
-  // Removed px-6 from the parent
-  className="bg-blue-100 rounded-2xl flex flex-col items-start text-left transition-transform hover:shadow-lg overflow-hidden group cursor-pointer"
->
-  {/* Added px-6 directly to the text elements instead */}
-  <h3 className="text-xl font-bold text-slate-900 mb-2 py-6 px-8">{module.title}</h3>
-  <p className="text-sm text-slate-500 mb-4 flex-grow px-8">{module.desc}</p>
-
-  {/* 2. The Blue Arrow Container */}
-  <div className="px-6 mb-6">
-    <svg 
-      className="w-6 h-6 text-blue-600 transition-transform duration-300 group-hover:translate-x-2" 
-      fill="none" 
-      stroke="currentColor" 
-      viewBox="0 0 24 24"
-    >
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-    </svg>
-  </div>
-  
-  {/* Now w-full naturally hits the very edges of the card */}
-  <div className="w-full h-full mt-auto px-6">
-    <img 
-      src={getPath(module.img)} 
-      alt={module.title} 
-      // object-cover ensures no blank space is left inside the image block
-      className="rounded-lg w-full h-full object-cover"
-    />
-  </div>
-</div>
+            <ModuleCard key={index} module={module} index={index} />
           ))}
         </div>
       </div>

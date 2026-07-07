@@ -1,3 +1,4 @@
+"use client";
 import React from 'react';
 import Link from 'next/link';
 import { getPath } from '@/utils/helper';
@@ -35,9 +36,9 @@ export default function FooterSection() {
       { name: 'Digital Advisory', href: '#' },
     ],
     Legal: [
-      { name: 'Privacy Policy', href: '/privacy' },
-      { name: 'Cookie policy', href: '/cookie' },
-      { name: 'Terms & Conditions', href: '/terms' },
+      { name: 'Privacy Policy', href: '/privacy/' },
+      { name: 'Cookie policy', href: '/cookies/' },
+      { name: 'Terms & Conditions', href: '/terms/' },
     ],
   };
 

@@ -1,5 +1,5 @@
 "use client";
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getPath } from '@/utils/helper';
@@ -58,7 +58,6 @@ const Card = ({ item }: { item: any }) => {
 
   return (
     <div 
-      // 1. Reduced mobile width to 75vw and mobile height to 220px. Desktop returns to 280px height.
       className="relative w-[75vw] sm:w-[45vw] md:w-[35vw] lg:w-[32vw] xl:w-[28vw] h-[220px] sm:h-[280px] flex-shrink-0 rounded-2xl overflow-hidden cursor-pointer group transition-all duration-300 snap-start border border-slate-800"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
@@ -72,15 +71,13 @@ const Card = ({ item }: { item: any }) => {
         transition={{ duration: 0.3, ease: "easeOut" }}
       />
 
-      {/* 2. Reduced padding inside the card for mobile (bottom/left/right-4 vs sm:bottom-6) */}
       <div className="absolute bottom-4 left-4 right-4 sm:bottom-6 sm:left-6 sm:right-6 z-20">
         <AnimatePresence>
           {isHovered && (
             <motion.div 
-              initial={{ opacity: 5, y: 10 }}
+              initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 10 }}
-              // 3. Reduced text size and margin for mobile descriptions
               className="text-slate-200 text-xs sm:text-sm leading-relaxed mt-1 sm:mt-2"
             >
               <h3 className="text-white text-lg sm:text-xl font-bold mb-1">{item.name}</h3>
@@ -98,9 +95,62 @@ const Card = ({ item }: { item: any }) => {
 
 const CarouselRow = ({ category }: { category: any }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [isInView, setIsInView] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
+  const scrollDirection = useRef<'right' | 'left'>('right');
+
+  // 1. Monitor Viewport Presence per row
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsInView(entry.isIntersecting);
+      },
+      { threshold: 0.1 } // Fires when at least 10% of the row is visible
+    );
+
+    if (scrollRef.current) {
+      observer.observe(scrollRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, []);
+
+  // 2. Automate Loop Mechanics (Constant Slow Scroll)
+useEffect(() => {
+  if (!isInView || isPaused) return;
+
+  const autoScrollInterval = setInterval(() => {
+    if (!scrollRef.current) return;
+
+    const { scrollLeft, scrollWidth, clientWidth } = scrollRef.current;
+
+    // Check boundary limits with a 15px safe padding margin
+    const isAtEnd = scrollLeft + clientWidth >= scrollWidth - 15;
+    const isAtStart = scrollLeft <= 15;
+
+    // Handle Directional Ping-Pong Shifting
+    if (isAtEnd && scrollDirection.current === 'right') {
+      scrollDirection.current = 'left';
+    } else if (isAtStart && scrollDirection.current === 'left') {
+      scrollDirection.current = 'right';
+    }
+
+    // Move exactly 1 pixel per tick for a slow, continuous crawl
+    const stepSize = 1; 
+
+    scrollRef.current.scrollBy({
+      left: scrollDirection.current === 'right' ? stepSize : -stepSize,
+      behavior: 'auto', // CRITICAL: Must be 'auto' to avoid layout buffering lag
+    });
+  }, 3000); // Runs every 30ms to simulate constant fluid movement
+
+  return () => clearInterval(autoScrollInterval);
+}, [isInView, isPaused]);
 
   const scroll = (direction: 'left' | 'right') => {
     if (scrollRef.current) {
+      // Manually updating button actions updates the persistent anchor ref
+      scrollDirection.current = direction;
       const cardWidth = scrollRef.current.firstElementChild?.clientWidth || 400;
       const scrollAmount = cardWidth + 12;
       scrollRef.current.scrollBy({ left: direction === 'left' ? -scrollAmount : scrollAmount, behavior: 'smooth' });
@@ -109,7 +159,6 @@ const CarouselRow = ({ category }: { category: any }) => {
 
   return (
     <div className="mb-12">
-      {/* 4. Swapped pr-20 to pr-6 lg:pr-20 for responsive padding */}
       <div className="flex justify-between items-center mb-4 pr-6 lg:pr-20">
         <h3 className="text-lg sm:text-xl font-medium text-[#0066ff]">{category.title}</h3>
         <div className="flex gap-2">
@@ -120,9 +169,11 @@ const CarouselRow = ({ category }: { category: any }) => {
       
       <div 
         ref={scrollRef}
-        // 5. Responsive right padding inside the scroll track
         className="flex gap-3 overflow-x-auto scrollbar-hide scroll-smooth snap-x pb-4 pr-6 lg:pr-20"
         style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+        // Pause auto-scroll when user interacts or hovers over this row
+        onMouseEnter={() => setIsPaused(true)}
+        onMouseLeave={() => setIsPaused(false)}
       >
         {category.items.map((item: any, i: number) => <Card key={i} item={item} />)}
       </div>
@@ -136,10 +187,8 @@ export default function CarouselSection() {
 
   return (
     <section className="bg-[#0a0a0a] py-16 md:py-24 text-white overflow-hidden">
-      {/* 6. Responsive left padding for the entire section wrapper */}
       <div className="w-full pl-6 lg:pl-20">
         
-        {/* 7. Responsive right padding for the text container */}
         <div className="pr-6 lg:pr-20">
           <h2 className="md:text-center text-3xl md:text-4xl font-bold mb-4">
             Fintech Connect powers <span className="text-blue-500">innovators</span>
@@ -153,7 +202,6 @@ export default function CarouselSection() {
           <CarouselRow key={idx} category={cat} />
         ))}
 
-        {/* 8. Responsive padding for the button wrapper */}
         <div className="flex justify-center mt-8 md:mt-12 pr-6 lg:pr-20">
           <button
             onClick={() => setShowAll(!showAll)}
