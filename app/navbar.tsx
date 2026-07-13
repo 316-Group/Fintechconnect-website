@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useRef } from "react"; // Added useEffect and useRef
+import { useState, useEffect, useRef } from "react"; 
 import { getPath } from '@/utils/helper';   
 import { Menu, X } from "lucide-react";
 import Link from "next/link";
@@ -51,7 +51,7 @@ export default function Navbar() {
   const navItems: Record<string, { label: string; description: string; href: string }[]> = {
     Products: [],
     Solutions: [],
-    Connectors: [],
+    Connectors: [{ label: "Connectors", description: "Explore our range of integration solutions", href: '/connectors' }],
     "Resources": [
       { 
         label: "Contact", 
@@ -151,190 +151,178 @@ export default function Navbar() {
         </button>
 
         {/* Nav Items */}
-        {/* MODIFIED: Added ref={desktopMenuRef} here to listen to outer clicks */}
-        <div ref={desktopMenuRef} className="hidden md:flex space-x-8 text-sm font-medium text-white">
-          {Object.keys(navItems).map((menu) => (
-            <div key={menu} className="relative">
-              <button
-                onClick={() => toggleMenu(menu)}
-                className="flex items-center gap-2 hover:text-blue-300 transition"
-              >
-                {menu}
-                <svg
-                  className={`w-4 h-4 transition-transform ${
-                    openMenu === menu ? "rotate-180" : ""
-                  }`}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
+        <div ref={desktopMenuRef} className="hidden md:flex space-x-8 text-sm font-medium text-white items-center">
+          {Object.keys(navItems).map((menu) => {
+            // MODIFIED: Direct link layout context for Connectors on Desktop
+            if (menu === "Connectors") {
+              return (
+                <Link
+                  key={menu}
+                  href="/connectors"
+                  className="hover:text-blue-300 transition"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M19 9l-7 7-7-7"
-                  />
-                </svg>
-              </button>
- 
-              {/* Platform Modules Style Dropdown */}
-              {(menu === "Products" || menu === "Solutions") && openMenu === menu && (
-                (() => {
-                  const activeData = menu === "Products" ? platformModules : solutionModules;
+                  {menu}
+                </Link>
+              );
+            }
 
-                  return (
-                    <div className="fixed top-[70px] left-1/2 -translate-x-1/2 w-[90vw] max-w-[1150px] bg-white shadow-2xl overflow-hidden z-50 flex flex-col">
-                      
-                      {/* 1. Shrunk Header */}
-                      <div className="bg-[#b8d7ff] px-6 py-3">
-                        <h2 className="text-xl font-bold text-[#0066ff]">
-                          {menu === "Products" ? "Platform Modules" : "Who We Serve"}
-                        </h2>
-                      </div>
+            return (
+              <div key={menu} className="relative">
+                <button
+                  onClick={() => toggleMenu(menu)}
+                  className="flex items-center gap-2 hover:text-blue-300 transition"
+                >
+                  {menu}
+                  <svg
+                    className={`w-4 h-4 transition-transform ${
+                      openMenu === menu ? "rotate-180" : ""
+                    }`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M19 9l-7 7-7-7"
+                    />
+                  </svg>
+                </button>
+   
+                {/* Platform Modules Style Dropdown */}
+                {(menu === "Products" || menu === "Solutions") && openMenu === menu && (
+                  (() => {
+                    const activeData = menu === "Products" ? platformModules : solutionModules;
 
-                      <div className="flex min-h-[350px]">
-                        {/* 2. Scaled Left Sidebar */}
-                        <div className="w-56 bg-[#ebefff] pt-8 pb-4 px-1 flex flex-col gap-1">
-                          {Object.keys(activeData).map((module) => (
-                            <button
-                              key={module}
-                              onClick={() => setSelectedModule(module)}
-                              className={`text-left px-4 py-3 rounded-0 font-semibold transition-all text-sm ${
-                                selectedModule === module
-                                  ? "bg-white text-black shadow-[-3px_0_0_0_#0066ff] translate-x-1" 
-                                  : "text-slate-500 hover:text-slate-900"
-                              }`}
-                            >
-                              {module}
-                            </button>
-                          ))}
+                    return (
+                      <div className="fixed top-[70px] left-1/2 -translate-x-1/2 w-[90vw] max-w-[1150px] bg-white shadow-2xl overflow-hidden z-50 flex flex-col">
+                        
+                        {/* 1. Shrunk Header */}
+                        <div className="bg-[#b8d7ff] px-6 py-3">
+                          <h2 className="text-xl font-bold text-[#0066ff]">
+                            {menu === "Products" ? "Platform Modules" : "Who We Serve"}
+                          </h2>
                         </div>
 
-                        {/* 3. Tightened Middle Content */}
-                        <div className="flex-1 p-10 bg-white">
-                          <div className="grid grid-cols-2 gap-x-16 gap-y-12">
-                            {activeData[selectedModule]?.map((module, idx) => (
-                              <Link 
-                                key={idx}
-                                href={module.href || "#"}
-                                target={module.href ? "_blank" : undefined}
-                                rel={module.href ? "noopener noreferrer" : undefined}
-                                className="block cursor-pointer group"
-                                onClick={() => setOpenMenu(null)} // Closes menu upon routing
+                        <div className="flex min-h-[350px]">
+                          {/* 2. Scaled Left Sidebar */}
+                          <div className="w-56 bg-[#ebefff] pt-8 pb-4 px-1 flex flex-col gap-1">
+                            {Object.keys(activeData).map((module) => (
+                              <button
+                                key={module}
+                                onClick={() => setSelectedModule(module)}
+                                className={`text-left px-4 py-3 rounded-0 font-semibold transition-all text-sm ${
+                                  selectedModule === module
+                                    ? "bg-white text-black shadow-[-3px_0_0_0_#0066ff] translate-x-1" 
+                                    : "text-slate-500 hover:text-slate-900"
+                                }`}
                               >
-                                <h3 className="text-base font-bold text-black mb-1 border-b border-blue-100 group-hover:text-blue-600 group-hover:border-blue-600 pb-0.5 inline-block transition-colors">
-                                  {module.title}
-                                </h3>
-                                <p className="text-slate-500 leading-snug text-xs group-hover:text-slate-700 transition-colors">
-                                  {module.description}
-                                </p>
-                              </Link>
+                                {module}
+                              </button>
                             ))}
                           </div>
-                        </div>
 
-                        {/* 4. Scaled Right Sidebar */}
-                        <div className="w-60 bg-[#0066ff] p-6 flex flex-col justify-center text-center">
-                          <div className="mb-4 transform scale-90">
-                            <img 
-                              src={getPath("/menu screenshot.png")}   
-                              alt="Product Mockup"
-                              className="rounded-lg shadow-xl border border-white/10"
-                            />
+                          {/* 3. Tightened Middle Content */}
+                          <div className="flex-1 p-10 bg-white">
+                            <div className="grid grid-cols-2 gap-x-16 gap-y-12">
+                              {activeData[selectedModule]?.map((module, idx) => (
+                                <Link 
+                                  key={idx}
+                                  href={module.href || "#"}
+                                  target={module.href ? "_blank" : undefined}
+                                  rel={module.href ? "noopener noreferrer" : undefined}
+                                  className="block cursor-pointer group"
+                                  onClick={() => setOpenMenu(null)} // Closes menu upon routing
+                                >
+                                  <h3 className="text-base font-bold text-black mb-1 border-b border-blue-100 group-hover:text-blue-600 group-hover:border-blue-600 pb-0.5 inline-block transition-colors">
+                                    {module.title}
+                                  </h3>
+                                  <p className="text-slate-500 leading-snug text-xs group-hover:text-slate-700 transition-colors">
+                                    {module.description}
+                                  </p>
+                                </Link>
+                              ))}
+                            </div>
                           </div>
-               
-                          {/* Heading */}
-                          <h3 className="text-lg font-bold text-white py-3 mb-8">
-                            Ready to get started?
-                          </h3>
-               
-                          {/* CTA Button */}
-                          <button className="w-full bg-[#70e6d8] hover:bg-cyan-300 text-blue-900 font-semibold py-2 px-4 rounded-lg transition text-sm">
-                            Get in touch
-                          </button>
+
+                          {/* 4. Scaled Right Sidebar */}
+                          <div className="w-60 bg-[#0066ff] p-6 flex flex-col justify-center text-center">
+                            <div className="mb-4 transform scale-90">
+                              <img 
+                                src={getPath("/menu screenshot.png")}   
+                                alt="Product Mockup"
+                                className="rounded-lg shadow-xl border border-white/10"
+                              />
+                            </div>
+                 
+                            {/* Heading */}
+                            <h3 className="text-lg font-bold text-white py-3 mb-8">
+                              Ready to get started?
+                            </h3>
+                 
+                            {/* CTA Button */}
+                            <button className="w-full bg-[#70e6d8] hover:bg-cyan-300 text-blue-900 font-semibold py-2 px-4 rounded-lg transition text-sm">
+                              Get in touch
+                            </button>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  );
-                })()
-              )}
- 
-              {/* Resources Dropdown Style */}
-              {menu === "Resources" && openMenu === menu && (
-                <div className="fixed top-[70px] left-1/2 -translate-x-1/2 w-[90vw] max-w-[1150px] bg-white shadow-2xl overflow-hidden z-50 flex flex-col">
-                  <div className="bg-[#b8d7ff] px-6 py-3">
-                    <h2 className="text-xl font-bold text-[#0066ff]">Resources</h2>
-                  </div>
-
-                  <div className="flex">
-                    <div className="flex-1 p-6 bg-white">
-                      <div className="grid grid-cols-3 gap-x-8 gap-y-6">
-                        {navItems.Resources.map((item) => (
-                          <Link 
-                            key={item.label} 
-                            href={item.href}
-                            className="block group hover:bg-slate-50 p-2 rounded-0 transition-colors"
-                            onClick={() => setOpenMenu(null)} // Closes menu upon routing
-                          >
-                            <h3 className="text-base font-bold text-black mb-1 border-b border-blue-100 group-hover:border-blue-600 group-hover:text-[#0066ff] pb-0.5 inline-block transition-colors">
-                              {item.label}
-                            </h3>
-                            <p className="text-slate-500 leading-snug text-xs">
-                              {item.description}
-                            </p>
-                          </Link>
-                        ))}
-                      </div>
+                    );
+                  })()
+                )}
+   
+                {/* Resources Dropdown Style */}
+                {menu === "Resources" && openMenu === menu && (
+                  <div className="fixed top-[70px] left-1/2 -translate-x-1/2 w-[90vw] max-w-[1150px] bg-white shadow-2xl overflow-hidden z-50 flex flex-col">
+                    <div className="bg-[#b8d7ff] px-6 py-3">
+                      <h2 className="text-xl font-bold text-[#0066ff]">Resources</h2>
                     </div>
 
-                    <div className="w-60 bg-[#0066ff] p-6 flex flex-col justify-center text-center">
-                      <div className="mb-4 transform scale-90">
-                        <img 
-                          src={getPath("/menu screenshot.png")}   
-                          alt="Resource Feature"
-                          className="rounded-lg shadow-xl border border-white/10"
-                        />
+                    <div className="flex">
+                      <div className="flex-1 p-6 bg-white">
+                        <div className="grid grid-cols-3 gap-x-8 gap-y-6">
+                          {navItems.Resources.map((item) => (
+                            <Link 
+                              key={item.label} 
+                              href={item.href}
+                              className="block group hover:bg-slate-50 p-2 rounded-0 transition-colors"
+                              onClick={() => setOpenMenu(null)} // Closes menu upon routing
+                            >
+                              <h3 className="text-base font-bold text-black mb-1 border-b border-blue-100 group-hover:border-blue-600 group-hover:text-[#0066ff] pb-0.5 inline-block transition-colors">
+                                {item.label}
+                              </h3>
+                              <p className="text-slate-500 leading-snug text-xs">
+                                {item.description}
+                              </p>
+                            </Link>
+                          ))}
+                        </div>
                       </div>
 
-                      <h3 className="text-lg font-bold text-white py-3 mb-8">
-                        Ready to get started?
-                      </h3>
+                      <div className="w-60 bg-[#0066ff] p-6 flex flex-col justify-center text-center">
+                        <div className="mb-4 transform scale-90">
+                          <img 
+                            src={getPath("/menu screenshot.png")}   
+                            alt="Resource Feature"
+                            className="rounded-lg shadow-xl border border-white/10"
+                          />
+                        </div>
 
-                      <button className="w-full bg-[#70e6d8] hover:bg-[#5cd3c5] text-[#0044aa] font-bold py-2.5 px-4 rounded-lg transition-colors text-sm">
-                        Get in touch
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Fallback Dropdown */}
-              {menu !== "Products" && menu !== "Solutions" && menu !== "Resources" && openMenu === menu && (
-                <div className="absolute top-full left-1/3 -translate-x-2/5 mt-2 w-[95vw] max-w-[600px] bg-white rounded-2xl shadow-2xl overflow-hidden z-50">
-                  <div className="bg-blue-200 px-6 py-4 border-b border-blue-300">
-                    <h2 className="text-2xl font-bold text-blue-900">{menu}</h2>
-                  </div>
-                  <div className="p-6 space-y-3">
-                    {navItems[menu as keyof typeof navItems]?.map((item) => (
-                      <Link
-                        key={item.label}
-                        href={item.href}
-                        className="p-4 rounded-xl border border-slate-200 hover:border-blue-600 hover:bg-blue-50 transition cursor-pointer group block"
-                        onClick={() => setOpenMenu(null)}
-                      >
-                        <h3 className="font-semibold text-slate-900 group-hover:text-blue-600 transition mb-1">
-                          {item.label}
+                        <h3 className="text-lg font-bold text-white py-3 mb-8">
+                          Ready to get started?
                         </h3>
-                        <p className="text-sm text-slate-600 group-hover:text-slate-700">
-                          {item.description}
-                        </p>
-                      </Link>
-                    ))}
+
+                        <button className="w-full bg-[#70e6d8] hover:bg-[#5cd3c5] text-[#0044aa] font-bold py-2.5 px-4 rounded-lg transition-colors text-sm">
+                          Get in touch
+                        </button>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              )}
-            </div>
-          ))}
+                )}
+              </div>
+            );
+          })}
         </div>
  
         {/* Desktop CTA Button */}
@@ -343,7 +331,7 @@ export default function Navbar() {
           Book a Demo
         </Link>
 
-        {/* Mobile Sidebar Section remains unaffected... */}
+        {/* Mobile Sidebar Section */}
         {mobileMenuOpen && (
           <div 
             className="fixed inset-0 bg-black/60 z-[90] md:hidden backdrop-blur-sm"
@@ -361,6 +349,21 @@ export default function Navbar() {
           
           <div className="flex flex-col p-6 gap-4">
             {Object.keys(navItems).map((menu) => {
+              // MODIFIED: Direct link layout context for Connectors on Mobile
+              if (menu === "Connectors") {
+                return (
+                  <div key={menu} className="border-b border-slate-900 pb-3 last:border-none">
+                    <Link
+                      href="/connectors"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="flex justify-between items-center w-full text-white text-base font-semibold py-1 text-left hover:text-blue-400 transition-colors"
+                    >
+                      <span>{menu}</span>
+                    </Link>
+                  </div>
+                );
+              }
+
               const isSubMenuOpen = mobileOpenSubMenu === menu;
               const activeModules = menu === "Products" ? platformModules : menu === "Solutions" ? solutionModules : null;
 
