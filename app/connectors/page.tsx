@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Navbar from "@/app/navbar";
 import Footersection from "@/app/Footersection";
+import { getPath } from '@/utils/helper';
 
 // Filter Categories
 const categories = [
