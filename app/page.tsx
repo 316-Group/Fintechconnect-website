@@ -19,10 +19,52 @@ export default function MarketingHome() {
   // Trigger state for structural entry animations
   const [isAnimate, setIsAnimate] = useState(false);
 
+  // Typewriter Loop States
+  const words = ['Fintechs', 'Neobanks', 'Crypto Banks'];
+  const [wordIndex, setWordIndex] = useState(0);
+  const [currentText, setCurrentText] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [typingSpeed, setTypingSpeed] = useState(150);
+
   useEffect(() => {
     // Fire the animation sequence immediately when the DOM components load
     setIsAnimate(true);
   }, []);
+
+  // Typewriter effect logic
+  useEffect(() => {
+    const handleTyping = () => {
+      const currentFullWord = words[wordIndex];
+
+      if (!isDeleting) {
+        // --- TYPING MODE ---
+        // Get one character extra than current length
+        setCurrentText(currentFullWord.substring(0, currentText.length + 1));
+        setTypingSpeed(120); // Normal typing speed
+
+        // If word is completely typed, transition to erasing after a delay
+        if (currentText === currentFullWord) {
+          setIsDeleting(true);
+          setTypingSpeed(1500); // Hold the completed word for 1.5 seconds
+        }
+      } else {
+        // --- ERASING MODE ---
+        // Strip one character away
+        setCurrentText(currentFullWord.substring(0, currentText.length - 1));
+        setTypingSpeed(60); // Faster erasing speed
+
+        // If word is completely erased, transition to typing next word after a brief pause
+        if (currentText === '') {
+          setIsDeleting(false);
+          setWordIndex((prevIndex) => (prevIndex + 1) % words.length);
+          setTypingSpeed(400); // Pause briefly before starting to type the next word
+        }
+      }
+    };
+
+    const timer = setTimeout(handleTyping, typingSpeed);
+    return () => clearTimeout(timer);
+  }, [currentText, isDeleting, wordIndex, typingSpeed]);
 
   return (
     <div className="bg-black">
@@ -47,7 +89,10 @@ export default function MarketingHome() {
           <h1 className="text-4xl md:text-5xl font-bold tracking-tight leading-[1.1] mb-6">
             White label bespoke <br className="hidden lg:block" /> 
             solutions for{' '}
-            <span className="text-[#0066ff] inline-block">Fintechs</span>
+            {/* Typewriter element container */}
+            <span className="text-[#0066ff] inline-flex items-center border-r-2 border-[#0066ff] pr-1 animate-pulse">
+              {currentText || "\u00A0"}
+            </span>
           </h1>
 
           <p className="text-slate-400 text-sm md:text-base leading-relaxed mb-10 max-w-[650px] font-light">

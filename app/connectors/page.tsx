@@ -150,7 +150,7 @@ export default function ConnectorsPage() {
         ref={heroRef}
         className="w-full bg-blue-600 text-white py-20 lg:py-28 px-6 md:px-20 overflow-hidden"
       >
-        <div className="max-w-[92.5%] mx-auto flex flex-col justify-center">
+        <div className="max-w-[full] mx-auto flex flex-col justify-center">
           <h1 
             className={`text-4xl md:text-6xl font-bold tracking-tight mb-8 ${getAnimatedClass(heroVisible)}`}
             style={{ transitionDelay: '0ms' }}
@@ -158,7 +158,7 @@ export default function ConnectorsPage() {
             Fintech Connect Connectors
           </h1>
           <p 
-            className={`text-lg md:text-xl font-normal max-w-5xl text-white/95 leading-relaxed ${getAnimatedClass(heroVisible)}`}
+            className={`text-lg md:text-xl font-normal max-w-7xl text-white/95 leading-relaxed ${getAnimatedClass(heroVisible)}`}
             style={{ transitionDelay: '150ms' }}
           >
             Accelerate your financial project launch with proven Fintech Connect partners who bring their expertise, reliability, and security.
@@ -173,7 +173,7 @@ export default function ConnectorsPage() {
       >
         <div className="max-w-[92.5%] mx-auto px-3 lg:px-6 py-6">
           <div 
-            className={`grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 border border-slate-200 rounded-lg overflow-hidden bg-white shadow-sm transition-all duration-700 ${
+            className={`grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 border border-slate-200 rounded-lg overflow-hidden bg-white shadow-sm transition-all duration-700 ${
               filterVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
             }`}
           >
