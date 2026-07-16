@@ -4,7 +4,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import Navbar from "@/app/navbar";
 import Footersection from "@/app/Footersection";
 
-// Type definition for stability
 interface Connector {
   name: string;
   category: string;
@@ -14,7 +13,6 @@ interface Connector {
   isCTA?: boolean;
 }
 
-// Filter Categories
 const categories = [
   "All connectors",
   "BaaS",
@@ -25,19 +23,16 @@ const categories = [
   "Utilities"
 ];
 
-// Global Standalone CTA Card definition (automatically appends to every tab)
 const ctaCard: Connector = {
   name: "Add your partner",
   category: "All",
   desc: "We are open to adding your favourite provider to the system!",
   iconType: "add-partner",
-  url: "mailto:partners@yourdomain.com", // Replace with your support email or "/contact" route
+  url: "mailto:partners@yourdomain.com",
   isCTA: true
 };
 
-// Database for connectors
 const connectorsData: Connector[] = [
-  // --- BaaS Category ---
   {
     name: "Clear Junction",
     category: "BaaS",
@@ -115,7 +110,6 @@ const connectorsData: Connector[] = [
     iconType: "utilities",
     url: "https://plaid.com/"
   },
-  // --- Crypto Infrastructure Category ---
   {
     name: "Fireblocks",
     category: "Crypto Infrastructure",
@@ -165,7 +159,6 @@ const connectorsData: Connector[] = [
     iconType: "tronscan",
     url: "https://tronscan.org/"
   },
-  // --- Payments Category ---
   {
     name: "Currency Cloud",
     category: "Payments",
@@ -236,7 +229,6 @@ const connectorsData: Connector[] = [
     iconType: "b4b",
     url: "https://www.b4bpayments.com/"
   },
-  // --- Compliance Category ---
   {
     name: "ComplyAdvantage",
     category: "Compliance",
@@ -300,7 +292,6 @@ const connectorsData: Connector[] = [
     iconType: "blockcyper",
     url: "https://www.blockcypher.com/"
   },
-  // --- Card Issuing Category ---
   {
     name: "Moorvand",
     category: "Card Issuing",
@@ -352,7 +343,6 @@ const connectorsData: Connector[] = [
   }
 ];
 
-// Component to render the custom geometric company icons
 const ConnectorIcon = ({ type }: { type: string }) => {
   switch (type) {
     case "transfermate":
@@ -477,7 +467,7 @@ const ConnectorIcon = ({ type }: { type: string }) => {
     case "banking-circle":
       return (
         <div className="w-16 h-16 bg-[#0f172a] rounded-xl flex items-center justify-center p-2">
-          <svg viewBox="0 0 24 24" className="w-full h-full text-white animate-spin-slow" fill="currentColor">
+          <svg viewBox="0 0 24 24" className="w-full h-full text-white" fill="currentColor">
             {[...Array(16)].map((_, i) => (
               <rect key={i} x="11.5" y="1" width="1" height="6" rx="0.5" transform={`rotate(${i * 22.5} 12 12)`} />
             ))}
@@ -706,25 +696,37 @@ const ConnectorIcon = ({ type }: { type: string }) => {
 
 export default function ConnectorsPage() {
   const [activeTab, setActiveTab] = useState("All connectors");
+  // Manage mobile dropdown state
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   
-  // Animation Visibility States
   const [heroVisible, setHeroVisible] = useState(false);
   const [filterVisible, setFilterVisible] = useState(false);
   const [gridVisible, setGridVisible] = useState(false);
 
-  // References for Animation Targets
   const heroRef = useRef<HTMLDivElement>(null);
   const filterRef = useRef<HTMLDivElement>(null);
   const gridRef = useRef<HTMLDivElement>(null);
+  // Ref for handling mobile clicks outside of the dropdown
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Animation Helper for Hero Section elements
   const getAnimatedClass = (visible: boolean) => {
     return `transition-all duration-[800ms] ease-out transform ${
       visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
     }`;
   };
 
-  // Intersection Observer for scroll-triggered entry animations
+  // Click outside to close mobile dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    };
+    
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   useEffect(() => {
     const observerOptions = {
       root: null,
@@ -755,7 +757,6 @@ export default function ConnectorsPage() {
     };
   }, []);
 
-  // Gracefully animate grid-cascade entry after an active tab change
   useEffect(() => {
     if (!gridVisible) {
       const timer = setTimeout(() => {
@@ -765,13 +766,10 @@ export default function ConnectorsPage() {
     }
   }, [gridVisible]);
 
-  // Filtering Logic Engine:
-  // 1. Filter standard connectors matching selected category
   const activeBaseConnectors = connectorsData.filter(item => 
     activeTab === "All connectors" ? true : item.category === activeTab
   );
 
-  // 2. Append the standalone CTA card to the end of your filtered array dynamically
   const filteredConnectors = [...activeBaseConnectors, ctaCard];
 
   return (
@@ -802,11 +800,56 @@ export default function ConnectorsPage() {
       {/* FILTER BUTTON SEGMENT BAR CONTAINER */}
       <div 
         ref={filterRef}
-        className="w-full bg-white border-b border-slate-200 sticky top-0 z-40 shadow-sm overflow-x-auto scrollbar-none"
+        className="w-full bg-white border-b border-slate-200 sticky top-0 z-40 shadow-sm"
       >
-        <div className="max-w-[92.5%] mx-auto px-3 lg:px-6 py-6">
+        <div className="max-w-[92.5%] mx-auto px-4 lg:px-6 py-6">
+          
+          {/* 1. MOBILE ONLY DROPDOWN MENU */}
+          <div ref={dropdownRef} className="relative block md:hidden w-full">
+            <button
+              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+              className="w-full flex items-center justify-between bg-white border border-slate-200 rounded-lg px-4 py-3.5 text-sm font-semibold text-slate-800 shadow-sm transition-all duration-200 active:scale-[0.99] focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+            >
+              <span>{activeTab}</span>
+              <svg
+                className={`w-5 h-5 text-slate-500 transition-transform duration-200 ${
+                  isDropdownOpen ? "rotate-180" : ""
+                }`}
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+
+            {isDropdownOpen && (
+              <div className="absolute left-0 right-0 mt-2 bg-white border border-slate-200 rounded-lg shadow-lg z-50 overflow-hidden animate-in fade-in slide-in-from-top-1 duration-100">
+                {categories.map((category, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => {
+                      setActiveTab(category);
+                      setGridVisible(false);
+                      setIsDropdownOpen(false);
+                    }}
+                    className={`w-full text-left px-4 py-3.5 text-sm transition-colors ${
+                      activeTab === category
+                        ? "bg-blue-50 text-blue-600 font-bold"
+                        : "text-slate-700 hover:bg-slate-50 active:bg-slate-100"
+                    }`}
+                  >
+                    {category}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* 2. DESKTOP ONLY SEGMENTED MENU */}
           <div 
-            className={`grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 border border-slate-200 rounded-lg overflow-hidden bg-white shadow-sm transition-all duration-700 ${
+            className={`hidden md:grid md:grid-cols-4 lg:grid-cols-7 border border-slate-200 rounded-lg overflow-hidden bg-white shadow-sm transition-all duration-700 ${
               filterVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
             }`}
           >
@@ -817,9 +860,9 @@ export default function ConnectorsPage() {
                   key={idx}
                   onClick={() => {
                     setActiveTab(category);
-                    setGridVisible(false); // Reset grid visual entry state for clean cascade retrigger
+                    setGridVisible(false);
                   }}
-                  className={`py-4 px-2 text-center text-xs md:text-sm font-semibold border-r border-b lg:border-b-0 border-slate-200 last:border-r-0 transition-all duration-200 ${
+                  className={`py-4 px-2 text-center text-xs md:text-sm font-semibold border-r border-b lg:border-b-0 border-slate-200 last:border-r-0 last:border-b-0 transition-all duration-200 ${
                     isActive 
                       ? 'bg-[#2563eb] text-white border-[#2563eb]' 
                       : 'bg-white text-slate-800 hover:bg-slate-50'
@@ -830,6 +873,7 @@ export default function ConnectorsPage() {
               );
             })}
           </div>
+
         </div>
       </div>
 
@@ -873,7 +917,6 @@ export default function ConnectorsPage() {
                       {connector.desc}
                     </p>
 
-                    {/* Conditional rendering for dynamic card triggers */}
                     {isCTA ? (
                       <div className="mt-auto w-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold py-3 px-6 rounded-lg transition-colors text-center shadow-md">
                         Contact us
