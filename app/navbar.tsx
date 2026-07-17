@@ -61,12 +61,12 @@ export default function Navbar() {
       { 
         label: "Support Hub", 
         description: "Meet regulatory requirements across all jurisdictions",
-        href: "/About" 
+        href: "/supporthub" 
       },
       { 
         label: "Resource Hub", 
         description: "Granular permissions and role-based access management",
-        href: "#access" 
+        href: "/About" 
       },
     ],
   };

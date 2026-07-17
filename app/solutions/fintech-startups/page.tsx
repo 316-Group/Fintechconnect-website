@@ -45,8 +45,8 @@ export default function FintechStartups() {
       
       <Navbar />
 
-      {/* Master Content Wrapper */}
-      <div ref={heroRef} className="pt-10 md:pt-12 w-full">
+      {/* Master Content Wrapper - Added 'border-b-[5px] border-blue-600' to serve as the divider line */}
+      <div ref={heroRef} className="pt-10 md:pt-12 w-full border-b-[5px] border-blue-600">
         
         {/* Hero Header & Description Section */}
         <section className="md:text-center pl-6 md:pt-12 pb-12 px-4 max-w-5xl mx-auto">
@@ -99,6 +99,31 @@ export default function FintechStartups() {
         </div>
 
       </div>
+
+      {/* NEW SECTION: Brand Value Proposition Section */}
+      <section className="bg-white py-16 md:py-24 px-6 md:px-12 lg:px-20">
+        <div className="max-w-full mx-auto grid grid-cols-1 md:grid-cols-12 gap-8 md:gap-16 items-start">
+          
+          {/* Left Column - Heading */}
+          <div className="md:col-span-5">
+            <h2 className="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight leading-tight">
+              Built to Help Startups Accelerate Growth Responsibly
+            </h2>
+          </div>
+          
+          {/* Right Column - Paragraph Description */}
+          <div className="md:col-span-7">
+            <p className="text-slate-800 text-base md:text-lg leading-relaxed font-normal">
+              Fintech Connect empowers fintech startups to move fast and stay compliant. Our 
+              multi-bank integration lets you offer diverse account types and payment 
+              rails globally - without waiting for licenses or building infrastructure 
+              from scratch. You keep full control and ownership while we handle the 
+              backend complexity.
+            </p>
+          </div>
+
+        </div>
+      </section>
 
       {/* Subsections continue downward unmodified */}
       <ParallaxSection />
