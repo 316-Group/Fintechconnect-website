@@ -4,15 +4,15 @@ import React, { useState, useEffect, useRef } from 'react';
 import { getPath } from '@/utils/helper';
 
 const modules = [
-  { title: "KYC & AML Compliance", desc: "Verify individuals and businesses across 190+ countries in minutes. Automated document checks, biometric liveness detection, and UBO identification ", img: '/frontend.png' },
-  { title: "Core Banking Engine", desc: "Launch a fully featured banking core without building one. Manage multi-currency accounts, automate transaction processing, and connect global payment rails", img: '/rates.png' },
-  { title: "Global Payments Infrastructure", desc: "Power payments across local and international rails in 180+ countries. Real-time transaction processing with full payment traceability at every step.", img: '/modules3.png' },
-  { title: " AI Fraud Monitoring", desc: "A self-learning fraud engine that scores every transaction in under 50ms. Behavioural profiling, anomaly detection, and automated alerts.", img: '/frontend.png' },
-  { title: "Card Issuing", desc: "Issue branded virtual and physical cards without owning any card infrastructure. Configure spend controls, and go live with your card programme in weeks.", img: '/rates.png' },
-  { title: "White Label Bank Portal", desc: "Deploy a fully branded web and mobile banking experience with account dashboards, transfers, card management, and a powerful admin back-office. No frontend development required.", img: '/modules3.png' },
-  { title: "Wallet-as-a-Service", desc: "Launch branded, secure digital wallets with multi-currency support, instant P2P transfers, and integrated KYC onboarding without building wallet infrastructure from scratch.", img: '/frontend.png' },
-  { title: "Real-Time Ledger", desc: "A robust, double-entry accounting engine built for regulatory-grade transparency and financial accuracy. Every transaction processed on your platform is automatically recorded, traceable, and auditable.", img: '/rates.png' },
-  { title: "Crypto Wallets", desc: "Offer your users institutional-grade, multi-asset crypto wallets with real-time balance tracking, full transaction histories, and configurable hot/cold storage tiering. ", img: '/modules3.png' },
+  { title: "KYC & AML Compliance", desc: "Verify individuals and businesses across 190+ countries in minutes. Automated document checks, biometric liveness detection, and UBO identification ", img: '/moduleimages/kyc.png' },
+  { title: "Core Banking Engine", desc: "Launch a fully featured banking core without building one. Manage multi-currency accounts, automate transaction processing, and connect to global payment rails", img: '/moduleimages/corebanking.png' },
+  { title: "Global Payments Infrastructure", desc: "Power payments across and local and international rails in 180+ countries. Real-time transaction processing with full payment traceability at every step.", img: '/moduleimages/globalpayments.png' },
+  { title: " AI Fraud Monitoring", desc: "A self-learning fraud engine that scores every transaction in under 50ms. Behavioural profiling, anomaly detection, and automated alerts.", img: '/moduleimages/AIfraud.png' },
+  { title: "Card Issuing", desc: "Issue branded virtual and physical  cards without owning any card infrastructure. Configure spend controls, and go live with your card programme in weeks.", img: '/moduleimages/cardissuing.png' },
+  { title: "White Label Bank Portal", desc: "Deploy a fully branded web and mobile banking experience with account dashboards, transfers, card management, and a powerful admin back-office. No frontend development required.", img: '/moduleimages/whitelabel.png' },
+  { title: "Wallet-as-a-Service", desc: "Launch branded, secure digital wallets with multi-currency support, instant P2P transfers, and integrated KYC onboarding  without building wallet infrastructure from scratch.", img: '/moduleimages/walletasaservice.png' },
+  { title: "Real-Time Ledger", desc: "A robust, double-entry accounting engine built for regulatory-grade transparency and financial accuracy. Every transaction processed on your platform is automatically recorded, traceable, and auditable.", img: '/moduleimages/realtimeledger.png' },
+  { title: "Crypto Wallets", desc: "Offer your users institutional-grade, multi-asset crypto wallets with real-time balance tracking, full transaction histories, and configurable hot/cold storage tiering. ", img: '/moduleimages/cryptowallets.png' },
 ];
 
 // 1. Isolated Child Card Component to Handle Staggered/Lazy Loading Entries

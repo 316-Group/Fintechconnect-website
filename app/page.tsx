@@ -14,6 +14,9 @@ import { getPath } from '@/utils/helper';
 import FAQSection from '@/app/Faqsection';
 
 import { useState, useEffect } from 'react';
+import APISection from './APISection';
+import PartnerSection from './partnersection';
+import ComparisonSection from './comparisonsection';
 
 export default function MarketingHome() {
   // Trigger state for structural entry animations
@@ -143,8 +146,14 @@ export default function MarketingHome() {
       {/* Why Us Section */}
       <WhyUsSection />
 
-      {/* Global Accounts Section */}
-      <GlobalAccountsSection />
+      {/* APISection */}
+      <APISection />
+
+      {/* Comparison Section */}
+      <ComparisonSection />
+
+      {/* Partner Section */}
+      <PartnerSection />
 
       {/* FAQ Section */}
       <FAQSection />

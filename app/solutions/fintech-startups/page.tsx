@@ -107,13 +107,13 @@ export default function FintechStartups() {
           {/* Left Column - Heading */}
           <div className="md:col-span-5">
             <h2 className="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight leading-tight">
-              Built to Help Startups Accelerate Growth Responsibly
+              Built to Help Startups <br></br> Accelerate Growth <br></br> Responsibly
             </h2>
           </div>
           
           {/* Right Column - Paragraph Description */}
           <div className="md:col-span-7">
-            <p className="text-slate-800 text-base md:text-lg leading-relaxed font-normal">
+            <p className="text-slate-800 text-base md:text-2xl leading-relaxed font-normal">
               Fintech Connect empowers fintech startups to move fast and stay compliant. Our 
               multi-bank integration lets you offer diverse account types and payment 
               rails globally - without waiting for licenses or building infrastructure 

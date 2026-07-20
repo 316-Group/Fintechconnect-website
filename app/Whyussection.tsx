@@ -82,7 +82,7 @@ export default function WhyUsSection() {
           
           {/* Paragraph */}
           <p 
-            className={`text-slate-800 text-sm lg:text-base leading-relaxed mb-8 font-normal ${getAnimatedClass(part1Visible)}`}
+            className={`text-slate-800 text-sm lg:text-lg leading-relaxed mb-8 font-normal ${getAnimatedClass(part1Visible)}`}
             style={{ transitionDelay: '200ms' }}
           >
             We empower financial institutions with cutting-edge tech solutions providing great 
@@ -103,11 +103,11 @@ export default function WhyUsSection() {
 
         {/* Right Side: Mockup & Asset Composition Area */}
         <div 
-          className={`relative w-full max-w-lg mx-auto lg:mx-0 order-1 lg:order-2 py-8 lg:py-0 ${getAnimatedClass(part1Visible)}`}
+          className={`relative w-full max-w-full mx-auto lg:mx-0 order-1 lg:order-2 py-8 lg:py-0 ${getAnimatedClass(part1Visible)}`}
           style={{ transitionDelay: '150ms' }}
         >
           {/* Main Image Container */}
-          <div className="w-full aspect-[4/3] bg-slate-100 rounded-[36px] overflow-hidden shadow-sm border border-slate-200/50 relative">
+          <div className="w-full bg-slate-100 rounded-[36px] overflow-hidden shadow-sm border border-slate-200/50 relative">
             <img 
               src={getPath("/whyUs image.png")} 
               alt="Why Us image" 
@@ -187,7 +187,7 @@ export default function WhyUsSection() {
             <img 
               src={getPath("/transfersimage.png")} 
               alt="Transfers dashboard image" 
-              className="w-full h-full object-contain object-center"
+              className="w-full h-full object-cover object-center"
             /> 
           </div>
         </div>
