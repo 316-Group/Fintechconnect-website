@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { getPath } from "@/utils/helper"; // Import your asset helper if needed
+import { getPath } from "@/utils/helper";
 
 interface APIFeature {
   title: string;
@@ -103,7 +103,6 @@ export default function APISection() {
         {/* RIGHT COLUMN: API Documentation & Graphic Showcase Placeholder */}
         <div className="lg:col-span-7 relative w-full flex justify-center lg:justify-end">
           
-          { 
             
             <img 
               src={getPath("/APISectionimage.png")} 
@@ -111,8 +110,7 @@ export default function APISection() {
               className="w-full h-auto object-contain shadow-2xl" 
             />
             
-          }
-
+        
         </div>
 
       </div>

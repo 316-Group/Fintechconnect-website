@@ -17,6 +17,7 @@ import { useState, useEffect } from 'react';
 import APISection from './APISection';
 import PartnerSection from './partnersection';
 import ComparisonSection from './comparisonsection';
+import HoverSection from './solutions/fintech-startups/hoversection';
 
 export default function MarketingHome() {
   // Trigger state for structural entry animations
@@ -154,6 +155,9 @@ export default function MarketingHome() {
 
       {/* Partner Section */}
       <PartnerSection />
+
+      {/* Hover Section */}
+      <HoverSection />
 
       {/* FAQ Section */}
       <FAQSection />
