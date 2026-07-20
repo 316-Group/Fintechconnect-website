@@ -105,7 +105,7 @@ export default function APISection() {
           
             
             <img 
-              src={getPath("/APISectionimage.png")} 
+              src={getPath("/APIsectionimage.png")} 
               alt="API Documentation Showcase" 
               className="w-full h-auto object-contain shadow-2xl" 
             />
