@@ -186,7 +186,7 @@ export default function CarouselSection() {
   const visibleCategories = showAll ? categories : categories.slice(0, 3);
 
   return (
-    <section className="bg-[#0a0a0a] py-16 md:py-24 text-white overflow-hidden">
+    <section className="bg-[#0a0a0a] py-10 md:py-24 text-white overflow-hidden">
       <div className="w-full pl-6 lg:pl-20">
         
         <div className="pr-6 lg:pr-20">

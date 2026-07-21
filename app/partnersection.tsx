@@ -57,7 +57,7 @@ const partnerCards: PartnerCard[] = [
 
 export default function PartnerSection() {
   return (
-    <section className="bg-[#f8f9fa] text-slate-900 py-20 md:py-28 px-6 md:px-12 lg:px-20">
+    <section className="bg-[#f8f9fa] text-slate-900 py-10 md:py-28 px-6 md:px-12 lg:px-20">
       <div className="max-w-full mx-auto">
         
         {/* HEADER SECTION */}
@@ -65,7 +65,7 @@ export default function PartnerSection() {
           <p className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-3">
             Our Partner Network
           </p>
-          <h2 className="text-4xl md:text-5xl font-extrabold tracking-tight mb-6 text-slate-900">
+          <h2 className="text-3xl md:text-5xl font-extrabold tracking-tight mb-6 text-slate-900">
             <span className="text-blue-600">50+</span> Pre-integrated partners
           </h2>
           <p className="text-slate-600 text-lg md:text-xl font-normal leading-relaxed max-w-3xl">

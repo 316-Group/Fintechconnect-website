@@ -54,14 +54,14 @@ const apiFeatures: APIFeature[] = [
 
 export default function APISection() {
   return (
-    <section className="bg-black text-white py-16 md:py-24 px-6 md:px-12 lg:px-20 overflow-hidden">
+    <section className="bg-black text-white py-10 md:py-24 px-6 md:px-12 lg:px-20 overflow-hidden">
       <div className="max-w-full mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
         
         {/* LEFT COLUMN: Text Content & Features */}
         <div className="lg:col-span-5 flex flex-col items-start">
           
           {/* Main Title */}
-          <h2 className="text-3xl md:text-5xl font-bold tracking-tight mb-6">
+          <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-6">
             <span className="text-blue-500">API-first</span> from day one
           </h2>
 
@@ -107,7 +107,7 @@ export default function APISection() {
             <img 
               src={getPath("/APIsectionimage.png")} 
               alt="API Documentation Showcase" 
-              className="w-full h-auto object-contain shadow-2xl" 
+              className="w-full max-h-150 object-contain shadow-2xl lg:mt-45" 
             />
             
         

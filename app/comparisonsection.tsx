@@ -203,15 +203,15 @@ export default function ComparisonSection() {
   const currentData = comparisonData[activeTab];
 
   return (
-    <section className="bg-white text-slate-900 py-16 md:py-24 px-4 sm:px-6 lg:px-8 overflow-hidden font-sans">
+    <section className="bg-white text-slate-900 py-10 md:py-24 px-6 sm:px-6 lg:px-8 overflow-hidden font-sans">
       <div className="max-w-full mx-auto">
         
         {/* HEADER SECTION */}
-        <div className="text-center max-w-6xl mx-auto mb-10">
+        <div className="md:text-center max-w-6xl mx-auto mb-10">
           <p className="text-sm font-semibold text-slate-600 mb-2 tracking-wide">
             Save time &amp; money
           </p>
-          <h2 className="text-3xl md:text-5xl font-bold tracking-tight text-slate-900 mb-6">
+          <h2 className="text-2xl md:text-4xl font-bold tracking-tight text-slate-900 mb-6">
             Why spend months building <><br /></> what you can launch{" "}
             <span className="text-blue-600">in 6 weeks?</span>
           </h2>

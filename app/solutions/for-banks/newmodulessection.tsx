@@ -15,8 +15,8 @@ const modules = [
   { title: "Crypto Wallets", desc: "Offer your users institutional-grade, multi-asset crypto wallets with real-time balance tracking, full transaction histories, and configurable hot/cold storage tiering. ", img: '/moduleimages/cryptowallets.png' },
 ];
 
-// 1. Separate Self-Observing Card Component
-const ModuleCard = ({ module, index }: { module: any; index: number }) => {
+// 1. Isolated Child Card Component to Handle Staggered/Lazy Loading Entries
+const ModuleCard = ({ module, index, showAll }: { module: any; index: number; showAll: boolean }) => {
   const [isVisible, setIsVisible] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
 
@@ -29,8 +29,8 @@ const ModuleCard = ({ module, index }: { module: any; index: number }) => {
         }
       },
       { 
-        threshold: 0.15, // Triggers when 15% of the individual card is visible
-        rootMargin: "0px 0px -50px 0px" // Slight offset so it triggers cleanly as you scroll down
+        threshold: 0.1, 
+        rootMargin: "0px 0px -30px 0px"
       }
     );
 
@@ -39,22 +39,24 @@ const ModuleCard = ({ module, index }: { module: any; index: number }) => {
     }
 
     return () => observer.disconnect();
-  }, []);
+  }, [showAll]); // Refires dynamically when mobile unhides cards, triggering their entry cascade
 
-  // Dynamically resets stagger delays per row on desktop (0ms, 100ms, 200ms)
+  // Dynamic remainder delay logic to reset cascading rhythms row-by-row on desktop grids
   const desktopStaggerDelay = (index % 3) * 100;
 
   return (
     <div 
       ref={cardRef} 
       className={`bg-blue-100 rounded-2xl flex flex-col items-start text-left overflow-hidden group cursor-pointer transition-all duration-700 ease-out hover:shadow-lg ${
+        index >= 4 && !showAll ? 'hidden md:flex' : 'flex'
+      } ${
         isVisible 
           ? 'opacity-100 translate-y-0' 
           : 'opacity-0 -translate-y-12 pointer-events-none'
       }`}
       style={{ transitionDelay: `${desktopStaggerDelay}ms` }}
     >
-      <h3 className="text-xl font-bold text-slate-900 mb-2 py-6 px-8">{module.title}</h3>
+      <h3 className="text-xl font-bold text-slate-900 mb-2 md:mt-3 py-6 px-8">{module.title}</h3>
       <p className="text-sm text-slate-500 mb-4 flex-grow px-8">{module.desc}</p>
 
       {/* Blue Arrow Container */}
@@ -69,7 +71,7 @@ const ModuleCard = ({ module, index }: { module: any; index: number }) => {
         </svg>
       </div>
       
-      {/* Image Container */}
+      {/* Image Asset Element Container */}
       <div className="w-full h-full mt-auto px-6">
         <img 
           src={getPath(module.img)} 
@@ -81,27 +83,66 @@ const ModuleCard = ({ module, index }: { module: any; index: number }) => {
   );
 };
 
-// 2. Main Section Component
-export default function ModulesSection() {
-  return (
-    <section className="py-10 md:py-24 bg-white">
-      <div className="w-full px-6 md:px-20 max-w-[full] mx-auto md:text-center">
-        {/* Header Section */}
-        <h2 className="text-2xl md:text-4xl font-bold text-slate-900 mb-2">
-          Modular first <span className="text-blue-600">architecture to customize your banking ecosystem</span>
-        </h2>
-        <p className="text-slate-600 max-w-4xl mx-auto mb-16">
-          Fintech Connect gives your team a modular, pre-integrated platform of financial 
-          building blocks. Pick the modules you need, configure them to your brand, 
-          and go live with a fully regulated fintech product.
-        </p>
+// 2. Main Structural Layout Component
+export default function NewmodulesSection() {
+  const [showAll, setShowAll] = useState(false);
+  const [headerVisible, setHeaderVisible] = useState(false);
+  const headerRef = useRef<HTMLHeadingElement>(null);
 
+  // Dedicated Observer for the Section's H2 Title Copy
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setHeaderVisible(true);
+          if (headerRef.current) observer.unobserve(headerRef.current);
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (headerRef.current) observer.observe(headerRef.current);
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <section className="py-24 bg-white">
+      <div className="w-full px-3 lg:px-6 max-w-[92.5%] mx-auto">
+        
+        {/* Header Section */}
+        <h2 
+          ref={headerRef}
+          className={`text-4xl font-bold text-slate-900 mb-16 transition-all duration-700 ease-out ${
+            headerVisible 
+              ? 'opacity-100 translate-y-0' 
+              : 'opacity-0 -translate-y-12 pointer-events-none'
+          }`}
+        >
+          Essential Building Blocks to <br className="hidden md:inline" />Launch Fintech Today
+        </h2>
+        
         {/* 3x3 Grid Section */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {modules.map((module, index) => (
-            <ModuleCard key={index} module={module} index={index} />
+            <ModuleCard 
+              key={index} 
+              module={module} 
+              index={index} 
+              showAll={showAll} 
+            />
           ))}
         </div>
+
+        {/* MOBILE TOGGLE ACTION BUTTON CONTAINER */}
+        <div className="flex justify-center mt-8 md:hidden">
+          <button
+            onClick={() => setShowAll(!showAll)}
+            className="text-black font-semibold text-base md:text-lg border-b border-black pb-1 hover:text-blue-400 hover:border-blue-400 transition-colors"
+          >
+            {showAll ? 'Show Less' : 'View All'}
+          </button>
+        </div>
+
       </div>
     </section>
   );

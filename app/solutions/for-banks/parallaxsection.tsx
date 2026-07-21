@@ -5,14 +5,14 @@ import { getPath } from '@/utils/helper';
 const struggles = [
   {
     id: 0,
-    struggleTitle: "Delayed Time-to-Market",
-    struggleDesc: "Building core banking technology and integrating multiple bank partners can take 6-12 months.",
+    struggleTitle: "Legacy Core Systems blocking innovation",
+    struggleDesc: "Monolithic cores make it impossible to launch new products quickly. Every change requires months of testing and regulatory sign-off.",
     solutionTitle: "Our Solution",
-    solutionDesc: "Fintech Connect provides production-ready modules for accounts, payments, FX, etc., so you can go live in weeks (with a sandbox to test)."
+    solutionDesc: "Fintech Connect provides production-ready modules for core banking, KYC/AML, payments, card issuing, and fraud monitoring. Go live in weeks with a fully compliant, white-labelled banking platform — with a sandbox to test everything first."
   },
   {
     id: 1,
-    struggleTitle: "High upfront costs & compliance risk",
+    struggleTitle: "Compliance overheads eating margins.",
     struggleDesc: "Navigating regulatory frameworks and securing initial capital drains resources before you even launch.",
     solutionTitle: "Reduced Overhead",
     solutionDesc: "Our pre-compliant infrastructure and established partner networks drastically cut down your initial capital requirements."
@@ -106,7 +106,7 @@ export default function ParallaxSection() {
                 </div>
 
                 {/* Left Side Problem Context Box */}
-                <div className=" p-5 text-slate-300 text-sm leading-relaxed font-normal">
+                <div className=" p-5 text-slate-300 text-sm md:text-2xl leading-relaxed font-normal">
                   {item.struggleDesc}
                 </div>
 
@@ -116,7 +116,7 @@ export default function ParallaxSection() {
                 <div className="sticky top-24 h-full max-w-[full] bg-[#1e1e1e] rounded-3xl overflow-hidden flex flex-col md:flex-row shadow-2xl transition-all duration-500">
                 <div className="w-full md:w-[45%] h-60 md:h-auto bg-slate-200 relative flex items-start p-6 border-b md:border-b-0 md:border-r border-gray-700 shrink-0 order-1">
                   <img 
-                    src={getPath("/frontend.png")} 
+                    src={getPath("/solutions/forbanks/solution1.png")} 
                     alt="Fintech Connect Visual Architecture" 
                     className="w-full h-full object-contain"
                   />
@@ -126,7 +126,7 @@ export default function ParallaxSection() {
                   <h4 className="text-2xl font-bold text-blue-400 mb-4 tracking-tight">
                     {struggles[activeIndex].solutionTitle}
                   </h4>
-                  <p className="text-slate-300 text-sm md:text-base mb-8 leading-relaxed">
+                  <p className="text-slate-300 text-sm md:text-2xl mb-8 leading-relaxed">
                     {struggles[activeIndex].solutionDesc}
                   </p>
                   <button className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-8 rounded-lg w-max transition-colors text-sm shadow-md shadow-blue-900/40">

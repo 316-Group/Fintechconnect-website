@@ -18,6 +18,7 @@ import APISection from './APISection';
 import PartnerSection from './partnersection';
 import ComparisonSection from './comparisonsection';
 import HoverSection from './solutions/fintech-startups/hoversection';
+import ComplianceSection from './compliancesection';
 
 export default function MarketingHome() {
   // Trigger state for structural entry animations
@@ -156,14 +157,17 @@ export default function MarketingHome() {
       {/* Partner Section */}
       <PartnerSection />
 
+      {/* Compliance Section */}
+      <ComplianceSection />
+
       {/* Hover Section */}
       <HoverSection />
 
       {/* FAQ Section */}
-      <FAQSection />
+      {/* <FAQSection /> */}
 
       {/* Feel Protected Section */}
-      <FeelProtectedSection />
+      {/*<FeelProtectedSection />*/}
 
       {/* Footer */}
       <FooterSection />

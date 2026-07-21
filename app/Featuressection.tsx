@@ -57,11 +57,11 @@ const FeaturesSection = () => {
   }, []);
 
   return (
-    <section ref={sectionRef} className="bg-white py-16 md:py-24">
+    <section ref={sectionRef} className="bg-white py-10 md:py-24">
       <div className="w-full px-3 lg:px-6 max-w-[92.5%] mx-auto">
         
         <div className="md:text-center mb-6 md:mb-20">
-          <h2 className="text-4xl md:text-5xl font-extrabold text-gray-900">
+          <h2 className="text-3xl md:text-5xl font-extrabold text-gray-900">
             Build from scratch, launch in <span className="text-gray-900 line-through">months</span> <span className="text-blue-600">weeks</span>
           </h2>
           <p className="mt-6 mb-6 md:text-center mx-auto max-w-3xl text-lg md:text-xl text-gray-600">

@@ -101,24 +101,24 @@ export default function Navbar() {
 
   const solutionModules: Record<string, { title: string; description: string, href?: string }[]> = {
     "Traditional Finance": [
-      { title: "For Banks", description: "Launch a full-scale mobile-first retail bank in weeks." },
-      { title: "For Credit Unions", description: "Corporate treasury and SME lending solutions." },
-      { title: "For Insurance Companies", description: "Corporate treasury and SME lending solutions." },
+      { title: "For Banks", description: "Launch a full-scale mobile-first retail bank in weeks.", href: "/solutions/for-banks" },
+      { title: "For Credit Unions", description: "Corporate treasury and SME lending solutions.", href: "/solutions/for-credit-unions" },
+      { title: "For Insurance Companies", description: "Corporate treasury and SME lending solutions.", href: "/solutions/for-insurance-companies" },
     ],
     "Digital Finance": [
       { title: "Fintech Startups", description: "Integrate credit products into any platform.", href: "/solutions/fintech-startups/" },
-      { title: "Neobanks & Challenger Banks", description: "Seamless checkout experiences for marketplaces." },
+      { title: "Neobanks & Challenger Banks", description: "Seamless checkout experiences for marketplaces.", href: "/solutions/neobanks-challenger-banks" },
     ],
     "Payments": [
       { title: "Payment Service Providers(PSPs)", description: "Integrate credit products into any platform.", href: "/solutions/payment-service-providers" },
-      { title: "Money Transfer", description: "Seamless checkout experiences for marketplaces." },
-      { title: "Digital Wallets", description: "Seamless checkout experiences for marketplaces." },
+      { title: "Money Transfer", description: "Seamless checkout experiences for marketplaces.", href: "/solutions/money-transfer" },
+      { title: "Digital Wallets", description: "Seamless checkout experiences for marketplaces.", href: "/solutions/digital-wallets" },
     ],
     "Crypto & Web3": [
-      { title: "For Crypto & Web3 Banks", description: "Integrate credit products into any platform." },
-      { title: "Crypto Cards", description: "Seamless checkout experiences for marketplaces." },
-      { title: "Crypto Exchanges", description: "Seamless checkout experiences for marketplaces." },
-      { title: "Crypto Wallets", description: "Seamless checkout experiences for marketplaces." },
+      { title: "For Crypto & Web3 Banks", description: "Integrate credit products into any platform.", href: "/solutions/for-crypto-web3-banks" },
+      { title: "Crypto Cards", description: "Seamless checkout experiences for marketplaces.", href: "/solutions/crypto-cards" },
+      { title: "Crypto Exchanges", description: "Seamless checkout experiences for marketplaces.", href: "/solutions/crypto-exchanges" },
+      { title: "Crypto Wallets", description: "Seamless checkout experiences for marketplaces.", href: "/solutions/crypto-wallets" },
     ],
   };
 
