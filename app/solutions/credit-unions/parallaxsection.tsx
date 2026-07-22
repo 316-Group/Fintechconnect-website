@@ -3,39 +3,39 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { getPath } from '@/utils/helper';
 
-// 1. Data Structure - Defined with unique image paths for each item
+// 1. Data Structure - Updated to match Credit Unions slides
 const struggles = [
   {
     id: 0,
-    struggleTitle: "Legacy core systems blocking innovation",
-    struggleDesc: "Monolithic cores make it impossible to launch new products quickly. Every change requires months of testing and regulatory sign-off.",
-    solutionTitle: "Modernize your core without replacing it",
-    solutionDesc: "Fintech Connect provides production-ready modules for core banking, KYC/AML, payments, card issuing, and fraud monitoring. Go live in weeks with a fully compliant, white-labelled banking platform — with a sandbox to test everything first.",
-    img: "/solutions/forbanks/solution1.png"
+    struggleTitle: "Outdated technology losing younger members",
+    struggleDesc: "Members under 40 expect mobile-first banking. Without a modern app and instant payments, credit unions are losing the next generation to neobanks.",
+    solutionTitle: "Give your members a modern mobile banking app — without building one from scratch.",
+    solutionDesc: "Fintech Connect's White Label Mobile Banking App gives credit unions a fully branded iOS and Android app with instant payments, savings goals, and loan management. Deploy in 6–8 weeks and retain the next generation of members who expect mobile-first banking.",
+    img: "/solutions/creditunions/solution1.png"
   },
   {
     id: 1,
-    struggleTitle: "Compliance overheads eating margins.",
-    struggleDesc: "Maintaining PCI-DSS, AML, and KYC compliance in-house requires dedicated teams and constant re-certification.",
-    solutionTitle: "Inherit our certifications and free your team from the compliance treadmill.",
-    solutionDesc: "Every Fintech Connect module ships pre-certified for PCI-DSS, ISO 27001, SOC 2 Type II, and GDPR. Automated AML screening, real-time transaction monitoring, and auto-generated regulatory reports eliminate the need for a dedicated compliance team.",
-    img: "/solutions/forbanks/solution2.png"
+    struggleTitle: "Manual loan processing slowing decisions",
+    struggleDesc: "Paper-based loan applications and manual credit checks create delays that frustrate members and increase operational costs significantly.",
+    solutionTitle: "Automate loan decisions and disburse funds the same day — with AI-powered risk scoring.",
+    solutionDesc: "Fintech Connect's Lending Engine automates the entire loan lifecycle — from application and credit scoring to approval and disbursement. Reduce decision time from 5 days to 4 hours, improve approval rates, and cut default risk by up to 34% with configurable AI risk models.",
+    img: "/solutions/creditunions/solution2.png"
   },
   {
     id: 2,
-    struggleTitle: "Slow digital onboarding losing customers",
-    struggleDesc: "Customers expect instant account opening. Manual KYC processes create friction and drive abandonment.",
-    solutionTitle: "Onboard customers in minutes not days or hours, with zero manual intervention or form filling.",
-    solutionDesc: "Fintech Connect's KYC & Onboarding module automates document verification, biometric liveness checks, and AML screening. Customers open accounts in under 3 minutes — reducing abandonment by 62% and eliminating the manual review backlog entirely.",
-    img: "/solutions/forbanks/solution3.png"
+    struggleTitle: "Limited treasury and investment tools",
+    struggleDesc: "Credit unions lack the treasury management tools to optimise liquidity, manage interest rate risk, and maximise returns for members.",
+    solutionTitle: "Optimise liquidity, manage interest rate risk, and maximise member returns — in real time.",
+    solutionDesc: "Fintech Connect's Treasury & Liquidity module gives credit unions institutional-grade treasury tools. Real-time dashboards, AI-powered rebalancing recommendations, and interest rate risk management help you maximise returns on member deposits without the complexity of enterprise treasury systems.",
+    img: "/solutions/creditunions/solution3.png"
   },
   {
     id: 3,
-    struggleTitle: "Fragmented vendor landscape",
-    struggleDesc: "Managing 10+ separate vendors for payments, cards, KYC, and fraud creates integration debt and operational risk.",
-    solutionTitle: "One platform. One contract. One integration. Everything your bank needs.",
-    solutionDesc: "Replace your fragmented vendor stack with a single Fintech Connect integration. Core banking, KYC, payments, card issuing, fraud monitoring, and compliance — all pre-integrated, all under one SLA, and all accessible through a single unified API.",
-    img: "/solutions/forbanks/solution4.png"
+    struggleTitle: "Compliance burden on small teams",
+    struggleDesc: "AML, KYC, and regulatory reporting requirements demand significant staff time — resources that credit unions cannot afford to dedicate to compliance alone.",
+    solutionTitle: "Free your team from manual compliance work with pre-automated AML and KYC.",
+    solutionDesc: "Fintech Connect's Compliance Suite automates AML screening, KYC verification, and regulatory reporting. Your credit union inherits our FCA, PCI-DSS, and GDPR certifications — eliminating the need for dedicated compliance staff and costly re-certification cycles.",
+    img: "/solutions/creditunions/solution4.png"
   }
 ];
 
@@ -53,7 +53,6 @@ export default function ParallaxSection() {
       });
     };
 
-    // rootMargin focuses the trigger area to the middle 10% of the screen
     const observer = new IntersectionObserver(handleIntersect, {
       root: null,
       rootMargin: "-45% 0px -45% 0px",
@@ -66,7 +65,7 @@ export default function ParallaxSection() {
     return () => observer.disconnect();
   }, []);
 
-  // Mobile Scroll Swipe Handler to recalculate card active index matching pagination metrics
+  // Mobile Scroll Swipe Handler
   const handleMobileScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const container = e.currentTarget;
     const index = Math.round(container.scrollLeft / container.clientWidth);
@@ -80,19 +79,17 @@ export default function ParallaxSection() {
       <div className="w-full mx-auto">
         
         {/* ========================================================== */}
-        {/* 1. MOBILE-ONLY CAROUSEL VIEW (Visible on mobile/tablet)     */}
+        {/* 1. MOBILE-ONLY CAROUSEL VIEW                               */}
         {/* ========================================================== */}
         <div className="block lg:hidden w-full">
-          {/* Main Mobile Heading */}
           <h2 className="text-2xl font-bold mb-8 text-white tracking-tight leading-tight">
-            What Banks Struggle With and How Fintech Connect Fixes It
+            What Credit Unions Struggle With and How Fintech Connect Fixes It
           </h2>
 
           <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">
             The Problems
           </p>
 
-          {/* Swipe Container utilizing native layout snapping mechanism */}
           <div
             ref={mobileScrollRef}
             onScroll={handleMobileScroll}
@@ -103,7 +100,6 @@ export default function ParallaxSection() {
                 key={item.id}
                 className="w-full shrink-0 snap-center flex flex-col gap-4"
               >
-                {/* Active Module Indicator Row */}
                 <div className="flex items-center gap-3">
                   <div className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.8)]"></div>
                   <h3 className="text-lg font-bold text-blue-400 tracking-tight">
@@ -111,14 +107,11 @@ export default function ParallaxSection() {
                   </h3>
                 </div>
 
-                {/* Left Side Problem Context Box */}
                 <div className="p-5 text-slate-300 text-sm md:text-2xl leading-relaxed font-normal">
                   {item.struggleDesc}
                 </div>
 
-                {/* Right Side Strategy Content Box */}
                 <div className="w-full lg:w-[150%] relative pt-8 md:pb-12">
-                  {/* The main sticky container */}
                   <div className="sticky top-24 h-full max-w-[full] bg-[#1e1e1e] rounded-3xl overflow-hidden flex flex-col md:flex-row shadow-2xl transition-all duration-500">
                     <div className="w-full md:w-[45%] h-60 md:h-auto bg-slate-200 relative flex items-start p-6 border-b md:border-b-0 md:border-r border-gray-700 shrink-0 order-1">
                       <img
@@ -129,10 +122,10 @@ export default function ParallaxSection() {
                     </div>
 
                     <div className="w-full md:w-1/2 p-8 lg:p-10 flex flex-col justify-center shrink-0 order-2">
-                      <span className="text-xs font-bold text-blue-400 uppercase tracking-wider mb-2">
+                      <span className="text-xs uppercase font-semibold text-slate-400 tracking-wider mb-2">
                         Our Solution
                       </span>
-                      <h4 className="text-xl md:text-2xl font-bold text-white mb-4 tracking-tight">
+                      <h4 className="text-xl font-bold text-blue-400 mb-4 tracking-tight">
                         {item.solutionTitle}
                       </h4>
                       <p className="text-slate-300 text-sm md:text-base mb-8 leading-relaxed">
@@ -148,7 +141,6 @@ export default function ParallaxSection() {
             ))}
           </div>
 
-          {/* Pagination Counter Indicator & Vector Component */}
           <div className="flex items-center justify-end gap-3 mt-6 text-sm font-semibold text-slate-400 tracking-wide">
             <span>{activeIndex + 1} of {struggles.length}</span>
             <div className="w-14 h-[1px] bg-slate-500 relative flex items-center justify-end">
@@ -158,23 +150,21 @@ export default function ParallaxSection() {
         </div>
         
         {/* ========================================================== */}
-        {/* 2. DESKTOP PARALLAX VIEW (Hidden on mobile/tablet)        */}
+        {/* 2. DESKTOP PARALLAX VIEW                                   */}
         {/* ========================================================== */}
         <div className="hidden lg:block w-full">
-          {/* Desktop Main Heading */}
           <h2 className="text-3xl md:text-3xl font-bold mb-2 md:pl-4 md:max-w-[40%] leading-tight text-white tracking-tight">
-            What Banks Struggle With and How Fintech Connect Fixes It
+            What Credit Unions Struggle With and How Fintech Connect Fixes It
           </h2>
 
-          <p className="text-white text-sm md:text-base mb-12 md:mt-16 md:mb-0 md:pl-4 md:max-w-[40%] leading-relaxed font-semibold">
-            The Problems
+          <p className="text-white text-sm md:text-base mb-12 md:mt-16 md:mb-0 md:pl-4 md:max-w-[40%] leading-relaxed">
+            The Problems.
           </p>
 
           <div className="flex flex-col lg:flex-row gap-16 relative items-stretch">
             
-            {/* LEFT COLUMN: Clickable Items (Accordion Style) */}
+            {/* LEFT COLUMN: Clickable Items */}
             <div className="w-full lg:w-[1/3] relative pt-0 pb-6">
-              {/* The vertical timeline line */}
               <div className="absolute left-[31px] top-20 bottom-20 w-0.5 bg-slate-800 z-0"></div>
 
               {struggles.map((item, index) => (
@@ -214,8 +204,7 @@ export default function ParallaxSection() {
             </div>
 
             {/* RIGHT COLUMN: Sticky Solution Box */}
-            <div className="w-full lg:max-h-100px lg:w-[150%] relative pt-0 pb-12">
-              {/* The main sticky container */}
+            <div className="w-full lg:w-[150%] relative pt-0 pb-12">
               <div className="sticky top-24 h-full max-w-[full] bg-[#1e1e1e] rounded-3xl overflow-hidden flex flex-col md:flex-row shadow-2xl transition-all duration-500">
                 <div className="w-full md:w-[45%] h-60 md:h-auto bg-slate-200 relative flex items-start p-6 border-b md:border-b-0 md:border-r border-gray-700 shrink-0">
                   <img
@@ -227,10 +216,10 @@ export default function ParallaxSection() {
                 </div>
 
                 <div className="w-full md:w-1/2 p-8 lg:p-10 flex flex-col justify-center shrink-0">
-                  <span className="text-xs font-bold text-blue-400 uppercase tracking-wider mb-2">
+                  <span className="text-xs uppercase font-semibold text-blue-400 tracking-wider mb-2">
                     Our Solution
                   </span>
-                  <h4 className="text-xl md:text-2xl font-bold text-white mb-4 tracking-tight">
+                  <h4 className="text-2xl font-bold text-white mb-4 tracking-tight leading-snug">
                     {struggles[activeIndex].solutionTitle}
                   </h4>
                   <p className="text-slate-300 text-sm md:text-base mb-8 leading-relaxed">

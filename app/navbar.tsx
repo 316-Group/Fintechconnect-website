@@ -102,7 +102,7 @@ export default function Navbar() {
   const solutionModules: Record<string, { title: string; description: string, href?: string }[]> = {
     "Traditional Finance": [
       { title: "For Banks", description: "Launch a full-scale mobile-first retail bank in weeks.", href: "/solutions/for-banks" },
-      { title: "For Credit Unions", description: "Corporate treasury and SME lending solutions.", href: "/solutions/for-credit-unions" },
+      { title: "For Credit Unions", description: "Corporate treasury and SME lending solutions.", href: "/solutions/credit-unions" },
       { title: "For Insurance Companies", description: "Corporate treasury and SME lending solutions.", href: "/solutions/for-insurance-companies" },
     ],
     "Digital Finance": [

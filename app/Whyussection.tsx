@@ -107,11 +107,11 @@ export default function WhyUsSection() {
           style={{ transitionDelay: '150ms' }}
         >
           {/* Main Image Container */}
-          <div className="w-full bg-slate-100 rounded-[36px] overflow-hidden shadow-sm border border-slate-200/50 relative">
+          <div className="w-full md:max-h-[670px] bg-slate-100 rounded-[36px] overflow-hidden shadow-sm border border-slate-200/50 relative">
             <img 
               src={getPath("/whyUs image.png")} 
               alt="Why Us image" 
-              className="w-full h-full object-cover object-center"
+              className="w-full h-full object-contain object-center"
             />
           </div>
 

@@ -4,15 +4,60 @@ import React, { useState, useEffect, useRef } from 'react';
 import { getPath } from '@/utils/helper';
 
 const modules = [
-  { title: "KYC & AML Compliance", desc: "Verify individuals and businesses across 190+ countries in minutes. Automated document checks, biometric liveness detection, and UBO identification ", img: '/moduleimages/kyc.png' },
-  { title: "Core Banking Engine", desc: "Launch a fully featured banking core without building one. Manage multi-currency accounts, automate transaction processing, and connect to global payment rails", img: '/moduleimages/corebanking.png' },
-  { title: "Global Payments Infrastructure", desc: "Power payments across and local and international rails in 180+ countries. Real-time transaction processing with full payment traceability at every step.", img: '/moduleimages/globalpayments.png' },
-  { title: " AI Fraud Monitoring", desc: "A self-learning fraud engine that scores every transaction in under 50ms. Behavioural profiling, anomaly detection, and automated alerts.", img: '/moduleimages/AIfraud.png' },
-  { title: "Card Issuing", desc: "Issue branded virtual and physical  cards without owning any card infrastructure. Configure spend controls, and go live with your card programme in weeks.", img: '/moduleimages/cardissuing.png' },
-  { title: "White Label Bank Portal", desc: "Deploy a fully branded web and mobile banking experience with account dashboards, transfers, card management, and a powerful admin back-office. No frontend development required.", img: '/moduleimages/whitelabel.png' },
-  { title: "Wallet-as-a-Service", desc: "Launch branded, secure digital wallets with multi-currency support, instant P2P transfers, and integrated KYC onboarding  without building wallet infrastructure from scratch.", img: '/moduleimages/walletasaservice.png' },
-  { title: "Real-Time Ledger", desc: "A robust, double-entry accounting engine built for regulatory-grade transparency and financial accuracy. Every transaction processed on your platform is automatically recorded, traceable, and auditable.", img: '/moduleimages/realtimeledger.png' },
-  { title: "Crypto Wallets", desc: "Offer your users institutional-grade, multi-asset crypto wallets with real-time balance tracking, full transaction histories, and configurable hot/cold storage tiering. ", img: '/moduleimages/cryptowallets.png' },
+  { 
+    tag: "Compliance",
+    title: "KYC & AML Compliance", 
+    desc: "Verify individuals and businesses across 190+ countries in minutes. Automated document checks, biometric liveness detection, and UBO identification.", 
+    img: '/moduleimages/kyc.png' 
+  },
+  { 
+    tag: "Core",
+    title: "Core Banking Engine", 
+    desc: "Launch a fully featured banking core without building one. Manage multi-currency accounts, automate transaction processing, and connect to global payment rails.", 
+    img: '/moduleimages/corebanking.png' 
+  },
+  { 
+    tag: "Payments",
+    title: "Global Payments Infrastructure", 
+    desc: "Power payments across local and international rails in 180+ countries. Real-time transaction processing with full payment traceability at every step.", 
+    img: '/moduleimages/globalpayments.png' 
+  },
+  { 
+    tag: "Security",
+    title: "AI Fraud Monitoring", 
+    desc: "A self-learning fraud engine that scores every transaction in under 50ms. Behavioural profiling, anomaly detection, and automated alerts.", 
+    img: '/moduleimages/AIfraud.png' 
+  },
+  { 
+    tag: "Cards",
+    title: "Card Issuing", 
+    desc: "Issue branded virtual and physical cards without owning any card infrastructure. Configure spend controls, and go live with your card programme in weeks.", 
+    img: '/moduleimages/cardissuing.png' 
+  },
+  { 
+    tag: "White Label",
+    title: "White Label Bank Portal", 
+    desc: "Deploy a fully branded web and mobile banking experience with account dashboards, transfers, card management, and a powerful admin back-office. No frontend development required.", 
+    img: '/moduleimages/whitelabel.png' 
+  },
+  { 
+    tag: "Security",
+    title: "Wallet-as-a-Service", 
+    desc: "Launch branded, secure digital wallets with multi-currency support, instant P2P transfers, and integrated KYC onboarding without building wallet infrastructure from scratch.", 
+    img: '/moduleimages/walletasaservice.png' 
+  },
+  { 
+    tag: "Cards",
+    title: "Real-Time Ledger", 
+    desc: "A robust, double-entry accounting engine built for regulatory-grade transparency and financial accuracy. Every transaction processed on your platform is automatically recorded, traceable, and auditable.", 
+    img: '/moduleimages/realtimeledger.png' 
+  },
+  { 
+    tag: "White Label",
+    title: "Crypto Wallets", 
+    desc: "Offer your users institutional-grade, multi-asset crypto wallets with real-time balance tracking, full transaction histories, and configurable hot/cold storage tiering.", 
+    img: '/moduleimages/cryptowallets.png' 
+  },
 ];
 
 // 1. Isolated Child Card Component to Handle Staggered/Lazy Loading Entries
@@ -39,15 +84,14 @@ const ModuleCard = ({ module, index, showAll }: { module: any; index: number; sh
     }
 
     return () => observer.disconnect();
-  }, [showAll]); // Refires dynamically when mobile unhides cards, triggering their entry cascade
+  }, [showAll]);
 
-  // Dynamic remainder delay logic to reset cascading rhythms row-by-row on desktop grids
   const desktopStaggerDelay = (index % 3) * 100;
 
   return (
     <div 
       ref={cardRef} 
-      className={`bg-blue-100 rounded-2xl flex flex-col items-start text-left overflow-hidden group cursor-pointer transition-all duration-700 ease-out hover:shadow-lg ${
+      className={`bg-blue-100/70 rounded-3xl flex flex-col items-start text-left overflow-hidden group cursor-pointer transition-all duration-700 ease-out hover:shadow-xl ${
         index >= 4 && !showAll ? 'hidden md:flex' : 'flex'
       } ${
         isVisible 
@@ -56,27 +100,35 @@ const ModuleCard = ({ module, index, showAll }: { module: any; index: number; sh
       }`}
       style={{ transitionDelay: `${desktopStaggerDelay}ms` }}
     >
-      <h3 className="text-xl font-bold text-slate-900 mb-2 md:mt-3 py-6 px-8">{module.title}</h3>
-      <p className="text-sm text-slate-500 mb-4 flex-grow px-8">{module.desc}</p>
+      {/* Top Padding & Category Tag Badge */}
+      <div className="pt-8 px-8 mb-4">
+        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-blue-600 text-xs font-semibold tracking-wide">
+          <span className="text-[10px]">✦</span>
+          {module.tag}
+        </span>
+      </div>
 
-      {/* Blue Arrow Container */}
-      <div className="px-6 mb-6">
+      <h3 className="text-xl font-bold text-slate-900 mb-2 px-8">{module.title}</h3>
+      <p className="text-sm text-slate-600 mb-6 flex-grow px-8 leading-relaxed">{module.desc}</p>
+
+      {/* Blue Arrow Indicator Container */}
+      <div className="px-8 mb-6">
         <svg 
-          className="w-6 h-6 text-blue-600 transition-transform duration-300 group-hover:translate-x-2" 
+          className="w-5 h-5 text-blue-600 transition-transform duration-300 group-hover:translate-x-2" 
           fill="none" 
           stroke="currentColor" 
           viewBox="0 0 24 24"
         >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
         </svg>
       </div>
       
       {/* Image Asset Element Container */}
-      <div className="w-full h-full mt-auto px-6">
+      <div className="w-full h-full mt-auto px-6 pb-6">
         <img 
           src={getPath(module.img)} 
           alt={module.title} 
-          className="rounded-lg w-full h-full object-cover"
+          className="rounded-xl w-full h-full object-cover shadow-sm"
         />
       </div>
     </div>
@@ -89,7 +141,6 @@ export default function NewmodulesSection() {
   const [headerVisible, setHeaderVisible] = useState(false);
   const headerRef = useRef<HTMLHeadingElement>(null);
 
-  // Dedicated Observer for the Section's H2 Title Copy
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => {
@@ -118,7 +169,7 @@ export default function NewmodulesSection() {
               : 'opacity-0 -translate-y-12 pointer-events-none'
           }`}
         >
-          Essential Building Blocks to <br className="hidden md:inline" />Launch Fintech Today
+          Essential Building Blocks <br className="hidden md:inline" />for modern banking
         </h2>
         
         {/* 3x3 Grid Section */}

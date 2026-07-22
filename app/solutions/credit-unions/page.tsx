@@ -3,17 +3,17 @@
 import React, { useState, useEffect, useRef } from "react";
 import Navbar from "@/app/navbar";
 import { getPath } from "@/utils/helper";
-import ParallaxSection from "@/app/solutions/fintech-startups/parallaxsection";
-import DynamicSection from "@/app/solutions/fintech-startups/dynamicsection";
+import ParallaxSection from "@/app/solutions/credit-unions/parallaxsection";
+import DynamicSection from "@/app/solutions/credit-unions/dynamicsection";
 import { Globe } from "@/components/ui/globe";
 import Footersection from "@/app/Footersection";
-import Newmodulessection from "@/app/solutions/fintech-startups/newmodulessection";
-import BackgroundSection from "@/app/solutions/fintech-startups/backgroundsection";
-import HoverSection from "@/app/solutions/fintech-startups/hoversection";
-import NewfeaturesSection from "@/app/solutions/fintech-startups/newfeaturessection";
-import Newpartnersection from "@/app/solutions/fintech-startups/newpartnersection";
+import Newmodulessection from "@/app/solutions/credit-unions/newmodulessection";
+import BackgroundSection from "@/app/solutions/credit-unions/backgroundsection";
+import HoverSection from "@/app/solutions/credit-unions/hoversection";
+import NewfeaturesSection from "@/app/solutions/credit-unions/newfeaturessection";
+import Newpartnersection from "@/app/solutions/credit-unions/newpartnersection";
 
-export default function FintechStartups() {
+export default function ForCreditUnions() {
   const [heroVisible, setHeroVisible] = useState(false);
   const heroRef = useRef<HTMLDivElement>(null);
 
@@ -56,7 +56,7 @@ export default function FintechStartups() {
             className={`text-3xl md:text-5xl font-bold text-slate-900 mb-6 tracking-tight max-w-full ${getAnimatedClass(heroVisible)}`}
             style={{ transitionDelay: '0ms' }}
           >
-            White label bespoke solutions for <span className="text-blue-600">Fintechs</span>
+            Give your members <span className="text-blue-600">digital first banking</span> without losing your community roots
           </h1>
           
           {/* 2. Subtitle Description Paragraph */}
@@ -64,8 +64,7 @@ export default function FintechStartups() {
             className={`text-slate-600 font-normal text-base md:text-lg mb-8 leading-relaxed md:max-w-[85%] mx-auto ${getAnimatedClass(heroVisible)}`}
             style={{ transitionDelay: '150ms' }}
           >
-            We are infrastructure builders for the financial industry. Fintech Connect by 316 Group gives 
-            banks, fintechs, and financial institutions a modular, production ready platform to design.
+           Fintech Connect gives banks a modular, production-ready platform to launch digital products, automate compliance, and serve customers better — without rebuilding your core from scratch.
           </p>
           
           {/* 3. Book Demo CTA Button */}
@@ -85,7 +84,7 @@ export default function FintechStartups() {
           {/* MOBILE ONLY IMAGE */}
           <div className="block md:hidden w-full overflow-hidden rounded-2xl shadow-2xl shadow-slate-300/60 pl-4 pr-0 pt-10 pb-20">
             <img 
-              src={getPath("/mobileimage.png")} 
+              src={getPath("/solutions/creditunions.png")} 
               alt="Fintech Connect dashboard visualization mobile"
               className="w-full h-auto transform scale-128 origin-left" 
             />
@@ -93,10 +92,10 @@ export default function FintechStartups() {
 
           {/* DESKTOP ONLY IMAGE */}
           <img 
-            src={getPath("/solutions/solutionsmodule.png")} 
+            src={getPath("/solutions/creditunions.png")} 
             alt="Fintech Connect dashboard visualization"
-            className="hidden md:block w-full h-auto md:px-20 md:py-12 md:mb-0 md:object-contain rounded-2xl shadow-2xl shadow-slate-300/60"
-          />
+            className="hidden md:block w-full max-h-230 mx-auto md:pl-70 md:py-0 md:mb-0 md:object-contain rounded-2xl shadow-2xl shadow-slate-300/60"
+/>
         </div>
 
       </div>
@@ -108,18 +107,17 @@ export default function FintechStartups() {
           {/* Left Column - Heading */}
           <div className="md:col-span-5">
             <h2 className="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight leading-tight">
-              Built to Help Startups <br></br> Accelerate Growth <br></br> Responsibly
+              Built to help credit unions <br></br> compete digitally while <br></br> staying member first
             </h2>
           </div>
           
           {/* Right Column - Paragraph Description */}
           <div className="md:col-span-7">
             <p className="text-slate-800 text-base md:text-2xl leading-relaxed font-normal">
-              Fintech Connect empowers fintech startups to move fast and stay compliant. Our 
-              multi-bank integration lets you offer diverse account types and payment 
-              rails globally - without waiting for licenses or building infrastructure 
-              from scratch. You keep full control and ownership while we handle the 
-              backend complexity.
+              Banks face a paradox: legacy infrastructure is too slow to compete, 
+              but rebuilding from scratch takes years and costs millions. Fintech Connect 
+              solves this by giving your team a modular, API-first platform that layers on 
+              top of your existing systems — or replaces them entirely at your own pace.
             </p>
           </div>
 

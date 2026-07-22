@@ -54,7 +54,7 @@ const apiFeatures: APIFeature[] = [
 
 export default function APISection() {
   return (
-    <section className="bg-black text-white py-10 md:py-24 px-6 md:px-12 lg:px-20 overflow-hidden">
+    <section className="bg-black text-white py-10 md:py-0 px-6 md:px-12 lg:px-20 overflow-hidden">
       <div className="max-w-full mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
         
         {/* LEFT COLUMN: Text Content & Features */}
@@ -107,7 +107,7 @@ export default function APISection() {
             <img 
               src={getPath("/APIsectionimage.png")} 
               alt="API Documentation Showcase" 
-              className="w-full max-h-150 object-contain shadow-2xl lg:mt-45" 
+              className="w-full max-h-140 object-contain shadow-2xl lg:mt-78 mb-6" 
             />
             
         

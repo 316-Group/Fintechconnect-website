@@ -51,7 +51,7 @@ export default function BackgroundSection() {
         <img 
           src={backgroundImageSrc} 
           alt="Background Infrastructure Graphic" 
-          className="w-full h-full object-cover"
+          className="w-full h-full object-cover object-center"
         />
       </div>
 
