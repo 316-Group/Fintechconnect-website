@@ -1,35 +1,34 @@
 "use client";
 
 import React from "react";
+import { getPath } from "@/utils/helper";
 
 interface LogoItem {
   id: string;
   name: string;
-  logoBg: string;
-  logoText?: string;
-  imageUrl?: string;
+  logoUrl: string;
 }
 
 // TOP ROW LOGOS (Scrolls Left)
 const topRowLogos: LogoItem[] = [
-  { id: "clearbank", name: "ClearBank", logoBg: "bg-[#9efff5]", logoText: "text-slate-900 font-bold text-xs" },
-  { id: "banking-circle", name: "Banking Circle", logoBg: "bg-gradient-to-tr from-purple-700 to-indigo-500" },
-  { id: "visa", name: "VISA", logoBg: "bg-white", logoText: "text-[#0057b8] font-extrabold text-sm tracking-tighter" },
-  { id: "mtn", name: "MTN", logoBg: "bg-[#ffcc00]", logoText: "text-slate-900 font-black text-xs" },
-  { id: "solaris", name: "Solaris Bank", logoBg: "bg-[#f95738]" },
-  { id: "mambu", name: "Mambu", logoBg: "bg-[#00c9a7]" },
-  { id: "modulr", name: "Modulr", logoBg: "bg-[#ffd166]" },
+  { id: "clearbank", name: "ClearBank", logoUrl: "/solutions/logos/clearbank.png" },
+  { id: "banking-circle", name: "Banking Circle", logoUrl: "/solutions/logos/bankingcircle.png" },
+  { id: "visa", name: "VISA", logoUrl: "/solutions/logos/visa.png" },
+  { id: "mtn", name: "MTN", logoUrl: "/solutions/logos/image5.png" },
+  { id: "solaris", name: "Solaris Bank", logoUrl: "/solutions/logos/image6.png" },
+  { id: "mambu", name: "Mambu", logoUrl: "/solutions/logos/un.png" },
+  { id: "modulr", name: "Modulr", logoUrl: "/solutions/logos/mastercard.png" },
 ];
 
 // BOTTOM ROW LOGOS (Scrolls Right)
 const bottomRowLogos: LogoItem[] = [
-  { id: "mastercard", name: "Mastercard", logoBg: "bg-black" },
-  { id: "veriff", name: "Veriff", logoBg: "bg-[#003d36]" },
-  { id: "unlimit", name: "Unlimit", logoBg: "bg-[#ccff00]", logoText: "text-slate-900 font-black text-sm" },
-  { id: "copper", name: "Copper", logoBg: "bg-white", logoText: "text-purple-600 font-bold text-lg" },
-  { id: "sumsub", name: "Sumsub", logoBg: "bg-[#5c42ff]" },
-  { id: "onfido", name: "Onfido", logoBg: "bg-[#181a20]" },
-  { id: "persona", name: "Persona", logoBg: "bg-[#3a0ca3]" },
+  { id: "mastercard", name: "Mastercard", logoUrl: "/solutions/logos/mastercard.png" },
+  { id: "veriff", name: "Veriff", logoUrl: "/solutions/logos/image6.png" },
+  { id: "unlimit", name: "Unlimit", logoUrl: "/solutions/logos/un.png" },
+  { id: "copper", name: "Copper", logoUrl: "/solutions/logos/visa.png" },
+  { id: "sumsub", name: "Sumsub", logoUrl: "/solutions/logos/image7.png" },
+  { id: "onfido", name: "Onfido", logoUrl: "/solutions/logos/coin.png" },
+  { id: "persona", name: "Persona", logoUrl: "/solutions/logos/bankingcircle.png" },
 ];
 
 export default function NewPartnersSection() {
@@ -88,7 +87,6 @@ export default function NewPartnersSection() {
         </div>
 
         {/* RIGHT COLUMN: Infinite Dual-Direction Ticker Showcase */}
-        {/* Mask updated to apply fade ONLY on the left edge (0% -> 10%) */}
         <div className="lg:col-span-7 w-full md:px-0 relative overflow-hidden [mask-image:linear-gradient(to_right,transparent_0%,black_10%)]">
           
           <div className="flex flex-col gap-5">
@@ -101,28 +99,13 @@ export default function NewPartnersSection() {
                     key={`${item.id}-top-${index}`}
                     className="w-24 h-24 sm:w-40 sm:h-40 bg-[#2d3139] rounded-2xl flex items-center justify-center p-3 shrink-0 shadow-md hover:scale-105 transition-transform cursor-pointer"
                   >
-                    <div className={`w-16 h-16 sm:w-30 sm:h-30 rounded-full ${item.logoBg} flex items-center justify-center shadow-inner overflow-hidden p-1 text-center`}>
-                      {item.id === "visa" && (
-                        <span className="font-extrabold text-blue-800 text-sm italic tracking-tighter">VISA</span>
-                      )}
-                      {item.id === "clearbank" && (
-                        <span className="font-bold text-slate-800 text-[10px] leading-tight">Clear.Bank</span>
-                      )}
-                      {item.id === "banking-circle" && (
-                        <div className="w-8 h-8 rounded-full border-2 border-dashed border-white/80 animate-spin-slow" />
-                      )}
-                      {item.id === "mtn" && (
-                        <span className="font-black text-black text-xs tracking-tighter">MoMo</span>
-                      )}
-                      {item.id === "solaris" && (
-                        <div className="w-6 h-6 rounded-full bg-orange-200/40 border-2 border-white" />
-                      )}
-                      {!["visa", "clearbank", "banking-circle", "mtn", "solaris"].includes(item.id) && (
-                        <span className={item.logoText || "text-white font-bold text-xs"}>
-                          {item.name}
-                        </span>
-                      )}
-                    </div>
+                    <div className="w-16 h-16 sm:w-28 sm:h-28 aspect-square rounded-full overflow-hidden flex-none">
+  <img
+    src={getPath(item.logoUrl)}
+    alt={`${item.name} logo`}
+    className="w-full h-full object-cover scale-110" 
+  />
+</div>
                   </div>
                 ))}
               </div>
@@ -136,27 +119,12 @@ export default function NewPartnersSection() {
                     key={`${item.id}-bottom-${index}`}
                     className="w-24 h-24 sm:w-40 sm:h-40 bg-[#2d3139] rounded-2xl flex items-center justify-center p-3 shrink-0 shadow-md hover:scale-105 transition-transform cursor-pointer"
                   >
-                    <div className={`w-16 h-16 sm:w-30 sm:h-30 rounded-full ${item.logoBg} flex items-center justify-center shadow-inner overflow-hidden p-1 text-center`}>
-                      {item.id === "mastercard" && (
-                        <div className="flex -space-x-2">
-                          <div className="w-5 h-5 rounded-full bg-red-600" />
-                          <div className="w-5 h-5 rounded-full bg-yellow-500/90" />
-                        </div>
-                      )}
-                      {item.id === "veriff" && (
-                        <div className="w-6 h-6 border-b-2 border-r-2 border-teal-400 transform -rotate-45" />
-                      )}
-                      {item.id === "unlimit" && (
-                        <span className="font-black text-slate-900 text-sm">uN</span>
-                      )}
-                      {item.id === "copper" && (
-                        <span className="font-bold text-purple-600 text-base">¢</span>
-                      )}
-                      {!["mastercard", "veriff", "unlimit", "copper"].includes(item.id) && (
-                        <span className={item.logoText || "text-white font-bold text-xs"}>
-                          {item.name}
-                        </span>
-                      )}
+                    <div className="w-16 h-16 sm:w-30 sm:h-30 rounded-full flex items-center justify-center shadow-inner overflow-hidden p-0">
+                      <img
+                        src={getPath(item.logoUrl)}
+                        alt={`${item.name} logo`}
+                        className="w-full h-full object-contain"
+                      />
                     </div>
                   </div>
                 ))}

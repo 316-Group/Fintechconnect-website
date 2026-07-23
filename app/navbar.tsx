@@ -107,7 +107,7 @@ export default function Navbar() {
     ],
     "Digital Finance": [
       { title: "Fintech Startups", description: "Integrate credit products into any platform.", href: "/solutions/fintech-startups/" },
-      { title: "Neobanks & Challenger Banks", description: "Seamless checkout experiences for marketplaces.", href: "/solutions/neobanks-challenger-banks" },
+      { title: "Neobanks & Challenger Banks", description: "Seamless checkout experiences for marketplaces.", href: "/solutions/neobanks" },
     ],
     "Payments": [
       { title: "Payment Service Providers(PSPs)", description: "Integrate credit products into any platform.", href: "/solutions/payment-service-providers" },

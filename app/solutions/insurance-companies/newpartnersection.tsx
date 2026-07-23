@@ -16,7 +16,7 @@ const topRowLogos: LogoItem[] = [
   { id: "visa", name: "VISA", logoUrl: "/solutions/logos/visa.png" },
   { id: "mtn", name: "MTN", logoUrl: "/solutions/logos/image5.png" },
   { id: "solaris", name: "Solaris Bank", logoUrl: "/solutions/logos/image6.png" },
-  { id: "mambu", name: "Mambu", logoUrl: "/solutions/logos/kraken.png" },
+  { id: "mambu", name: "Mambu", logoUrl: "/solutions/logos/un.png" },
   { id: "modulr", name: "Modulr", logoUrl: "/solutions/logos/mastercard.png" },
 ];
 
@@ -27,7 +27,7 @@ const bottomRowLogos: LogoItem[] = [
   { id: "unlimit", name: "Unlimit", logoUrl: "/solutions/logos/un.png" },
   { id: "copper", name: "Copper", logoUrl: "/solutions/logos/visa.png" },
   { id: "sumsub", name: "Sumsub", logoUrl: "/solutions/logos/image7.png" },
-  { id: "onfido", name: "Onfido", logoUrl: "/solutions/logos/kraken.png" },
+  { id: "onfido", name: "Onfido", logoUrl: "/solutions/logos/coin.png" },
   { id: "persona", name: "Persona", logoUrl: "/solutions/logos/bankingcircle.png" },
 ];
 

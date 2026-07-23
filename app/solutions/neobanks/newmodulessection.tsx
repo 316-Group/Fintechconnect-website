@@ -5,39 +5,39 @@ import { getPath } from '@/utils/helper';
 
 const modules = [
   {
-    tag: "Onboarding",
-    title: "Digital Member Onboarding",
-    desc: "Onboard new members in minutes with automated KYC, biometric liveness checks, and instant account creation. Reduce branch visits and eliminate paper forms while staying fully compliant.",
-    img: '/solutions/creditunions/digitalondoarding.png'
+    tag: "Payments",
+    title: "Premium Collection & Wallet Management",
+    desc: "Collect premiums via direct debit, card, open banking, or mobile money. Issue policy wallets to policyholders for instant premium storage, claims receipt, and embedded spending.",
+    img: 'public/solutions/creditunions/digitalondoarding.png'
   },
   {
-    tag: "Lending",
-    title: "SME & Consumer Lending Engine",
-    desc: "Automate loan origination, credit scoring, and disbursement for both consumer and small business members. Configurable risk models, instant decisions, and same-day funding.",
+    tag: "Claims",
+    title: "Real-Time Claims Disbursement",
+    desc: "Pay approved claims instantly to policyholder wallets, bank accounts, or mobile money. Automated payment routing, full audit trail, and real-time status notifications for policyholders.",
     img: '/solutions/creditunions/SMEengine.png'
   },
   {
-    tag: "Mobile App",
-    title: "White Label Mobile Banking App",
-    desc: "Deploy a fully branded iOS and Android banking app for your members — with account management, instant transfers, savings goals, and loan management. No frontend development required.",
+    tag: "Security",
+    title: "AI Claims Fraud Detection",
+    desc: "A self-learning fraud engine that scores every claim in real time. Behavioural profiling, network analysis, velocity rules, and anomaly detection — with an automated case management workflow for flagged claims.",
     img: '/solutions/creditunions/whitelabel.png'
   },
   {
-    tag: "Treasury",
-    title: "Treasury & Liquidity Management",
-    desc: "Optimise your credit union's liquidity, manage interest rate risk, and maximise returns on member deposits. Real-time treasury dashboards with AI-powered rebalancing recommendations.",
+    tag: "Embedded Finance",
+    title: "Embedded Banking & Card Issuing",
+    desc: "Embed savings accounts, virtual debit cards, and micro-lending directly into your insurance products. Offer policyholders a branded financial account alongside their policy — with zero banking infrastructure required.",
     img: '/solutions/creditunions/treasury.png'
   },
   {
-    tag: "Payments",
-    title: "Instant Payments & Transfers",
-    desc: "Enable instant domestic and international transfers for your members. Faster Payments, SEPA, and SWIFT connectivity with real-time notifications and full payment traceability.",
+    tag: "Compliance",
+    title: "KYC, AML & Regulatory Compliance",
+    desc: "Automated policyholder identity verification, AML screening, and regulatory reporting — pre-certified for FCA, PRA, and GDPR. Reduce compliance overhead without sacrificing rigour.",
     img: '/solutions/creditunions/instantpayments.png'
   },
   {
-    tag: "Compliance",
-    title: "AML & Regulatory Compliance",
-    desc: "Automated AML screening, transaction monitoring, and regulatory reporting — pre-certified for FCA, PRA, and international standards. Free your team from manual compliance work.",
+    tag: "Treasury",
+    title: "Treasury & Float Management",
+    desc: "Optimise the management of premium float, claims reserves, and investment portfolios. Real-time liquidity dashboards, multi-currency support, and AI-powered rebalancing recommendations.",
     img: '/solutions/creditunions/compliance.png'
   },
   {

@@ -8,7 +8,7 @@ const modules = [
     tag: "Payments",
     title: "Premium Collection & Wallet Management",
     desc: "Collect premiums via direct debit, card, open banking, or mobile money. Issue policy wallets to policyholders for instant premium storage, claims receipt, and embedded spending.",
-    img: 'public/solutions/creditunions/digitalondoarding.png'
+    img: '/solutions/creditunions/digitalondoarding.png'
   },
   {
     tag: "Claims",
