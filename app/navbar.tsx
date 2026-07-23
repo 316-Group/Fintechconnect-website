@@ -103,7 +103,7 @@ export default function Navbar() {
     "Traditional Finance": [
       { title: "For Banks", description: "Launch a full-scale mobile-first retail bank in weeks.", href: "/solutions/for-banks" },
       { title: "For Credit Unions", description: "Corporate treasury and SME lending solutions.", href: "/solutions/credit-unions" },
-      { title: "For Insurance Companies", description: "Corporate treasury and SME lending solutions.", href: "/solutions/for-insurance-companies" },
+      { title: "For Insurance Companies", description: "Corporate treasury and SME lending solutions.", href: "/solutions/insurance-companies" },
     ],
     "Digital Finance": [
       { title: "Fintech Startups", description: "Integrate credit products into any platform.", href: "/solutions/fintech-startups/" },

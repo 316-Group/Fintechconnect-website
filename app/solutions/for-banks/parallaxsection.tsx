@@ -181,7 +181,7 @@ export default function ParallaxSection() {
                 <div
                   key={item.id}
                   data-index={index}
-                  className="parallax-step relative flex flex-col justify-center py-12 pl-6"
+                  className="parallax-step relative flex flex-col justify-center py-7 pl-6"
                 >
                   <div
                     onClick={() => setActiveIndex(index)}
@@ -204,7 +204,7 @@ export default function ParallaxSection() {
                     activeIndex === index ? 'grid-rows-[1fr] opacity-100 mt-5' : 'grid-rows-[0fr] opacity-0 mt-0'
                   }`}>
                     <div className="overflow-hidden">
-                      <div className="p-6 md:p-8 text-slate-200 leading-relaxed text-sm md:text-lg bg-[#181a20] my-2">
+                      <div className="p-6 md:p-8 md:pb-0 text-slate-200 leading-relaxed text-sm md:text-lg">
                         {item.struggleDesc}
                       </div>
                     </div>

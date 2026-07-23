@@ -3,38 +3,38 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { getPath } from '@/utils/helper';
 
-// 1. Data Structure - Updated to match Credit Unions slides
+// 1. Data Structure - Updated to match Insurance Companies slides
 const struggles = [
   {
     id: 0,
-    struggleTitle: "Outdated technology losing younger members",
-    struggleDesc: "Members under 40 expect mobile-first banking. Without a modern app and instant payments, credit unions are losing the next generation to neobanks.",
-    solutionTitle: "Give your members a modern mobile banking app — without building one from scratch.",
-    solutionDesc: "Fintech Connect's White Label Mobile Banking App gives credit unions a fully branded iOS and Android app with instant payments, savings goals, and loan management. Deploy in 6–8 weeks and retain the next generation of members who expect mobile-first banking.",
-    img: "/solutions/creditunions/solution1.png"
+    struggleTitle: "Slow claims settlement damaging customer trust",
+    struggleDesc: "Policyholders expect fast claims. Legacy payment infrastructure means settlements take days — creating frustration, complaints, and churn at the worst possible moment.",
+    solutionTitle: "Settle claims in hours, not days — and turn a painful moment into a loyalty-building one.",
+    solutionDesc: "Fintech Connect's Claims Disbursement Engine pays approved claims instantly to policyholder wallets or bank accounts. AI-powered verification, real-time fraud scoring, and automated payment routing reduce average settlement time from 3–5 days to under 4 hours — dramatically improving NPS and retention.",
+    img: "/solutions/insurancecompanies/slide1.png"
   },
   {
     id: 1,
-    struggleTitle: "Manual loan processing slowing decisions",
-    struggleDesc: "Paper-based loan applications and manual credit checks create delays that frustrate members and increase operational costs significantly.",
-    solutionTitle: "Automate loan decisions and disburse funds the same day — with AI-powered risk scoring.",
-    solutionDesc: "Fintech Connect's Lending Engine automates the entire loan lifecycle — from application and credit scoring to approval and disbursement. Reduce decision time from 5 days to 4 hours, improve approval rates, and cut default risk by up to 34% with configurable AI risk models.",
+    struggleTitle: "Premium collection friction and failed payments",
+    struggleDesc: "Manual direct debit processes and failed payment handling create revenue leakage and policy lapses that are costly to recover.",
+    solutionTitle: "Collect premiums smarter, recover failed payments automatically, and eliminate policy lapses.",
+    solutionDesc: "Fintech Connect's Premium Collection module supports direct debit, card, open banking, and mobile money. Automated failed payment retries and smart retry scheduling reduce policy lapse rates by 41% — recovering revenue that would otherwise be lost permanently.",
     img: "/solutions/creditunions/solution2.png"
   },
   {
     id: 2,
-    struggleTitle: "Limited treasury and investment tools",
-    struggleDesc: "Credit unions lack the treasury management tools to optimise liquidity, manage interest rate risk, and maximise returns for members.",
-    solutionTitle: "Optimise liquidity, manage interest rate risk, and maximise member returns — in real time.",
-    solutionDesc: "Fintech Connect's Treasury & Liquidity module gives credit unions institutional-grade treasury tools. Real-time dashboards, AI-powered rebalancing recommendations, and interest rate risk management help you maximise returns on member deposits without the complexity of enterprise treasury systems.",
+    struggleTitle: "Insurance fraud costing billions annually",
+    struggleDesc: "Without real-time transaction monitoring and AI fraud scoring, insurers are exposed to claims fraud that is increasingly sophisticated and coordinated.",
+    solutionTitle: "Stop fraud before it costs you — with AI that scores every claim in under 50ms.",
+    solutionDesc: "Fintech Connect's AI Fraud Engine uses behavioural profiling, network analysis, and velocity rules to detect coordinated fraud rings and anomalous claims in real time. A 99.4% detection accuracy and automated case management workflow mean your team only reviews what genuinely needs human judgement.",
     img: "/solutions/creditunions/solution3.png"
   },
   {
     id: 3,
-    struggleTitle: "Compliance burden on small teams",
-    struggleDesc: "AML, KYC, and regulatory reporting requirements demand significant staff time — resources that credit unions cannot afford to dedicate to compliance alone.",
-    solutionTitle: "Free your team from manual compliance work with pre-automated AML and KYC.",
-    solutionDesc: "Fintech Connect's Compliance Suite automates AML screening, KYC verification, and regulatory reporting. Your credit union inherits our FCA, PCI-DSS, and GDPR certifications — eliminating the need for dedicated compliance staff and costly re-certification cycles.",
+    struggleTitle: "Inability to offer embedded financial products",
+    struggleDesc: "Insurers are missing the opportunity to embed savings accounts, payment cards, and lending into their policy products — leaving revenue on the table.",
+    solutionTitle: "Embed savings accounts, virtual cards, and lending into your policies — without becoming a bank.",
+    solutionDesc: "Fintech Connect's Embedded Finance module lets insurers offer branded savings accounts, virtual debit cards, and micro-lending as part of their policy products. Increase policyholder lifetime value, create new revenue streams, and deepen customer relationships — all without a banking licence.",
     img: "/solutions/creditunions/solution4.png"
   }
 ];
@@ -83,7 +83,7 @@ export default function ParallaxSection() {
         {/* ========================================================== */}
         <div className="block lg:hidden w-full">
           <h2 className="text-2xl font-bold mb-8 text-white tracking-tight leading-tight">
-            What Credit Unions Struggle With and How Fintech Connect Fixes It
+            What Insurance Companies Struggle With and How Fintech Connect Fixes It
           </h2>
 
           <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">
@@ -154,7 +154,7 @@ export default function ParallaxSection() {
         {/* ========================================================== */}
         <div className="hidden lg:block w-full">
           <h2 className="text-3xl md:text-3xl font-bold mb-2 md:pl-4 md:max-w-[40%] leading-tight text-white tracking-tight">
-            What Credit Unions Struggle With and How Fintech Connect Fixes It
+            What Insurance Companies Struggle With and How Fintech Connect Fixes It
           </h2>
 
           <p className="text-white text-sm md:text-base mb-12 md:mt-16 md:mb-0 md:pl-4 md:max-w-[40%] leading-relaxed">
@@ -204,7 +204,7 @@ export default function ParallaxSection() {
             </div>
 
             {/* RIGHT COLUMN: Sticky Solution Box */}
-            <div className="w-full lg:w-[150%] relative pt-0 pb-0">
+            <div className="w-full lg:w-[150%] relative pt-0 pb-12">
               <div className="sticky top-24 h-full max-w-[full] bg-[#1e1e1e] rounded-3xl overflow-hidden flex flex-col md:flex-row shadow-2xl transition-all duration-500">
                 <div className="w-full md:w-[45%] h-60 md:h-auto bg-slate-200 relative flex items-start p-6 border-b md:border-b-0 md:border-r border-gray-700 shrink-0">
                   <img
