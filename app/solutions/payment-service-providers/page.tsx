@@ -3,17 +3,17 @@
 import React, { useState, useEffect, useRef } from "react";
 import Navbar from "@/app/navbar";
 import { getPath } from "@/utils/helper";
-import ParallaxSection from "@/app/solutions/crypto-exchanges/parallaxsection";
-import DynamicSection from "@/app/solutions/crypto-exchanges/dynamicsection";
+import ParallaxSection from "@/app/solutions/payment-service-providers/parallaxsection";
+import DynamicSection from "@/app/solutions/payment-service-providers/dynamicsection";
 import { Globe } from "@/components/ui/globe";
 import Footersection from "@/app/Footersection";
-import Newmodulessection from "@/app/solutions/crypto-exchanges/newmodulessection";
-import BackgroundSection from "@/app/solutions/crypto-exchanges/backgroundsection";
-import HoverSection from "@/app/solutions/crypto-exchanges/hoversection";
-import NewfeaturesSection from "@/app/solutions/crypto-exchanges/newfeaturessection";
-import Newpartnersection from "@/app/solutions/crypto-exchanges/newpartnersection";
+import Newmodulessection from "@/app/solutions/payment-service-providers/newmodulessection";
+import BackgroundSection from "@/app/solutions/payment-service-providers/backgroundsection";
+import HoverSection from "@/app/solutions/payment-service-providers/hoversection";
+import NewfeaturesSection from "@/app/solutions/payment-service-providers/newfeaturessection";
+import Newpartnersection from "@/app/solutions/payment-service-providers/newpartnersection";
 
-export default function ForCryptoExchanges() {
+export default function ForPaymentServiceProviders() {
   const [heroVisible, setHeroVisible] = useState(false);
   const heroRef = useRef<HTMLDivElement>(null);
 
@@ -56,7 +56,7 @@ export default function ForCryptoExchanges() {
             className={`text-3xl md:text-5xl font-bold text-slate-900 mb-6 tracking-tight max-w-full ${getAnimatedClass(heroVisible)}`}
             style={{ transitionDelay: '0ms' }}
           >
-            Launch a regulated crypto exchange <span className="text-blue-600">with institutional-grade infrastructure</span>
+            The <span className="text-blue-600">complete PSP infrastructure stack </span> built to process at scale
           </h1>
           
           {/* 2. Subtitle Description Paragraph */}
@@ -64,7 +64,7 @@ export default function ForCryptoExchanges() {
             className={`text-slate-600 font-normal text-base md:text-lg mb-8 leading-relaxed md:max-w-[85%] mx-auto ${getAnimatedClass(heroVisible)}`}
             style={{ transitionDelay: '150ms' }}
           >
-           Fintech Connect gives crypto exchanges the fiat banking rails, MPC custody, on-chain AML, KYC/KYB, and liquidity management infrastructure to launch a compliant, high-performance exchange in weeks — not years.
+           Fintech Connect gives PSPs the acquiring, routing, fraud, and settlement infrastructure to process billions in payments across 180+ countries — without building from scratch.
           </p>
           
           {/* 3. Book Demo CTA Button */}
@@ -107,15 +107,16 @@ export default function ForCryptoExchanges() {
           {/* Left Column - Heading */}
           <div className="md:col-span-5">
             <h2 className="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight leading-tight">
-              Built for crypto exchanges <br></br> that need compliance and <br></br> performance in equal measure
+              Built to help PSPs <br></br> process more, decline less <br></br> and settle faster
             </h2>
           </div>
           
           {/* Right Column - Paragraph Description */}
           <div className="md:col-span-7">
             <p className="text-slate-800 text-base md:text-2xl leading-relaxed font-normal">
-              Fintech Connect delivers every layer of exchange infrastructure through a single API, pre-certified for global regulatory requirements. 
-              Launch your regulated crypto exchange in weeks, not years.
+              Fintech Connect gives PSPs a unified, API-first infrastructure layer — 
+              intelligent payment routing, real-time fraud scoring, multi-rail acquiring, and automated settlement — 
+              all pre-certified and ready to deploy in weeks.
             </p>
           </div>
 

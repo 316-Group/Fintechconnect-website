@@ -3,24 +3,24 @@ import { getPath } from '@/utils/helper';
 
 const features = [
   {
-    iconPath: '/icons/compliance icon.png',
-    title: 'Fiat banking rails without the 12-month wait',
-    description: 'Fintech Connect provides pre-established banking relationships for fiat deposits and withdrawals — so your exchange users can fund their accounts via bank transfer, card, or open banking from day one.',
-  },
-  {
-    iconPath: '/icons/flexible icon.png', 
-    title: 'MPC custody that survives a hack attempt',
-    description: 'Institutional-grade MPC custody with hot/warm/cold tiering protects user funds without a single point of key compromise. Proof-of-reserves reporting gives your users the transparency they demand.',
+    iconPath: '/icons/speed icon.png',
+    title: '+4–8% approval rate uplift',
+    description: 'Intelligent routing dynamically selects the best acquirer and rail for every transaction, reducing unnecessary declines and recovering revenue that static routing rules leave on the table.',
   },
   {
     iconPath: '/icons/cost icon.png', 
-    title: 'Regulatory compliance from day one',
-    description: 'Pre-certified KYC/KYB, FATF Travel Rule compliance, on-chain AML monitoring, and automated regulatory reporting — covering FCA, MiCA, VARA, and 20+ other jurisdictions. Launch compliant, stay compliant.',
+    title: 'Up to 70% chargeback reduction',
+    description: 'AI fraud scoring trained on billions of transactions blocks fraud before it happens, dramatically reducing chargebacks and protecting your merchants from financial loss.',
   },
   {
-    iconPath: '/icons/speed icon.png',
-    title: 'Launch in 6–10 weeks',
-    description: 'A complete regulated exchange infrastructure — fiat rails, MPC custody, KYC/KYB, AML, liquidity management, and regulatory reporting — deployable in 6–10 weeks. No multi-year build cycles.',
+    iconPath: '/icons/flexible icon.png', 
+    title: 'Same-day settlement as standard',
+    description: 'Move from T+2 to same-day settlement with automated reconciliation and real-time ledger visibility. Give your merchants faster access to their funds and reduce your operational overhead.',
+  },
+  {
+    iconPath: '/icons/compliance icon.png',
+    title: 'PCI-DSS Level 1 — inherited, not earned',
+    description: 'Skip the 12-month certification process. Fintech Connect is PCI-DSS Level 1 certified. Build on our infrastructure and inherit our compliance posture from day one — no annual audit required.',
   },
 ];
 
@@ -31,12 +31,12 @@ const FeaturesSection = () => {
         
         <div className="mb-10 md:mb-16">
           <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 leading-tight">
-            Everything your crypto exchange needs. <br className="hidden md:inline" />
-            One platform.
+            Process more. Decline less. <br className="hidden md:inline" />
+             <span className="text-blue-600">Settle faster.</span>
           </h2>
           
           <p className="mt-4 max-w-3xl text-base md:text-lg text-gray-600 leading-relaxed">
-            Crypto exchanges that build on Fintech Connect get the best of both worlds — without building either from scratch.
+            PSPs that build on Fintech Connect see higher approval rates, lower fraud losses, and faster time to market — without the infrastructure overhead.
           </p>
         </div>
 

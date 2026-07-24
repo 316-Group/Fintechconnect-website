@@ -3,38 +3,38 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { getPath } from '@/utils/helper';
 
-// 1. Data Structure - Updated to match Crypto Exchanges slides
+// 1. Data Structure - Updated to match PSPs slides
 const struggles = [
   {
     id: 0,
-    struggleTitle: "Fiat banking relationships are nearly impossible to secure",
-    struggleDesc: "Most banks refuse to work with crypto exchanges. Without fiat banking rails, your users cannot deposit or withdraw in GBP, EUR, or USD — making your exchange unusable for most retail and institutional traders.",
-    solutionTitle: "Fiat banking rails without the 12-month wait.",
-    solutionDesc: "Fintech Connect provides pre-established banking relationships for fiat deposits and withdrawals — so your exchange users can fund their accounts via bank transfer, card, or open banking from day one. No more waiting 12+ months to secure a banking partner willing to work with a crypto exchange.",
-    img: "/solutions/insurancecompanies/slide1.png"
+    struggleTitle: "Low approval rates costing revenue",
+    struggleDesc: "Static routing rules and single-acquirer setups result in unnecessary declines. Every declined transaction is lost revenue — for you and your merchants.",
+    solutionTitle: "Stop losing revenue to unnecessary declines.",
+    solutionDesc: "Fintech Connect's AI routing engine dynamically selects the optimal acquirer, rail, and currency path for every transaction in under 10ms. Automatic fallback routing, network token uplift, and real-time approval rate monitoring recover revenue that static routing rules leave behind.",
+    img: "/solutions/creditunions/solution1.png"
   },
   {
     id: 1,
-    struggleTitle: "Securing user funds at scale",
-    struggleDesc: "Exchange hacks are the single biggest reputational risk in crypto. Hot wallets holding billions in user funds are a constant target. Without institutional-grade MPC custody, a single breach can destroy your exchange.",
-    solutionTitle: "Protect user funds with MPC custody that survives a hack attempt.",
-    solutionDesc: "Institutional-grade MPC custody with hot/warm/cold tiering protects user funds without a single point of key compromise. Multi-signature withdrawal approvals, automated proof-of-reserves reporting, and HSM key management give your users the security and transparency they demand from a regulated exchange.",
+    struggleTitle: "Fraud and chargeback exposure",
+    struggleDesc: "Without real-time, AI-powered fraud scoring, PSPs either block too many legitimate transactions or absorb costly chargebacks. Neither is acceptable at scale.",
+    solutionTitle: "Block fraud before it becomes a chargeback.",
+    solutionDesc: "Real-time ML scoring trained on billions of transactions identifies fraudulent patterns before authorisation. Device fingerprinting, behavioural analytics, and velocity rules work together to block fraud without adding friction to legitimate customers.",
     img: "/solutions/creditunions/solution2.png"
   },
   {
     id: 2,
-    struggleTitle: "KYC/KYB and regulatory compliance overhead",
-    struggleDesc: "Regulators now require full KYC for all exchange users, KYB for institutional clients, FATF Travel Rule compliance, and ongoing transaction monitoring. Building this in-house is a 12+ month project that most exchanges cannot afford.",
-    solutionTitle: "Onboard traders compliantly — without slowing them down.",
-    solutionDesc: "Fintech Connect KYC onboards retail traders in under 5 minutes with biometric verification and document checks, while KYB handles institutional clients with full enhanced due diligence and source-of-funds verification. Pre-certified for FATF Travel Rule and MiCA compliance — no in-house compliance build required.",
+    struggleTitle: "Slow and complex settlement",
+    struggleDesc: "Manual reconciliation, T+2 or T+3 settlement cycles, and fragmented ledger systems create cash flow problems for merchants and operational overhead for PSPs.",
+    solutionTitle: "Move from T+2 to same-day settlement — automatically.",
+    solutionDesc: "Fintech Connect's settlement engine automates reconciliation, split payouts, and FX conversion across 60+ currencies. Merchants get same-day access to their funds, and PSPs get real-time ledger visibility — eliminating manual reconciliation overhead entirely.",
     img: "/solutions/creditunions/solution3.png"
   },
   {
     id: 3,
-    struggleTitle: "Liquidity and market depth management",
-    struggleDesc: "A new exchange with thin order books drives users away immediately. Without access to institutional liquidity providers and market-making infrastructure, your exchange cannot compete with established players on spreads or depth.",
-    solutionTitle: "Competitive spreads and deep order books from day one.",
-    solutionDesc: "Access institutional liquidity providers and automated market-making infrastructure to ensure competitive spreads and deep order books from launch — without waiting months to build liquidity organically. Fintech Connect liquidity management reduces average spreads by 62% compared to manual market-making approaches.",
+    struggleTitle: "PCI-DSS compliance overhead",
+    struggleDesc: "Achieving and maintaining PCI-DSS Level 1 certification requires dedicated security teams, annual audits, and significant infrastructure investment — before you process a single payment.",
+    solutionTitle: "Inherit PCI-DSS Level 1 certification from day one.",
+    solutionDesc: "Skip the 12-month certification process and $400K+ compliance investment. Build on Fintech Connect and inherit our PCI-DSS Level 1 certification, 3DS2 SCA, and network tokenisation infrastructure — fully compliant from the moment you go live.",
     img: "/solutions/creditunions/solution4.png"
   }
 ];
@@ -79,11 +79,11 @@ export default function ParallaxSection() {
       <div className="w-full mx-auto">
         
         {/* ========================================================== */}
-        {/* 1. MOBILE-ONLY CAROUSEL VIEW                               */}
+        {/* 1. MOBILE-ONLY CAROUSEL VIEW                              */}
         {/* ========================================================== */}
         <div className="block lg:hidden w-full">
           <h2 className="text-2xl font-bold mb-8 text-white tracking-tight leading-tight">
-            What Crypto & Web3 Banks Struggle With and How Fintech Connect Fixes It
+            What PSPs Struggle With and How Fintech Connect Fixes It
           </h2>
 
           <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">
@@ -132,7 +132,7 @@ export default function ParallaxSection() {
                         {item.solutionDesc}
                       </p>
                       <button className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-8 rounded-lg w-max transition-colors text-sm shadow-md shadow-blue-900/40">
-                        Book demo
+                        Book a Demo
                       </button>
                     </div>
                   </div>
@@ -150,11 +150,11 @@ export default function ParallaxSection() {
         </div>
         
         {/* ========================================================== */}
-        {/* 2. DESKTOP PARALLAX VIEW                                   */}
+        {/* 2. DESKTOP PARALLAX VIEW                                  */}
         {/* ========================================================== */}
         <div className="hidden lg:block w-full">
           <h2 className="text-3xl md:text-3xl font-bold mb-2 md:pl-4 md:max-w-[40%] leading-tight text-white tracking-tight">
-            What Crypto & Web3 Banks Struggle With and How Fintech Connect Fixes It
+            What PSPs Struggle With and How Fintech Connect Fixes It
           </h2>
 
           <p className="text-white text-sm md:text-base mb-12 md:mt-16 md:mb-0 md:pl-4 md:max-w-[40%] leading-relaxed">
@@ -226,7 +226,7 @@ export default function ParallaxSection() {
                     {struggles[activeIndex].solutionDesc}
                   </p>
                   <button className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-8 rounded-lg w-max transition-colors text-sm shadow-md shadow-blue-900/40">
-                    Book demo
+                    Book a Demo
                   </button>
                 </div>
               </div>
