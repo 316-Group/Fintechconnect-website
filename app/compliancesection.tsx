@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
 
 interface Badge {
   label: string;
@@ -123,9 +124,11 @@ export default function ComplianceSection() {
             </p>
           </div>
 
-          <button className="bg-[#00e599] hover:bg-[#00cc88] text-slate-950 font-bold py-3.5 px-8 rounded-xl transition-all duration-200 text-sm whitespace-nowrap cursor-pointer shadow-sm active:scale-95 shrink-0">
+          <Link 
+            href="/whitepaper/"
+            className="bg-[#00e599] hover:bg-[#00cc88] text-slate-950 font-bold py-3.5 px-8 rounded-xl transition-all duration-200 text-sm whitespace-nowrap cursor-pointer shadow-sm active:scale-95 shrink-0">
             Download Whitepaper
-          </button>
+          </Link>
         </div>
 
       </div>

@@ -115,10 +115,9 @@ export default function Navbar() {
       { title: "Digital Wallets", description: "Seamless checkout experiences for marketplaces.", href: "/solutions/digital-wallets" },
     ],
     "Crypto & Web3": [
-      { title: "For Crypto & Web3 Banks", description: "Integrate credit products into any platform.", href: "/solutions/for-crypto-web3-banks" },
-      { title: "Crypto Cards", description: "Seamless checkout experiences for marketplaces.", href: "/solutions/crypto-cards" },
+      { title: "For Crypto & Web3 Banks", description: "Integrate credit products into any platform.", href: "/solutions/crypto-web3" },
+      { title: "Crypto Cards & Wallets", description: "Seamless checkout experiences for marketplaces.", href: "/solutions/crypto-cards-wallets" },
       { title: "Crypto Exchanges", description: "Seamless checkout experiences for marketplaces.", href: "/solutions/crypto-exchanges" },
-      { title: "Crypto Wallets", description: "Seamless checkout experiences for marketplaces.", href: "/solutions/crypto-wallets" },
     ],
   };
 
