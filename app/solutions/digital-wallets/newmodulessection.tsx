@@ -5,39 +5,39 @@ import { getPath } from '@/utils/helper';
 
 const modules = [
   {
-    tag: "Routing",
-    title: "Intelligent Payment Routing",
-    desc: "AI-powered routing engine that dynamically selects the optimal acquirer, rail, and currency path for every transaction — maximising approval rates and minimising processing costs in real time.",
+    tag: "Wallets",
+    title: "Wallets-as-a-Service",
+    desc: "Provision multi-currency wallets instantly via API. Each wallet has a real-time ledger, transaction history, balance visibility, and support for GBP, USD, EUR, and 60+ additional currencies.",
     img: '/solutions/creditunions/digitalondoarding.png'
   },
   {
-    tag: "Fraud",
-    title: "AI Fraud & Risk Engine",
-    desc: "Real-time transaction scoring using machine learning models trained on billions of payment data points. Reduce chargebacks, block fraud, and protect merchants — without blocking good customers.",
+    tag: "Cards",
+    title: "Virtual & Physical Card Issuing",
+    desc: "Issue Visa and Mastercard virtual cards instantly and physical cards within days. Configure spend controls, velocity limits, merchant category restrictions, and FX fees — all via API.",
     img: '/solutions/creditunions/SMEengine.png'
   },
   {
-    tag: "Acquiring",
-    title: "Multi-Rail Acquiring",
-    desc: "Accept card payments (Visa, Mastercard, Amex), open banking, SEPA, SWIFT, and local payment methods through a single unified API. One integration, every payment method your merchants need.",
+    tag: "Payments",
+    title: "Instant Payments & Top-ups",
+    desc: "Accept wallet top-ups via open banking, debit/credit card, and bank transfer. Send instant P2P payments, bill payments, and cross-border transfers — all from a single payments API.",
     img: '/solutions/creditunions/whitelabel.png'
   },
   {
-    tag: "Settlement",
-    title: "Real-Time Settlement & Reconciliation",
-    desc: "Move from T+2 to same-day or real-time settlement. Automated reconciliation, split payouts, and a real-time ledger give merchants instant visibility and PSPs full control over cash flow.",
+    tag: "KYC",
+    title: "KYC & Identity Verification",
+    desc: "Onboard wallet users in under 3 minutes with biometric liveness detection, document OCR, and AI-powered identity verification — covering 190+ countries with automated KYC tier management.",
     img: '/solutions/creditunions/treasury.png'
   },
   {
-    tag: "Compliance",
-    title: "PCI-DSS & 3DS2 Compliance",
-    desc: "Inherit PCI-DSS Level 1 certification and 3DS2 strong customer authentication out of the box. Automated compliance reporting, tokenisation, and encrypted card data storage — no annual audit overhead.",
+    tag: "Fraud",
+    title: "AI Fraud Monitoring",
+    desc: "Real-time AI fraud scoring on every wallet transaction — detecting account takeover, synthetic identity fraud, and card-not-present fraud in under 50ms. Configurable rules engine with automated blocking.",
     img: '/solutions/creditunions/instantpayments.png'
   },
   {
-    tag: "Merchant",
-    title: "Merchant Management Portal",
-    desc: "A white-label merchant portal for onboarding, KYB verification, transaction monitoring, dispute management, and real-time analytics. Give your merchants the tools they need — under your brand.",
+    tag: "FX",
+    title: "Real-Time FX Engine",
+    desc: "Offer live mid-market FX rates with configurable spreads across 60+ currency pairs. Instant in-wallet currency conversion, automated hedging, and real-time P&L visibility for your FX book.",
     img: '/solutions/creditunions/compliance.png'
   },
   {

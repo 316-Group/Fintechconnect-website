@@ -31,7 +31,7 @@ export default function WhitepaperSection() {
     <div className="bg-white">
       <Navbar />
       <section className="bg-white py-12 md:py-20 px-4 sm:px-6 lg:px-12 font-sans text-slate-900">
-      <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-start">
+      <div className="max-w-full md:p-12 mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-start">
         
         {/* LEFT COLUMN: Content & Details */}
         <div className="lg:col-span-7 flex flex-col justify-center">
@@ -124,12 +124,12 @@ export default function WhitepaperSection() {
         <div className="lg:col-span-5 w-full bg-slate-100/70 rounded-3xl overflow-hidden border border-slate-200/60 shadow-xl shadow-slate-200/50">
           
           {/* Top Blue Container for Preview Image */}
-          <div className="bg-blue-600 p-6 sm:p-8 flex items-center justify-center min-h-[320px] relative overflow-hidden">
+          <div className="bg-blue-600 pb-0 sm:pt-10 pb-0 flex justify-center min-h-[full] relative overflow-hidden">
             {/* Swap the src string below with your image asset path when ready */}
             <img 
-              src={getPath('/whitepapers/security-architecture-preview.png')} 
+              src={getPath('/whitepaper.png')} 
               alt="Security Architecture Whitepaper Preview" 
-              className="w-full max-w-[340px] h-auto object-contain rounded-xl shadow-2xl"
+              className="w-full max-w-[full] px-12 h-full object-cover rounded-xl shadow-2xl"
             />
           </div>
 
@@ -138,7 +138,7 @@ export default function WhitepaperSection() {
             <h3 className="text-xl font-bold text-slate-900 tracking-tight">
               Download the Whitepaper
             </h3>
-            <p className="text-slate-600 text-sm mt-1 mb-6">
+            <p className="text-slate-600 text-sm mt-1 mb-12">
               Instant access - sent to your work email
             </p>
 

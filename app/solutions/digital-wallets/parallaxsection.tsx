@@ -3,38 +3,38 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { getPath } from '@/utils/helper';
 
-// 1. Data Structure - Updated to match Money Transfer / MTO slides
+// 1. Data Structure - Updated to match Digital Wallets slides
 const struggles = [
   {
     id: 0,
-    struggleTitle: "Slow cross-border delivery times",
-    struggleDesc: "Correspondent banking chains mean transfers take 1–5 business days. Customers are switching to faster alternatives — and they are not coming back.",
-    solutionTitle: "Move money in seconds, not days.",
-    solutionDesc: "Fintech Connect connects MTOs directly to real-time payment rails and mobile money networks — bypassing slow correspondent banking chains. Transfers reach recipients in seconds across 47+ real-time corridors, with automatic fallback routing for 100% delivery confidence.",
+    struggleTitle: "Slow and expensive wallet infrastructure build",
+    struggleDesc: "Building a production-ready wallet engine — with ledger, FX, card issuing, and compliance — from scratch takes 18+ months and $1M+ in engineering costs. By the time you launch, the market has moved.",
+    solutionTitle: "A complete wallet infrastructure — live in weeks.",
+    solutionDesc: "Fintech Connect provides a production-ready wallet engine with multi-currency support, real-time ledger, card issuing, KYC, and fraud protection — all deployable via API in 4–6 weeks. No 18-month build cycles, no $1M+ engineering bills. Just a wallet your customers will love.",
     img: "/solutions/creditunions/solution1.png"
   },
   {
     id: 1,
-    struggleTitle: "Uncompetitive FX rates and high fees",
-    struggleDesc: "Wide FX spreads and layered correspondent fees make your pricing uncompetitive. Customers compare rates in real time — and choose the cheapest option every time.",
-    solutionTitle: "Offer the best rates — and still make money.",
-    solutionDesc: "Live mid-market FX rates with configurable spreads give MTOs the pricing power to undercut legacy providers while maintaining healthy margins. Automated hedging and real-time P&L visibility across all corridors eliminate FX exposure risk.",
+    struggleTitle: "KYC friction killing user activation",
+    struggleDesc: "Slow, clunky identity verification drives users away at onboarding. Every extra step in the KYC flow costs you activation rate — and customers who drop off rarely come back.",
+    solutionTitle: "Onboard users in under 3 minutes — not 3 days.",
+    solutionDesc: "Fintech Connect KYC onboards wallet users in under 3 minutes with biometric liveness detection, document OCR, and AI-powered identity verification. Automated KYC tier management means users unlock higher limits seamlessly — without manual review bottlenecks that kill activation rates.",
     img: "/solutions/creditunions/solution2.png"
   },
   {
     id: 2,
-    struggleTitle: "AML compliance and de-risking",
-    struggleDesc: "Manual AML screening, correspondent bank de-risking, and regulatory reporting create enormous operational overhead — and a single compliance failure can shut down your entire operation.",
-    solutionTitle: "Stay compliant at scale — without a large compliance team.",
-    solutionDesc: "Automated AML transaction monitoring, real-time sanctions screening, and auto-generated regulatory reports eliminate the manual compliance burden. Pre-certified for FATF, EU AMLD, and FinCEN requirements — so your MTO stays compliant as you scale into new corridors.",
+    struggleTitle: "Fraud and chargebacks eroding margins",
+    struggleDesc: "Digital wallets are a prime target for account takeover, synthetic identity fraud, and card-not-present fraud. Without real-time AI fraud detection, losses can quickly wipe out your unit economics.",
+    solutionTitle: "Stop fraud before it happens — not after.",
+    solutionDesc: "Every wallet transaction is scored by our AI fraud engine in under 50ms — detecting account takeover, synthetic identity fraud, and card-not-present fraud with 99.4% accuracy. Configurable rules engine with automated blocking means your team spends time on strategy, not manual fraud review.",
     img: "/solutions/creditunions/solution3.png"
   },
   {
     id: 3,
-    struggleTitle: "Limited payout network reach",
-    struggleDesc: "Reaching recipients in emerging markets — especially via mobile money — requires dozens of individual integrations. Building and maintaining these corridors is expensive and time-consuming.",
-    solutionTitle: "Reach recipients everywhere — including where banks don't.",
-    solutionDesc: "Pre-integrated with 7 major mobile money networks (MTN MoMo, M-Pesa, Airtel Money, Orange Money, Wave, Flutterwave, Chipper Cash) covering 34 African countries and 500M+ users. Bank account payouts, cash pickup, and mobile wallet delivery — all through a single API.",
+    struggleTitle: "Limited payment methods reducing utility",
+    struggleDesc: "Wallets that only support one or two top-up methods lose users to competitors. Without open banking, card top-ups, and bank transfers all working seamlessly, your wallet feels limited — and users churn.",
+    solutionTitle: "Every payment method your users expect — in one wallet.",
+    solutionDesc: "Fintech Connect supports open banking top-ups, debit/credit card funding, bank transfers, instant P2P payments, bill payments, and cross-border transfers — all from a single payments API. Give your wallet users the utility of a full bank account, without building the banking infrastructure yourself.",
     img: "/solutions/creditunions/solution4.png"
   }
 ];
@@ -83,7 +83,7 @@ export default function ParallaxSection() {
         {/* ========================================================== */}
         <div className="block lg:hidden w-full">
           <h2 className="text-2xl font-bold mb-8 text-white tracking-tight leading-tight">
-            What MTOs Struggle With and How Fintech Connect Fixes It
+            What Digital Wallet Providers Struggle With and How Fintech Connect Fixes It
           </h2>
 
           <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">
@@ -154,7 +154,7 @@ export default function ParallaxSection() {
         {/* ========================================================== */}
         <div className="hidden lg:block w-full">
           <h2 className="text-3xl md:text-3xl font-bold mb-2 md:pl-4 md:max-w-[40%] leading-tight text-white tracking-tight">
-            What MTOs Struggle With and How Fintech Connect Fixes It
+            What Digital Wallet Providers Struggle With and How Fintech Connect Fixes It
           </h2>
 
           <p className="text-white text-sm md:text-base mb-12 md:mt-16 md:mb-0 md:pl-4 md:max-w-[40%] leading-relaxed">
