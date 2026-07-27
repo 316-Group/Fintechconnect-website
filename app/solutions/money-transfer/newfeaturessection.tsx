@@ -4,23 +4,23 @@ import { getPath } from '@/utils/helper';
 const features = [
   {
     iconPath: '/icons/speed icon.png',
-    title: '+4–8% approval rate uplift',
-    description: 'Intelligent routing dynamically selects the best acquirer and rail for every transaction, reducing unnecessary declines and recovering revenue that static routing rules leave on the table.',
+    title: 'Transfers delivered in seconds',
+    description: 'Real-time payment rails and pre-integrated mobile money networks mean transfers reach recipients in seconds — not days. Compete with the fastest fintechs in the world from day one.',
   },
   {
     iconPath: '/icons/cost icon.png', 
-    title: 'Up to 70% chargeback reduction',
-    description: 'AI fraud scoring trained on billions of transactions blocks fraud before it happens, dramatically reducing chargebacks and protecting your merchants from financial loss.',
+    title: 'FX spreads from 0.1%',
+    description: 'Live mid-market rates with configurable spreads give you the pricing power to undercut legacy providers and win on cost — while maintaining healthy margins through volume.',
   },
   {
-    iconPath: '/icons/flexible icon.png', 
-    title: 'Same-day settlement as standard',
-    description: 'Move from T+2 to same-day settlement with automated reconciliation and real-time ledger visibility. Give your merchants faster access to their funds and reduce your operational overhead.',
+    iconPath: '/icons/compliance icon.png', 
+    title: 'Automated AML — zero manual overhead',
+    description: 'Automated sanctions screening, transaction monitoring, and regulatory reporting eliminate the manual compliance burden that slows down most MTOs. Stay compliant at scale without growing your compliance team.',
   },
   {
-    iconPath: '/icons/compliance icon.png',
-    title: 'PCI-DSS Level 1 — inherited, not earned',
-    description: 'Skip the 12-month certification process. Fintech Connect is PCI-DSS Level 1 certified. Build on our infrastructure and inherit our compliance posture from day one — no annual audit required.',
+    iconPath: '/icons/flexible icon.png',
+    title: '500M+ mobile money recipients reachable',
+    description: "Pre-integrated with 7 major African mobile money networks covering 34 countries. Reach recipients who don't have bank accounts — the fastest-growing remittance market in the world.",
   },
 ];
 
@@ -31,12 +31,12 @@ const FeaturesSection = () => {
         
         <div className="mb-10 md:mb-16">
           <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 leading-tight">
-            Process more. Decline less. <br className="hidden md:inline" />
-             <span className="text-blue-600">Settle faster.</span>
+            Faster transfers. Lower costs. <br className="hidden md:inline" />
+             <span className="text-blue-600">Wider reach.</span>
           </h2>
           
           <p className="mt-4 max-w-3xl text-base md:text-lg text-gray-600 leading-relaxed">
-            PSPs that build on Fintech Connect see higher approval rates, lower fraud losses, and faster time to market — without the infrastructure overhead.
+            MTOs that build on Fintech Connect deliver faster transfers at lower cost — while staying fully compliant across every corridor.
           </p>
         </div>
 

@@ -5,39 +5,39 @@ import { getPath } from '@/utils/helper';
 
 const modules = [
   {
-    tag: "Routing",
-    title: "Intelligent Payment Routing",
-    desc: "AI-powered routing engine that dynamically selects the optimal acquirer, rail, and currency path for every transaction — maximising approval rates and minimising processing costs in real time.",
-    img: '/solutions/creditunions/digitalondoarding.png.png'
+    tag: "FX",
+    title: "Real-Time FX Engine",
+    desc: "Live mid-market FX rates with configurable spreads across 60+ currency pairs. AI-powered rate optimisation, automated hedging, and real-time P&L visibility — all in one engine.",
+    img: '/solutions/creditunions/digitalondoarding.png'
   },
   {
-    tag: "Fraud",
-    title: "AI Fraud & Risk Engine",
-    desc: "Real-time transaction scoring using machine learning models trained on billions of payment data points. Reduce chargebacks, block fraud, and protect merchants — without blocking good customers.",
+    tag: "Rails",
+    title: "Cross-Border Payment Rails",
+    desc: "Access SWIFT, SEPA, Faster Payments, ACH, and real-time local rails across 180+ countries through a single API. No correspondent banking relationships required.",
     img: '/solutions/creditunions/SMEengine.png'
   },
   {
-    tag: "Acquiring",
-    title: "Multi-Rail Acquiring",
-    desc: "Accept card payments (Visa, Mastercard, Amex), open banking, SEPA, SWIFT, and local payment methods through a single unified API. One integration, every payment method your merchants need.",
+    tag: "Mobile Money",
+    title: "Mobile Money Payout Network",
+    desc: "Pre-integrated with MTN MoMo, M-Pesa, Airtel Money, Orange Money, Wave, Flutterwave, and Chipper Cash — covering 34 African countries and 500M+ mobile money users.",
     img: '/solutions/creditunions/whitelabel.png'
   },
   {
-    tag: "Settlement",
-    title: "Real-Time Settlement & Reconciliation",
-    desc: "Move from T+2 to same-day or real-time settlement. Automated reconciliation, split payouts, and a real-time ledger give merchants instant visibility and PSPs full control over cash flow.",
+    tag: "Compliance",
+    title: "AML & KYC Compliance",
+    desc: "Automated AML transaction monitoring, sanctions screening, and KYC verification — pre-certified for FATF, EU AMLD, and FinCEN requirements. Automated regulatory reporting eliminates manual overhead.",
     img: '/solutions/creditunions/treasury.png'
   },
   {
-    tag: "Compliance",
-    title: "PCI-DSS & 3DS2 Compliance",
-    desc: "Inherit PCI-DSS Level 1 certification and 3DS2 strong customer authentication out of the box. Automated compliance reporting, tokenisation, and encrypted card data storage — no annual audit overhead.",
+    tag: "White Label",
+    title: "White Label Consumer App",
+    desc: "Launch a fully branded iOS and Android money transfer app — with rate calculator, transfer tracking, recipient management, and push notifications — without building a single screen from scratch.",
     img: '/solutions/creditunions/instantpayments.png'
   },
   {
-    tag: "Merchant",
-    title: "Merchant Management Portal",
-    desc: "A white-label merchant portal for onboarding, KYB verification, transaction monitoring, dispute management, and real-time analytics. Give your merchants the tools they need — under your brand.",
+    tag: "Treasury",
+    title: "Treasury & Liquidity Management",
+    desc: "Manage pre-funded accounts, liquidity pools, and FX exposure across all corridors from a single dashboard. Real-time visibility, automated rebalancing, and AI-powered cash flow forecasting.",
     img: '/solutions/creditunions/compliance.png'
   },
   {
