@@ -4,26 +4,34 @@ import React, { useState, ChangeEvent, FormEvent } from "react"
 import { motion, AnimatePresence } from "motion/react"
 import { cn } from "@/lib/utils"
 
-// Define types for form fields
 interface FormState {
-  fullName: string
+  firstName: string
+  lastName: string
   workEmail: string
   companyName: string
-  jobTitle: string
-  companyType: string
-  requirements: string
+  role: string
+  industryType: string
 }
 
 interface FormErrors {
-  fullName?: string
+  firstName?: string
+  lastName?: string
   workEmail?: string
   companyName?: string
-  jobTitle?: string
-  companyType?: string
-  requirements?: string
+  role?: string
+  industryType?: string
 }
 
-const COMPANY_TYPES = [
+const ROLES = [
+  "Product Manager",
+  "CTO / Tech Lead",
+  "Head of Operations",
+  "Business Development",
+  "Executive / Founder",
+  "Other",
+]
+
+const INDUSTRY_TYPES = [
   "Retail Bank",
   "Commercial Bank",
   "Credit Union",
@@ -33,325 +41,566 @@ const COMPANY_TYPES = [
   "Other",
 ]
 
+const DAYS_SLOTS = [
+  { day: "TUE", date: "28" },
+  { day: "WED", date: "29" },
+  { day: "THU", date: "30" },
+  { day: "FRI", date: "31" },
+  { day: "SAT", date: "1" },
+  { day: "SUN", date: "2" },
+  { day: "MON", date: "3" },
+]
+
+const TIME_SLOTS = [
+  "9:00 AM",
+  "9:15 AM",
+  "10:00 AM",
+  "10:15 AM",
+  "10:30 AM",
+  "10:45 AM",
+  "11:00 AM",
+  "11:15 AM",
+  "11:30 AM",
+]
+
 export default function BookingSection() {
+  const [step, setStep] = useState<1 | 2 | 3>(1)
   const [formData, setFormData] = useState<FormState>({
-    fullName: "",
+    firstName: "",
+    lastName: "",
     workEmail: "",
     companyName: "",
-    jobTitle: "",
-    companyType: "",
-    requirements: "",
+    role: "",
+    industryType: "",
   })
 
   const [errors, setErrors] = useState<FormErrors>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [isSubmitted, setIsSubmitted] = useState(false)
+  
+  // Step 3 Interactive state
+  const [selectedDate, setSelectedDate] = useState("29")
+  const [selectedTime, setSelectedTime] = useState("9:15 AM")
+  const [isBooked, setIsBooked] = useState(false)
 
-  // Handle inputs dynamically
   const handleChange = (
-    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+    e: ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target
     setFormData((prev) => ({ ...prev, [name]: value }))
-    
-    // Clear field-specific error when user starts typing
+
     if (errors[name as keyof FormErrors]) {
       setErrors((prev) => ({ ...prev, [name]: undefined }))
     }
   }
 
-  // Frontend form validation
   const validateForm = (): boolean => {
     const tempErrors: FormErrors = {}
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
-    if (!formData.fullName.trim()) tempErrors.fullName = "Full name is required."
-    
-
-    if (!formData.companyName.trim()) tempErrors.companyName = "Company name is required."
-    if (!formData.jobTitle.trim()) tempErrors.jobTitle = "Job title is required."
-    if (!formData.companyType) tempErrors.companyType = "Please select a company type."
-    if (!formData.requirements.trim()) {
-      tempErrors.requirements = "Please let us know what you are looking to build."
-    } else if (formData.requirements.trim().length < 10) {
-      tempErrors.requirements = "Please provide a bit more detail (at least 10 characters)."
+    if (!formData.firstName.trim()) tempErrors.firstName = "First name is required."
+    if (!formData.lastName.trim()) tempErrors.lastName = "Last name is required."
+    if (!formData.workEmail.trim() || !emailRegex.test(formData.workEmail)) {
+      tempErrors.workEmail = "Please enter a valid work email."
     }
+    if (!formData.companyName.trim()) tempErrors.companyName = "Company name is required."
+    if (!formData.role) tempErrors.role = "Please select a role."
+    if (!formData.industryType) tempErrors.industryType = "Please select an industry type."
 
     setErrors(tempErrors)
     return Object.keys(tempErrors).length === 0
   }
 
-  // Inside bookingsection.tsx -> handleSubmit function
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault()
+    if (!validateForm()) return
 
-const handleSubmit = async (e: FormEvent) => {
-  e.preventDefault()
-  
-  if (!validateForm()) return
+    setIsSubmitting(true)
 
-  setIsSubmitting(true)
+    try {
+      // Map form fields to match your Neon database backend requirements
+      const payload = {
+        fullName: `${formData.firstName} ${formData.lastName}`.trim(),
+        workEmail: formData.workEmail,
+        companyName: formData.companyName,
+        jobTitle: formData.role,
+        companyType: formData.industryType,
+        requirements: "Submitted via Demo Request Flow",
+      }
 
-  try {
-    // 🔗 HIT THE LIVE BACKEND ROUTE
-    const response = await fetch("/api/booking", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(formData),
-    })
+      const response = await fetch("/api/booking", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      })
 
-    const data = await response.json()
+      const data = await response.json()
 
-    if (!response.ok) {
-      throw new Error(data.error || "Something went wrong")
+      if (!response.ok) {
+        throw new Error(data.error || "Something went wrong")
+      }
+
+      console.log("Form successfully saved to DB:", data)
+      setStep(2)
+    } catch (error) {
+      console.error("Submission failed:", error)
+    } finally {
+      setIsSubmitting(false)
     }
-    
-    console.log("Form successfully saved to DB:", data)
-    setIsSubmitted(true)
-  } catch (error) {
-    console.error("Submission failed:", error)
-    // Optional: Set an error state here to show a banner to the user
-  } finally {
-    setIsSubmitting(false)
   }
-}
 
   return (
-    <div className="min-h-screen bg-slate-500 flex items-center justify-center py-12 px-4 sm:px-6 md:px-20 font-sans">
-      <div className="max-w-full w-full bg-slate-200 rounded-2xl shadow-xl shadow-slate-200/80 border border-slate-100 overflow-hidden">
-        
-        <AnimatePresence mode="wait">
-          {!isSubmitted ? (
-            <motion.div
-              key="booking-form"
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -15 }}
-              transition={{ duration: 0.4 }}
-              className="p-8 sm:p-12"
-            >
-              {/* Header */}
-              <div className="text-center md:text-left mb-10">
-                <h1 className="text-3xl font-bold text-slate-900 tracking-tight sm:text-4xl">
-                  Book a Demo Session
-                </h1>
-                <p className="mt-3 text-lg text-slate-600">
-                  See how our prebuilt templates can accelerate your platform launch.
-                </p>
-              </div>
+    <div className="min-h-screen bg-slate-100 flex flex-col justify-between items-center relative overflow-hidden font-sans p-4 sm:p-6 md:p-12">
+      
+      {/* Background Decorative Gradient Wave */}
+{/* Background Decorative Diagonal Gradient */}
+<div className="absolute inset-x-0 bottom-0 pointer-events-none z-0 overflow-hidden leading-none">
+  <svg
+    viewBox="0 0 1440 480"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className="w-full h-auto min-h-[300px] object-cover object-bottom"
+    preserveAspectRatio="none"
+  >
+    <defs>
+      {/* Main vibrant blue linear gradient */}
+      <linearGradient id="diagonal-blue-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor="#3B82F6" />
+        <stop offset="50%" stopColor="#2563EB" />
+        <stop offset="100%" stopColor="#1D4ED8" />
+      </linearGradient>
 
-              {/* Form container */}
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  
-                  {/* Full Name */}
-                  <div className="flex flex-col gap-1.5">
-                    <label htmlFor="fullName" className="text-sm font-semibold text-slate-700">
-                      Full Name
-                    </label>
+      {/* Bottom-right darker curved overlay for depth */}
+      <linearGradient id="diagonal-accent-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor="#1D4ED8" stopOpacity="0.1" />
+        <stop offset="60%" stopColor="#1E40AF" stopOpacity="0.5" />
+        <stop offset="100%" stopColor="#1E3A8A" stopOpacity="0.85" />
+      </linearGradient>
+    </defs>
+
+    {/* Layer 1: Straight Diagonal Top Edge */}
+    <path
+      d="M0 160 L1440 465 V480 H0 Z"
+      fill="url(#diagonal-blue-grad)"
+    />
+
+    {/* Layer 2: Inner Curved Shadow Layer (Bottom Right) */}
+    <path
+      d="M500 264 C820 320 1150 420 1440 458 V480 H500 Z"
+      fill="url(#diagonal-accent-grad)"
+    />
+  </svg>
+</div>
+
+      {/* Main Container Card */}
+      <div className="relative z-10 my-auto w-full max-w-lg bg-white rounded-3xl shadow-2xl shadow-slate-300/60 border border-slate-100/80 overflow-hidden p-6 sm:p-10">
+        
+        {/* Step Indicator Navigation */}
+        <div className="grid grid-cols-2 gap-4 border-b border-slate-100 pb-4 mb-8 text-xs font-medium tracking-wide">
+          <div
+            className={cn(
+              "flex items-center gap-2 pb-2 relative transition-colors cursor-pointer",
+              step === 1 ? "text-blue-600 font-semibold" : "text-slate-500"
+            )}
+            onClick={() => setStep(1)}
+          >
+            {step > 1 ? (
+              <span className="w-4 h-4 rounded-full bg-blue-600 text-white flex items-center justify-center text-[10px]">✓</span>
+            ) : (
+              <span className="w-2.5 h-2.5 rounded-full bg-blue-600 inline-block" />
+            )}
+            <span>Your info</span>
+            {step === 1 && (
+              <motion.div
+                layoutId="activeTab"
+                className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 rounded-full"
+              />
+            )}
+          </div>
+
+          <div
+            className={cn(
+              "flex items-center gap-2 pb-2 relative transition-colors",
+              step >= 2 ? "text-blue-600 font-semibold" : "text-slate-400"
+            )}
+          >
+            <span className="w-2.5 h-2.5 rounded-full border border-current inline-block" />
+            <span>Let's talk</span>
+            {step >= 2 && (
+              <motion.div
+                layoutId="activeTab"
+                className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 rounded-full"
+              />
+            )}
+          </div>
+        </div>
+
+        {/* Step Views */}
+        <AnimatePresence mode="wait">
+          {/* STEP 1: FORM */}
+          {step === 1 && (
+            <motion.div
+              key="step-1"
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 10 }}
+              transition={{ duration: 0.25 }}
+            >
+              <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
+                How can we reach you ?
+              </h1>
+              <p className="mt-1 text-sm text-slate-500 mb-6">
+                Please provide your contact information
+              </p>
+
+              <form onSubmit={handleSubmit} className="space-y-4">
+                {/* First Name */}
+                <div className="grid grid-cols-3 items-center gap-2">
+                  <label htmlFor="firstName" className="text-xs font-medium text-slate-700">
+                    First Name
+                  </label>
+                  <div className="col-span-2">
                     <input
                       type="text"
-                      id="fullName"
-                      name="fullName"
-                      value={formData.fullName}
+                      id="firstName"
+                      name="firstName"
+                      value={formData.firstName}
                       onChange={handleChange}
-                      placeholder="John Doe"
+                      placeholder="Mike"
                       className={cn(
-                        "w-full px-4 py-3 rounded-xl border bg-slate-50/50 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 transition-all duration-200 text-sm",
-                        errors.fullName 
-                          ? "border-red-400 focus:ring-red-100 focus:border-red-500" 
-                          : "border-slate-200 focus:ring-slate-100 focus:border-slate-900"
+                        "w-full px-3.5 py-2.5 rounded-xl bg-slate-100/80 text-slate-900 text-xs placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all",
+                        errors.firstName && "ring-1 ring-red-500 bg-red-50/50"
                       )}
                     />
-                    {errors.fullName && (
-                      <span className="text-xs font-medium text-red-500 mt-1">{errors.fullName}</span>
-                    )}
                   </div>
+                </div>
 
-                  {/* Work Email */}
-                  <div className="flex flex-col gap-1.5">
-                    <label htmlFor="workEmail" className="text-sm font-semibold text-slate-700">
-                      Work Email
-                    </label>
+                {/* Last Name */}
+                <div className="grid grid-cols-3 items-center gap-2">
+                  <label htmlFor="lastName" className="text-xs font-medium text-slate-700">
+                    Last Name
+                  </label>
+                  <div className="col-span-2">
+                    <input
+                      type="text"
+                      id="lastName"
+                      name="lastName"
+                      value={formData.lastName}
+                      onChange={handleChange}
+                      placeholder="Daniel"
+                      className={cn(
+                        "w-full px-3.5 py-2.5 rounded-xl bg-slate-100/80 text-slate-900 text-xs placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all",
+                        errors.lastName && "ring-1 ring-red-500 bg-red-50/50"
+                      )}
+                    />
+                  </div>
+                </div>
+
+                {/* Work Email */}
+                <div className="grid grid-cols-3 items-center gap-2">
+                  <label htmlFor="workEmail" className="text-xs font-medium text-slate-700">
+                    Work Email
+                  </label>
+                  <div className="col-span-2">
                     <input
                       type="email"
                       id="workEmail"
                       name="workEmail"
                       value={formData.workEmail}
                       onChange={handleChange}
-                      placeholder="john@company.com"
+                      placeholder="Mike123@company.com"
                       className={cn(
-                        "w-full px-4 py-3 rounded-xl border bg-slate-50/50 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 transition-all duration-200 text-sm",
-                        errors.workEmail 
-                          ? "border-red-400 focus:ring-red-100 focus:border-red-500" 
-                          : "border-slate-200 focus:ring-slate-100 focus:border-slate-900"
+                        "w-full px-3.5 py-2.5 rounded-xl bg-slate-100/80 text-slate-900 text-xs placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all",
+                        errors.workEmail && "ring-1 ring-red-500 bg-red-50/50"
                       )}
                     />
-                    {errors.workEmail && (
-                      <span className="text-xs font-medium text-red-500 mt-1">{errors.workEmail}</span>
-                    )}
                   </div>
+                </div>
 
-                  {/* Company Name */}
-                  <div className="flex flex-col gap-1.5">
-                    <label htmlFor="companyName" className="text-sm font-semibold text-slate-700">
-                      Company Name
-                    </label>
+                {/* Company Name */}
+                <div className="grid grid-cols-3 items-center gap-2">
+                  <label htmlFor="companyName" className="text-xs font-medium text-slate-700">
+                    Company Name
+                  </label>
+                  <div className="col-span-2">
                     <input
                       type="text"
                       id="companyName"
                       name="companyName"
                       value={formData.companyName}
                       onChange={handleChange}
-                      placeholder="Fintech Connect Corp"
+                      placeholder="Your company"
                       className={cn(
-                        "w-full px-4 py-3 rounded-xl border bg-slate-50/50 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 transition-all duration-200 text-sm",
-                        errors.companyName 
-                          ? "border-red-400 focus:ring-red-100 focus:border-red-500" 
-                          : "border-slate-200 focus:ring-slate-100 focus:border-slate-900"
+                        "w-full px-3.5 py-2.5 rounded-xl bg-slate-100/80 text-slate-900 text-xs placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all",
+                        errors.companyName && "ring-1 ring-red-500 bg-red-50/50"
                       )}
                     />
-                    {errors.companyName && (
-                      <span className="text-xs font-medium text-red-500 mt-1">{errors.companyName}</span>
-                    )}
-                  </div>
-
-                  {/* Job Title */}
-                  <div className="flex flex-col gap-1.5">
-                    <label htmlFor="jobTitle" className="text-sm font-semibold text-slate-700">
-                      Job Title
-                    </label>
-                    <input
-                      type="text"
-                      id="jobTitle"
-                      name="jobTitle"
-                      value={formData.jobTitle}
-                      onChange={handleChange}
-                      placeholder="Product Manager"
-                      className={cn(
-                        "w-full px-4 py-3 rounded-xl border bg-slate-50/50 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 transition-all duration-200 text-sm",
-                        errors.jobTitle 
-                          ? "border-red-400 focus:ring-red-100 focus:border-red-500" 
-                          : "border-slate-200 focus:ring-slate-100 focus:border-slate-900"
-                      )}
-                    />
-                    {errors.jobTitle && (
-                      <span className="text-xs font-medium text-red-500 mt-1">{errors.jobTitle}</span>
-                    )}
                   </div>
                 </div>
 
-                {/* Company Type Dropdown */}
-                <div className="flex flex-col gap-1.5">
-                  <label htmlFor="companyType" className="text-sm font-semibold text-slate-700">
-                    Company Type
+                {/* Role Select */}
+                <div className="grid grid-cols-3 items-center gap-2">
+                  <label htmlFor="role" className="text-xs font-medium text-slate-700">
+                    Role
                   </label>
-                  <div className="relative">
+                  <div className="col-span-2 relative">
                     <select
-                      id="companyType"
-                      name="companyType"
-                      value={formData.companyType}
+                      id="role"
+                      name="role"
+                      value={formData.role}
                       onChange={handleChange}
                       className={cn(
-                        "w-full px-4 py-3 rounded-xl border bg-slate-50/50 text-slate-900 focus:outline-none focus:ring-2 transition-all duration-200 text-sm appearance-none cursor-pointer",
-                        errors.companyType 
-                          ? "border-red-400 focus:ring-red-100 focus:border-red-500" 
-                          : "border-slate-200 focus:ring-slate-100 focus:border-slate-900",
-                        !formData.companyType && "text-slate-400"
+                        "w-full px-3.5 py-2.5 rounded-xl bg-slate-100/80 text-slate-900 text-xs appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all",
+                        !formData.role && "text-slate-400",
+                        errors.role && "ring-1 ring-red-500 bg-red-50/50"
                       )}
                     >
-                      <option value="" disabled hidden>Select your industry segment</option>
-                      {COMPANY_TYPES.map((type) => (
-                        <option key={type} value={type} className="text-slate-900">
-                          {type}
-                        </option>
+                      <option value="" disabled hidden>Select your role</option>
+                      {ROLES.map((r) => (
+                        <option key={r} value={r} className="text-slate-900">{r}</option>
                       ))}
                     </select>
-                    {/* Native dropdown chevron icon replacement */}
-                    <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none text-slate-400">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-slate-400">
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
                       </svg>
                     </div>
                   </div>
-                  {errors.companyType && (
-                    <span className="text-xs font-medium text-red-500 mt-1">{errors.companyType}</span>
-                  )}
                 </div>
 
-                {/* Requirements Textarea */}
-                <div className="flex flex-col gap-1.5">
-                  <label htmlFor="requirements" className="text-sm font-semibold text-slate-700">
-                    What are you looking to build?
+                {/* Industry Type Select */}
+                <div className="grid grid-cols-3 items-center gap-2">
+                  <label htmlFor="industryType" className="text-xs font-medium text-slate-700">
+                    Industry Type
                   </label>
-                  <textarea
-                    id="requirements"
-                    name="requirements"
-                    rows={4}
-                    value={formData.requirements}
-                    onChange={handleChange}
-                    placeholder="Tell us a bit about your app roadmap, target users, or required prebuilt integration templates..."
-                    className={cn(
-                      "w-full px-4 py-3 rounded-xl border bg-slate-50/50 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 transition-all duration-200 text-sm resize-none",
-                      errors.requirements 
-                        ? "border-red-400 focus:ring-red-100 focus:border-red-500" 
-                        : "border-slate-200 focus:ring-slate-100 focus:border-slate-900"
-                    )}
-                  />
-                  {errors.requirements && (
-                    <span className="text-xs font-medium text-red-500 mt-1">{errors.requirements}</span>
-                  )}
+                  <div className="col-span-2 relative">
+                    <select
+                      id="industryType"
+                      name="industryType"
+                      value={formData.industryType}
+                      onChange={handleChange}
+                      className={cn(
+                        "w-full px-3.5 py-2.5 rounded-xl bg-slate-100/80 text-slate-900 text-xs appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all",
+                        !formData.industryType && "text-slate-400",
+                        errors.industryType && "ring-1 ring-red-500 bg-red-50/50"
+                      )}
+                    >
+                      <option value="" disabled hidden>Select industry type</option>
+                      {INDUSTRY_TYPES.map((type) => (
+                        <option key={type} value={type} className="text-slate-900">{type}</option>
+                      ))}
+                    </select>
+                    <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-slate-400">
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </div>
+                  </div>
                 </div>
 
-                {/* Submit Button */}
-                <div className="pt-2">
+                {/* Action Buttons */}
+                <div className="pt-6 flex items-center justify-between">
+                  <button
+                    type="button"
+                    className="text-xs font-semibold text-slate-800 hover:text-slate-600 transition-colors"
+                  >
+                    Back
+                  </button>
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="w-full bg-blue-500 hover:bg-blue-600 text-white font-medium text-sm py-4 px-6 rounded-xl transition-all duration-150 shadow-md shadow-slate-900/10 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+                    className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium py-2.5 px-5 rounded-xl transition-all flex items-center gap-1.5 shadow-md shadow-blue-500/20 disabled:opacity-70"
                   >
                     {isSubmitting ? (
-                      <>
-                        <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                        </svg>
-                        Securing your slot...
-                      </>
+                      "Submitting..."
                     ) : (
-                      "Confirm & Schedule Demo"
+                      <>
+                        Submit <span>&rarr;</span>
+                      </>
                     )}
                   </button>
                 </div>
               </form>
             </motion.div>
-          ) : (
-            /* Animated Success Screen Block */
+          )}
+
+          {/* STEP 2: SUBMISSION CONFIRMATION & OPTIONS */}
+          {step === 2 && (
             <motion.div
-              key="success-screen"
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ type: "spring", damping: 25, stiffness: 180 }}
-              className="p-12 text-center flex flex-col items-center justify-center min-h-[500px]"
+              key="step-2"
+              initial={{ opacity: 0, x: 10 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -10 }}
+              transition={{ duration: 0.25 }}
             >
-              <div className="w-16 h-16 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-500 mb-6 border border-emerald-100/60">
-                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
-                </svg>
-              </div>
-              <h2 className="text-2xl font-bold text-slate-900 tracking-tight sm:text-3xl">
-                Demo Request Received!
+              <h2 className="text-xl font-bold text-slate-900 tracking-tight">
+                Thanks for your submission
               </h2>
-              <p className="mt-3 text-slate-600 max-w-md mx-auto text-sm sm:text-base leading-relaxed">
-                Thank you, <span className="font-semibold text-slate-800">{formData.fullName.split(" ")[0]}</span>. 
-                We've synchronized your parameters. A product architect will reach out to you at <span className="font-semibold text-slate-800">{formData.workEmail}</span> within 24 hours with an interactive tailored environment.
+              <p className="mt-1 text-xs text-slate-500 leading-relaxed mb-6">
+                Our representative will reach out within 24 hrs.<br />
+                Select an option below to connect more quickly
               </p>
-              <button
-                onClick={() => setIsSubmitted(false)}
-                className="mt-8 text-xs font-semibold tracking-wide text-slate-400 hover:text-slate-600 underline decoration-2 underline-offset-4 transition-colors"
-              >
-                Book another demo
-              </button>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
+                {/* Chat Card */}
+                <div className="border border-slate-100 bg-slate-50/50 rounded-2xl p-4 flex flex-col justify-between hover:border-slate-200 transition-all">
+                  <div>
+                    <div className="w-6 h-6 bg-blue-600 rounded-md flex items-center justify-center text-white mb-3">
+                      <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 9h12v2H6V9zm8 5H6v-2h8v2zm4-6H6V6h12v2z" />
+                      </svg>
+                    </div>
+                    <h3 className="text-xs font-bold text-slate-900">Chat with Sales</h3>
+                    <p className="text-[11px] text-slate-500 mt-1 leading-snug">
+                      Chat now with our sales representatives
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => alert("Connecting to sales chat...")}
+                    className="mt-4 bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-medium py-2 px-3 rounded-lg w-max flex items-center gap-1 transition-all"
+                  >
+                    Start Chat <span>&rarr;</span>
+                  </button>
+                </div>
+
+                {/* Schedule Call Card */}
+                <div className="border border-slate-100 bg-slate-50/50 rounded-2xl p-4 flex flex-col justify-between hover:border-slate-200 transition-all">
+                  <div>
+                    <div className="w-6 h-6 bg-blue-600 rounded-md flex items-center justify-center text-white mb-3">
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                    </div>
+                    <h3 className="text-xs font-bold text-slate-900">Schedule a Call</h3>
+                    <p className="text-[11px] text-slate-500 mt-1 leading-snug">
+                      Chat now with our sales representatives
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setStep(3)}
+                    className="mt-4 bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-medium py-2 px-3 rounded-lg w-max flex items-center gap-1 transition-all"
+                  >
+                    Book call <span>&rarr;</span>
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {/* STEP 3: CALENDAR & TIME SLOT BOOKING */}
+          {step === 3 && (
+            <motion.div
+              key="step-3"
+              initial={{ opacity: 0, x: 10 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -10 }}
+              transition={{ duration: 0.25 }}
+            >
+              <h2 className="text-xl font-bold text-slate-900 tracking-tight">
+                Select a date and time
+              </h2>
+              <p className="mt-1 text-xs text-slate-500 leading-relaxed mb-5">
+                Book a 15-minute call with a our sales rep to tell us about your business and how we can help.
+              </p>
+
+              {isBooked ? (
+                <div className="py-8 text-center bg-slate-50 rounded-2xl border border-slate-100 my-4">
+                  <div className="w-10 h-10 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-3">
+                    ✓
+                  </div>
+                  <h3 className="text-sm font-bold text-slate-900">Call Scheduled!</h3>
+                  <p className="text-xs text-slate-500 mt-1">
+                    July {selectedDate}, 2026 at {selectedTime}
+                  </p>
+                </div>
+              ) : (
+                <>
+                  {/* Month Navigation */}
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-xs font-bold text-slate-900">July 2026</span>
+                    <div className="flex gap-1">
+                      <button className="w-5 h-5 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center text-[10px]">
+                        &lt;
+                      </button>
+                      <button className="w-5 h-5 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center text-[10px]">
+                        &gt;
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Horizontal Date Picker */}
+                  <div className="grid grid-cols-7 gap-1.5 mb-5">
+                    {DAYS_SLOTS.map((slot) => {
+                      const isSelected = selectedDate === slot.date
+                      return (
+                        <button
+                          key={slot.date}
+                          onClick={() => setSelectedDate(slot.date)}
+                          className={cn(
+                            "flex flex-col items-center justify-center py-2 rounded-xl border transition-all text-[10px]",
+                            isSelected
+                              ? "border-blue-600 text-blue-600 font-bold bg-blue-50/40"
+                              : "border-slate-100 text-slate-700 bg-slate-50/50 hover:bg-slate-100"
+                          )}
+                        >
+                          <span className="text-[9px] text-slate-400 uppercase font-medium">{slot.day}</span>
+                          <span className="text-xs font-bold mt-0.5">{slot.date}</span>
+                        </button>
+                      )
+                    })}
+                  </div>
+
+                  {/* Timezone Selection Dropdown */}
+                  <div className="mb-4">
+                    <div className="relative inline-block text-left">
+                      <select className="bg-transparent text-xs font-bold text-slate-900 appearance-none pr-5 cursor-pointer focus:outline-none">
+                        <option>Europe/London</option>
+                        <option>America/New_York</option>
+                        <option>Asia/Tokyo</option>
+                      </select>
+                      <span className="absolute right-0 top-0.5 text-[10px] pointer-events-none text-slate-500">▼</span>
+                    </div>
+                  </div>
+
+                  {/* Time Slots Grid */}
+                  <div className="grid grid-cols-3 gap-2 mb-6">
+                    {TIME_SLOTS.map((time) => {
+                      const isSelected = selectedTime === time
+                      return (
+                        <button
+                          key={time}
+                          onClick={() => setSelectedTime(time)}
+                          className={cn(
+                            "py-2 rounded-xl border text-[10px] font-semibold transition-all",
+                            isSelected
+                              ? "border-blue-600 text-blue-600 bg-blue-50/30"
+                              : "border-slate-100 text-slate-700 bg-slate-50/30 hover:bg-slate-100"
+                          )}
+                        >
+                          {time}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </>
+              )}
+
+              {/* Action Buttons */}
+              <div className="pt-2 flex items-center justify-between border-t border-slate-100">
+                <button
+                  onClick={() => setStep(2)}
+                  className="text-xs font-semibold text-slate-800 hover:text-slate-600 transition-colors"
+                >
+                  Back
+                </button>
+                {!isBooked && (
+                  <button
+                    onClick={() => setIsBooked(true)}
+                    className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium py-2.5 px-5 rounded-xl transition-all flex items-center gap-1.5 shadow-md shadow-blue-500/20"
+                  >
+                    Book <span>&rarr;</span>
+                  </button>
+                )}
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
