@@ -60,7 +60,7 @@ const modules = [
   },
 ];
 
-// 1. Isolated Child Card Component to Handle Staggered/Lazy Loading Entries
+// 1. Isolated Child Card Component
 const ModuleCard = ({ module, index, showAll }: { module: any; index: number; showAll: boolean }) => {
   const [isVisible, setIsVisible] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
@@ -75,7 +75,7 @@ const ModuleCard = ({ module, index, showAll }: { module: any; index: number; sh
       },
       { 
         threshold: 0.1, 
-        rootMargin: "0px 0px -30px 0px"
+        rootMargin: "0px 0px -40px 0px"
       }
     );
 
@@ -84,20 +84,21 @@ const ModuleCard = ({ module, index, showAll }: { module: any; index: number; sh
     }
 
     return () => observer.disconnect();
-  }, [showAll]); // Refires dynamically when mobile unhides cards, triggering their entry cascade
+  }, [showAll]);
 
-  // Dynamic remainder delay logic to reset cascading rhythms row-by-row on desktop grids
+  // Desktop stagger delay based on 3-column layout
   const desktopStaggerDelay = (index % 3) * 100;
 
   return (
     <div 
       ref={cardRef} 
-      className={`bg-[#eef2ff]/70 rounded-2xl flex flex-col items-start text-left overflow-hidden group cursor-pointer transition-all duration-700 ease-out hover:shadow-lg ${
+      className={`bg-[#eef2ff]/70 rounded-2xl flex flex-col items-start text-left overflow-hidden group cursor-pointer 
+        transition-all duration-700 ease-out hover:shadow-lg ${
         index >= 4 && !showAll ? 'hidden md:flex' : 'flex'
       } ${
         isVisible 
-          ? 'opacity-100 translate-y-0' 
-          : 'opacity-0 -translate-y-12 pointer-events-none'
+          ? 'opacity-100 translate-x-0' 
+          : 'opacity-0 -translate-x-16 pointer-events-none'
       }`}
       style={{ transitionDelay: `${desktopStaggerDelay}ms` }}
     >
@@ -131,6 +132,8 @@ const ModuleCard = ({ module, index, showAll }: { module: any; index: number; sh
           src={getPath(module.img)} 
           alt={module.title} 
           className="rounded-xl w-full h-auto object-cover"
+          loading="lazy"
+          decoding="async"
         />
       </div>
     </div>
@@ -143,7 +146,6 @@ export default function NewmodulesSection() {
   const [headerVisible, setHeaderVisible] = useState(false);
   const headerRef = useRef<HTMLHeadingElement>(null);
 
-  // Dedicated Observer for the Section's H2 Title Copy
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => {
@@ -160,7 +162,7 @@ export default function NewmodulesSection() {
   }, []);
 
   return (
-    <section className="py-24 bg-white">
+    <section className="py-24 bg-white overflow-hidden">
       <div className="w-full px-3 lg:px-6 max-w-[92.5%] mx-auto">
         
         {/* Header Section */}
@@ -168,8 +170,8 @@ export default function NewmodulesSection() {
           ref={headerRef}
           className={`text-4xl font-bold text-slate-900 mb-16 transition-all duration-700 ease-out ${
             headerVisible 
-              ? 'opacity-100 translate-y-0' 
-              : 'opacity-0 -translate-y-12 pointer-events-none'
+              ? 'opacity-100 translate-x-0' 
+              : 'opacity-0 -translate-x-12 pointer-events-none'
           }`}
         >
           Essential Building Blocks to <br className="hidden md:inline" />Launch Fintech Today

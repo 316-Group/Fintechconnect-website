@@ -29,8 +29,8 @@ const ModuleCard = ({ module, index }: { module: any; index: number }) => {
         }
       },
       { 
-        threshold: 0.15, // Triggers when 15% of the individual card is visible
-        rootMargin: "0px 0px -50px 0px" // Slight offset so it triggers cleanly as you scroll down
+        threshold: 0.1, // Trigger earlier (10% visibility) for a smoother entry
+        rootMargin: "0px 0px -30px 0px"
       }
     );
 
@@ -42,15 +42,15 @@ const ModuleCard = ({ module, index }: { module: any; index: number }) => {
   }, []);
 
   // Dynamically resets stagger delays per row on desktop (0ms, 100ms, 200ms)
-  const desktopStaggerDelay = (index % 3) * 100;
+  const desktopStaggerDelay = (index % 3) * 150;
 
   return (
     <div 
       ref={cardRef} 
-      className={`bg-blue-100 rounded-2xl flex flex-col items-start text-left overflow-hidden group cursor-pointer transition-all duration-700 ease-out hover:shadow-lg ${
+      className={`bg-blue-100 rounded-2xl flex flex-col items-start text-left overflow-hidden group cursor-pointer transition-[transform,opacity] duration-700 ease-out hover:shadow-lg ${
         isVisible 
-          ? 'opacity-100 translate-y-0' 
-          : 'opacity-0 -translate-y-12 pointer-events-none'
+          ? 'opacity-100 translate-x-0' 
+          : 'opacity-0 -translate-x-16 pointer-events-none'
       }`}
       style={{ transitionDelay: `${desktopStaggerDelay}ms` }}
     >
@@ -75,6 +75,8 @@ const ModuleCard = ({ module, index }: { module: any; index: number }) => {
           src={getPath(module.img)} 
           alt={module.title} 
           className="rounded-lg w-full h-full object-cover"
+          loading="lazy"
+          decoding="async"
         />
       </div>
     </div>
@@ -84,7 +86,7 @@ const ModuleCard = ({ module, index }: { module: any; index: number }) => {
 // 2. Main Section Component
 export default function ModulesSection() {
   return (
-    <section className="py-10 md:py-24 bg-white">
+    <section className="py-10 md:py-24 bg-white overflow-hidden">
       <div className="w-full px-6 md:px-20 max-w-[full] mx-auto md:text-center">
         {/* Header Section */}
         <h2 className="text-2xl md:text-4xl font-bold text-slate-900 mb-2">

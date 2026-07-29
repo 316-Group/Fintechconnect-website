@@ -5,14 +5,14 @@ import { Check } from 'lucide-react';
 import { getPath } from '@/utils/helper';
 
 export default function WhyUsSection() {
-  // 1. Instantiating decoupled tracking state configurations
+  // 1. Decoupled tracking state configurations
   const [part1Visible, setPart1Visible] = useState(false);
   const [part2Visible, setPart2Visible] = useState(false);
 
   const part1Ref = useRef<HTMLDivElement>(null);
   const part2Ref = useRef<HTMLDivElement>(null);
 
-  // 2. Initialising Viewport Monitors per layout block
+  // 2. Optimized Viewport Monitors per layout block
   useEffect(() => {
     const observer1 = new IntersectionObserver(
       ([entry]) => {
@@ -21,7 +21,7 @@ export default function WhyUsSection() {
           if (part1Ref.current) observer1.unobserve(part1Ref.current);
         }
       },
-      { threshold: 0.15 }
+      { threshold: 0.1, rootMargin: "0px 0px -30px 0px" }
     );
 
     if (part1Ref.current) observer1.observe(part1Ref.current);
@@ -36,17 +36,17 @@ export default function WhyUsSection() {
           if (part2Ref.current) observer2.unobserve(part2Ref.current);
         }
       },
-      { threshold: 0.15 }
+      { threshold: 0.1, rootMargin: "0px 0px -30px 0px" }
     );
 
     if (part2Ref.current) observer2.observe(part2Ref.current);
     return () => observer2.disconnect();
   }, []);
 
-  // Shared Base Utility Template String for the drop behavior
+  // Shared Base Utility String for horizontal slide-in from the left side
   const getAnimatedClass = (isVisible: boolean) => 
-    `transition-all duration-700 ease-out ${
-      isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-12 pointer-events-none'
+    `transition-[transform,opacity] duration-700 ease-out ${
+      isVisible ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-16 pointer-events-none'
     }`;
 
   return (
@@ -94,7 +94,7 @@ export default function WhyUsSection() {
           
           {/* Contact Button */}
           <button 
-            className={`bg-black hover:bg-slate-800 text-white text-sm lg:text-base font-semibold py-3.5 px-8 rounded-full transition-all shadow-sm active:scale-95 ${getAnimatedClass(part1Visible)}`}
+            className={`bg-black hover:bg-slate-800 text-white text-sm lg:text-base font-semibold py-3.5 px-8 rounded-full shadow-sm active:scale-95 ${getAnimatedClass(part1Visible)}`}
             style={{ transitionDelay: '300ms' }}
           >
             Contact us
@@ -112,15 +112,17 @@ export default function WhyUsSection() {
               src={getPath("/whyUs image.png")} 
               alt="Why Us image" 
               className="w-full h-full object-contain object-center"
+              loading="lazy"
+              decoding="async"
             />
           </div>
 
-          {/* Floating Widget 1: Currencies Panel (Drops slightly after main image) */}
+          {/* Floating Widget 1: Currencies Panel */}
           <div 
-            className={`absolute -top-4 -left-4 lg:-left-8 bg-white/95 backdrop-blur-md rounded-2xl shadow-[0_12px_30px_rgba(0,0,0,0.08)] border border-slate-100 p-4 w-60 flex flex-col z-10 transition-transform duration-300 hover:-translate-y-1 ${
-              part1Visible ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-95 -translate-y-8 pointer-events-none'
+            className={`absolute -top-4 -left-4 lg:-left-8 bg-white/95 backdrop-blur-md rounded-2xl shadow-[0_12px_30px_rgba(0,0,0,0.08)] border border-slate-100 p-4 w-60 flex flex-col z-10 transition-[transform,opacity] duration-500 ease-out ${
+              part1Visible ? 'opacity-100 scale-100 translate-x-0' : 'opacity-0 scale-95 -translate-x-12 pointer-events-none'
             }`}
-            style={{ transitionDelay: '350ms', transitionProperty: 'opacity, transform' }}
+            style={{ transitionDelay: '350ms' }}
           >
             {/* GBP Row */}
             <div className="flex items-center justify-between py-2 border-b border-slate-100">
@@ -158,10 +160,10 @@ export default function WhyUsSection() {
 
           {/* Floating Widget 2: "Done" Success Notification */}
           <div 
-            className={`absolute -bottom-6 -right-4 lg:-right-6 bg-white/95 backdrop-blur-md rounded-2xl shadow-[0_12px_30px_rgba(0,0,0,0.08)] border border-slate-100 px-6 py-4 flex flex-col items-center justify-center min-w-[110px] z-10 transition-transform duration-300 hover:-translate-y-1 ${
-              part1Visible ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-95 -translate-y-6 pointer-events-none'
+            className={`absolute -bottom-6 -right-4 lg:-right-6 bg-white/95 backdrop-blur-md rounded-2xl shadow-[0_12px_30px_rgba(0,0,0,0.08)] border border-slate-100 px-6 py-4 flex flex-col items-center justify-center min-w-[110px] z-10 transition-[transform,opacity] duration-500 ease-out ${
+              part1Visible ? 'opacity-100 scale-100 translate-x-0' : 'opacity-0 scale-95 -translate-x-8 pointer-events-none'
             }`}
-            style={{ transitionDelay: '500ms', transitionProperty: 'opacity, transform' }}
+            style={{ transitionDelay: '500ms' }}
           >
             <div className="w-10 h-10 bg-[#00ebd0] rounded-full flex items-center justify-center text-white mb-2 shadow-sm shadow-[#00ebd0]/20">
               <Check className="w-5 h-5 stroke-[3.5]" />
@@ -181,13 +183,15 @@ export default function WhyUsSection() {
         {/* Left Side: 1 Large Dashboard Image */}
         <div 
           className={`relative max-w-full mx-auto lg:mx-0 py-4 ${getAnimatedClass(part2Visible)}`}
-          style={{ transitionDelay: '100ms' }}
+          style={{ transitionDelay: '150ms' }}
         >
           <div className="w-full">
             <img 
               src={getPath("/transfersimage.png")} 
               alt="Transfers dashboard image" 
               className="w-full h-full object-cover object-center"
+              loading="lazy"
+              decoding="async"
             /> 
           </div>
         </div>
@@ -197,7 +201,7 @@ export default function WhyUsSection() {
           {/* Context Tag Line */}
           <span 
             className={`text-sm lg:text-base font-normal text-slate-500 mb-3 tracking-wide ${getAnimatedClass(part2Visible)}`}
-            style={{ transitionDelay: '0ms' }}
+            style={{ transitionDelay: '150ms' }}
           >
             Get more with 316 Money
           </span>
@@ -222,7 +226,7 @@ export default function WhyUsSection() {
           
           {/* Action Button */}
           <button 
-            className={`bg-black hover:bg-slate-800 text-white text-sm lg:text-base font-semibold py-3.5 px-8 rounded-full transition-all shadow-sm active:scale-95 ${getAnimatedClass(part2Visible)}`}
+            className={`bg-black hover:bg-slate-800 text-white text-sm lg:text-base font-semibold py-3.5 px-8 rounded-full shadow-sm active:scale-95 ${getAnimatedClass(part2Visible)}`}
             style={{ transitionDelay: '400ms' }}
           >
             Learn more

@@ -76,7 +76,7 @@ export default function BenefitsSection() {
                   : 'opacity-0 translate-y-12 pointer-events-none'
               }`}
               // Creates a 200ms cascade delay between each column sequence
-              style={{ transitionDelay: `${index * 500}ms` }}
+              style={{ transitionDelay: `${index * 220}ms` }}
             >
               {/* White Vertical Dividers between columns */}
               {index > 0 && (

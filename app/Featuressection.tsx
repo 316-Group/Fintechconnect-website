@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from 'react';
-
 import { getPath } from '@/utils/helper';
 
 const features = [
@@ -37,27 +36,63 @@ const features = [
   },
 ];
 
-const FeaturesSection = () => {
+// 1. Isolated Child Component to prevent batch re-renders
+const FeatureCard = ({ feature, index }: { feature: typeof features[0]; index: number }) => {
   const [isVisible, setIsVisible] = useState(false);
-  const sectionRef = useRef<HTMLDivElement>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
           setIsVisible(true);
-          if (sectionRef.current) observer.unobserve(sectionRef.current);
+          if (cardRef.current) observer.unobserve(cardRef.current);
         }
       },
-      { threshold: 0.5 }
+      { 
+        threshold: 0.1, 
+        rootMargin: "0px 0px -30px 0px" 
+      }
     );
 
-    if (sectionRef.current) observer.observe(sectionRef.current);
-    return () => { if (sectionRef.current) observer.unobserve(sectionRef.current); };
+    if (cardRef.current) observer.observe(cardRef.current);
+    return () => observer.disconnect();
   }, []);
 
+  // Grid row-aware stagger delay (resets every 3 items for a 3-column desktop layout)
+  const staggerDelay = (index % 3) * 150;
+
   return (
-    <section ref={sectionRef} className="bg-white py-10 md:py-24">
+    <div 
+      ref={cardRef} 
+      className={`p-8 bg-white rounded-2xl border border-blue-50/50 shadow-lg shadow-blue-600/20 hover:shadow-2xl hover:shadow-blue-600/70 transition-[transform,opacity] duration-700 ease-out ${
+        isVisible 
+          ? 'opacity-100 translate-x-0' 
+          : 'opacity-0 -translate-x-16 pointer-events-none'
+      }`}
+      style={{ transitionDelay: `${staggerDelay}ms` }}
+    >
+      <div className="flex flex-col h-full">
+        <div className="mb-6">
+          <img 
+            src={getPath(feature.iconPath)} 
+            alt={`${feature.title} icon`} 
+            className="w-24 h-24 object-contain"
+            loading="lazy"
+            decoding="async"
+          />
+        </div>
+        <h3 className="text-2xl font-bold text-gray-900 mb-4">{feature.title}</h3>
+        <p className="text-gray-600 text-base leading-relaxed flex-grow">{feature.description}</p>
+      </div>
+    </div>
+  );
+};
+
+// 2. Main Parent Section Component
+const FeaturesSection = () => {
+  return (
+    <section className="bg-white py-10 md:py-24 overflow-hidden">
       <div className="w-full px-3 lg:px-6 max-w-[92.5%] mx-auto">
         
         <div className="md:text-center mb-6 md:mb-20">
@@ -71,28 +106,7 @@ const FeaturesSection = () => {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
           {features.map((feature, index) => (
-            <div 
-              key={index} 
-              className={`p-8 bg-white rounded-2xl border border-blue-50/50 shadow-lg shadow-blue-600/20 hover:shadow-2xl hover:shadow-blue-600/70 transition-all duration-700 ease-out ${
-                isVisible 
-                  ? 'opacity-100 translate-y-0' 
-                  : 'opacity-0 -translate-y-12'
-              }`}
-              // The delay here creates the "waterfall" effect, increasing for each card
-              style={{ transitionDelay: `${index * 100}ms` }}
-            >
-              <div className="flex flex-col h-full">
-                <div className="mb-6">
-                  <img 
-                    src={getPath(feature.iconPath)} 
-                    alt={`${feature.title} icon`} 
-                    className="w-24 h-24 object-contain"
-                  />
-                </div>
-                <h3 className="text-2xl font-bold text-gray-900 mb-4">{feature.title}</h3>
-                <p className="text-gray-600 text-base leading-relaxed flex-grow">{feature.description}</p>
-              </div>
-            </div>
+            <FeatureCard key={index} feature={feature} index={index} />
           ))}
         </div>
       </div>
