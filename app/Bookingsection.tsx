@@ -212,98 +212,91 @@ export default function BookingSection() {
 </div>
 
       {/* Main Container Card */}
-      <div className="relative z-10 mt-6 sm:mt-12 w-full max-w-xl bg-white rounded-2xl shadow-2xl shadow-slate-300/60 border border-slate-100/80 overflow-hidden p-6 sm:p-10">
+      <div className="relative z-10 mt-6 sm:mt-12 w-full max-w-xl bg-white rounded-xl shadow-2xl shadow-slate-300/60 border border-slate-100/80 overflow-hidden p-6 sm:p-10">
         
         {/* Step Indicator Bar (Steps 1 - 4) */}
-        {step < 5 && (
-          <div className="grid grid-cols-3 gap-2 border-b border-slate-100 pb-5 mb-8 text-[11px] font-medium">
-            {/* Step 1: Your Email */}
-            <div
-              className={cn(
-                "flex items-center gap-1.5 pb-2 relative transition-colors cursor-pointer",
-                step === 1 ? "text-blue-600 font-semibold" : "text-slate-500"
-              )}
-              onClick={() => step > 1 && setStep(1)}
-            >
-              <span
-                className={cn(
-                  "w-3.5 h-3.5 rounded-full flex items-center justify-center text-[9px] font-bold",
-                  step > 1
-                    ? "bg-blue-600 text-white"
-                    : "border border-blue-600 bg-blue-600 text-white"
-                )}
-              >
-                {step > 1 ? "✓" : "1"}
-              </span>
-              <span>Your Email</span>
-              <div
-                className={cn(
-                  "absolute bottom-0 left-0 right-0 h-0.5 rounded-full transition-all",
-                  step >= 1 ? "bg-blue-600" : "bg-slate-200"
-                )}
-              />
-            </div>
-
-            {/* Step 2: Your Information */}
-            <div
-              className={cn(
-                "flex items-center gap-1.5 pb-2 relative transition-colors",
-                step === 2
-                  ? "text-blue-600 font-semibold"
-                  : step > 2
-                  ? "text-slate-500 cursor-pointer"
-                  : "text-slate-400"
-              )}
-              onClick={() => step > 2 && setStep(2)}
-            >
-              <span
-                className={cn(
-                  "w-3.5 h-3.5 rounded-full flex items-center justify-center text-[9px] font-bold",
-                  step > 2
-                    ? "bg-blue-600 text-white"
-                    : step === 2
-                    ? "border border-blue-600 bg-blue-600 text-white"
-                    : "border border-slate-300 text-slate-400"
-                )}
-              >
-                {step > 2 ? "✓" : "2"}
-              </span>
-              <span>Your Information</span>
-              <div
-                className={cn(
-                  "absolute bottom-0 left-0 right-0 h-0.5 rounded-full transition-all",
-                  step >= 2 ? "bg-blue-600" : "bg-slate-200"
-                )}
-              />
-            </div>
-
-            {/* Step 3 & 4: Lets talk */}
-            <div
-              className={cn(
-                "flex items-center gap-1.5 pb-2 relative transition-colors",
-                step >= 3 ? "text-blue-600 font-semibold" : "text-slate-400"
-              )}
-            >
-              <span
-                className={cn(
-                  "w-3.5 h-3.5 rounded-full flex items-center justify-center text-[9px] font-bold",
-                  step >= 3
-                    ? "border border-blue-600 bg-blue-600 text-white"
-                    : "border border-slate-300 text-slate-400"
-                )}
-              >
-                3
-              </span>
-              <span>Lets talk</span>
-              <div
-                className={cn(
-                  "absolute bottom-0 left-0 right-0 h-0.5 rounded-full transition-all",
-                  step >= 3 ? "bg-blue-600" : "bg-slate-200"
-                )}
-              />
-            </div>
-          </div>
+{step < 5 && (
+  <div className="grid grid-cols-3 gap-2 border-b border-slate-100 pb-5 mb-8 text-xs font-bold">
+    {/* Step 1: Your Email */}
+    <div
+      className="flex items-center gap-2 pb-2 relative transition-colors cursor-pointer text-slate-900"
+      onClick={() => step > 1 && setStep(1)}
+    >
+      <span
+        className={cn(
+          "w-4 h-4 rounded-full flex items-center justify-center transition-all shrink-0",
+          step > 1
+            ? "bg-blue-600 text-white"
+            : "border-2 border-blue-600 bg-white"
         )}
+      >
+        {step > 1 && (
+          <svg className="w-2.5 h-2.5 stroke-[3]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+          </svg>
+        )}
+      </span>
+      <span className="text-slate-900 font-bold">Your Email</span>
+      <div className="absolute bottom-0 left-0 right-0 h-1 rounded-full bg-blue-600 transition-all" />
+    </div>
+
+    {/* Step 2: Your Information */}
+    <div
+      className={cn(
+        "flex items-center gap-2 pb-2 relative transition-colors text-slate-900",
+        step > 2 ? "cursor-pointer" : ""
+      )}
+      onClick={() => step > 2 && setStep(2)}
+    >
+      <span
+        className={cn(
+          "w-4 h-4 rounded-full flex items-center justify-center transition-all shrink-0",
+          step > 2
+            ? "bg-blue-600 text-white"
+            : "border-2 border-blue-600 bg-white"
+        )}
+      >
+        {step > 2 && (
+          <svg className="w-2.5 h-2.5 stroke-[3]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+          </svg>
+        )}
+      </span>
+      <span className="text-slate-900 font-bold">Your Information</span>
+      <div
+        className={cn(
+          "absolute bottom-0 left-0 right-0 h-1 rounded-full transition-all",
+          step >= 2 ? "bg-blue-600" : "bg-slate-200"
+        )}
+      />
+    </div>
+
+    {/* Step 3 & 4: Lets talk */}
+    <div className="flex items-center gap-2 pb-2 relative transition-colors text-slate-900">
+      <span
+        className={cn(
+          "w-4 h-4 rounded-full flex items-center justify-center transition-all shrink-0",
+          step > 4
+            ? "bg-blue-600 text-white"
+            : "border-2 border-blue-600 bg-white"
+        )}
+      >
+        {step > 4 && (
+          <svg className="w-2.5 h-2.5 stroke-[3]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+          </svg>
+        )}
+      </span>
+      <span className="text-slate-900 font-bold">Lets talk</span>
+      <div
+        className={cn(
+          "absolute bottom-0 left-0 right-0 h-1 rounded-full transition-all",
+          step >= 3 ? "bg-blue-600" : "bg-slate-200"
+        )}
+      />
+    </div>
+  </div>
+)}
 
         {/* Step Content */}
         <AnimatePresence mode="wait">
@@ -316,7 +309,7 @@ export default function BookingSection() {
               exit={{ opacity: 0, x: 10 }}
               transition={{ duration: 0.2 }}
             >
-              <h1 className="text-xl font-bold text-slate-900 tracking-tight">
+              <h1 className="text-xl font-bold text-slate-900 tracking-tight mb-3 mt-0">
                 Lets get you to the right place
               </h1>
               <p className="mt-1 text-xs text-slate-500 mb-6">
@@ -326,7 +319,7 @@ export default function BookingSection() {
               <form onSubmit={handleStep1Submit} className="space-y-4">
                 {/* Work Email */}
                 <div className="grid grid-cols-3 items-center gap-2">
-                  <label htmlFor="workEmail" className="text-xs font-semibold text-slate-800">
+                  <label htmlFor="workEmail" className="text-xs font-bold text-slate-900">
                     Work Email
                   </label>
                   <div className="col-span-2">
@@ -347,7 +340,7 @@ export default function BookingSection() {
 
                 {/* Country / Region */}
                 <div className="grid grid-cols-3 items-center gap-2">
-                  <label htmlFor="country" className="text-xs font-semibold text-slate-800">
+                  <label htmlFor="country" className="text-xs font-bold text-slate-900">
                     Country / Region
                   </label>
                   <div className="col-span-2 relative">
@@ -379,7 +372,7 @@ export default function BookingSection() {
                 <div className="pt-6 flex justify-end">
                   <button
                     type="submit"
-                    className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium py-2.5 px-6 rounded-xl transition-all flex items-center gap-1.5 shadow-md shadow-blue-500/20"
+                    className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium py-2.5 px-6 rounded-1xl transition-all flex items-center gap-1.5 shadow-md shadow-blue-500/20"
                   >
                     Continue <span>&rarr;</span>
                   </button>
@@ -397,7 +390,7 @@ export default function BookingSection() {
               exit={{ opacity: 0, x: -10 }}
               transition={{ duration: 0.2 }}
             >
-              <h1 className="text-xl font-bold text-slate-900 tracking-tight">
+              <h1 className="text-xl font-bold text-slate-900 tracking-tight mb-3">
                 How can we reach you?
               </h1>
               <p className="mt-1 text-xs text-slate-500 mb-6">
@@ -407,7 +400,7 @@ export default function BookingSection() {
               <form onSubmit={handleStep2Submit} className="space-y-3.5">
                 {/* First Name */}
                 <div className="grid grid-cols-3 items-center gap-2">
-                  <label htmlFor="firstName" className="text-xs font-semibold text-slate-800">
+                  <label htmlFor="firstName" className="text-xs font-bold text-slate-900">
                     First Name
                   </label>
                   <div className="col-span-2">
@@ -427,7 +420,7 @@ export default function BookingSection() {
 
                 {/* Last Name */}
                 <div className="grid grid-cols-3 items-center gap-2">
-                  <label htmlFor="lastName" className="text-xs font-semibold text-slate-800">
+                  <label htmlFor="lastName" className="text-xs font-bold text-slate-900">
                     Last Name
                   </label>
                   <div className="col-span-2">
@@ -447,7 +440,7 @@ export default function BookingSection() {
 
                 {/* Company */}
                 <div className="grid grid-cols-3 items-center gap-2">
-                  <label htmlFor="companyName" className="text-xs font-semibold text-slate-800">
+                  <label htmlFor="companyName" className="text-xs font-bold text-slate-900">
                     Company
                   </label>
                   <div className="col-span-2">
@@ -467,7 +460,7 @@ export default function BookingSection() {
 
                 {/* Company Website */}
                 <div className="grid grid-cols-3 items-center gap-2">
-                  <label htmlFor="companyWebsite" className="text-xs font-semibold text-slate-800">
+                  <label htmlFor="companyWebsite" className="text-xs font-bold text-slate-900">
                     Company Website
                   </label>
                   <div className="col-span-2">
@@ -484,7 +477,7 @@ export default function BookingSection() {
 
                 {/* Phone */}
                 <div className="grid grid-cols-3 items-center gap-2">
-                  <label htmlFor="phone" className="text-xs font-semibold text-slate-800">
+                  <label htmlFor="phone" className="text-xs font-bold text-slate-900">
                     Phone
                   </label>
                   <div className="col-span-2 flex gap-1.5">
@@ -514,7 +507,7 @@ export default function BookingSection() {
 
                 {/* Role */}
                 <div className="grid grid-cols-3 items-center gap-2">
-                  <label htmlFor="role" className="text-xs font-semibold text-slate-800">
+                  <label htmlFor="role" className="text-xs font-bold text-slate-900">
                     Role
                   </label>
                   <div className="col-span-2 relative">
@@ -548,7 +541,7 @@ export default function BookingSection() {
 
                 {/* Industry Type */}
                 <div className="grid grid-cols-3 items-center gap-2">
-                  <label htmlFor="industryType" className="text-xs font-semibold text-slate-800">
+                  <label htmlFor="industryType" className="text-xs font-bold text-slate-900">
                     Industry type
                   </label>
                   <div className="col-span-2 relative">
@@ -582,7 +575,7 @@ export default function BookingSection() {
 
                 {/* Anything else */}
                 <div className="grid grid-cols-3 items-start gap-2 pt-1">
-                  <label htmlFor="notes" className="text-xs font-semibold text-slate-800 pt-1">
+                  <label htmlFor="notes" className="text-xs font-bold text-slate-900 pt-1">
                     Anything else
                   </label>
                   <div className="col-span-2">
@@ -608,14 +601,14 @@ export default function BookingSection() {
                   <button
                     type="button"
                     onClick={() => setStep(1)}
-                    className="text-xs font-semibold text-slate-800 hover:text-slate-600 transition-colors"
+                    className="text-xs font-bold text-slate-900 hover:text-slate-600 transition-colors"
                   >
                     Back
                   </button>
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium py-2.5 px-6 rounded-xl transition-all flex items-center gap-1.5 shadow-md shadow-blue-500/20 disabled:opacity-70"
+                    className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium py-2.5 px-6 rounded-1xl transition-all flex items-center gap-1.5 shadow-md shadow-blue-500/20 disabled:opacity-70"
                   >
                     {isSubmitting ? "Submitting..." : <>Submit <span>&rarr;</span></>}
                   </button>
@@ -644,14 +637,14 @@ export default function BookingSection() {
               <h2 className="text-xl font-bold text-slate-900 tracking-tight">
                 Thanks for your submission
               </h2>
-              <p className="mt-1 text-xs text-slate-500 leading-relaxed mb-6">
+              <p className="mt-1 text-medium text-slate-500 leading-relaxed mb-6">
                 Our representative will reach out within 72 hrs. Select an option below to connect
                 more quickly
               </p>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                 {/* Chat with Sales Card */}
-                <div className="border border-slate-100 bg-slate-50/40 rounded-2xl p-5 flex flex-col justify-between hover:border-slate-200 transition-all">
+                <div className="border border-slate-100 bg-slate-50/40 rounded-xl p-5 flex flex-col justify-between hover:border-slate-200 transition-all">
                   <div>
                     <div className="w-7 h-7 bg-blue-600 rounded-lg flex items-center justify-center text-white mb-3 shadow-sm shadow-blue-500/30">
                       <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
@@ -672,7 +665,7 @@ export default function BookingSection() {
                 </div>
 
                 {/* Schedule a Call Card */}
-                <div className="border border-slate-100 bg-slate-50/40 rounded-2xl p-5 flex flex-col justify-between hover:border-slate-200 transition-all">
+                <div className="border border-slate-100 bg-slate-50/40 rounded-xl p-5 flex flex-col justify-between hover:border-slate-200 transition-all">
                   <div>
                     <div className="w-7 h-7 bg-blue-600 rounded-lg flex items-center justify-center text-white mb-3 shadow-sm shadow-blue-500/30">
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -696,119 +689,158 @@ export default function BookingSection() {
           )}
 
           {/* STEP 4: DATE & TIME PICKER */}
-          {step === 4 && (
-            <motion.div
-              key="step-4"
-              initial={{ opacity: 0, x: 10 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -10 }}
-              transition={{ duration: 0.2 }}
+{step === 4 && (
+  <motion.div
+    key="step-4"
+    initial={{ opacity: 0, x: 10 }}
+    animate={{ opacity: 1, x: 0 }}
+    exit={{ opacity: 0, x: -10 }}
+    transition={{ duration: 0.2 }}
+    className="space-y-5"
+  >
+    {/* Title & Description */}
+    <div>
+      <h2 className="text-xl font-bold text-slate-900 tracking-tight">
+        Select a date and time
+      </h2>
+      <p className="mt-1 text-medium text-slate-500 leading-relaxed">
+        Book a 15-minute call with a our sales rep to tell us about your business and how we can help.
+      </p>
+    </div>
+
+    {/* Horizontal Divider */}
+    <div className="h-px bg-slate-100 w-full" />
+
+    {/* Month Navigation Header */}
+    <div className="flex items-center justify-between">
+      <span className="text-sm font-bold text-slate-900">July 2026</span>
+      <div className="flex items-center gap-1.5">
+        <button
+          type="button"
+          className="w-6 h-6 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center hover:bg-slate-200 transition-colors"
+        >
+          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 19l-7-7 7-7" />
+          </svg>
+        </button>
+        <button
+          type="button"
+          className="w-6 h-6 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center hover:bg-slate-200 transition-colors"
+        >
+          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    {/* Horizontal Days Strip */}
+    <div className="grid grid-cols-7 gap-2">
+      {DAYS_SLOTS.map((slot) => {
+        const isSelected = selectedDateObj.date === slot.date
+        return (
+          <button
+            type="button"
+            key={slot.date}
+            onClick={() => setSelectedDateObj(slot)}
+            className={cn(
+              "flex flex-col items-center justify-center py-3 px-1 rounded-2xl border transition-all",
+              isSelected
+                ? "border-2 border-blue-600 bg-white text-blue-600 shadow-sm"
+                : "border-slate-100 bg-slate-50/50 text-slate-900 hover:bg-slate-100/70"
+            )}
+          >
+            <span
+              className={cn(
+                "text-[10px] uppercase font-bold tracking-wider",
+                isSelected ? "text-blue-500" : "text-slate-500"
+              )}
             >
-              <h2 className="text-xl font-bold text-slate-900 tracking-tight">
-                Select a date and time
-              </h2>
-              <p className="mt-1 text-xs text-slate-500 leading-relaxed mb-5">
-                Book a 15-minute call with a our sales rep to tell us about your business and how
-                we can help.
-              </p>
+              {slot.day}
+            </span>
+            <span
+              className={cn(
+                "text-sm font-bold mt-1",
+                isSelected ? "text-blue-600" : "text-slate-900"
+              )}
+            >
+              {slot.date}
+            </span>
+          </button>
+        )
+      })}
+    </div>
 
-              {/* Month Navigation Header */}
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-xs font-bold text-slate-900">July 2026</span>
-                <div className="flex gap-1">
-                  <button className="w-5 h-5 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center text-[10px] hover:bg-slate-200 transition-colors">
-                    &lt;
-                  </button>
-                  <button className="w-5 h-5 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center text-[10px] hover:bg-slate-200 transition-colors">
-                    &gt;
-                  </button>
-                </div>
-              </div>
+    {/* Horizontal Divider */}
+    <div className="h-px bg-slate-100 w-full" />
 
-              {/* Horizontal Days Strip */}
-              <div className="grid grid-cols-7 gap-1.5 mb-4">
-                {DAYS_SLOTS.map((slot) => {
-                  const isSelected = selectedDateObj.date === slot.date
-                  return (
-                    <button
-                      type="button"
-                      key={slot.date}
-                      onClick={() => setSelectedDateObj(slot)}
-                      className={cn(
-                        "flex flex-col items-center justify-center py-2 rounded-2xl border transition-all text-[10px]",
-                        isSelected
-                          ? "border-blue-600 text-blue-600 font-bold bg-blue-50/50"
-                          : "border-slate-100 text-slate-700 bg-slate-50/30 hover:bg-slate-100"
-                      )}
-                    >
-                      <span className="text-[9px] text-slate-400 uppercase font-medium">
-                        {slot.day}
-                      </span>
-                      <span className="text-xs font-bold mt-0.5">{slot.date}</span>
-                    </button>
-                  )
-                })}
-              </div>
+    {/* Timezone Select */}
+    <div className="flex items-center">
+      <div className="relative inline-flex items-center">
+        <select
+          value={timezone}
+          onChange={(e) => setTimezone(e.target.value)}
+          className="bg-transparent text-sm font-bold text-slate-900 appearance-none pr-6 cursor-pointer focus:outline-none"
+        >
+          <option value="Europe/London">Europe/London</option>
+          <option value="America/New_York">America/New_York</option>
+          <option value="Asia/Tokyo">Asia/Tokyo</option>
+        </select>
+        <svg
+          className="w-3.5 h-3.5 absolute right-0 text-slate-700 pointer-events-none stroke-[2.5]"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+        </svg>
+      </div>
+    </div>
 
-              {/* Timezone Select */}
-              <div className="mb-4">
-                <div className="relative inline-block text-left">
-                  <select
-                    value={timezone}
-                    onChange={(e) => setTimezone(e.target.value)}
-                    className="bg-transparent text-xs font-bold text-slate-900 appearance-none pr-5 cursor-pointer focus:outline-none"
-                  >
-                    <option value="Europe/London">Europe/London</option>
-                    <option value="America/New_York">America/New_York</option>
-                    <option value="Asia/Tokyo">Asia/Tokyo</option>
-                  </select>
-                  <span className="absolute right-0 top-0.5 text-[10px] pointer-events-none text-slate-500">
-                    ▼
-                  </span>
-                </div>
-              </div>
+    {/* Time Slot Grid */}
+    <div className="grid grid-cols-3 gap-3">
+      {TIME_SLOTS.map((time) => {
+        const isSelected = selectedTime === time
+        return (
+          <button
+            type="button"
+            key={time}
+            onClick={() => setSelectedTime(time)}
+            className={cn(
+              "py-3 rounded-2xl border text-xs font-semibold transition-all text-center",
+              isSelected
+                ? "border-2 border-blue-600 bg-white text-blue-600 shadow-sm"
+                : "border-slate-100 bg-slate-50/40 text-slate-800 hover:bg-slate-100/70"
+            )}
+          >
+            {time}
+          </button>
+        )
+      })}
+    </div>
 
-              {/* Time Slot Grid */}
-              <div className="grid grid-cols-3 gap-2 mb-6">
-                {TIME_SLOTS.map((time) => {
-                  const isSelected = selectedTime === time
-                  return (
-                    <button
-                      type="button"
-                      key={time}
-                      onClick={() => setSelectedTime(time)}
-                      className={cn(
-                        "py-2.5 rounded-2xl border text-[10px] font-semibold transition-all",
-                        isSelected
-                          ? "border-blue-600 text-blue-600 bg-blue-50/50 shadow-sm"
-                          : "border-slate-100 text-slate-700 bg-slate-50/30 hover:bg-slate-100"
-                      )}
-                    >
-                      {time}
-                    </button>
-                  )
-                })}
-              </div>
+    {/* Horizontal Divider */}
+    <div className="h-px bg-slate-100 w-full" />
 
-              {/* Action Buttons */}
-              <div className="pt-2 flex items-center justify-between border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={() => setStep(3)}
-                  className="text-xs font-semibold text-slate-800 hover:text-slate-600 transition-colors"
-                >
-                  Back
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setStep(5)}
-                  className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium py-2.5 px-6 rounded-xl transition-all flex items-center gap-1.5 shadow-md shadow-blue-500/20"
-                >
-                  Book <span>&rarr;</span>
-                </button>
-              </div>
-            </motion.div>
-          )}
+    {/* Action Buttons */}
+    <div className="flex items-center justify-between pt-1">
+      <button
+        type="button"
+        onClick={() => setStep(3)}
+        className="text-xs font-bold text-slate-900 hover:text-slate-700 transition-colors"
+      >
+        Back
+      </button>
+      <button
+        type="button"
+        onClick={() => setStep(5)}
+        className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold py-2.5 px-6 rounded-xl transition-all flex items-center gap-1.5 shadow-md shadow-blue-500/20"
+      >
+        Book <span>&rarr;</span>
+      </button>
+    </div>
+  </motion.div>
+)}
 
           {/* STEP 5: FINAL CONFIRMATION */}
           {step === 5 && (
@@ -830,15 +862,15 @@ export default function BookingSection() {
               <h2 className="text-xl font-bold text-slate-900 tracking-tight">
                 Your demo is confirmed !
               </h2>
-              <p className="mt-2 text-xs text-slate-500 leading-relaxed max-w-sm mx-auto mb-6">
+              <p className="mt-2 text-sm text-slate-500 leading-relaxed max-w-medium mx-auto mb-6">
                 Our team will get in touch with you shortly. An email has been shared with your booking
                 details below. See you soon
               </p>
 
               {/* Confirmation Details Card */}
-              <div className="bg-slate-50/70 rounded-2xl p-4 border border-slate-100/80 text-left space-y-3 mb-6">
+              <div className="bg-slate-50/70 rounded-xl p-4 border border-slate-100/80 text-left space-y-3 mb-6">
                 {/* Demo */}
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 mb-5">
                   <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center flex-shrink-0">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
@@ -851,7 +883,7 @@ export default function BookingSection() {
                 </div>
 
                 {/* Date */}
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 mb-5">
                   <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center flex-shrink-0">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -864,7 +896,7 @@ export default function BookingSection() {
                 </div>
 
                 {/* Time */}
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 mb-5">
                   <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center flex-shrink-0">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -877,7 +909,7 @@ export default function BookingSection() {
                 </div>
 
                 {/* Format */}
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 mb-5">
                   <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center flex-shrink-0">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
