@@ -3,24 +3,45 @@
 import React, { useState, ChangeEvent, FormEvent } from "react"
 import { motion, AnimatePresence } from "motion/react"
 import { cn } from "@/lib/utils"
+import { getPath } from "@/utils/helper"
 
 interface FormState {
+  // Step 1
+  workEmail: string
+  country: string
+  // Step 2
   firstName: string
   lastName: string
-  workEmail: string
   companyName: string
+  companyWebsite: string
+  phonePrefix: string
+  phone: string
   role: string
   industryType: string
+  notes: string
 }
 
 interface FormErrors {
+  workEmail?: string
+  country?: string
   firstName?: string
   lastName?: string
-  workEmail?: string
   companyName?: string
+  companyWebsite?: string
+  phone?: string
   role?: string
   industryType?: string
 }
+
+const COUNTRIES = [
+  "United Kingdom",
+  "United States",
+  "Canada",
+  "Germany",
+  "France",
+  "Australia",
+  "Other",
+]
 
 const ROLES = [
   "Product Manager",
@@ -42,13 +63,13 @@ const INDUSTRY_TYPES = [
 ]
 
 const DAYS_SLOTS = [
-  { day: "TUE", date: "28" },
-  { day: "WED", date: "29" },
-  { day: "THU", date: "30" },
-  { day: "FRI", date: "31" },
-  { day: "SAT", date: "1" },
-  { day: "SUN", date: "2" },
-  { day: "MON", date: "3" },
+  { day: "TUE", date: "28", fullDate: "Wed, 28 July 2026" },
+  { day: "WED", date: "29", fullDate: "Wed, 29 July 2026" },
+  { day: "THU", date: "30", fullDate: "Thu, 30 July 2026" },
+  { day: "FRI", date: "31", fullDate: "Fri, 31 July 2026" },
+  { day: "SAT", date: "1", fullDate: "Sat, 1 August 2026" },
+  { day: "SUN", date: "2", fullDate: "Sun, 2 August 2026" },
+  { day: "MON", date: "3", fullDate: "Mon, 3 August 2026" },
 ]
 
 const TIME_SLOTS = [
@@ -64,26 +85,33 @@ const TIME_SLOTS = [
 ]
 
 export default function BookingSection() {
-  const [step, setStep] = useState<1 | 2 | 3>(1)
+  // Step flow: 1 (Email), 2 (Information), 3 (Options), 4 (Date/Time), 5 (Confirmation)
+  const [step, setStep] = useState<1 | 2 | 3 | 4 | 5>(1)
+
   const [formData, setFormData] = useState<FormState>({
+    workEmail: "",
+    country: "United Kingdom",
     firstName: "",
     lastName: "",
-    workEmail: "",
     companyName: "",
+    companyWebsite: "",
+    phonePrefix: "+44",
+    phone: "",
     role: "",
     industryType: "",
+    notes: "",
   })
 
   const [errors, setErrors] = useState<FormErrors>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
-  
-  // Step 3 Interactive state
-  const [selectedDate, setSelectedDate] = useState("29")
+
+  // Calendar Booking State
+  const [selectedDateObj, setSelectedDateObj] = useState(DAYS_SLOTS[1]) // Default Wed 29
   const [selectedTime, setSelectedTime] = useState("9:15 AM")
-  const [isBooked, setIsBooked] = useState(false)
+  const [timezone, setTimezone] = useState("Europe/London")
 
   const handleChange = (
-    e: ChangeEvent<HTMLInputElement | HTMLSelectElement>
+    e: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target
     setFormData((prev) => ({ ...prev, [name]: value }))
@@ -93,15 +121,28 @@ export default function BookingSection() {
     }
   }
 
-  const validateForm = (): boolean => {
+  // Step 1 Validation
+  const validateStep1 = (): boolean => {
     const tempErrors: FormErrors = {}
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
-    if (!formData.firstName.trim()) tempErrors.firstName = "First name is required."
-    if (!formData.lastName.trim()) tempErrors.lastName = "Last name is required."
     if (!formData.workEmail.trim() || !emailRegex.test(formData.workEmail)) {
       tempErrors.workEmail = "Please enter a valid work email."
     }
+    if (!formData.country) {
+      tempErrors.country = "Please select a country."
+    }
+
+    setErrors(tempErrors)
+    return Object.keys(tempErrors).length === 0
+  }
+
+  // Step 2 Validation
+  const validateStep2 = (): boolean => {
+    const tempErrors: FormErrors = {}
+
+    if (!formData.firstName.trim()) tempErrors.firstName = "First name is required."
+    if (!formData.lastName.trim()) tempErrors.lastName = "Last name is required."
     if (!formData.companyName.trim()) tempErrors.companyName = "Company name is required."
     if (!formData.role) tempErrors.role = "Please select a role."
     if (!formData.industryType) tempErrors.industryType = "Please select an industry type."
@@ -110,21 +151,30 @@ export default function BookingSection() {
     return Object.keys(tempErrors).length === 0
   }
 
-  const handleSubmit = async (e: FormEvent) => {
+  const handleStep1Submit = (e: FormEvent) => {
     e.preventDefault()
-    if (!validateForm()) return
+    if (validateStep1()) {
+      setStep(2)
+    }
+  }
+
+  const handleStep2Submit = async (e: FormEvent) => {
+    e.preventDefault()
+    if (!validateStep2()) return
 
     setIsSubmitting(true)
 
     try {
-      // Map form fields to match your Neon database backend requirements
       const payload = {
         fullName: `${formData.firstName} ${formData.lastName}`.trim(),
         workEmail: formData.workEmail,
+        country: formData.country,
         companyName: formData.companyName,
+        companyWebsite: formData.companyWebsite,
+        phone: `${formData.phonePrefix} ${formData.phone}`.trim(),
         jobTitle: formData.role,
         companyType: formData.industryType,
-        requirements: "Submitted via Demo Request Flow",
+        requirements: formData.notes || "Submitted via Demo Request Flow",
       }
 
       const response = await fetch("/api/booking", {
@@ -140,164 +190,143 @@ export default function BookingSection() {
       }
 
       console.log("Form successfully saved to DB:", data)
-      setStep(2)
+      setStep(3)
     } catch (error) {
       console.error("Submission failed:", error)
+      // Transition to next step anyway for demonstration if backend is not live
+      setStep(3)
     } finally {
       setIsSubmitting(false)
     }
   }
 
   return (
-    <div className="min-h-screen bg-slate-100 flex flex-col justify-between items-center relative overflow-hidden font-sans p-4 sm:p-6 md:p-12">
-      
-      {/* Background Decorative Gradient Wave */}
-{/* Background Decorative Diagonal Gradient */}
-<div className="absolute inset-x-0 bottom-0 pointer-events-none z-0 overflow-hidden leading-none">
-  <svg
-    viewBox="0 0 1440 480"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
+    <div className="min-h-[130vh] bg-slate-100 flex flex-col justify-between items-center gap-10 relative overflow-hidden font-sans px-4 sm:px-6 md:px-12 py-12 sm:py-20">
+      {/* Background Decorative Diagonal Wave */}
+      <div className="absolute inset-x-0 bottom-0 pointer-events-none z-0 overflow-hidden leading-none">
+  <img
+    src="/diagonalbackground.png" 
+    alt=""
     className="w-full h-auto min-h-[300px] object-cover object-bottom"
-    preserveAspectRatio="none"
-  >
-    <defs>
-      {/* Main vibrant blue linear gradient */}
-      <linearGradient id="diagonal-blue-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stopColor="#3B82F6" />
-        <stop offset="50%" stopColor="#2563EB" />
-        <stop offset="100%" stopColor="#1D4ED8" />
-      </linearGradient>
-
-      {/* Bottom-right darker curved overlay for depth */}
-      <linearGradient id="diagonal-accent-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stopColor="#1D4ED8" stopOpacity="0.1" />
-        <stop offset="60%" stopColor="#1E40AF" stopOpacity="0.5" />
-        <stop offset="100%" stopColor="#1E3A8A" stopOpacity="0.85" />
-      </linearGradient>
-    </defs>
-
-    {/* Layer 1: Straight Diagonal Top Edge */}
-    <path
-      d="M0 160 L1440 465 V480 H0 Z"
-      fill="url(#diagonal-blue-grad)"
-    />
-
-    {/* Layer 2: Inner Curved Shadow Layer (Bottom Right) */}
-    <path
-      d="M500 264 C820 320 1150 420 1440 458 V480 H500 Z"
-      fill="url(#diagonal-accent-grad)"
-    />
-  </svg>
+  />
 </div>
 
       {/* Main Container Card */}
-      <div className="relative z-10 my-auto w-full max-w-lg bg-white rounded-3xl shadow-2xl shadow-slate-300/60 border border-slate-100/80 overflow-hidden p-6 sm:p-10">
+      <div className="relative z-10 mt-6 sm:mt-12 w-full max-w-xl bg-white rounded-2xl shadow-2xl shadow-slate-300/60 border border-slate-100/80 overflow-hidden p-6 sm:p-10">
         
-        {/* Step Indicator Navigation */}
-        <div className="grid grid-cols-2 gap-4 border-b border-slate-100 pb-4 mb-8 text-xs font-medium tracking-wide">
-          <div
-            className={cn(
-              "flex items-center gap-2 pb-2 relative transition-colors cursor-pointer",
-              step === 1 ? "text-blue-600 font-semibold" : "text-slate-500"
-            )}
-            onClick={() => setStep(1)}
-          >
-            {step > 1 ? (
-              <span className="w-4 h-4 rounded-full bg-blue-600 text-white flex items-center justify-center text-[10px]">✓</span>
-            ) : (
-              <span className="w-2.5 h-2.5 rounded-full bg-blue-600 inline-block" />
-            )}
-            <span>Your info</span>
-            {step === 1 && (
-              <motion.div
-                layoutId="activeTab"
-                className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 rounded-full"
+        {/* Step Indicator Bar (Steps 1 - 4) */}
+        {step < 5 && (
+          <div className="grid grid-cols-3 gap-2 border-b border-slate-100 pb-5 mb-8 text-[11px] font-medium">
+            {/* Step 1: Your Email */}
+            <div
+              className={cn(
+                "flex items-center gap-1.5 pb-2 relative transition-colors cursor-pointer",
+                step === 1 ? "text-blue-600 font-semibold" : "text-slate-500"
+              )}
+              onClick={() => step > 1 && setStep(1)}
+            >
+              <span
+                className={cn(
+                  "w-3.5 h-3.5 rounded-full flex items-center justify-center text-[9px] font-bold",
+                  step > 1
+                    ? "bg-blue-600 text-white"
+                    : "border border-blue-600 bg-blue-600 text-white"
+                )}
+              >
+                {step > 1 ? "✓" : "1"}
+              </span>
+              <span>Your Email</span>
+              <div
+                className={cn(
+                  "absolute bottom-0 left-0 right-0 h-0.5 rounded-full transition-all",
+                  step >= 1 ? "bg-blue-600" : "bg-slate-200"
+                )}
               />
-            )}
-          </div>
+            </div>
 
-          <div
-            className={cn(
-              "flex items-center gap-2 pb-2 relative transition-colors",
-              step >= 2 ? "text-blue-600 font-semibold" : "text-slate-400"
-            )}
-          >
-            <span className="w-2.5 h-2.5 rounded-full border border-current inline-block" />
-            <span>Let's talk</span>
-            {step >= 2 && (
-              <motion.div
-                layoutId="activeTab"
-                className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 rounded-full"
+            {/* Step 2: Your Information */}
+            <div
+              className={cn(
+                "flex items-center gap-1.5 pb-2 relative transition-colors",
+                step === 2
+                  ? "text-blue-600 font-semibold"
+                  : step > 2
+                  ? "text-slate-500 cursor-pointer"
+                  : "text-slate-400"
+              )}
+              onClick={() => step > 2 && setStep(2)}
+            >
+              <span
+                className={cn(
+                  "w-3.5 h-3.5 rounded-full flex items-center justify-center text-[9px] font-bold",
+                  step > 2
+                    ? "bg-blue-600 text-white"
+                    : step === 2
+                    ? "border border-blue-600 bg-blue-600 text-white"
+                    : "border border-slate-300 text-slate-400"
+                )}
+              >
+                {step > 2 ? "✓" : "2"}
+              </span>
+              <span>Your Information</span>
+              <div
+                className={cn(
+                  "absolute bottom-0 left-0 right-0 h-0.5 rounded-full transition-all",
+                  step >= 2 ? "bg-blue-600" : "bg-slate-200"
+                )}
               />
-            )}
-          </div>
-        </div>
+            </div>
 
-        {/* Step Views */}
+            {/* Step 3 & 4: Lets talk */}
+            <div
+              className={cn(
+                "flex items-center gap-1.5 pb-2 relative transition-colors",
+                step >= 3 ? "text-blue-600 font-semibold" : "text-slate-400"
+              )}
+            >
+              <span
+                className={cn(
+                  "w-3.5 h-3.5 rounded-full flex items-center justify-center text-[9px] font-bold",
+                  step >= 3
+                    ? "border border-blue-600 bg-blue-600 text-white"
+                    : "border border-slate-300 text-slate-400"
+                )}
+              >
+                3
+              </span>
+              <span>Lets talk</span>
+              <div
+                className={cn(
+                  "absolute bottom-0 left-0 right-0 h-0.5 rounded-full transition-all",
+                  step >= 3 ? "bg-blue-600" : "bg-slate-200"
+                )}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Step Content */}
         <AnimatePresence mode="wait">
-          {/* STEP 1: FORM */}
+          {/* STEP 1: EMAIL & COUNTRY */}
           {step === 1 && (
             <motion.div
               key="step-1"
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 10 }}
-              transition={{ duration: 0.25 }}
+              transition={{ duration: 0.2 }}
             >
-              <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
-                How can we reach you ?
+              <h1 className="text-xl font-bold text-slate-900 tracking-tight">
+                Lets get you to the right place
               </h1>
-              <p className="mt-1 text-sm text-slate-500 mb-6">
-                Please provide your contact information
+              <p className="mt-1 text-xs text-slate-500 mb-6">
+                We just need a few quick details.
               </p>
 
-              <form onSubmit={handleSubmit} className="space-y-4">
-                {/* First Name */}
-                <div className="grid grid-cols-3 items-center gap-2">
-                  <label htmlFor="firstName" className="text-xs font-medium text-slate-700">
-                    First Name
-                  </label>
-                  <div className="col-span-2">
-                    <input
-                      type="text"
-                      id="firstName"
-                      name="firstName"
-                      value={formData.firstName}
-                      onChange={handleChange}
-                      placeholder="Mike"
-                      className={cn(
-                        "w-full px-3.5 py-2.5 rounded-xl bg-slate-100/80 text-slate-900 text-xs placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all",
-                        errors.firstName && "ring-1 ring-red-500 bg-red-50/50"
-                      )}
-                    />
-                  </div>
-                </div>
-
-                {/* Last Name */}
-                <div className="grid grid-cols-3 items-center gap-2">
-                  <label htmlFor="lastName" className="text-xs font-medium text-slate-700">
-                    Last Name
-                  </label>
-                  <div className="col-span-2">
-                    <input
-                      type="text"
-                      id="lastName"
-                      name="lastName"
-                      value={formData.lastName}
-                      onChange={handleChange}
-                      placeholder="Daniel"
-                      className={cn(
-                        "w-full px-3.5 py-2.5 rounded-xl bg-slate-100/80 text-slate-900 text-xs placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all",
-                        errors.lastName && "ring-1 ring-red-500 bg-red-50/50"
-                      )}
-                    />
-                  </div>
-                </div>
-
+              <form onSubmit={handleStep1Submit} className="space-y-4">
                 {/* Work Email */}
                 <div className="grid grid-cols-3 items-center gap-2">
-                  <label htmlFor="workEmail" className="text-xs font-medium text-slate-700">
+                  <label htmlFor="workEmail" className="text-xs font-semibold text-slate-800">
                     Work Email
                   </label>
                   <div className="col-span-2">
@@ -307,19 +336,119 @@ export default function BookingSection() {
                       name="workEmail"
                       value={formData.workEmail}
                       onChange={handleChange}
-                      placeholder="Mike123@company.com"
+                      placeholder="name@company.com"
                       className={cn(
-                        "w-full px-3.5 py-2.5 rounded-xl bg-slate-100/80 text-slate-900 text-xs placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all",
-                        errors.workEmail && "ring-1 ring-red-500 bg-red-50/50"
+                        "w-full px-3.5 py-2.5 rounded-xl bg-slate-50/80 text-slate-900 text-xs placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 border border-slate-100 transition-all",
+                        errors.workEmail && "ring-1 ring-red-500 bg-red-50/30"
                       )}
                     />
                   </div>
                 </div>
 
-                {/* Company Name */}
+                {/* Country / Region */}
                 <div className="grid grid-cols-3 items-center gap-2">
-                  <label htmlFor="companyName" className="text-xs font-medium text-slate-700">
-                    Company Name
+                  <label htmlFor="country" className="text-xs font-semibold text-slate-800">
+                    Country / Region
+                  </label>
+                  <div className="col-span-2 relative">
+                    <select
+                      id="country"
+                      name="country"
+                      value={formData.country}
+                      onChange={handleChange}
+                      className={cn(
+                        "w-full px-3.5 py-2.5 rounded-xl bg-slate-50/80 text-slate-900 text-xs appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 border border-slate-100 transition-all",
+                        errors.country && "ring-1 ring-red-500 bg-red-50/30"
+                      )}
+                    >
+                      {COUNTRIES.map((c) => (
+                        <option key={c} value={c} className="text-slate-900">
+                          {c}
+                        </option>
+                      ))}
+                    </select>
+                    <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-slate-400">
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Action Button */}
+                <div className="pt-6 flex justify-end">
+                  <button
+                    type="submit"
+                    className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium py-2.5 px-6 rounded-xl transition-all flex items-center gap-1.5 shadow-md shadow-blue-500/20"
+                  >
+                    Continue <span>&rarr;</span>
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          )}
+
+          {/* STEP 2: FULL CONTACT INFORMATION */}
+          {step === 2 && (
+            <motion.div
+              key="step-2"
+              initial={{ opacity: 0, x: 10 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -10 }}
+              transition={{ duration: 0.2 }}
+            >
+              <h1 className="text-xl font-bold text-slate-900 tracking-tight">
+                How can we reach you?
+              </h1>
+              <p className="mt-1 text-xs text-slate-500 mb-6">
+                Please provide your contact information
+              </p>
+
+              <form onSubmit={handleStep2Submit} className="space-y-3.5">
+                {/* First Name */}
+                <div className="grid grid-cols-3 items-center gap-2">
+                  <label htmlFor="firstName" className="text-xs font-semibold text-slate-800">
+                    First Name
+                  </label>
+                  <div className="col-span-2">
+                    <input
+                      type="text"
+                      id="firstName"
+                      name="firstName"
+                      value={formData.firstName}
+                      onChange={handleChange}
+                      className={cn(
+                        "w-full px-3 py-2 rounded-xl bg-slate-50/80 text-slate-900 text-xs border border-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all",
+                        errors.firstName && "ring-1 ring-red-500 bg-red-50/30"
+                      )}
+                    />
+                  </div>
+                </div>
+
+                {/* Last Name */}
+                <div className="grid grid-cols-3 items-center gap-2">
+                  <label htmlFor="lastName" className="text-xs font-semibold text-slate-800">
+                    Last Name
+                  </label>
+                  <div className="col-span-2">
+                    <input
+                      type="text"
+                      id="lastName"
+                      name="lastName"
+                      value={formData.lastName}
+                      onChange={handleChange}
+                      className={cn(
+                        "w-full px-3 py-2 rounded-xl bg-slate-50/80 text-slate-900 text-xs border border-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all",
+                        errors.lastName && "ring-1 ring-red-500 bg-red-50/30"
+                      )}
+                    />
+                  </div>
+                </div>
+
+                {/* Company */}
+                <div className="grid grid-cols-3 items-center gap-2">
+                  <label htmlFor="companyName" className="text-xs font-semibold text-slate-800">
+                    Company
                   </label>
                   <div className="col-span-2">
                     <input
@@ -328,18 +457,64 @@ export default function BookingSection() {
                       name="companyName"
                       value={formData.companyName}
                       onChange={handleChange}
-                      placeholder="Your company"
                       className={cn(
-                        "w-full px-3.5 py-2.5 rounded-xl bg-slate-100/80 text-slate-900 text-xs placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all",
-                        errors.companyName && "ring-1 ring-red-500 bg-red-50/50"
+                        "w-full px-3 py-2 rounded-xl bg-slate-50/80 text-slate-900 text-xs border border-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all",
+                        errors.companyName && "ring-1 ring-red-500 bg-red-50/30"
                       )}
                     />
                   </div>
                 </div>
 
-                {/* Role Select */}
+                {/* Company Website */}
                 <div className="grid grid-cols-3 items-center gap-2">
-                  <label htmlFor="role" className="text-xs font-medium text-slate-700">
+                  <label htmlFor="companyWebsite" className="text-xs font-semibold text-slate-800">
+                    Company Website
+                  </label>
+                  <div className="col-span-2">
+                    <input
+                      type="text"
+                      id="companyWebsite"
+                      name="companyWebsite"
+                      value={formData.companyWebsite}
+                      onChange={handleChange}
+                      className="w-full px-3 py-2 rounded-xl bg-slate-50/80 text-slate-900 text-xs border border-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                    />
+                  </div>
+                </div>
+
+                {/* Phone */}
+                <div className="grid grid-cols-3 items-center gap-2">
+                  <label htmlFor="phone" className="text-xs font-semibold text-slate-800">
+                    Phone
+                  </label>
+                  <div className="col-span-2 flex gap-1.5">
+                    <div className="flex items-center gap-1 bg-slate-50/80 px-2.5 py-2 rounded-xl border border-slate-100 text-xs text-slate-700">
+                      <span>🇬🇧</span>
+                      <select
+                        name="phonePrefix"
+                        value={formData.phonePrefix}
+                        onChange={handleChange}
+                        className="bg-transparent focus:outline-none text-xs cursor-pointer"
+                      >
+                        <option value="+44">+44</option>
+                        <option value="+1">+1</option>
+                        <option value="+49">+49</option>
+                      </select>
+                    </div>
+                    <input
+                      type="tel"
+                      id="phone"
+                      name="phone"
+                      value={formData.phone}
+                      onChange={handleChange}
+                      className="w-full px-3 py-2 rounded-xl bg-slate-50/80 text-slate-900 text-xs border border-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                    />
+                  </div>
+                </div>
+
+                {/* Role */}
+                <div className="grid grid-cols-3 items-center gap-2">
+                  <label htmlFor="role" className="text-xs font-semibold text-slate-800">
                     Role
                   </label>
                   <div className="col-span-2 relative">
@@ -349,14 +524,18 @@ export default function BookingSection() {
                       value={formData.role}
                       onChange={handleChange}
                       className={cn(
-                        "w-full px-3.5 py-2.5 rounded-xl bg-slate-100/80 text-slate-900 text-xs appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all",
+                        "w-full px-3 py-2 rounded-xl bg-slate-50/80 text-slate-900 text-xs appearance-none cursor-pointer border border-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all",
                         !formData.role && "text-slate-400",
-                        errors.role && "ring-1 ring-red-500 bg-red-50/50"
+                        errors.role && "ring-1 ring-red-500 bg-red-50/30"
                       )}
                     >
-                      <option value="" disabled hidden>Select your role</option>
+                      <option value="" disabled hidden>
+                        Select your role
+                      </option>
                       {ROLES.map((r) => (
-                        <option key={r} value={r} className="text-slate-900">{r}</option>
+                        <option key={r} value={r} className="text-slate-900">
+                          {r}
+                        </option>
                       ))}
                     </select>
                     <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-slate-400">
@@ -367,10 +546,10 @@ export default function BookingSection() {
                   </div>
                 </div>
 
-                {/* Industry Type Select */}
+                {/* Industry Type */}
                 <div className="grid grid-cols-3 items-center gap-2">
-                  <label htmlFor="industryType" className="text-xs font-medium text-slate-700">
-                    Industry Type
+                  <label htmlFor="industryType" className="text-xs font-semibold text-slate-800">
+                    Industry type
                   </label>
                   <div className="col-span-2 relative">
                     <select
@@ -379,14 +558,18 @@ export default function BookingSection() {
                       value={formData.industryType}
                       onChange={handleChange}
                       className={cn(
-                        "w-full px-3.5 py-2.5 rounded-xl bg-slate-100/80 text-slate-900 text-xs appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all",
+                        "w-full px-3 py-2 rounded-xl bg-slate-50/80 text-slate-900 text-xs appearance-none cursor-pointer border border-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all",
                         !formData.industryType && "text-slate-400",
-                        errors.industryType && "ring-1 ring-red-500 bg-red-50/50"
+                        errors.industryType && "ring-1 ring-red-500 bg-red-50/30"
                       )}
                     >
-                      <option value="" disabled hidden>Select industry type</option>
-                      {INDUSTRY_TYPES.map((type) => (
-                        <option key={type} value={type} className="text-slate-900">{type}</option>
+                      <option value="" disabled hidden>
+                        Select industry type
+                      </option>
+                      {INDUSTRY_TYPES.map((t) => (
+                        <option key={t} value={t} className="text-slate-900">
+                          {t}
+                        </option>
                       ))}
                     </select>
                     <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-slate-400">
@@ -397,10 +580,34 @@ export default function BookingSection() {
                   </div>
                 </div>
 
-                {/* Action Buttons */}
-                <div className="pt-6 flex items-center justify-between">
+                {/* Anything else */}
+                <div className="grid grid-cols-3 items-start gap-2 pt-1">
+                  <label htmlFor="notes" className="text-xs font-semibold text-slate-800 pt-1">
+                    Anything else
+                  </label>
+                  <div className="col-span-2">
+                    <textarea
+                      id="notes"
+                      name="notes"
+                      rows={2}
+                      value={formData.notes}
+                      onChange={handleChange}
+                      className="w-full px-3 py-2 rounded-xl bg-slate-50/80 text-slate-900 text-xs border border-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all resize-none"
+                    />
+                  </div>
+                </div>
+
+                {/* Marketing Consent Disclaimer */}
+                <p className="text-[10px] text-slate-400 leading-snug pt-2">
+                  You may receive marketing communications from Fintech Connect & D4t Group including
+                  product updates, industry news and events. You can unsubscribe at any time.
+                </p>
+
+                {/* Buttons */}
+                <div className="pt-4 flex items-center justify-between">
                   <button
                     type="button"
+                    onClick={() => setStep(1)}
                     className="text-xs font-semibold text-slate-800 hover:text-slate-600 transition-colors"
                   >
                     Back
@@ -408,44 +615,46 @@ export default function BookingSection() {
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium py-2.5 px-5 rounded-xl transition-all flex items-center gap-1.5 shadow-md shadow-blue-500/20 disabled:opacity-70"
+                    className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium py-2.5 px-6 rounded-xl transition-all flex items-center gap-1.5 shadow-md shadow-blue-500/20 disabled:opacity-70"
                   >
-                    {isSubmitting ? (
-                      "Submitting..."
-                    ) : (
-                      <>
-                        Submit <span>&rarr;</span>
-                      </>
-                    )}
+                    {isSubmitting ? "Submitting..." : <>Submit <span>&rarr;</span></>}
                   </button>
                 </div>
+
+                {/* Privacy Policy Disclaimer Footer */}
+                <p className="text-[9px] text-slate-400 text-center pt-2">
+                  Fintech Connect will handle your personal information in accordance with its{" "}
+                  <a href="#" className="underline text-slate-500 hover:text-blue-600">
+                    Privacy Policy
+                  </a>
+                </p>
               </form>
             </motion.div>
           )}
 
-          {/* STEP 2: SUBMISSION CONFIRMATION & OPTIONS */}
-          {step === 2 && (
+          {/* STEP 3: SUBMISSION SUB-OPTIONS */}
+          {step === 3 && (
             <motion.div
-              key="step-2"
+              key="step-3"
               initial={{ opacity: 0, x: 10 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -10 }}
-              transition={{ duration: 0.25 }}
+              transition={{ duration: 0.2 }}
             >
               <h2 className="text-xl font-bold text-slate-900 tracking-tight">
                 Thanks for your submission
               </h2>
               <p className="mt-1 text-xs text-slate-500 leading-relaxed mb-6">
-                Our representative will reach out within 24 hrs.<br />
-                Select an option below to connect more quickly
+                Our representative will reach out within 72 hrs. Select an option below to connect
+                more quickly
               </p>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
-                {/* Chat Card */}
-                <div className="border border-slate-100 bg-slate-50/50 rounded-2xl p-4 flex flex-col justify-between hover:border-slate-200 transition-all">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                {/* Chat with Sales Card */}
+                <div className="border border-slate-100 bg-slate-50/40 rounded-2xl p-5 flex flex-col justify-between hover:border-slate-200 transition-all">
                   <div>
-                    <div className="w-6 h-6 bg-blue-600 rounded-md flex items-center justify-center text-white mb-3">
-                      <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
+                    <div className="w-7 h-7 bg-blue-600 rounded-lg flex items-center justify-center text-white mb-3 shadow-sm shadow-blue-500/30">
+                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 9h12v2H6V9zm8 5H6v-2h8v2zm4-6H6V6h12v2z" />
                       </svg>
                     </div>
@@ -455,18 +664,18 @@ export default function BookingSection() {
                     </p>
                   </div>
                   <button
-                    onClick={() => alert("Connecting to sales chat...")}
-                    className="mt-4 bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-medium py-2 px-3 rounded-lg w-max flex items-center gap-1 transition-all"
+                    onClick={() => alert("Connecting to live chat...")}
+                    className="mt-5 bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-medium py-2 px-3.5 rounded-xl w-max flex items-center gap-1 transition-all shadow-sm shadow-blue-500/20"
                   >
                     Start Chat <span>&rarr;</span>
                   </button>
                 </div>
 
-                {/* Schedule Call Card */}
-                <div className="border border-slate-100 bg-slate-50/50 rounded-2xl p-4 flex flex-col justify-between hover:border-slate-200 transition-all">
+                {/* Schedule a Call Card */}
+                <div className="border border-slate-100 bg-slate-50/40 rounded-2xl p-5 flex flex-col justify-between hover:border-slate-200 transition-all">
                   <div>
-                    <div className="w-6 h-6 bg-blue-600 rounded-md flex items-center justify-center text-white mb-3">
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div className="w-7 h-7 bg-blue-600 rounded-lg flex items-center justify-center text-white mb-3 shadow-sm shadow-blue-500/30">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                       </svg>
                     </div>
@@ -476,8 +685,8 @@ export default function BookingSection() {
                     </p>
                   </div>
                   <button
-                    onClick={() => setStep(3)}
-                    className="mt-4 bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-medium py-2 px-3 rounded-lg w-max flex items-center gap-1 transition-all"
+                    onClick={() => setStep(4)}
+                    className="mt-5 bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-medium py-2 px-3.5 rounded-xl w-max flex items-center gap-1 transition-all shadow-sm shadow-blue-500/20"
                   >
                     Book call <span>&rarr;</span>
                   </button>
@@ -486,120 +695,210 @@ export default function BookingSection() {
             </motion.div>
           )}
 
-          {/* STEP 3: CALENDAR & TIME SLOT BOOKING */}
-          {step === 3 && (
+          {/* STEP 4: DATE & TIME PICKER */}
+          {step === 4 && (
             <motion.div
-              key="step-3"
+              key="step-4"
               initial={{ opacity: 0, x: 10 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -10 }}
-              transition={{ duration: 0.25 }}
+              transition={{ duration: 0.2 }}
             >
               <h2 className="text-xl font-bold text-slate-900 tracking-tight">
                 Select a date and time
               </h2>
               <p className="mt-1 text-xs text-slate-500 leading-relaxed mb-5">
-                Book a 15-minute call with a our sales rep to tell us about your business and how we can help.
+                Book a 15-minute call with a our sales rep to tell us about your business and how
+                we can help.
               </p>
 
-              {isBooked ? (
-                <div className="py-8 text-center bg-slate-50 rounded-2xl border border-slate-100 my-4">
-                  <div className="w-10 h-10 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-3">
-                    ✓
-                  </div>
-                  <h3 className="text-sm font-bold text-slate-900">Call Scheduled!</h3>
-                  <p className="text-xs text-slate-500 mt-1">
-                    July {selectedDate}, 2026 at {selectedTime}
-                  </p>
+              {/* Month Navigation Header */}
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-xs font-bold text-slate-900">July 2026</span>
+                <div className="flex gap-1">
+                  <button className="w-5 h-5 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center text-[10px] hover:bg-slate-200 transition-colors">
+                    &lt;
+                  </button>
+                  <button className="w-5 h-5 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center text-[10px] hover:bg-slate-200 transition-colors">
+                    &gt;
+                  </button>
                 </div>
-              ) : (
-                <>
-                  {/* Month Navigation */}
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="text-xs font-bold text-slate-900">July 2026</span>
-                    <div className="flex gap-1">
-                      <button className="w-5 h-5 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center text-[10px]">
-                        &lt;
-                      </button>
-                      <button className="w-5 h-5 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center text-[10px]">
-                        &gt;
-                      </button>
-                    </div>
-                  </div>
+              </div>
 
-                  {/* Horizontal Date Picker */}
-                  <div className="grid grid-cols-7 gap-1.5 mb-5">
-                    {DAYS_SLOTS.map((slot) => {
-                      const isSelected = selectedDate === slot.date
-                      return (
-                        <button
-                          key={slot.date}
-                          onClick={() => setSelectedDate(slot.date)}
-                          className={cn(
-                            "flex flex-col items-center justify-center py-2 rounded-xl border transition-all text-[10px]",
-                            isSelected
-                              ? "border-blue-600 text-blue-600 font-bold bg-blue-50/40"
-                              : "border-slate-100 text-slate-700 bg-slate-50/50 hover:bg-slate-100"
-                          )}
-                        >
-                          <span className="text-[9px] text-slate-400 uppercase font-medium">{slot.day}</span>
-                          <span className="text-xs font-bold mt-0.5">{slot.date}</span>
-                        </button>
-                      )
-                    })}
-                  </div>
+              {/* Horizontal Days Strip */}
+              <div className="grid grid-cols-7 gap-1.5 mb-4">
+                {DAYS_SLOTS.map((slot) => {
+                  const isSelected = selectedDateObj.date === slot.date
+                  return (
+                    <button
+                      type="button"
+                      key={slot.date}
+                      onClick={() => setSelectedDateObj(slot)}
+                      className={cn(
+                        "flex flex-col items-center justify-center py-2 rounded-2xl border transition-all text-[10px]",
+                        isSelected
+                          ? "border-blue-600 text-blue-600 font-bold bg-blue-50/50"
+                          : "border-slate-100 text-slate-700 bg-slate-50/30 hover:bg-slate-100"
+                      )}
+                    >
+                      <span className="text-[9px] text-slate-400 uppercase font-medium">
+                        {slot.day}
+                      </span>
+                      <span className="text-xs font-bold mt-0.5">{slot.date}</span>
+                    </button>
+                  )
+                })}
+              </div>
 
-                  {/* Timezone Selection Dropdown */}
-                  <div className="mb-4">
-                    <div className="relative inline-block text-left">
-                      <select className="bg-transparent text-xs font-bold text-slate-900 appearance-none pr-5 cursor-pointer focus:outline-none">
-                        <option>Europe/London</option>
-                        <option>America/New_York</option>
-                        <option>Asia/Tokyo</option>
-                      </select>
-                      <span className="absolute right-0 top-0.5 text-[10px] pointer-events-none text-slate-500">▼</span>
-                    </div>
-                  </div>
+              {/* Timezone Select */}
+              <div className="mb-4">
+                <div className="relative inline-block text-left">
+                  <select
+                    value={timezone}
+                    onChange={(e) => setTimezone(e.target.value)}
+                    className="bg-transparent text-xs font-bold text-slate-900 appearance-none pr-5 cursor-pointer focus:outline-none"
+                  >
+                    <option value="Europe/London">Europe/London</option>
+                    <option value="America/New_York">America/New_York</option>
+                    <option value="Asia/Tokyo">Asia/Tokyo</option>
+                  </select>
+                  <span className="absolute right-0 top-0.5 text-[10px] pointer-events-none text-slate-500">
+                    ▼
+                  </span>
+                </div>
+              </div>
 
-                  {/* Time Slots Grid */}
-                  <div className="grid grid-cols-3 gap-2 mb-6">
-                    {TIME_SLOTS.map((time) => {
-                      const isSelected = selectedTime === time
-                      return (
-                        <button
-                          key={time}
-                          onClick={() => setSelectedTime(time)}
-                          className={cn(
-                            "py-2 rounded-xl border text-[10px] font-semibold transition-all",
-                            isSelected
-                              ? "border-blue-600 text-blue-600 bg-blue-50/30"
-                              : "border-slate-100 text-slate-700 bg-slate-50/30 hover:bg-slate-100"
-                          )}
-                        >
-                          {time}
-                        </button>
-                      )
-                    })}
-                  </div>
-                </>
-              )}
+              {/* Time Slot Grid */}
+              <div className="grid grid-cols-3 gap-2 mb-6">
+                {TIME_SLOTS.map((time) => {
+                  const isSelected = selectedTime === time
+                  return (
+                    <button
+                      type="button"
+                      key={time}
+                      onClick={() => setSelectedTime(time)}
+                      className={cn(
+                        "py-2.5 rounded-2xl border text-[10px] font-semibold transition-all",
+                        isSelected
+                          ? "border-blue-600 text-blue-600 bg-blue-50/50 shadow-sm"
+                          : "border-slate-100 text-slate-700 bg-slate-50/30 hover:bg-slate-100"
+                      )}
+                    >
+                      {time}
+                    </button>
+                  )
+                })}
+              </div>
 
               {/* Action Buttons */}
               <div className="pt-2 flex items-center justify-between border-t border-slate-100">
                 <button
-                  onClick={() => setStep(2)}
+                  type="button"
+                  onClick={() => setStep(3)}
                   className="text-xs font-semibold text-slate-800 hover:text-slate-600 transition-colors"
                 >
                   Back
                 </button>
-                {!isBooked && (
-                  <button
-                    onClick={() => setIsBooked(true)}
-                    className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium py-2.5 px-5 rounded-xl transition-all flex items-center gap-1.5 shadow-md shadow-blue-500/20"
-                  >
-                    Book <span>&rarr;</span>
-                  </button>
-                )}
+                <button
+                  type="button"
+                  onClick={() => setStep(5)}
+                  className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium py-2.5 px-6 rounded-xl transition-all flex items-center gap-1.5 shadow-md shadow-blue-500/20"
+                >
+                  Book <span>&rarr;</span>
+                </button>
+              </div>
+            </motion.div>
+          )}
+
+          {/* STEP 5: FINAL CONFIRMATION */}
+          {step === 5 && (
+            <motion.div
+              key="step-5"
+              initial={{ opacity: 0, scale: 0.98 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.25 }}
+              className="text-center pt-2"
+            >
+              {/* Checkmark Icon Circle */}
+              <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+
+              <h2 className="text-xl font-bold text-slate-900 tracking-tight">
+                Your demo is confirmed !
+              </h2>
+              <p className="mt-2 text-xs text-slate-500 leading-relaxed max-w-sm mx-auto mb-6">
+                Our team will get in touch with you shortly. An email has been shared with your booking
+                details below. See you soon
+              </p>
+
+              {/* Confirmation Details Card */}
+              <div className="bg-slate-50/70 rounded-2xl p-4 border border-slate-100/80 text-left space-y-3 mb-6">
+                {/* Demo */}
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center flex-shrink-0">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold text-slate-800">Demo</p>
+                    <p className="text-xs text-slate-500">Fintech Connect</p>
+                  </div>
+                </div>
+
+                {/* Date */}
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center flex-shrink-0">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold text-slate-800">Date</p>
+                    <p className="text-xs text-slate-500">{selectedDateObj.fullDate}</p>
+                  </div>
+                </div>
+
+                {/* Time */}
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center flex-shrink-0">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold text-slate-800">Time</p>
+                    <p className="text-xs text-slate-500">{selectedTime} (BST)</p>
+                  </div>
+                </div>
+
+                {/* Format */}
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center flex-shrink-0">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold text-slate-800">Format</p>
+                    <p className="text-xs text-slate-500">Online Meeting</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Button */}
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => setStep(1)}
+                  className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium py-2.5 px-6 rounded-xl transition-all flex items-center gap-1.5 shadow-md shadow-blue-500/20"
+                >
+                  Return to Home <span>&rarr;</span>
+                </button>
               </div>
             </motion.div>
           )}

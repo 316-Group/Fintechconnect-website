@@ -41,7 +41,7 @@ const ModuleCard = ({ module, index }: { module: any; index: number }) => {
     return () => observer.disconnect();
   }, []);
 
-  // Dynamically resets stagger delays per row on desktop (0ms, 100ms, 200ms)
+  // Dynamically resets stagger delays per row on desktop (0ms, 150ms, 300ms)
   const desktopStaggerDelay = (index % 3) * 150;
 
   return (
@@ -49,8 +49,8 @@ const ModuleCard = ({ module, index }: { module: any; index: number }) => {
       ref={cardRef} 
       className={`bg-blue-100 rounded-2xl flex flex-col items-start text-left overflow-hidden group cursor-pointer transition-[transform,opacity] duration-700 ease-out hover:shadow-lg ${
         isVisible 
-          ? 'opacity-100 translate-x-0' 
-          : 'opacity-0 -translate-x-16 pointer-events-none'
+          ? 'opacity-100 translate-y-0' 
+          : 'opacity-0 -translate-y-16 pointer-events-none'
       }`}
       style={{ transitionDelay: `${desktopStaggerDelay}ms` }}
     >
