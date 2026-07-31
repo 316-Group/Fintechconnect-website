@@ -5,7 +5,6 @@ import Navbar from "@/app/navbar";
 import { getPath } from "@/utils/helper";
 import ParallaxSection from "@/app/solutions/insurance-companies/parallaxsection";
 import DynamicSection from "@/app/solutions/insurance-companies/dynamicsection";
-import { Globe } from "@/components/ui/globe";
 import Footersection from "@/app/Footersection";
 import Newmodulessection from "@/app/solutions/insurance-companies/newmodulessection";
 import BackgroundSection from "@/app/solutions/insurance-companies/backgroundsection";

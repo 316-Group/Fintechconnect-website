@@ -15,7 +15,6 @@ const modules = [
   { title: "Crypto Wallets", desc: "Offer your users institutional-grade, multi-asset crypto wallets with real-time balance tracking, full transaction histories, and configurable hot/cold storage tiering. ", img: '/moduleimages/cryptowallets.png' },
 ];
 
-// 1. Separate Self-Observing Card Component
 const ModuleCard = ({ module, index }: { module: any; index: number }) => {
   const [isVisible, setIsVisible] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
@@ -29,7 +28,7 @@ const ModuleCard = ({ module, index }: { module: any; index: number }) => {
         }
       },
       { 
-        threshold: 0.1, // Trigger earlier (10% visibility) for a smoother entry
+        threshold: 0.1,
         rootMargin: "0px 0px -30px 0px"
       }
     );
@@ -41,7 +40,6 @@ const ModuleCard = ({ module, index }: { module: any; index: number }) => {
     return () => observer.disconnect();
   }, []);
 
-  // Dynamically resets stagger delays per row on desktop (0ms, 150ms, 300ms)
   const desktopStaggerDelay = (index % 3) * 150;
 
   return (
@@ -83,7 +81,6 @@ const ModuleCard = ({ module, index }: { module: any; index: number }) => {
   );
 };
 
-// 2. Main Section Component
 export default function ModulesSection() {
   return (
     <section className="py-10 md:py-24 bg-white overflow-hidden">
@@ -98,7 +95,7 @@ export default function ModulesSection() {
           and go live with a fully regulated fintech product.
         </p>
 
-        {/* 3x3 Grid Section */}
+        {/* Grid Section */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {modules.map((module, index) => (
             <ModuleCard key={index} module={module} index={index} />

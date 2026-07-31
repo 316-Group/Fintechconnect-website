@@ -5,7 +5,6 @@ import Navbar from "@/app/navbar";
 import { getPath } from "@/utils/helper";
 import ParallaxSection from "@/app/solutions/for-banks/parallaxsection";
 import DynamicSection from "@/app/solutions/for-banks/dynamicsection";
-import { Globe } from "@/components/ui/globe";
 import Footersection from "@/app/Footersection";
 import Newmodulessection from "@/app/solutions/for-banks/newmodulessection";
 import BackgroundSection from "@/app/solutions/for-banks/backgroundsection";

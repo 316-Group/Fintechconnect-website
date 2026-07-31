@@ -5,7 +5,6 @@ import Navbar from "@/app/navbar";
 import { getPath } from "@/utils/helper";
 import ParallaxSection from "@/app/solutions/payment-service-providers/parallaxsection";
 import DynamicSection from "@/app/solutions/payment-service-providers/dynamicsection";
-import { Globe } from "@/components/ui/globe";
 import Footersection from "@/app/Footersection";
 import Newmodulessection from "@/app/solutions/payment-service-providers/newmodulessection";
 import BackgroundSection from "@/app/solutions/payment-service-providers/backgroundsection";
