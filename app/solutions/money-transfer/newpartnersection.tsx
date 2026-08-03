@@ -13,22 +13,22 @@ interface LogoItem {
 const topRowLogos: LogoItem[] = [
   { id: "clearbank", name: "ClearBank", logoUrl: "/solutions/logos/clearbank.png" },
   { id: "banking-circle", name: "Banking Circle", logoUrl: "/solutions/logos/bankingcircle.png" },
-  { id: "visa", name: "VISA", logoUrl: "/solutions/logos/visa.png" },
-  { id: "mtn", name: "MTN", logoUrl: "/solutions/logos/image5.png" },
-  { id: "solaris", name: "Solaris Bank", logoUrl: "/solutions/logos/image6.png" },
+  { id: "visa", name: "VISA", logoUrl: "/solutions/logos/inter.png" },
+  { id: "mtn", name: "MTN", logoUrl: "/solutions/logos/mpesa.png" },
+  { id: "solaris", name: "Solaris Bank", logoUrl: "/solutions/logos/flutterwave.png" },
   { id: "mambu", name: "Mambu", logoUrl: "/solutions/logos/un.png" },
   { id: "modulr", name: "Modulr", logoUrl: "/solutions/logos/mastercard.png" },
 ];
 
 // BOTTOM ROW LOGOS (Scrolls Right)
 const bottomRowLogos: LogoItem[] = [
-  { id: "mastercard", name: "Mastercard", logoUrl: "/solutions/logos/mastercard.png" },
-  { id: "veriff", name: "Veriff", logoUrl: "/solutions/logos/image6.png" },
-  { id: "unlimit", name: "Unlimit", logoUrl: "/solutions/logos/un.png" },
-  { id: "copper", name: "Copper", logoUrl: "/solutions/logos/visa.png" },
-  { id: "sumsub", name: "Sumsub", logoUrl: "/solutions/logos/image7.png" },
-  { id: "onfido", name: "Onfido", logoUrl: "/solutions/logos/coin.png" },
-  { id: "persona", name: "Persona", logoUrl: "/solutions/logos/bankingcircle.png" },
+  { id: "mastercard", name: "Mastercard", logoUrl: "/solutions/logos/monovate.png" },
+  { id: "veriff", name: "Veriff", logoUrl: "/solutions/logos/fireblocks.png" },
+  { id: "unlimit", name: "Unlimit", logoUrl: "/solutions/logos/decta.png" },
+  { id: "copper", name: "Copper", logoUrl: "/solutions/logos/mambu.png" },
+  { id: "sumsub", name: "Sumsub", logoUrl: "/solutions/logos/mtn.png" },
+  { id: "onfido", name: "Onfido", logoUrl: "/solutions/logos/solaris.png" },
+  { id: "persona", name: "Persona", logoUrl: "/solutions/logos/currencycloud.png" },
 ];
 
 export default function NewPartnersSection() {

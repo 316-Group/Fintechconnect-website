@@ -592,7 +592,9 @@ export default function BookingSection() {
 
                 {/* Marketing Consent Disclaimer */}
                 <p className="text-[10px] text-slate-400 leading-snug pt-2">
-                  You may receive marketing communications from Fintech Connect & D4t Group including
+                  You may receive marketing communications from <span className="text-[#0066ff]">
+              Fintech Connect & 316 group
+            </span> including
                   product updates, industry news and events. You can unsubscribe at any time.
                 </p>
 
