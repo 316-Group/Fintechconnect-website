@@ -2,8 +2,10 @@
 
 import React, { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import { getPath } from '@/utils/helper';
 import OnboardingStep1 from "@/components/onboarding/OnboardingStep1";
 import OnboardingStep2 from "@/components/onboarding/OnboardingStep2";
+
 
 function DashboardContent() {
   const searchParams = useSearchParams();
@@ -43,7 +45,7 @@ function DashboardContent() {
     <div className="min-h-screen bg-slate-900 text-white p-8">
       {/* Background Dashboard UI */}
       <img
-        src="/surveybackground.png"
+        src={getPath("/surveybackground.png")}
         alt="Dashboard Background"
         className="fixed inset-0 w-full h-full object-fill opacity-60 pointer-events-none"
       />
