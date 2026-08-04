@@ -2,7 +2,11 @@
 
 import React, { useState, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link'; // Added for client-side route navigation
+import Link from 'next/link';
+
+// Dummy admin credentials for local testing
+const DEMO_ADMIN_EMAIL = 'admin@demo.com';
+const DEMO_ADMIN_PASSWORD = 'admin123';
 
 const SignInScreen: React.FC = () => {
   const router = useRouter();
@@ -13,10 +17,26 @@ const SignInScreen: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Helper function to fill demo credentials into state
+  const handleFillDemoAdmin = () => {
+    setEmail(DEMO_ADMIN_EMAIL);
+    setPassword(DEMO_ADMIN_PASSWORD);
+    setError(null);
+  };
+
   const handleSignIn = async (e: FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError(null);
+
+    // Bypass API call if dummy admin credentials are entered
+    if (email === DEMO_ADMIN_EMAIL && password === DEMO_ADMIN_PASSWORD) {
+      setTimeout(() => {
+        router.push('/');
+        router.refresh();
+      }, 500); // Small artificial delay for realistic feel
+      return;
+    }
 
     try {
       const response = await fetch('/api/auth/login', {
@@ -31,7 +51,6 @@ const SignInScreen: React.FC = () => {
         throw new Error(data.message || 'Invalid credentials');
       }
 
-      // Successful login -> Redirect to the homepage
       router.push('/');
       router.refresh();
     } catch (err: any) {
@@ -74,12 +93,19 @@ const SignInScreen: React.FC = () => {
 
       {/* Main Card */}
       <main className="flex-grow flex items-center justify-center p-4 z-10">
-        <div className="w-full max-w-md h-[550px] bg-white p-8 sm:p-10 rounded-2xl shadow-xl shadow-slate-200/80 border border-slate-100">
+        <div className="w-full max-w-md bg-white p-8 sm:p-10 rounded-2xl shadow-xl shadow-slate-200/80 border border-slate-100">
           
-          <div className="text-center mb-8">
+          <div className="text-center mb-6">
             <h2 className="text-2xl font-bold text-slate-900 tracking-tight">
               Sign in to your account
             </h2>
+            <button
+              type="button"
+              onClick={handleFillDemoAdmin}
+              className="mt-2 text-xs text-blue-600 hover:text-blue-800 underline font-medium cursor-pointer"
+            >
+              Fill Demo Admin Credentials
+            </button>
           </div>
 
           {/* Error Banner */}
