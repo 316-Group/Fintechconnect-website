@@ -108,21 +108,21 @@ export default function OnboardingStep1({ onNext, onSkip }: OnboardingStep1Props
         <div className="bg-[#f5f8ff] rounded-2xl p-6 sm:p-8 flex flex-col justify-between items-center text-center">
           
           {/* Dashboard Graphic Container */}
-          <div className="w-full flex-1 flex items-center justify-center py-2">
-            <div className="relative w-full max-w-md aspect-[4/3] flex items-center justify-center">
+          <div className="w-full flex-1 flex pt-8 pb-0 bg-blue-200 rounded-2xl">
+            <div className="relative w-full pb-0 max-w-md aspect-[4/3] flex">
               <Image 
                 src={getPath("/survey.png")} 
                 alt="Platform Overview" 
                 width={480}
                 height={360}
                 priority
-                className="w-full h-auto object-contain" 
+                className="w-full h-auto object-contain pb-0 pl-2" 
               /> 
             </div>
           </div>
 
           {/* Marketing Copy */}
-          <div className="mt-4 max-w-sm">
+          <div className="mt-4 max-w-sm mb-10">
             <h2 className="text-base font-bold text-slate-900 tracking-tight mb-2">
               The Complete Operating System for Financial Institutions
             </h2>

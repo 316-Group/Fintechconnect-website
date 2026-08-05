@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { getPath } from '@/utils/helper';
+import { getPath } from "@/utils/helper";
 
 interface OnboardingStep2Props {
   onNext?: (selectedOptions: string[]) => void;
@@ -20,8 +20,8 @@ interface BusinessOption {
 export default function OnboardingStep2({ onNext, onBack }: OnboardingStep2Props) {
   const router = useRouter();
 
-  // Pre-select 'startup' to match the design screenshot
-  const [selectedOptions, setSelectedOptions] = useState<string[]>(["startup"]);
+  // Store a single selected string option instead of an array
+  const [selectedOption, setSelectedOption] = useState<string>("startup");
 
   const businessOptions: BusinessOption[] = [
     {
@@ -66,17 +66,19 @@ export default function OnboardingStep2({ onNext, onBack }: OnboardingStep2Props
     },
   ];
 
-  const toggleOption = (id: string) => {
-    setSelectedOptions((prev) =>
-      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
-    );
-  };
-
   const handleNext = () => {
     if (onNext) {
-      onNext(selectedOptions);
+      onNext([selectedOption]);
     } else {
       router.push("/onboarding?step=3");
+    }
+  };
+
+  const handleBack = () => {
+    if (onBack) {
+      onBack();
+    } else {
+      router.push("/onboarding?step=1");
     }
   };
 
@@ -108,19 +110,19 @@ export default function OnboardingStep2({ onNext, onBack }: OnboardingStep2Props
                 Tell us a bit about your business.
               </h1>
               <p className="text-xs sm:text-sm text-slate-500 leading-relaxed max-w-md">
-                Help us tailor your Fintech Connect experience. Select multiple options that align with your business strategy.
+                Help us tailor your Fintech Connect experience. Select the option that best aligns with your business strategy.
               </p>
             </div>
 
             {/* 2x2 Interactive Selection Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 mt-6">
               {businessOptions.map((option) => {
-                const isSelected = selectedOptions.includes(option.id);
+                const isSelected = selectedOption === option.id;
                 return (
                   <button
                     key={option.id}
                     type="button"
-                    onClick={() => toggleOption(option.id)}
+                    onClick={() => setSelectedOption(option.id)}
                     className={`text-left p-4 rounded-2xl transition-all border flex flex-col justify-between min-h-[140px] cursor-pointer ${
                       isSelected
                         ? "border-[#0052cc] bg-white ring-1 ring-[#0052cc] shadow-sm"
@@ -147,8 +149,19 @@ export default function OnboardingStep2({ onNext, onBack }: OnboardingStep2Props
             </div>
           </div>
 
-          {/* Footer Action Button */}
-          <div className="mt-8 pt-4 border-t border-slate-100 flex items-center justify-end">
+          {/* Footer Action Buttons */}
+          <div className="mt-8 pt-4 border-t border-slate-100 flex items-center justify-between">
+            <button
+              type="button"
+              onClick={handleBack}
+              className="py-2.5 px-4 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition-all flex items-center gap-1.5"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
+              <span>Back</span>
+            </button>
+
             <button
               type="button"
               onClick={handleNext}
@@ -180,7 +193,7 @@ export default function OnboardingStep2({ onNext, onBack }: OnboardingStep2Props
           </div>
 
           {/* Marketing Copy */}
-          <div className="mt-4 max-w-sm">
+          <div className="mt-4 max-w-sm mb-15">
             <h2 className="text-base font-bold text-slate-900 tracking-tight mb-2">
               The Complete Operating System for Financial Institutions
             </h2>
