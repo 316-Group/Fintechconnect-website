@@ -326,10 +326,10 @@ export default function Navbar() {
             Sign In
           </Link>
           <Link 
-            href="/book-demo" 
+            href="/signup" 
             className="bg-blue-600 text-white px-5 py-2.5 rounded-full font-medium hover:bg-blue-700 transition text-sm"
           >
-            Book a Demo
+            Get Started
           </Link>
         </div>
 
@@ -436,11 +436,11 @@ export default function Navbar() {
                 Sign In
               </Link>
               <Link 
-                href="/book-demo" 
+                href="/signup" 
                 onClick={() => setMobileMenuOpen(false)}
                 className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-full font-medium w-full text-sm transition-colors text-center"
               >
-                Book a Demo
+                Get Started
               </Link>
             </div>
           </div>
