@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { getPath } from "@/utils/helper";
 
 interface OnboardingStep3Props {
   onNext?: (selectedGoals: string[]) => void;
@@ -280,7 +281,7 @@ export default function OnboardingStep3({ onNext, onBack }: OnboardingStep3Props
           <div className="w-full flex-1 flex items-center justify-center pt-8 pb-0">
             <div className="relative w-full max-w-md aspect-[4/3] flex items-center justify-center">
               <Image 
-                src="/survey.png" 
+                src={getPath("/survey.png")}
                 alt="Platform Overview" 
                 width={500}
                 height={100}

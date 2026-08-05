@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { getPath } from "@/utils/helper";
 
 interface OnboardingStep5Props {
   onNext?: (selectedOption: string) => void;
@@ -189,7 +190,7 @@ export default function OnboardingStep5({ onNext, onBack }: OnboardingStep5Props
           <div className="w-full flex-1 flex items-center justify-center py-2">
             <div className="relative w-full max-w-md aspect-[4/3] flex items-center justify-center">
               <Image 
-                src="/survey.png" 
+                src={getPath("/survey.png")}
                 alt="Platform Overview" 
                 width={500}
                 height={375}
