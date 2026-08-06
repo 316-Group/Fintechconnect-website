@@ -333,13 +333,13 @@ export default function BusinessIdentity() {
 
           {/* Form Action Buttons */}
           <div className="flex justify-between items-center pt-2">
-            <link
+            <Link
               href="/dashboard/organization"
               type="button"
               className="px-5 py-2 border border-slate-200 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors"
             >
               Back
-            </link>
+            </Link>
             <Link
               href="/dashboard/organization/regulatorycompliance"
               type="button"
