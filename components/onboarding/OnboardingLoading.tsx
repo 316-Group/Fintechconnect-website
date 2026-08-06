@@ -45,7 +45,7 @@ export default function OnboardingLoading({
   .ray-animated:nth-child(1) { animation-delay: 0.0s; }
   .ray-animated:nth-child(2) { animation-delay: 0.2s; }
   .ray-animated:nth-child(3) { animation-delay: 0.4s; }
-  .ray-animated:nth-child(4) { animation-delay: 0.6s; }
+  .ray-animated:nth-child(4) { animation-delay: 0.5s; }
   .ray-animated:nth-child(5) { animation-delay: 0.8s; }
   .ray-animated:nth-child(6) { animation-delay: 1.0s; }
   .ray-animated:nth-child(7) { animation-delay: 1.2s; }
