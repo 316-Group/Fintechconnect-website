@@ -13,6 +13,7 @@ import {
   HelpCircle,
   ChevronDown
 } from "lucide-react";
+import Link from "next/link";
 
 export default function BusinessIdentity() {
   const [formData, setFormData] = useState({
@@ -60,27 +61,27 @@ export default function BusinessIdentity() {
 
           {/* Navigation Links */}
           <nav className="space-y-1">
-            <a href="#" className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-blue-50 text-blue-600 font-medium text-sm">
+            <a href="/dashboard/organization/businessidentity" className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-blue-50 text-blue-600 font-medium text-sm">
               <Building2 className="w-4 h-4" />
               Organization
             </a>
-            <a href="#" className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-50 font-medium text-sm transition-colors">
+            <a href="/dashboard/organization/regulatorycompliance" className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-50 font-medium text-sm transition-colors">
               <ShieldCheck className="w-4 h-4" />
               Compliance
             </a>
-            <a href="#" className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-50 font-medium text-sm transition-colors">
+            <a href="/dashboard/organization/verification" className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-50 font-medium text-sm transition-colors">
               <CheckCircle2 className="w-4 h-4" />
               Verification & KYB
             </a>
-            <a href="#" className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-50 font-medium text-sm transition-colors">
+            <a href="/dashboard/organization/beneficialownership" className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-50 font-medium text-sm transition-colors">
               <UserCheck className="w-4 h-4" />
               Beneficial Ownership
             </a>
-            <a href="#" className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-50 font-medium text-sm transition-colors">
+            <a href="/dashboard/organization/documents" className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-50 font-medium text-sm transition-colors">
               <FileText className="w-4 h-4" />
               Documents
             </a>
-            <a href="#" className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-50 font-medium text-sm transition-colors">
+            <a href="/dashboard/organization/review" className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-50 font-medium text-sm transition-colors">
               <Eye className="w-4 h-4" />
               Review
             </a>
@@ -107,7 +108,7 @@ export default function BusinessIdentity() {
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 p-8 max-w-5xl mx-auto space-y-6">
+      <main className="flex-1 p-8 max-w-7xl mx-auto space-y-6">
         {/* Breadcrumb & Header */}
         <div>
           <div className="text-xs text-slate-400 font-medium mb-1">
@@ -338,12 +339,13 @@ export default function BusinessIdentity() {
             >
               Back
             </button>
-            <button
+            <Link
+              href="/dashboard/organization/regulatorycompliance"
               type="button"
               className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold flex items-center gap-2 shadow-sm transition-colors"
             >
               Save and Continue &rarr;
-            </button>
+            </Link>
           </div>
         </div>
 
