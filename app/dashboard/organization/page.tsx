@@ -17,6 +17,7 @@ import {
   Shield,
   CheckCircle2,
 } from "lucide-react";
+import Link from "next/link";
 
 export default function DashboardPage() {
   const [activeNav, setActiveNav] = useState("Organization");
@@ -167,7 +168,7 @@ export default function DashboardPage() {
         </header>
 
         {/* Dashboard Body */}
-        <main className="flex-1 p-8 space-y-8 max-w-7xl w-full mx-auto">
+        <main className="flex-1 p-8 pl-8 pr-10 space-y-8 max-w-full w-full mx-auto">
           {/* KYB Hero Banner */}
           <section className="bg-gradient-to-r from-blue-600 via-blue-600 to-indigo-600 rounded-2xl p-7 text-white shadow-lg shadow-blue-500/10 relative overflow-hidden">
             <div className="max-w-2xl space-y-4">
@@ -196,9 +197,11 @@ export default function DashboardPage() {
             </div>
 
             {/* Banner Action Button */}
-            <button className="absolute right-8 bottom-8 px-5 py-2.5 bg-white text-blue-600 rounded-xl text-xs font-semibold hover:bg-blue-50 transition-colors shadow-sm flex items-center gap-2">
+            <Link 
+            href="/dashboard/organization/businessidentity"
+            className="absolute right-8 bottom-8 px-5 py-2.5 bg-white text-blue-600 rounded-xl text-xs font-semibold hover:bg-blue-50 transition-colors shadow-sm flex items-center gap-2">
               Continue <ArrowRight className="w-3.5 h-3.5" />
-            </button>
+            </Link>
           </section>
 
           {/* KYB Checklist Section */}
@@ -275,7 +278,68 @@ export default function DashboardPage() {
               })}
             </div>
           </section>
+          {/* Personalized for You Section */}
+          <section className="space-y-4">
+            <div>
+              <h2 className="text-base font-bold text-slate-900">
+                Personalized for You
+              </h2>
+              <p className="text-xs text-slate-500">
+                Recommended modules based on your business profile.
+              </p>
+            </div>
 
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Digital Wallets Card */}
+              <div className="p-6 bg-white border border-slate-200 rounded-2xl flex flex-col justify-between space-y-4 hover:shadow-sm transition-shadow">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600">
+                      <Wallet className="w-5 h-5" />
+                    </div>
+                    <span className="px-2.5 py-1 bg-blue-50 text-blue-600 rounded-md text-[11px] font-semibold">
+                      Recommended
+                    </span>
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-900 mb-1">
+                      Digital Wallets
+                    </h3>
+                    <p className="text-xs text-slate-500 leading-relaxed">
+                      Integrated custody solutions for cross-border digital asset
+                      settlement and cold-storage management.
+                    </p>
+                  </div>
+                </div>
+
+                <button className="flex items-center gap-1.5 text-xs font-bold text-blue-600 hover:text-blue-700 w-fit pt-2">
+                  Learn More <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              {/* AML Monitoring Card */}
+              <div className="p-6 bg-white border border-slate-200 rounded-2xl flex flex-col justify-between space-y-4 hover:shadow-sm transition-shadow">
+                <div className="space-y-3">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600">
+                    <Shield className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-900 mb-1">
+                      AML Monitoring
+                    </h3>
+                    <p className="text-xs text-slate-500 leading-relaxed">
+                      Real-time transaction screening and automated risk scoring
+                      powered by advanced heuristics.
+                    </p>
+                  </div>
+                </div>
+
+                <button className="flex items-center gap-1.5 text-xs font-bold text-blue-600 hover:text-blue-700 w-fit pt-2">
+                  Learn More <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+          </section>
           
 
           {/* Footer */}
