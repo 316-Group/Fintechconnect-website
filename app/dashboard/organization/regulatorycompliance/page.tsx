@@ -109,7 +109,7 @@ export default function RegulatoryCompliance() {
             <a href="/dashboard/organization/beneficialownership" className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-50 font-medium text-sm transition-colors">
               <UserCheck className="w-4 h-4" />
               Beneficial Ownership
-            </a>
+            </a> 
             <a href="/dashboard/organization/documents" className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-50 font-medium text-sm transition-colors">
               <FileText className="w-4 h-4" />
               Documents
