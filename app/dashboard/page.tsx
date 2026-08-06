@@ -53,7 +53,7 @@ function DashboardContent() {
   const handleFinalFinish = () => {
     // Sync onboarding data (selectedRoles, selectedGoals, selectedIndustries, selectedBuildOption) to your backend API here if needed.
     setShowOnboarding(false);
-    router.replace("/dashboard", { scroll: false });
+    router.replace("/dashboard/organization", { scroll: false });
   };
 
   const handleBack = () => {
@@ -62,7 +62,7 @@ function DashboardContent() {
 
   const handleSkip = () => {
     setShowOnboarding(false);
-    router.replace("/dashboard", { scroll: false });
+    router.replace("/dashboard/organization", { scroll: false });
   };
 
   return (
