@@ -19,6 +19,7 @@ import {
   Building,
   X
 } from "lucide-react";
+import Link from "next/link";
 
 export default function RegulatoryCompliance() {
   const [formData, setFormData] = useState({
@@ -371,12 +372,13 @@ export default function RegulatoryCompliance() {
 
           {/* Form Action Buttons */}
           <div className="flex justify-between items-center pt-4 border-t border-slate-100">
-            <button
+            <Link
+              href="/dashboard/organization/businessidentity"
               type="button"
               className="px-6 py-2 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
             >
               Back
-            </button>
+            </Link>
             <button
               type="button"
               className="px-6 py-2 bg-[#0A63F8] hover:bg-blue-700 text-white rounded-lg text-xs font-semibold flex items-center gap-2 shadow-sm transition-colors"
