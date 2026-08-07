@@ -717,37 +717,37 @@ export default function DashboardPage() {
   </section>
 
   {/* Design Kit Section Banner */}
-  <section className="bg-blue-50/70 border border-blue-100/80 rounded-3xl p-8 lg:p-10 overflow-hidden">
+  <section className="bg-blue-50/70 border border-blue-100/80 rounded-xl p-8 lg:p-10 overflow-hidden">
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
       {/* Left Column: Text & Features */}
       <div className="lg:col-span-6 space-y-6">
         <div>
-          <h2 className="text-2xl font-extrabold text-blue-700">
+          <h2 className="text-3xl font-extrabold text-blue-700">
             Design Kit
           </h2>
-          <p className="text-xs text-slate-600 leading-relaxed mt-3 max-w-md">
+          <p className="text-medium text-slate-600 leading-relaxed mt-12 mb-8 max-w-md">
             Our modular UI library provides pre-built, accessible components
             designed specifically for high-trust financial interfaces. Maintain brand
             consistency while shipping faster.
           </p>
         </div>
 
-        <div className="space-y-2.5">
+        <div className="space-y-4.5">
           <div className="flex items-center gap-2.5">
             <CheckCircle2 className="w-4 h-4 text-blue-600 flex-shrink-0" />
-            <span className="text-xs font-semibold text-slate-800">
+            <span className="text-sm font-semibold text-slate-800">
               Material Symbols Integrated
             </span>
           </div>
           <div className="flex items-center gap-2.5">
             <CheckCircle2 className="w-4 h-4 text-blue-600 flex-shrink-0" />
-            <span className="text-xs font-semibold text-slate-800">
+            <span className="text-sm font-semibold text-slate-800">
               WCAG 2.1 AA Compliant Components
             </span>
           </div>
           <div className="flex items-center gap-2.5">
             <CheckCircle2 className="w-4 h-4 text-blue-600 flex-shrink-0" />
-            <span className="text-xs font-semibold text-slate-800">
+            <span className="text-sm font-semibold text-slate-800">
               Tailwind Config Included
             </span>
           </div>
@@ -761,9 +761,9 @@ export default function DashboardPage() {
       </div>
 
       {/* Right Column: Live Card Preview Mockup */}
-      <div className="lg:col-span-6 flex justify-center lg:justify-end">
+      <div className="lg:col-span-4 flex justify-center lg:justify-end pb-0">
         { 
-            <img src="/Memberdashboard.png" alt="Design Kit Mobile Preview" className="w-full max-w-sm rounded-xl" />
+            <img src={getPath("/Memberdashboard.png")} alt="Design Kit Mobile Preview" className="w-full max-w-sm rounded-xl pb-0" />
         }
       </div>
     </div>
