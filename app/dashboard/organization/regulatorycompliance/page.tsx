@@ -87,9 +87,7 @@ export default function RegulatoryCompliance() {
               <rect width="7.24888" height="52.7191" rx="3.62444" transform="matrix(0.900044 -0.435799 -0.435799 -0.900044 288.037 194.412)" fill="#0A63F8"/>
               <rect width="7.24888" height="52.7191" rx="3.62444" transform="matrix(0.999533 -0.0305672 -0.0305672 -0.999533 248.223 200.014)" fill="#0A63F8"/>
             </svg>
-            <span className="font-bold text-xs text-blue-700 tracking-tight">
-              Fintech Connect
-            </span>
+            
           </div>
 
           {/* Navigation Links */}

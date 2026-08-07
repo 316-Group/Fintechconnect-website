@@ -54,9 +54,7 @@ export default function BusinessIdentity() {
             <rect width="7.24888" height="52.7191" rx="3.62444" transform="matrix(0.900044 -0.435799 -0.435799 -0.900044 288.037 194.412)" fill="#0A63F8"/>
             <rect width="7.24888" height="52.7191" rx="3.62444" transform="matrix(0.999533 -0.0305672 -0.0305672 -0.999533 248.223 200.014)" fill="#0A63F8"/>
           </svg>
-            <span className="font-bold text-xs text-blue-700 tracking-tight">
-              Fintech Connect
-            </span>
+            
           </div>
 
           {/* Navigation Links */}
@@ -138,7 +136,7 @@ export default function BusinessIdentity() {
               <div className="w-7 h-7 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center text-xs font-semibold">
                 2
               </div>
-              <span className="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-wider">Registered Office</span>
+              <span className="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-wider">Compliance</span>
             </div>
 
             <div className="flex-1 h-[2px] bg-slate-200 mx-2" />
@@ -148,7 +146,7 @@ export default function BusinessIdentity() {
               <div className="w-7 h-7 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center text-xs font-semibold">
                 3
               </div>
-              <span className="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-wider">Directors/Shareholders</span>
+              <span className="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-wider">Verification</span>
             </div>
 
             <div className="flex-1 h-[2px] bg-slate-200 mx-2" />
@@ -158,7 +156,7 @@ export default function BusinessIdentity() {
               <div className="w-7 h-7 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center text-xs font-semibold">
                 4
               </div>
-              <span className="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-wider">Financials</span>
+              <span className="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-wider">Ownership</span>
             </div>
 
             <div className="flex-1 h-[2px] bg-slate-200 mx-2" />
