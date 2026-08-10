@@ -201,7 +201,7 @@ export default function OnboardingStep3({ onNext, onBack }: OnboardingStep3Props
             </div>
 
             {/* Scrollable Container with Custom Slim Blue Scrollbar */}
-            <div className="max-h-[380px] overflow-y-auto pr-3.5 mr-1 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-[#0052cc] [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-slate-100">
+            <div className="max-h-[400px] overflow-y-auto pr-3.5 pl-4 pt-4 mr-2 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-[#0052cc] [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-slate-100">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
                 {goalOptions.map((option) => {
                   const isSelected = selectedGoals.includes(option.id);

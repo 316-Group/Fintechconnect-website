@@ -29,6 +29,8 @@ import { getPath } from "@/utils/helper";
 export default function DashboardPage() {
   const [activeNav, setActiveNav] = useState("Organization");
 
+  
+
   const navItems = [
     { name: "Organization", icon: Building2 },
     { name: "Compliance", icon: ShieldCheck },
@@ -69,6 +71,8 @@ export default function DashboardPage() {
       active: false,
     },
   ];
+
+  const [activeCardId, setActiveCardId] = useState(checklistCards[0]?.id);
 
   return (
     <div className="flex min-h-screen bg-[#F8FAFC] font-sans text-slate-800">
@@ -226,62 +230,65 @@ export default function DashboardPage() {
             </div>
 
             {/* Cards Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {checklistCards.map((card) => {
-                const Icon = card.icon;
-                return (
-                  <div
-                    key={card.id}
-                    className={`p-4 rounded-xl border transition-all relative flex flex-col justify-between h-45 ${
-                      card.active
-                        ? "bg-blue-50/40 border-blue-600 shadow-sm"
-                        : "bg-white border-slate-200 hover:border-slate-300"
-                    }`}
-                  >
-                    <div>
-                      <div className="flex items-center justify-between mb-3">
-                        <div
-                          className={`w-7 h-7 rounded-lg flex items-center justify-center ${
-                            card.active
-                              ? "bg-blue-100 text-blue-600"
-                              : "bg-slate-100 text-slate-500"
-                          }`}
-                        >
-                          <Icon className="w-4 h-4" />
-                        </div>
-                        <div
-                          className={`w-4 h-4 rounded-full border flex items-center justify-center ${
-                            card.active
-                              ? "border-blue-600 bg-blue-600"
-                              : "border-slate-300"
-                          }`}
-                        >
-                          {card.active && (
-                            <div className="w-1.5 h-1.5 rounded-full bg-white" />
-                          )}
-                        </div>
-                      </div>
+<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+  {checklistCards.map((card) => {
+    const Icon = card.icon;
+    const isActive = card.id === activeCardId;
 
-                      <h3 className="text-medium font-bold text-slate-800 mb-1">
-                        {card.title}
-                      </h3>
-                      <p className="text-sm text-slate-500 line-clamp-2 leading-relaxed">
-                        {card.description}
-                      </p>
-                    </div>
-
-                    {card.active && (
-                      <div className="flex items-center justify-between pt-2">
-                        <div className="w-12 bg-blue-200 h-1.5 rounded-full overflow-hidden">
-                          <div className="bg-blue-600 h-full w-1/2" />
-                        </div>
-                        <ArrowRight className="w-3.5 h-3.5 text-blue-600" />
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
+    return (
+      <div
+        key={card.id}
+        onClick={() => setActiveCardId(card.id)}
+        className={`p-4 rounded-xl border transition-all relative flex flex-col justify-between h-45 cursor-pointer ${
+          isActive
+            ? "bg-blue-50/40 border-blue-600 shadow-sm"
+            : "bg-white border-slate-200 hover:border-slate-300"
+        }`}
+      >
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <div
+              className={`w-7 h-7 rounded-lg flex items-center justify-center ${
+                isActive
+                  ? "bg-blue-100 text-blue-600"
+                  : "bg-slate-100 text-slate-500"
+              }`}
+            >
+              <Icon className="w-4 h-4" />
             </div>
+            <div
+              className={`w-4 h-4 rounded-full border flex items-center justify-center ${
+                isActive
+                  ? "border-blue-600 bg-blue-600"
+                  : "border-slate-300"
+              }`}
+            >
+              {isActive && (
+                <div className="w-1.5 h-1.5 rounded-full bg-white" />
+              )}
+            </div>
+          </div>
+
+          <h3 className="text-medium font-bold text-slate-800 mb-1">
+            {card.title}
+          </h3>
+          <p className="text-sm text-slate-500 line-clamp-2 leading-relaxed">
+            {card.description}
+          </p>
+        </div>
+
+        {isActive && (
+          <div className="flex items-center justify-between pt-2">
+            <div className="w-12 bg-blue-200 h-1.5 rounded-full overflow-hidden">
+              <div className="bg-blue-600 h-full w-1/2" />
+            </div>
+            <ArrowRight className="w-3.5 h-3.5 text-blue-600" />
+          </div>
+        )}
+      </div>
+    );
+  })}
+</div>
           </section>
           {/* Personalized for You Section */}
 <section className="space-y-6">
@@ -619,7 +626,7 @@ export default function DashboardPage() {
         </p>
       </div>
       <a
-        href="#connectors"
+        href="/connectors"
         className="inline-flex items-center gap-1 text-sm font-bold text-blue-600 hover:text-blue-700 transition-colors"
       >
         See more connectors <ArrowRight className="w-3.5 h-3.5" />
