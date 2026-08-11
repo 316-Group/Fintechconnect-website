@@ -32,6 +32,46 @@ export default function DocumentUploadPage() {
     }
   };
 
+  // State to track dynamically added license cards
+const [additionalLicenses, setAdditionalLicenses] = useState<
+  Array<{ id: string; country: string }>
+>([]);
+
+// Function to handle adding a new license card with an empty country
+const handleAddLicense = () => {
+  setAdditionalLicenses((prev) => [
+    ...prev,
+    { id: `custom-license-${Date.now()}`, country: "" },
+  ]);
+};
+
+// Function to update country selection for dynamic cards
+const handleCountrySelect = (id: string, country: string) => {
+  setAdditionalLicenses((prev) =>
+    prev.map((item) => (item.id === id ? { ...item, country } : item))
+  );
+};
+
+//State handlers to handle financial statements accordion
+const [financialStatements, setFinancialStatements] = useState([
+  {
+    id: "financial-1",
+    title: "Latest Audited Financials",
+    subtitle: "Previous fiscal year (PDF, JPG).",
+  },
+]);
+
+const handleAddStatement = () => {
+  setFinancialStatements((prev) => [
+    ...prev,
+    {
+      id: `financial-${Date.now()}`,
+      title: "Financial Statement",
+      subtitle: "Upload financial statement or bank report (PDF, JPG).",
+    },
+  ]);
+};
+
   return (
     <div className="w-full space-y-6">
       {/* Breadcrumbs */}
@@ -396,10 +436,81 @@ export default function DocumentUploadPage() {
         </div>
       </div>
 
+      {/* Dynamic Additional License Cards */}
+      {additionalLicenses.map((license) => (
+        <div
+          key={license.id}
+          className="border border-dashed border-slate-300 rounded-lg p-4 bg-slate-50/30 space-y-3"
+        >
+          <div className="flex items-start justify-between">
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 rounded bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 mt-0.5">
+                <FileText className="w-4 h-4" />
+              </div>
+              <div>
+                <h4 className="text-xs font-bold text-slate-800">Operating License</h4>
+                <p className="text-[11px] text-slate-400 mt-0.5">
+                  Provide active financial services license (PDF, JPG).
+                </p>
+              </div>
+            </div>
+            <span className="bg-blue-100 text-blue-700 text-[9px] font-bold px-2 py-0.5 rounded tracking-wide uppercase">
+              REQUIRED
+            </span>
+          </div>
+
+          <div>
+            <select
+              value={license.country}
+              onChange={(e) => handleCountrySelect(license.id, e.target.value)}
+              className="w-full bg-slate-100/80 border border-slate-200 text-xs text-slate-700 rounded-md px-3 py-2 font-medium outline-none focus:border-blue-500"
+            >
+              <option value="" disabled hidden>
+                Select Country
+              </option>
+              <option value="United Kingdom">United Kingdom</option>
+              <option value="European Union">European Union</option>
+              <option value="Kenya">Kenya</option>
+              <option value="United States">United States</option>
+              <option value="Canada">Canada</option>
+            </select>
+          </div>
+
+          <div className="flex items-center justify-between pt-1">
+            <div className="flex items-center gap-3">
+              <label className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-3.5 py-1.5 rounded-md flex items-center gap-1.5 cursor-pointer transition shadow-xs">
+                <Upload className="w-3.5 h-3.5" />
+                Upload File
+                <input
+                  type="file"
+                  className="hidden"
+                  accept=".pdf,image/*"
+                  onChange={(e) =>
+                    handleFileChange(
+                      e,
+                      `${license.country || "Additional"} Operating License`
+                    )
+                  }
+                />
+              </label>
+              <span className="text-[11px] text-slate-400">Max size 10MB</span>
+            </div>
+            <label className="flex items-center gap-2 cursor-pointer text-xs font-medium text-slate-600 hover:text-slate-900">
+              <input
+                type="checkbox"
+                className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-3.5 h-3.5"
+              />
+              Provide later
+            </label>
+          </div>
+        </div>
+      ))}
+
       {/* Add License Button */}
       <button
         type="button"
-        className="w-full border-2 border-dashed border-slate-200 hover:border-slate-300 rounded-lg py-3 text-xs font-bold text-slate-700 hover:bg-slate-50 transition uppercase tracking-wide"
+        onClick={handleAddLicense}
+        className="w-full border-2 border-dashed border-slate-200 hover:border-slate-300 rounded-lg py-3 text-xs font-bold text-slate-700 hover:bg-slate-50 transition uppercase tracking-wide cursor-pointer"
       >
         ADD LICENSE
       </button>
@@ -407,34 +518,103 @@ export default function DocumentUploadPage() {
   )}
 </div>
 
-        {/* ================= Accordion 3: Financial Statements ================= */}
-        <div className="border border-slate-200/70 rounded-lg overflow-hidden transition-all">
-          <button
-            type="button"
-            onClick={() => toggleSection("financial")}
-            className="w-full flex items-center justify-between p-4 bg-white hover:bg-slate-50/50 text-left transition"
-          >
-            <div className="flex items-center gap-3.5">
-              <div className="w-9 h-9 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
-                <Landmark className="w-4 h-4" />
+       {/* ================= Accordion 3: Financial Statements ================= */}
+<div className="border border-slate-200/70 rounded-lg overflow-hidden transition-all bg-white">
+  <button
+    type="button"
+    onClick={() => toggleSection("financial")}
+    className="w-full flex items-center justify-between p-4 bg-white hover:bg-slate-50/50 text-left transition"
+  >
+    <div className="flex items-center gap-3.5">
+      <div className="w-9 h-9 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+        <Landmark className="w-4 h-4" />
+      </div>
+      <div>
+        <h3 className="text-sm font-bold text-slate-800">
+          Financial Statements
+        </h3>
+        <p className="text-xs text-slate-400 mt-0.5">
+          Audited reports, Bank statements
+        </p>
+      </div>
+    </div>
+    <ChevronDown
+      className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${
+        openSection === "financial" ? "rotate-180" : ""
+      }`}
+    />
+  </button>
+
+  {/* Accordion Content */}
+  {openSection === "financial" && (
+    <div className="p-4 pt-2 space-y-4 border-t border-slate-100">
+      {/* Financial Statement Upload Cards */}
+      {financialStatements.map((statement) => (
+        <div
+          key={statement.id}
+          className="border border-dashed border-slate-300 rounded-lg p-4 bg-slate-50/20 space-y-4"
+        >
+          {/* Header Row */}
+          <div className="flex items-start justify-between">
+            <div className="flex items-start gap-3">
+              <div className="w-9 h-9 rounded bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                <FileText className="w-4 h-4" />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-slate-800">
-                  Financial Statements
-                </h3>
-                <p className="text-xs text-slate-400 mt-0.5">
-                  Audited reports, Bank statements
+                <h4 className="text-xs font-bold text-slate-800">
+                  {statement.title}
+                </h4>
+                <p className="text-[11px] text-slate-400 mt-0.5">
+                  {statement.subtitle}
                 </p>
               </div>
             </div>
-            <ChevronDown
-              className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${
-                openSection === "financial" ? "rotate-180" : ""
-              }`}
-            />
-          </button>
-        </div>
+            <span className="text-blue-600 text-[10px] font-bold tracking-wider uppercase pt-0.5">
+              OPTIONAL
+            </span>
+          </div>
 
+          {/* Action Row */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <label className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-4 py-2 rounded-md flex items-center gap-1.5 cursor-pointer transition shadow-xs">
+                <Upload className="w-3.5 h-3.5" />
+                Upload File
+                <input
+                  type="file"
+                  className="hidden"
+                  accept=".pdf,image/*"
+                  onChange={(e) => handleFileChange(e, statement.title)}
+                />
+              </label>
+              <span className="text-xs text-slate-400">Max size 10MB</span>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <div className="h-4 w-px bg-slate-200" />
+              <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-slate-800 hover:text-black">
+                <input
+                  type="checkbox"
+                  className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-3.5 h-3.5"
+                />
+                Provide later
+              </label>
+            </div>
+          </div>
+        </div>
+      ))}
+
+      {/* Dynamic Add Statement Button */}
+      <button
+        type="button"
+        onClick={handleAddStatement}
+        className="w-full border border-dashed border-slate-300 hover:border-slate-400 rounded-lg py-3 text-xs font-bold text-slate-800 hover:bg-slate-50 transition uppercase tracking-wide cursor-pointer"
+      >
+        ADD STATEMENT
+      </button>
+    </div>
+  )}
+</div>
         {/* ================= Accordion 4: Ownership Structure ================= */}
         <div className="border border-slate-200/70 rounded-lg overflow-hidden transition-all">
           <button
