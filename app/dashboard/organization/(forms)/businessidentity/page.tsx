@@ -65,10 +65,10 @@ export default function BusinessIdentity() {
   );
 
   return (
-    <main className="max-w-4xl mx-auto p-6 space-y-6 bg-[#F8FAFC] min-h-screen font-sans text-slate-800">
+    <main className="w-full mx-auto space-y-6 min-h-screen font-sans text-slate-800">
       {/* Step Heading */}
       <div>
-        <div className="text-xs text-slate-400 font-medium mb-1">
+        <div className="text-xs text-slate-400 font-medium mb-5">
           Merchants &gt; New Onboarding &gt;{" "}
           <span className="text-slate-600">Business Profile</span>
         </div>

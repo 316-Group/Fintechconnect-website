@@ -89,8 +89,15 @@ export default function OrganizationLayout({
           {/* Navigation Links */}
           <nav className="hidden lg:flex items-center gap-6 text-sm font-medium text-slate-500 h-16">
             {NAV_ITEMS.map((item) => {
-              // Highlight only the matching top navigation link
-              const isActive = pathname === item.href;
+              const isDashboard =
+                item.label.toLowerCase() === "dashboard" ||
+                item.href === "/" ||
+                item.href === "/dashboard";
+
+              const isActive = isDashboard
+                ? pathname === item.href
+                : pathname === item.href || pathname.startsWith(item.href);
+
               return (
                 <Link
                   key={item.label}
@@ -103,7 +110,7 @@ export default function OrganizationLayout({
                 >
                   {item.label}
                   {isActive && (
-                    <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-blue-600 rounded-full" />
+                    <span className="absolute bottom-0 left-0 right-0 h-[2.5px] bg-blue-600 rounded-full" />
                   )}
                 </Link>
               );
@@ -146,7 +153,6 @@ export default function OrganizationLayout({
 
               return (
                 <div key={step.id} className="relative">
-                  {/* Vertical step connector line */}
                   {!isLast && (
                     <span
                       className={`absolute left-3.5 top-7 bottom-0 w-px -ml-[0.5px] ${
@@ -227,9 +233,11 @@ export default function OrganizationLayout({
           </div>
         </aside>
 
-        {/* Dynamic Form Content */}
-        <main className="flex-1 flex flex-col justify-between">
-          <div className="w-full">{children}</div>
+        {/* Dynamic Form Content Container with White Card Styling */}
+        <main className="flex-1 min-w-0">
+          <div className="w-full bg-white py-6 px-8">
+            {children}
+          </div>
         </main>
       </div>
     </div>

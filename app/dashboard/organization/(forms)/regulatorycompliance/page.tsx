@@ -106,20 +106,20 @@ export default function RegulatoryCompliance() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-6 md:p-8 space-y-6 text-slate-800 font-sans">
+    <div className="w-full mx-auto space-y-6 text-slate-800 font-sans">
       {/* Step Heading */}
       <div>
-        <div className="text-xs text-slate-400 font-medium mb-1">
+        <div className="text-xs text-slate-400 font-medium mb-5">
           Merchants &gt; New Onboarding &gt; <span className="text-slate-600 font-semibold">Business Profile</span>
         </div>
         <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Regulatory Compliance</h1>
-        <p className="text-xs text-slate-500 mt-1 max-w-3xl">
+        <p className="text-sm text-slate-500 mt-1 max-w-3xl">
           Provide the legal foundation for your institution. This data is used for regulatory compliance and network registration.
         </p>
       </div>
 
       {/* Top Callout Banner */}
-      <div className="bg-blue-50/60 border border-blue-100 rounded-xl p-4 flex gap-3 shadow-sm">
+      <div className="bg-blue-50/70 border border-blue-100 rounded-xl p-4 flex gap-3">
         <Shield className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
         <div className="space-y-0.5">
           <h4 className="text-xs font-bold text-blue-900">Regulatory Compliance</h4>
