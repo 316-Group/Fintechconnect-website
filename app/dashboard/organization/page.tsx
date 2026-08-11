@@ -732,7 +732,7 @@ export default function DashboardPage() {
           <h2 className="text-3xl font-extrabold text-blue-700">
             Design Kit
           </h2>
-          <p className="text-medium text-slate-600 leading-relaxed mt-12 mb-8 max-w-md">
+          <p className="text-lg text-slate-600 leading-relaxed mt-12 mb-8 max-w-md">
             Our modular UI library provides pre-built, accessible components
             designed specifically for high-trust financial interfaces. Maintain brand
             consistency while shipping faster.
