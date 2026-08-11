@@ -145,64 +145,60 @@ export default function OrganizationLayout({
           </h2>
 
           {/* Stepper with connecting line */}
-          <div className="relative space-y-6 mb-8">
-            {ONBOARDING_STEPS.map((step, idx) => {
-              const isCompleted = step.id < currentStepIndex;
-              const isCurrent = step.id === currentStepIndex;
-              const isLast = idx === ONBOARDING_STEPS.length - 1;
+<div className="relative space-y-12 mb-8">
+  {ONBOARDING_STEPS.map((step, idx) => {
+    const isCompleted = step.id < currentStepIndex;
+    const isCurrent = step.id === currentStepIndex;
+    const isLast = idx === ONBOARDING_STEPS.length - 1;
 
-              return (
-                <div key={step.id} className="relative">
-                  {!isLast && (
-                    <span
-                      className={`absolute left-3.5 top-7 bottom-0 w-px -ml-[0.5px] ${
-                        isCompleted ? "bg-blue-600" : "bg-slate-200"
-                      }`}
-                      style={{ height: "calc(100% + 4px)" }}
-                    />
-                  )}
+    return (
+      <div key={step.id} className="relative">
+        {/* Centered Connecting Line */}
+{!isLast && (
+  <span className="absolute left-4 top-8 h-[calc(100%+24px)] w-px -translate-x-1/2 bg-slate-200" />
+)}
 
-                  <Link
-                    href={step.href}
-                    className="flex items-start gap-3 group relative z-10"
-                  >
-                    <div
-                      className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold transition-all shrink-0 ${
-                        isCompleted
-                          ? "bg-blue-600 text-white"
-                          : isCurrent
-                          ? "bg-blue-100 text-blue-600 font-bold"
-                          : "bg-slate-200/80 text-slate-500"
-                      }`}
-                    >
-                      {isCompleted ? (
-                        <Check className="w-3.5 h-3.5 stroke-[3]" />
-                      ) : (
-                        step.id
-                      )}
-                    </div>
-
-                    <div className="flex flex-col pt-2.5">
-                      <span className="text-[10px] font-semibold text-slate-400 leading-none mb-1">
-                        Step {step.id}
-                      </span>
-                      <span
-                        className={`text-medium font-bold leading-tight ${
-                          isCurrent
-                            ? "text-blue-600"
-                            : isCompleted
-                            ? "text-slate-800"
-                            : "text-slate-700 group-hover:text-slate-900"
-                        }`}
-                      >
-                        {step.title}
-                      </span>
-                    </div>
-                  </Link>
-                </div>
-              );
-            })}
+        <Link
+          href={step.href}
+          className="flex items-center gap-3.5 group relative z-10"
+        >
+          {/* Circular Badge */}
+          <div
+            className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-all shrink-0 ${
+              isCompleted
+                ? "bg-blue-600 text-white"
+                : isCurrent
+                ? "bg-blue-100 text-blue-600"
+                : "bg-blue-50/80 text-blue-300"
+            }`}
+          >
+            {isCompleted ? (
+              <Check className="w-4 h-4 stroke-[3]" />
+            ) : (
+              step.id
+            )}
           </div>
+
+          {/* Text Labels */}
+          <div className="flex flex-col justify-center">
+            <span className="text-sm font-semibold text-slate-700 leading-tight">
+              Step {step.id}
+            </span>
+            <span
+              className={`text-sm font-bold leading-tight ${
+                isCompleted || isCurrent
+                  ? "text-blue-600"
+                  : "text-slate-900 group-hover:text-black"
+              }`}
+            >
+              {step.title}
+            </span>
+          </div>
+        </Link>
+      </div>
+    );
+  })}
+</div>
 
           {/* Save Progress & Current Status Box */}
           <div className="space-y-3">
