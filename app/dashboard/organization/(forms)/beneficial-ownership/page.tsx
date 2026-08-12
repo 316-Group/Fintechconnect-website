@@ -8,21 +8,12 @@ import {
   Users,
   PieChart,
   Minus,
-  X,
 } from "lucide-react";
 import Link from "next/link";
+import BeneficiaryModal, { OwnerFormData } from "./beneficiarymodal";
+import SignatoryModal, { SignatoryFormData } from "./signatorymodal";
 
 const STORAGE_KEY_FORM = "beneficial_ownership_form";
-
-const INITIAL_OWNER_FORM = {
-  fullName: "",
-  officialRole: "",
-  ownershipStake: "",
-  country: "",
-  dob: "",
-  idNumber: "",
-  ownershipType: "Direct", // 'Direct' | 'Indirect'
-};
 
 export default function BeneficialOwnership() {
   const [openSections, setOpenSections] = useState({
@@ -39,9 +30,9 @@ export default function BeneficialOwnership() {
   const [signatories, setSignatories] = useState<any[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
 
-  // Modal State
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [ownerForm, setOwnerForm] = useState(INITIAL_OWNER_FORM);
+  // Modal Visibility State
+  const [isOwnerModalOpen, setIsOwnerModalOpen] = useState(false);
+  const [isSignatoryModalOpen, setIsSignatoryModalOpen] = useState(false);
 
   // Load state from localStorage on mount
   useEffect(() => {
@@ -77,36 +68,35 @@ export default function BeneficialOwnership() {
     setOpenSections((prev) => ({ ...prev, [section]: !prev[section] }));
   };
 
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-  ) => {
-    const { name, value } = e.target;
-    setOwnerForm((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleSaveOwner = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!ownerForm.fullName) return;
-
+  // Beneficial Owner Handlers
+  const handleAddOwner = (ownerData: OwnerFormData) => {
     setBeneficialOwners((prev) => [
       ...prev,
       {
         id: `owner-${Date.now()}`,
-        ...ownerForm,
-        ownershipStake: parseFloat(ownerForm.ownershipStake) || 0,
+        ...ownerData,
+        ownershipStake: parseFloat(ownerData.ownershipStake) || 0,
       },
     ]);
-
-    // Reset and close modal
-    setOwnerForm(INITIAL_OWNER_FORM);
-    setIsModalOpen(false);
   };
 
-  const handleAddSignatory = () => {
+  const handleRemoveOwner = (id: string) => {
+    setBeneficialOwners((prev) => prev.filter((owner) => owner.id !== id));
+  };
+
+  // Authorized Signatory Handlers
+  const handleAddSignatory = (signatoryData: SignatoryFormData) => {
     setSignatories((prev) => [
       ...prev,
-      { id: `signatory-${Date.now()}`, name: "", role: "" },
+      {
+        id: `signatory-${Date.now()}`,
+        ...signatoryData,
+      },
     ]);
+  };
+
+  const handleRemoveSignatory = (id: string) => {
+    setSignatories((prev) => prev.filter((sig) => sig.id !== id));
   };
 
   // Calculate dynamic declared total
@@ -129,9 +119,9 @@ export default function BeneficialOwnership() {
           Beneficial Ownership &amp; Signatories
         </h1>
         <p className="text-sm text-slate-500 mt-1 max-w-2xl leading-relaxed">
-          Declare all individuals who ultimately own or control more than
-          25% of the entity. Regulatory compliance requires complete
-          transparency of your ownership structure.
+          Declare all individuals who ultimately own or control more than 25%
+          of the entity. Regulatory compliance requires complete transparency
+          of your ownership structure.
         </p>
       </div>
 
@@ -144,8 +134,8 @@ export default function BeneficialOwnership() {
           </h4>
           <p className="text-[11px] text-blue-700 leading-relaxed">
             To comply with Anti-Money Laundering (AML) regulations, we must
-            verify the identity of the Ultimate Beneficial Owners (UBOs)
-            who control or financially benefit from the company.
+            verify the identity of the Ultimate Beneficial Owners (UBOs) who
+            control or financially benefit from the company.
           </p>
         </div>
       </div>
@@ -229,7 +219,7 @@ export default function BeneficialOwnership() {
                   {beneficialOwners.map((owner) => (
                     <div
                       key={owner.id}
-                      className="flex justify-between items-center bg-slate-50 border border-slate-200 p-3 rounded-lg text-xs"
+                      className="group flex justify-between items-center bg-slate-50 border border-slate-200 p-3 rounded-lg text-xs hover:border-slate-300 transition-all"
                     >
                       <div>
                         <p className="font-bold text-slate-800">
@@ -239,9 +229,26 @@ export default function BeneficialOwnership() {
                           {owner.officialRole || "Owner"} &bull;{" "}
                           {owner.ownershipType} Ownership
                         </p>
+                        {(owner.country || owner.dob) && (
+                          <p className="text-slate-400 text-[11px] mt-0.5">
+                            {owner.country && `Residence: ${owner.country}`}
+                            {owner.country && owner.dob && " • "}
+                            {owner.dob && `DOB: ${owner.dob}`}
+                          </p>
+                        )}
                       </div>
-                      <div className="font-bold text-blue-600 text-sm">
-                        {owner.ownershipStake}%
+                      <div className="flex items-center gap-3">
+                        <div className="font-bold text-blue-600 text-sm">
+                          {owner.ownershipStake}%
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveOwner(owner.id)}
+                          className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-all cursor-pointer"
+                          title="Remove owner"
+                        >
+                          <Minus className="w-4 h-4" />
+                        </button>
                       </div>
                     </div>
                   ))}
@@ -272,7 +279,7 @@ export default function BeneficialOwnership() {
                 <div>
                   <button
                     type="button"
-                    onClick={() => setIsModalOpen(true)}
+                    onClick={() => setIsOwnerModalOpen(true)}
                     className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-4 py-2 rounded-md transition shadow-2xs cursor-pointer"
                   >
                     Add Entry
@@ -329,6 +336,43 @@ export default function BeneficialOwnership() {
 
           {openSections.signatories && (
             <div className="p-4 pt-2 space-y-4 border-t border-slate-100">
+              {/* List of Added Authorized Signatories */}
+              {signatories.length > 0 && (
+                <div className="space-y-2 mb-4">
+                  {signatories.map((sig) => (
+                    <div
+                      key={sig.id}
+                      className="group flex justify-between items-center bg-slate-50 border border-slate-200 p-3 rounded-lg text-xs hover:border-slate-300 transition-all"
+                    >
+                      <div>
+                        <p className="font-bold text-slate-800">
+                          {sig.fullName}
+                        </p>
+                        <p className="text-slate-500 text-[11px]">
+                          {sig.officialRole || "Signatory"}
+                        </p>
+                        {(sig.country || sig.dob) && (
+                          <p className="text-slate-400 text-[11px] mt-0.5">
+                            {sig.country && `Residence: ${sig.country}`}
+                            {sig.country && sig.dob && " • "}
+                            {sig.dob && `DOB: ${sig.dob}`}
+                          </p>
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveSignatory(sig.id)}
+                        className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-all cursor-pointer"
+                        title="Remove signatory"
+                      >
+                        <Minus className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Dashed Entry Box */}
               <div className="border border-dashed border-slate-300 rounded-lg p-5 bg-slate-50/20 space-y-4">
                 <div className="flex items-start justify-between">
                   <div className="flex items-start gap-3">
@@ -352,7 +396,7 @@ export default function BeneficialOwnership() {
                 <div>
                   <button
                     type="button"
-                    onClick={handleAddSignatory}
+                    onClick={() => setIsSignatoryModalOpen(true)}
                     className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-4 py-2 rounded-md transition shadow-2xs cursor-pointer"
                   >
                     Add Signatory
@@ -396,209 +440,20 @@ export default function BeneficialOwnership() {
         </div>
       </div>
 
-      {/* ================= ADD BENEFICIAL OWNER MODAL ================= */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs">
-          <div className="bg-white rounded-xl max-w-lg w-full p-6 shadow-xl relative space-y-6 border border-slate-100 animate-in fade-in zoom-in-95 duration-150">
-            {/* Modal Header */}
-            <div className="flex justify-between items-start">
-              <div>
-                <h3 className="text-lg font-bold text-slate-900">
-                  Add Beneficial Owner
-                </h3>
-                <p className="text-xs text-slate-500 mt-1">
-                  Provide details for individuals who own or control 25% or more
-                  of the entity.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsModalOpen(false)}
-                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg transition"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
+      {/* Beneficial Owner Modal */}
+      <BeneficiaryModal
+        isOpen={isOwnerModalOpen}
+        onClose={() => setIsOwnerModalOpen(false)}
+        onAddOwner={handleAddOwner}
+      />
 
-            {/* Modal Form */}
-            <form onSubmit={handleSaveOwner} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Full Name */}
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-700">
-                    Full Name
-                  </label>
-                  <input
-                    type="text"
-                    name="fullName"
-                    value={ownerForm.fullName}
-                    onChange={handleInputChange}
-                    placeholder="e.g. Jane Doe"
-                    required
-                    className="w-full border border-slate-200 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                  />
-                </div>
-
-                {/* Official Role */}
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-700">
-                    Official Role
-                  </label>
-                  <div className="relative">
-                    <select
-                      name="officialRole"
-                      value={ownerForm.officialRole}
-                      onChange={handleInputChange}
-                      className="w-full border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-700 appearance-none bg-white focus:outline-none focus:border-blue-500"
-                    >
-                      <option value="">Select role...</option>
-                      <option value="CEO">Chief Executive Officer (CEO)</option>
-                      <option value="Director">Director</option>
-                      <option value="Shareholder">Major Shareholder</option>
-                      <option value="Partner">Partner</option>
-                    </select>
-                    <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-3 top-3 pointer-events-none" />
-                  </div>
-                </div>
-
-                {/* Ownership Stake */}
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-700">
-                    Ownership Stake
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="number"
-                      step="0.01"
-                      name="ownershipStake"
-                      value={ownerForm.ownershipStake}
-                      onChange={handleInputChange}
-                      placeholder="0.00"
-                      className="w-full border border-slate-200 rounded-lg pl-3 pr-8 py-2 text-xs focus:outline-none focus:border-blue-500"
-                    />
-                    <span className="absolute right-3 top-2 text-xs font-semibold text-slate-400">
-                      %
-                    </span>
-                  </div>
-                </div>
-
-                {/* Country of Residence */}
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-700">
-                    Country of Residence
-                  </label>
-                  <div className="relative">
-                    <select
-                      name="country"
-                      value={ownerForm.country}
-                      onChange={handleInputChange}
-                      className="w-full border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-700 appearance-none bg-white focus:outline-none focus:border-blue-500"
-                    >
-                      <option value="">Select country...</option>
-                      <option value="US">United States</option>
-                      <option value="CA">Canada</option>
-                      <option value="GB">United Kingdom</option>
-                      <option value="AU">Australia</option>
-                    </select>
-                    <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-3 top-3 pointer-events-none" />
-                  </div>
-                </div>
-
-                {/* Date of Birth */}
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-700">
-                    Date of Birth
-                  </label>
-                  <input
-                    type="text"
-                    name="dob"
-                    value={ownerForm.dob}
-                    onChange={handleInputChange}
-                    placeholder="mm/dd/yyyy"
-                    className="w-full border border-slate-200 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-blue-500"
-                  />
-                </div>
-
-                {/* Identification Number */}
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-700">
-                    Identification Number
-                  </label>
-                  <input
-                    type="text"
-                    name="idNumber"
-                    value={ownerForm.idNumber}
-                    onChange={handleInputChange}
-                    placeholder="SSN, TIN, or Passport"
-                    className="w-full border border-slate-200 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-blue-500"
-                  />
-                </div>
-              </div>
-
-              {/* Ownership Type Segmented Toggle */}
-              <div className="space-y-1.5 pt-1">
-                <label className="text-xs font-bold text-slate-700">
-                  Ownership Type
-                </label>
-                <div className="bg-slate-100 p-1 rounded-xl flex gap-1">
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setOwnerForm((prev) => ({
-                        ...prev,
-                        ownershipType: "Direct",
-                      }))
-                    }
-                    className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all ${
-                      ownerForm.ownershipType === "Direct"
-                        ? "bg-white text-slate-800 shadow-xs"
-                        : "text-slate-500 hover:text-slate-700"
-                    }`}
-                  >
-                    Direct
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setOwnerForm((prev) => ({
-                        ...prev,
-                        ownershipType: "Indirect",
-                      }))
-                    }
-                    className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all ${
-                      ownerForm.ownershipType === "Indirect"
-                        ? "bg-white text-slate-800 shadow-xs"
-                        : "text-slate-500 hover:text-slate-700"
-                    }`}
-                  >
-                    Indirect
-                  </button>
-                </div>
-                <p className="text-[11px] text-slate-400 mt-1">
-                  Indirect ownership implies control through an intermediary entity or trust.
-                </p>
-              </div>
-
-              {/* Modal Actions */}
-              <div className="flex justify-end items-center gap-3 pt-4 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 border border-slate-200 rounded-lg text-xs font-bold text-slate-600 hover:bg-slate-50 transition-colors cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg text-xs font-bold shadow-2xs transition-all cursor-pointer"
-                >
-                  Add Owner
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      {/* Signatory Modal */}
+      <SignatoryModal
+        isOpen={isSignatoryModalOpen}
+        onClose={() => setIsSignatoryModalOpen(false)}
+        onAddSignatory={handleAddSignatory}
+        existingOwners={beneficialOwners}
+      />
     </div>
   );
 }
