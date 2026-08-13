@@ -8,6 +8,8 @@ import {
   Users,
   PieChart,
   Minus,
+  Pencil,
+  X,
 } from "lucide-react";
 import Link from "next/link";
 import BeneficiaryModal, { OwnerFormData } from "./beneficiarymodal";
@@ -30,9 +32,11 @@ export default function BeneficialOwnership() {
   const [signatories, setSignatories] = useState<any[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
 
-  // Modal Visibility State
+  // Modal Visibility & Edit Target State
   const [isOwnerModalOpen, setIsOwnerModalOpen] = useState(false);
   const [isSignatoryModalOpen, setIsSignatoryModalOpen] = useState(false);
+  const [editingOwner, setEditingOwner] = useState<any | null>(null);
+  const [editingSignatory, setEditingSignatory] = useState<any | null>(null);
 
   // Load state from localStorage on mount
   useEffect(() => {
@@ -68,35 +72,105 @@ export default function BeneficialOwnership() {
     setOpenSections((prev) => ({ ...prev, [section]: !prev[section] }));
   };
 
-  // Beneficial Owner Handlers
-  const handleAddOwner = (ownerData: OwnerFormData) => {
-    setBeneficialOwners((prev) => [
-      ...prev,
-      {
-        id: `owner-${Date.now()}`,
-        ...ownerData,
-        ownershipStake: parseFloat(ownerData.ownershipStake) || 0,
-      },
-    ]);
+  // Beneficial Owner Handlers (Add & Edit)
+  const handleSaveOwner = (ownerData: OwnerFormData) => {
+    if (editingOwner) {
+      setBeneficialOwners((prev) =>
+        prev.map((owner) =>
+          owner.id === editingOwner.id
+            ? {
+                ...owner,
+                ...ownerData,
+                ownershipStake: parseFloat(ownerData.ownershipStake as any) || 0,
+              }
+            : owner
+        )
+      );
+    } else {
+      setBeneficialOwners((prev) => [
+        ...prev,
+        {
+          id: `owner-${Date.now()}`,
+          ...ownerData,
+          ownershipStake: parseFloat(ownerData.ownershipStake as any) || 0,
+        },
+      ]);
+    }
+    setEditingOwner(null);
+  };
+
+  const handleOpenEditOwner = (owner: any) => {
+    setEditingOwner(owner);
+    setIsOwnerModalOpen(true);
   };
 
   const handleRemoveOwner = (id: string) => {
     setBeneficialOwners((prev) => prev.filter((owner) => owner.id !== id));
   };
 
-  // Authorized Signatory Handlers
-  const handleAddSignatory = (signatoryData: SignatoryFormData) => {
-    setSignatories((prev) => [
-      ...prev,
-      {
-        id: `signatory-${Date.now()}`,
-        ...signatoryData,
-      },
-    ]);
+  // Authorized Signatory Handlers (Add & Edit)
+  const handleSaveSignatory = (signatoryData: SignatoryFormData) => {
+    if (editingSignatory) {
+      setSignatories((prev) =>
+        prev.map((sig) =>
+          sig.id === editingSignatory.id
+            ? {
+                ...sig,
+                ...signatoryData,
+              }
+            : sig
+        )
+      );
+    } else {
+      setSignatories((prev) => [
+        ...prev,
+        {
+          id: `signatory-${Date.now()}`,
+          ...signatoryData,
+        },
+      ]);
+    }
+    setEditingSignatory(null);
+  };
+
+  const handleOpenEditSignatory = (signatory: any) => {
+    setEditingSignatory(signatory);
+    setIsSignatoryModalOpen(true);
   };
 
   const handleRemoveSignatory = (id: string) => {
     setSignatories((prev) => prev.filter((sig) => sig.id !== id));
+  };
+
+  // Helper function to render all dynamic properties of an owner/signatory
+  const renderDetails = (item: Record<string, any>, excludeKeys: string[]) => {
+    const entries = Object.entries(item).filter(
+      ([key, val]) =>
+        !excludeKeys.includes(key) &&
+        val !== undefined &&
+        val !== null &&
+        val !== ""
+    );
+
+    if (entries.length === 0) return null;
+
+    return (
+      <div className="mt-3 pt-2.5 border-t border-slate-200/80 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-1.5 text-[11px]">
+        {entries.map(([key, val]) => {
+          const label = key
+            .replace(/([A-Z])/g, " $1")
+            .replace(/^./, (str) => str.toUpperCase());
+          return (
+            <div key={key} className="flex items-center gap-1.5 overflow-hidden">
+              <span className="font-semibold text-slate-400 shrink-0">{label}:</span>
+              <span className="font-medium text-slate-700 truncate">
+                {typeof val === "boolean" ? (val ? "Yes" : "No") : String(val)}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    );
   };
 
   // Calculate dynamic declared total
@@ -215,41 +289,58 @@ export default function BeneficialOwnership() {
             <div className="p-4 pt-2 space-y-4 border-t border-slate-100">
               {/* List of Added Beneficial Owners */}
               {beneficialOwners.length > 0 && (
-                <div className="space-y-2 mb-4">
+                <div className="space-y-3 mb-4">
                   {beneficialOwners.map((owner) => (
                     <div
                       key={owner.id}
-                      className="group flex justify-between items-center bg-slate-50 border border-slate-200 p-3 rounded-lg text-xs hover:border-slate-300 transition-all"
+                      className="group bg-slate-50 border border-slate-200 p-3.5 rounded-lg text-xs hover:border-slate-300 transition-all flex flex-col"
                     >
-                      <div>
-                        <p className="font-bold text-slate-800">
-                          {owner.fullName}
-                        </p>
-                        <p className="text-slate-500 text-[11px]">
-                          {owner.officialRole || "Owner"} &bull;{" "}
-                          {owner.ownershipType} Ownership
-                        </p>
-                        {(owner.country || owner.dob) && (
-                          <p className="text-slate-400 text-[11px] mt-0.5">
-                            {owner.country && `Residence: ${owner.country}`}
-                            {owner.country && owner.dob && " • "}
-                            {owner.dob && `DOB: ${owner.dob}`}
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <p className="font-bold text-slate-800 text-sm">
+                            {owner.fullName}
                           </p>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <div className="font-bold text-blue-600 text-sm">
-                          {owner.ownershipStake}%
+                          <p className="text-slate-500 text-[11px]">
+                            {owner.officialRole || "Owner"} &bull;{" "}
+                            {owner.ownershipType} Ownership
+                          </p>
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveOwner(owner.id)}
-                          className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-all cursor-pointer"
-                          title="Remove owner"
-                        >
-                          <Minus className="w-4 h-4" />
-                        </button>
+
+                        <div className="flex items-center gap-2">
+                          <div className="font-bold text-blue-600 text-sm mr-1">
+                            {owner.ownershipStake}%
+                          </div>
+
+                          {/* Edit Button */}
+                          <button
+                            type="button"
+                            onClick={() => handleOpenEditOwner(owner)}
+                            className="p-1 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-all cursor-pointer"
+                            title="Edit owner"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                          </button>
+
+                          {/* Red X Delete Icon on Hover */}
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveOwner(owner.id)}
+                            className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-all cursor-pointer"
+                            title="Remove owner"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
                       </div>
+
+                      {/* Display All Remaining Information dynamically */}
+                      {renderDetails(owner, [
+                        "id",
+                        "fullName",
+                        "officialRole",
+                        "ownershipType",
+                        "ownershipStake",
+                      ])}
                     </div>
                   ))}
                 </div>
@@ -279,7 +370,10 @@ export default function BeneficialOwnership() {
                 <div>
                   <button
                     type="button"
-                    onClick={() => setIsOwnerModalOpen(true)}
+                    onClick={() => {
+                      setEditingOwner(null);
+                      setIsOwnerModalOpen(true);
+                    }}
                     className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-4 py-2 rounded-md transition shadow-2xs cursor-pointer"
                   >
                     Add Entry
@@ -338,35 +432,47 @@ export default function BeneficialOwnership() {
             <div className="p-4 pt-2 space-y-4 border-t border-slate-100">
               {/* List of Added Authorized Signatories */}
               {signatories.length > 0 && (
-                <div className="space-y-2 mb-4">
+                <div className="space-y-3 mb-4">
                   {signatories.map((sig) => (
                     <div
                       key={sig.id}
-                      className="group flex justify-between items-center bg-slate-50 border border-slate-200 p-3 rounded-lg text-xs hover:border-slate-300 transition-all"
+                      className="group bg-slate-50 border border-slate-200 p-3.5 rounded-lg text-xs hover:border-slate-300 transition-all flex flex-col"
                     >
-                      <div>
-                        <p className="font-bold text-slate-800">
-                          {sig.fullName}
-                        </p>
-                        <p className="text-slate-500 text-[11px]">
-                          {sig.officialRole || "Signatory"}
-                        </p>
-                        {(sig.country || sig.dob) && (
-                          <p className="text-slate-400 text-[11px] mt-0.5">
-                            {sig.country && `Residence: ${sig.country}`}
-                            {sig.country && sig.dob && " • "}
-                            {sig.dob && `DOB: ${sig.dob}`}
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <p className="font-bold text-slate-800 text-sm">
+                            {sig.fullName}
                           </p>
-                        )}
+                          <p className="text-slate-500 text-[11px]">
+                            {sig.officialRole || "Signatory"}
+                          </p>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          {/* Edit Button */}
+                          <button
+                            type="button"
+                            onClick={() => handleOpenEditSignatory(sig)}
+                            className="p-1 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-all cursor-pointer"
+                            title="Edit signatory"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                          </button>
+
+                          {/* Red X Delete Icon on Hover */}
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveSignatory(sig.id)}
+                            className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-all cursor-pointer"
+                            title="Remove signatory"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveSignatory(sig.id)}
-                        className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-all cursor-pointer"
-                        title="Remove signatory"
-                      >
-                        <Minus className="w-4 h-4" />
-                      </button>
+
+                      {/* Display All Remaining Information dynamically */}
+                      {renderDetails(sig, ["id", "fullName", "officialRole"])}
                     </div>
                   ))}
                 </div>
@@ -396,7 +502,10 @@ export default function BeneficialOwnership() {
                 <div>
                   <button
                     type="button"
-                    onClick={() => setIsSignatoryModalOpen(true)}
+                    onClick={() => {
+                      setEditingSignatory(null);
+                      setIsSignatoryModalOpen(true);
+                    }}
                     className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-4 py-2 rounded-md transition shadow-2xs cursor-pointer"
                   >
                     Add Signatory
@@ -443,17 +552,30 @@ export default function BeneficialOwnership() {
       {/* Beneficial Owner Modal */}
       <BeneficiaryModal
         isOpen={isOwnerModalOpen}
-        onClose={() => setIsOwnerModalOpen(false)}
-        onAddOwner={handleAddOwner}
+        onClose={() => {
+          setIsOwnerModalOpen(false);
+          setEditingOwner(null);
+        }}
+        onAddOwner={handleSaveOwner}
+        initialData={editingOwner}
       />
 
       {/* Signatory Modal */}
-      <SignatoryModal
-        isOpen={isSignatoryModalOpen}
-        onClose={() => setIsSignatoryModalOpen(false)}
-        onAddSignatory={handleAddSignatory}
-        existingOwners={beneficialOwners}
-      />
+      {(() => {
+        const SignatoryModalAny = SignatoryModal as any;
+        return (
+          <SignatoryModalAny
+            isOpen={isSignatoryModalOpen}
+            onClose={() => {
+              setIsSignatoryModalOpen(false);
+              setEditingSignatory(null);
+            }}
+            onAddSignatory={handleSaveSignatory}
+            existingOwners={beneficialOwners}
+            initialData={editingSignatory}
+          />
+        );
+      })()}
     </div>
   );
 }

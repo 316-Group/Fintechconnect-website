@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { ChevronDown, X } from "lucide-react";
 
 export interface OwnerFormData {
@@ -16,13 +16,14 @@ export interface OwnerFormData {
 interface BeneficiaryModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onAddOwner: (ownerData: OwnerFormData) => void;
+  onAddOwner: (owner: OwnerFormData) => void;
+  initialData?: OwnerFormData | null; // Added prop for editing
 }
 
 const INITIAL_OWNER_FORM: OwnerFormData = {
   fullName: "",
   officialRole: "",
-  ownershipStake: "",
+  ownershipStake: "25", // Default value set to 25%
   country: "",
   dob: "",
   idNumber: "",
@@ -33,8 +34,28 @@ export default function BeneficiaryModal({
   isOpen,
   onClose,
   onAddOwner,
+  initialData,
 }: BeneficiaryModalProps) {
   const [ownerForm, setOwnerForm] = useState<OwnerFormData>(INITIAL_OWNER_FORM);
+
+  // Sync state whenever the modal opens or initialData changes
+  useEffect(() => {
+    if (isOpen) {
+      if (initialData) {
+        setOwnerForm({
+          fullName: initialData.fullName || "",
+          officialRole: initialData.officialRole || "",
+          ownershipStake: String(initialData.ownershipStake ?? "25"),
+          country: initialData.country || "",
+          dob: initialData.dob || "",
+          idNumber: initialData.idNumber || "",
+          ownershipType: initialData.ownershipType || "Direct",
+        });
+      } else {
+        setOwnerForm(INITIAL_OWNER_FORM);
+      }
+    }
+  }, [isOpen, initialData]);
 
   if (!isOpen) return null;
 
@@ -45,9 +66,20 @@ export default function BeneficiaryModal({
     setOwnerForm((prev) => ({ ...prev, [name]: value }));
   };
 
+  // Enforce minimum limit of 25% when leaving the field
+  const handleOwnershipBlur = () => {
+    const val = parseFloat(ownerForm.ownershipStake);
+    if (isNaN(val) || val < 25) {
+      setOwnerForm((prev) => ({ ...prev, ownershipStake: "25" }));
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!ownerForm.fullName) return;
+    const stake = parseFloat(ownerForm.ownershipStake);
+
+    // Prevent submission if name is missing or ownership stake is less than 25%
+    if (!ownerForm.fullName || isNaN(stake) || stake < 25) return;
 
     onAddOwner(ownerForm);
     setOwnerForm(INITIAL_OWNER_FORM);
@@ -61,7 +93,7 @@ export default function BeneficiaryModal({
         <div className="flex justify-between items-start">
           <div>
             <h3 className="text-lg font-bold text-slate-900">
-              Add Beneficial Owner
+              {initialData ? "Edit Beneficial Owner" : "Add Beneficial Owner"}
             </h3>
             <p className="text-xs text-slate-500 mt-1">
               Provide details for individuals who own or control 25% or more of
@@ -121,16 +153,20 @@ export default function BeneficiaryModal({
             {/* Ownership Stake */}
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-slate-700">
-                Ownership Stake
+                Ownership Stake <span className="text-slate-400 font-normal">(Min. 25%)</span>
               </label>
               <div className="relative">
                 <input
                   type="number"
                   step="0.01"
+                  min="25"
+                  max="100"
                   name="ownershipStake"
                   value={ownerForm.ownershipStake}
                   onChange={handleInputChange}
-                  placeholder="0.00"
+                  onBlur={handleOwnershipBlur}
+                  placeholder="25.00"
+                  required
                   className="w-full border border-slate-200 rounded-lg pl-3 pr-8 py-2 text-xs focus:outline-none focus:border-blue-500"
                 />
                 <span className="absolute right-3 top-2 text-xs font-semibold text-slate-400">
@@ -250,7 +286,7 @@ export default function BeneficiaryModal({
               type="submit"
               className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg text-xs font-bold shadow-2xs transition-all cursor-pointer"
             >
-              Add Owner
+              {initialData ? "Save Changes" : "Add Owner"}
             </button>
           </div>
         </form>
