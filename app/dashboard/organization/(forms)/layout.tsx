@@ -9,9 +9,9 @@ const NAV_ITEMS = [
   { label: "Dashboard", href: "/dashboard/organization" },
   { label: "Organization", href: "/dashboard/organization/businessidentity" },
   { label: "Compliance", href: "/dashboard/organization/regulatorycompliance" },
-  { label: "Verification & KYB", href: "/dashboard/organization/verification" },
   { label: "Beneficial Ownership", href: "/dashboard/organization/beneficial-ownership" },
   { label: "Documents", href: "/dashboard/organization/documents" },
+  { label: "Verification & KYB", href: "/dashboard/organization/verification" },
   { label: "Review", href: "/dashboard/organization/review" },
 ];
 
@@ -26,20 +26,21 @@ const ONBOARDING_STEPS = [
     title: "Compliance",
     href: "/dashboard/organization/regulatorycompliance",
   },
+  
   {
     id: 3,
-    title: "Verification",
-    href: "/dashboard/organization/verification",
-  },
-  {
-    id: 4,
     title: "Beneficial Ownership",
     href: "/dashboard/organization/beneficial-ownership",
   },
   {
-    id: 5,
+    id: 4,
     title: "Documents",
     href: "/dashboard/organization/documents",
+  },
+  {
+    id: 5,
+    title: "Verification",
+    href: "/dashboard/organization/verification",
   },
   {
     id: 6,

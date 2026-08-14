@@ -8,12 +8,83 @@ import {
   User, 
   Building, 
   X, 
-  Shield 
+  Shield,
+  Globe 
 } from "lucide-react";
 import Link from "next/link";
 
 const STORAGE_KEY_FORM = "regulatory_compliance_form";
 const STORAGE_KEY_JURISDICTIONS = "regulatory_compliance_jurisdictions";
+
+// Cross-platform vector flag renderer
+function CountryFlag({ country }: { country: string }) {
+  switch (country) {
+    case "United Kingdom":
+      return (
+        <span className="w-4 h-3 rounded-xs overflow-hidden flex shrink-0 border border-slate-300">
+          <svg viewBox="0 0 60 30" className="w-full h-full">
+            <clipPath id="s1_compliance">
+              <path d="M0,0 v30 h60 v-30 z" />
+            </clipPath>
+            <clipPath id="t1_compliance">
+              <path d="M30,15 L60,30H45L15,15L0,30H-15L15,15L-15,0H0L30,15L45,0H60z" />
+            </clipPath>
+            <g clipPath="url(#s1_compliance)">
+              <path d="M0,0 v30 h60 v-30 z" fill="#012169" />
+              <path d="M0,0 L60,30 M60,0 L0,30" stroke="#fff" strokeWidth="6" />
+              <path d="M0,0 L60,30 M60,0 L0,30" clipPath="url(#t1_compliance)" stroke="#C8102E" strokeWidth="4" />
+              <path d="M30,0 v30 M0,15 h60" stroke="#fff" strokeWidth="10" />
+              <path d="M30,0 v30 M0,15 h60" stroke="#C8102E" strokeWidth="6" />
+            </g>
+          </svg>
+        </span>
+      );
+
+    case "European Union":
+      return (
+        <span className="w-4 h-3 rounded-xs bg-[#003399] overflow-hidden flex items-center justify-center shrink-0 border border-slate-300">
+          <span className="text-[7px] text-yellow-400 font-bold leading-none">★</span>
+        </span>
+      );
+
+    case "Kenya":
+      return (
+        <span className="w-4 h-3 rounded-xs overflow-hidden flex flex-col shrink-0 border border-slate-300">
+          <span className="h-1/3 bg-black w-full" />
+          <span className="h-1/3 bg-[#990000] w-full" />
+          <span className="h-1/3 bg-[#006600] w-full" />
+        </span>
+      );
+
+    case "USA":
+    case "United States":
+      return (
+        <span className="w-4 h-3 rounded-xs overflow-hidden flex flex-col shrink-0 border border-slate-300 bg-[#B22234] relative">
+          <span className="absolute top-0 left-0 w-1/2 h-1/2 bg-[#3C3B6E] flex items-center justify-center text-[5px] text-white">
+            ★
+          </span>
+          <span className="h-[20%] bg-white w-full mt-[20%]" />
+          <span className="h-[20%] bg-white w-full mt-[20%]" />
+        </span>
+      );
+
+    case "Nigeria":
+      return (
+        <span className="w-4 h-3 rounded-xs overflow-hidden flex shrink-0 border border-slate-300">
+          <span className="w-1/3 bg-[#008751] h-full" />
+          <span className="w-1/3 bg-white h-full" />
+          <span className="w-1/3 bg-[#008751] h-full" />
+        </span>
+      );
+
+    default:
+      return (
+        <span className="w-4 h-3 rounded-xs bg-slate-200 flex items-center justify-center shrink-0 border border-slate-300">
+          <Globe className="w-2.5 h-2.5 text-slate-500" />
+        </span>
+      );
+  }
+}
 
 export default function RegulatoryCompliance() {
   const [formData, setFormData] = useState({
@@ -95,14 +166,6 @@ export default function RegulatoryCompliance() {
 
   const removeJurisdiction = (country: string) => {
     setSelectedJurisdictions((prev) => prev.filter((item) => item !== country));
-  };
-
-  const flags: Record<string, string> = {
-    "United Kingdom": "🇬🇧",
-    "European Union": "🇪🇺",
-    "Kenya": "🇰🇪",
-    "USA": "🇺🇸",
-    "Nigeria": "🇳🇬"
   };
 
   return (
@@ -240,26 +303,27 @@ export default function RegulatoryCompliance() {
                 </option>
                 {ALL_JURISDICTIONS.filter((country) => !selectedJurisdictions.includes(country)).map((country) => (
                   <option key={country} value={country}>
-                    {flags[country] || "🌐"} {country}
+                    {country}
                   </option>
                 ))}
               </select>
               <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
             </div>
 
+            {/* Selected Jurisdiction Badges with SVG Flags */}
             {selectedJurisdictions.length > 0 && (
               <div className="flex flex-wrap gap-2 pt-1">
                 {selectedJurisdictions.map((country) => (
                   <span
                     key={country}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 rounded-md text-xs font-medium text-slate-700 shadow-2xs"
+                    className="inline-flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 rounded-md text-xs font-medium text-slate-700 shadow-2xs"
                   >
-                    <span>{flags[country] || "🌐"}</span>
+                    <CountryFlag country={country} />
                     <span>{country}</span>
                     <button
                       type="button"
                       onClick={() => removeJurisdiction(country)}
-                      className="text-slate-400 hover:text-slate-600 transition-colors ml-0.5"
+                      className="text-slate-400 hover:text-slate-600 transition-colors ml-0.5 cursor-pointer"
                       aria-label={`Remove ${country}`}
                     >
                       <X className="w-3.5 h-3.5" />

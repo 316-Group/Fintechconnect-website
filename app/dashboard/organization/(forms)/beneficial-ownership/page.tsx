@@ -72,8 +72,27 @@ export default function BeneficialOwnership() {
     setOpenSections((prev) => ({ ...prev, [section]: !prev[section] }));
   };
 
+  // Calculate dynamic declared total (capped visually at 100 max)
+  const rawTotalDeclaredStake = beneficialOwners.reduce(
+    (acc, owner) => acc + (Number(owner.ownershipStake) || 0),
+    0
+  );
+  const totalDeclaredStake = Math.min(rawTotalDeclaredStake, 100);
+
+  // Calculate max allowable stake for current modal context (Adding vs Editing)
+  const totalStakeExcludingCurrent = beneficialOwners.reduce(
+    (acc, owner) =>
+      acc + (owner.id === editingOwner?.id ? 0 : Number(owner.ownershipStake) || 0),
+    0
+  );
+  const maxAllowedStake = Math.max(0, 100 - totalStakeExcludingCurrent);
+
   // Beneficial Owner Handlers (Add & Edit)
   const handleSaveOwner = (ownerData: OwnerFormData) => {
+    const rawStake = parseFloat(ownerData.ownershipStake as any) || 0;
+    // Cap stake so cumulative total never exceeds 100%
+    const clampedStake = Math.min(rawStake, maxAllowedStake);
+
     if (editingOwner) {
       setBeneficialOwners((prev) =>
         prev.map((owner) =>
@@ -81,7 +100,7 @@ export default function BeneficialOwnership() {
             ? {
                 ...owner,
                 ...ownerData,
-                ownershipStake: parseFloat(ownerData.ownershipStake as any) || 0,
+                ownershipStake: clampedStake,
               }
             : owner
         )
@@ -92,7 +111,7 @@ export default function BeneficialOwnership() {
         {
           id: `owner-${Date.now()}`,
           ...ownerData,
-          ownershipStake: parseFloat(ownerData.ownershipStake as any) || 0,
+          ownershipStake: clampedStake,
         },
       ]);
     }
@@ -173,12 +192,6 @@ export default function BeneficialOwnership() {
     );
   };
 
-  // Calculate dynamic declared total
-  const totalDeclaredStake = beneficialOwners.reduce(
-    (acc, owner) => acc + (Number(owner.ownershipStake) || 0),
-    0
-  );
-
   return (
     <div className="w-full mx-auto space-y-6 font-sans text-slate-800 relative">
       {/* Breadcrumb & Header */}
@@ -245,7 +258,7 @@ export default function BeneficialOwnership() {
         <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
           <div
             className="bg-blue-600 h-full transition-all duration-300"
-            style={{ width: `${Math.min(totalDeclaredStake, 100)}%` }}
+            style={{ width: `${totalDeclaredStake}%` }}
           />
         </div>
 
@@ -370,13 +383,14 @@ export default function BeneficialOwnership() {
                 <div>
                   <button
                     type="button"
+                    disabled={maxAllowedStake < 25}
                     onClick={() => {
                       setEditingOwner(null);
                       setIsOwnerModalOpen(true);
                     }}
-                    className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-4 py-2 rounded-md transition shadow-2xs cursor-pointer"
+                    className="bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white text-xs font-semibold px-4 py-2 rounded-md transition shadow-2xs cursor-pointer"
                   >
-                    Add Entry
+                    {maxAllowedStake < 25 ? "100% Limit Reached" : "Add Entry"}
                   </button>
                 </div>
               </div>
@@ -558,6 +572,7 @@ export default function BeneficialOwnership() {
         }}
         onAddOwner={handleSaveOwner}
         initialData={editingOwner}
+        maxAllowedStake={maxAllowedStake}
       />
 
       {/* Signatory Modal */}

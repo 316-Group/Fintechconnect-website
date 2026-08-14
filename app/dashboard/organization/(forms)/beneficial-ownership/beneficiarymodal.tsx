@@ -17,13 +17,14 @@ interface BeneficiaryModalProps {
   isOpen: boolean;
   onClose: () => void;
   onAddOwner: (owner: OwnerFormData) => void;
-  initialData?: OwnerFormData | null; // Added prop for editing
+  initialData?: OwnerFormData | null;
+  maxAllowedStake?: number; // Added to enforce maximum cap up to 100%
 }
 
 const INITIAL_OWNER_FORM: OwnerFormData = {
   fullName: "",
   officialRole: "",
-  ownershipStake: "25", // Default value set to 25%
+  ownershipStake: "25",
   country: "",
   dob: "",
   idNumber: "",
@@ -35,6 +36,7 @@ export default function BeneficiaryModal({
   onClose,
   onAddOwner,
   initialData,
+  maxAllowedStake = 100,
 }: BeneficiaryModalProps) {
   const [ownerForm, setOwnerForm] = useState<OwnerFormData>(INITIAL_OWNER_FORM);
 
@@ -52,10 +54,15 @@ export default function BeneficiaryModal({
           ownershipType: initialData.ownershipType || "Direct",
         });
       } else {
-        setOwnerForm(INITIAL_OWNER_FORM);
+        // Default stake cap check (max allowed or default 25)
+        const defaultStake = Math.min(25, maxAllowedStake);
+        setOwnerForm({
+          ...INITIAL_OWNER_FORM,
+          ownershipStake: String(defaultStake),
+        });
       }
     }
-  }, [isOpen, initialData]);
+  }, [isOpen, initialData, maxAllowedStake]);
 
   if (!isOpen) return null;
 
@@ -66,20 +73,26 @@ export default function BeneficiaryModal({
     setOwnerForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  // Enforce minimum limit of 25% when leaving the field
+  // Enforce bounds (Min 25%, Max capped to total remaining limit)
   const handleOwnershipBlur = () => {
-    const val = parseFloat(ownerForm.ownershipStake);
+    let val = parseFloat(ownerForm.ownershipStake);
     if (isNaN(val) || val < 25) {
-      setOwnerForm((prev) => ({ ...prev, ownershipStake: "25" }));
+      val = 25;
     }
+    if (val > maxAllowedStake) {
+      val = maxAllowedStake;
+    }
+    setOwnerForm((prev) => ({ ...prev, ownershipStake: String(val) }));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const stake = parseFloat(ownerForm.ownershipStake);
 
-    // Prevent submission if name is missing or ownership stake is less than 25%
-    if (!ownerForm.fullName || isNaN(stake) || stake < 25) return;
+    // Prevent submission if required fields fail validation or stake exceeds cap
+    if (!ownerForm.fullName || isNaN(stake) || stake < 25 || stake > maxAllowedStake) {
+      return;
+    }
 
     onAddOwner(ownerForm);
     setOwnerForm(INITIAL_OWNER_FORM);
@@ -153,14 +166,17 @@ export default function BeneficiaryModal({
             {/* Ownership Stake */}
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-slate-700">
-                Ownership Stake <span className="text-slate-400 font-normal">(Min. 25%)</span>
+                Ownership Stake{" "}
+                <span className="text-slate-400 font-normal">
+                  (Min. 25%, Max. {maxAllowedStake}%)
+                </span>
               </label>
               <div className="relative">
                 <input
                   type="number"
                   step="0.01"
                   min="25"
-                  max="100"
+                  max={maxAllowedStake}
                   name="ownershipStake"
                   value={ownerForm.ownershipStake}
                   onChange={handleInputChange}

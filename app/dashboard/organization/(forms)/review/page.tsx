@@ -15,22 +15,48 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
-// LocalStorage Keys for all steps
-const KEYS = {
-  ORGANIZATION: "business_identity_form",
-  COMPLIANCE_FORM: "regulatory_compliance_form",
-  COMPLIANCE_JURISDICTIONS: "regulatory_compliance_jurisdictions",
-  BENEFICIAL_OWNERS: "beneficial_owners_form",
-  DOCUMENTS: "uploaded_documents_form",
+// Candidate keys to check in localStorage for each step
+const KEY_CANDIDATES = {
+  ORGANIZATION: [
+    "onboarding_business_identity", // Added exact key used by BusinessIdentity page
+    "business_identity_form",
+    "businessIdentity",
+    "organization_data",
+    "business_identity",
+  ],
+  COMPLIANCE_FORM: [
+    "regulatory_compliance_form",
+    "regulatoryCompliance",
+    "compliance_form",
+  ],
+  COMPLIANCE_JURISDICTIONS: [
+    "regulatory_compliance_jurisdictions",
+    "authorizedJurisdictions",
+    "jurisdictions",
+  ],
+  BENEFICIAL_OWNERS: [
+    "beneficial_ownership_form",
+    "beneficial_owners_form",
+    "beneficialOwners",
+    "ownership_form",
+  ],
+  DOCUMENTS: [
+    "uploaded_documents_form",
+    "uploadedDocuments",
+    "documents_form",
+  ],
 };
 
 interface OrganizationData {
   legalName?: string;
+  dbaName?: string;
   registrationNumber?: string;
   country?: string;
+  industry?: string;
   entityType?: string;
   taxId?: string;
   website?: string;
+  registeredAddress?: string;
 }
 
 interface ComplianceData {
@@ -44,8 +70,14 @@ interface ComplianceData {
 interface BeneficialOwner {
   fullName: string;
   officialRole: string;
-  ownershipStake: string;
+  ownershipStake: string | number;
   country: string;
+  ownershipType?: string;
+}
+
+interface Signatory {
+  fullName: string;
+  officialRole: string;
 }
 
 interface UploadedDoc {
@@ -58,29 +90,182 @@ export default function ReviewAndSubmit() {
   const [complianceData, setComplianceData] = useState<ComplianceData>({});
   const [jurisdictions, setJurisdictions] = useState<string[]>([]);
   const [beneficialOwners, setBeneficialOwners] = useState<BeneficialOwner[]>([]);
+  const [signatories, setSignatories] = useState<Signatory[]>([]);
+  const [ownersProvideLater, setOwnersProvideLater] = useState(false);
+  const [signatoriesProvideLater, setSignatoriesProvideLater] = useState(false);
   const [documents, setDocuments] = useState<UploadedDoc[]>([]);
 
   const [isDeclarationChecked, setIsDeclarationChecked] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Load stored data from all previous steps
+  // Helper to retrieve and parse data using multiple fallback keys
+  const getFromLocalStorage = (keys: string[]) => {
+    for (const key of keys) {
+      const item = localStorage.getItem(key);
+      if (item) {
+        try {
+          return JSON.parse(item);
+        } catch (e) {
+          console.warn(`Failed to parse localStorage key "${key}":`, e);
+        }
+      }
+    }
+    return null;
+  };
+
+  // Load and normalize stored data from all previous steps
   useEffect(() => {
     try {
-      const savedOrg = localStorage.getItem(KEYS.ORGANIZATION);
-      if (savedOrg) setOrgData(JSON.parse(savedOrg));
+      // 1. Business / Organization Data
+      const rawOrg = getFromLocalStorage(KEY_CANDIDATES.ORGANIZATION);
+      if (rawOrg) {
+        // Construct full street address from BusinessIdentity form fields
+        const addressParts = [
+          rawOrg.houseNumber,
+          rawOrg.streetName,
+          rawOrg.addressLine2,
+          rawOrg.town,
+          rawOrg.postCode,
+          rawOrg.addressCountry,
+        ].filter(Boolean);
 
-      const savedCompliance = localStorage.getItem(KEYS.COMPLIANCE_FORM);
-      if (savedCompliance) setComplianceData(JSON.parse(savedCompliance));
+        const formattedAddress =
+          addressParts.length > 0
+            ? addressParts.join(", ")
+            : rawOrg.registeredAddress || "";
 
-      const savedJurisdictions = localStorage.getItem(KEYS.COMPLIANCE_JURISDICTIONS);
-      if (savedJurisdictions) setJurisdictions(JSON.parse(savedJurisdictions));
+        setOrgData({
+          legalName:
+            rawOrg.legalName ||
+            rawOrg.legal_name ||
+            rawOrg.companyName ||
+            rawOrg.businessName ||
+            "",
+          dbaName: rawOrg.dbaName || rawOrg.dba_name || "",
+          registrationNumber:
+            rawOrg.registrationNumber ||
+            rawOrg.registration_number ||
+            rawOrg.regNumber ||
+            "",
+          country:
+            rawOrg.country ||
+            rawOrg.countryOfRegistration ||
+            rawOrg.registration_country ||
+            "",
+          industry: rawOrg.industry || rawOrg.industryCategory || "",
+          entityType: rawOrg.entityType || rawOrg.entity_type || "",
+          taxId: rawOrg.taxId || rawOrg.tax_id || rawOrg.tin || "",
+          website:
+            rawOrg.website || rawOrg.website_url || rawOrg.websiteUrl || "",
+          registeredAddress: formattedAddress,
+        });
+      }
 
-      const savedOwners = localStorage.getItem(KEYS.BENEFICIAL_OWNERS);
-      if (savedOwners) setBeneficialOwners(JSON.parse(savedOwners));
+      // 2. Regulatory Compliance Data
+      const rawCompliance = getFromLocalStorage(KEY_CANDIDATES.COMPLIANCE_FORM);
+      if (rawCompliance) {
+        setComplianceData({
+          regulatoryStatus:
+            rawCompliance.regulatoryStatus ||
+            rawCompliance.regulatory_status ||
+            rawCompliance.status ||
+            "",
+          primaryRegulator:
+            rawCompliance.primaryRegulator ||
+            rawCompliance.primary_regulator ||
+            rawCompliance.regulator ||
+            "",
+          licenseNumber:
+            rawCompliance.licenseNumber || rawCompliance.license_number || "",
+          provideLater:
+            rawCompliance.provideLater ?? rawCompliance.provide_later ?? false,
+          contactPerson:
+            rawCompliance.contactPerson ||
+            rawCompliance.contact_person ||
+            rawCompliance.complianceOfficer ||
+            "",
+        });
+      }
 
-      const savedDocs = localStorage.getItem(KEYS.DOCUMENTS);
-      if (savedDocs) setDocuments(JSON.parse(savedDocs));
+      // 3. Compliance Jurisdictions
+      const rawJurisdictions = getFromLocalStorage(
+        KEY_CANDIDATES.COMPLIANCE_JURISDICTIONS
+      );
+      if (rawJurisdictions) {
+        if (Array.isArray(rawJurisdictions)) {
+          setJurisdictions(rawJurisdictions);
+        } else if (
+          rawJurisdictions.jurisdictions &&
+          Array.isArray(rawJurisdictions.jurisdictions)
+        ) {
+          setJurisdictions(rawJurisdictions.jurisdictions);
+        }
+      }
+
+      // 4. Beneficial Owners & Authorized Signatories
+      const rawOwners = getFromLocalStorage(KEY_CANDIDATES.BENEFICIAL_OWNERS);
+      if (rawOwners) {
+        let ownerList: any[] = [];
+        let signatoryList: any[] = [];
+
+        if (Array.isArray(rawOwners)) {
+          ownerList = rawOwners;
+        } else {
+          if (Array.isArray(rawOwners.beneficialOwners)) {
+            ownerList = rawOwners.beneficialOwners;
+          } else if (Array.isArray(rawOwners.owners)) {
+            ownerList = rawOwners.owners;
+          }
+
+          if (Array.isArray(rawOwners.signatories)) {
+            signatoryList = rawOwners.signatories;
+          }
+
+          if (rawOwners.formData) {
+            setOwnersProvideLater(!!rawOwners.formData.ownersProvideLater);
+            setSignatoriesProvideLater(!!rawOwners.formData.signatoriesProvideLater);
+          }
+        }
+
+        setBeneficialOwners(
+          ownerList.map((o) => ({
+            fullName: o.fullName || o.full_name || o.name || "",
+            officialRole: o.officialRole || o.official_role || o.role || "",
+            ownershipStake:
+              o.ownershipStake ?? o.ownership_stake ?? o.stake ?? o.ownership ?? "",
+            country: o.country || o.nationality || "",
+            ownershipType: o.ownershipType || o.ownership_type || "",
+          }))
+        );
+
+        setSignatories(
+          signatoryList.map((s) => ({
+            fullName: s.fullName || s.full_name || s.name || "",
+            officialRole: s.officialRole || s.official_role || s.role || "",
+          }))
+        );
+      }
+
+      // 5. Supporting Documents
+      const rawDocs = getFromLocalStorage(KEY_CANDIDATES.DOCUMENTS);
+      if (rawDocs) {
+        let list: any[] = [];
+        if (Array.isArray(rawDocs)) {
+          list = rawDocs;
+        } else if (Array.isArray(rawDocs.documents)) {
+          list = rawDocs.documents;
+        } else if (Array.isArray(rawDocs.files)) {
+          list = rawDocs.files;
+        }
+
+        setDocuments(
+          list.map((d) => ({
+            name: d.name || d.fileName || d.file_name || d.title || "Document",
+            status: d.status || (d.uploaded ? "uploaded" : "pending"),
+          }))
+        );
+      }
     } catch (error) {
       console.error("Failed to load submission review data:", error);
     } finally {
@@ -99,18 +284,18 @@ export default function ReviewAndSubmit() {
         authorizedJurisdictions: jurisdictions,
       },
       beneficialOwners,
+      signatories,
+      ownersProvideLater,
+      signatoriesProvideLater,
       documents,
       submittedAt: new Date().toISOString(),
     };
 
     console.log("Submitting Onboarding Data Payload:", payload);
 
-    // Simulate API request submission
     setTimeout(() => {
       setIsSubmitting(false);
       alert("Application submitted successfully!");
-      // Optionally redirect to success/dashboard page:
-      // window.location.href = "/dashboard";
     }, 1500);
   };
 
@@ -151,7 +336,7 @@ export default function ReviewAndSubmit() {
         </div>
       </div>
 
-      {/* Section 1: Organization Details */}
+      {/* Section 1: Business Identity */}
       <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-4">
         <div className="flex items-center justify-between border-b border-slate-100 pb-3">
           <div className="flex items-center gap-2.5">
@@ -178,44 +363,33 @@ export default function ReviewAndSubmit() {
             </span>
           </div>
           <div>
+            <span className="text-slate-400 block text-[11px]">DBA Name</span>
+            <span className="font-semibold text-slate-800">
+              {orgData.dbaName || "—"}
+            </span>
+          </div>
+          <div>
             <span className="text-slate-400 block text-[11px]">Registration Number</span>
             <span className="font-semibold text-slate-800">
               {orgData.registrationNumber || "—"}
             </span>
           </div>
           <div>
-            <span className="text-slate-400 block text-[11px]">Country of Registration</span>
+            <span className="text-slate-400 block text-[11px]">Country of Incorporation</span>
             <span className="font-semibold text-slate-800">
               {orgData.country || "—"}
             </span>
           </div>
           <div>
-            <span className="text-slate-400 block text-[11px]">Entity Type</span>
-            <span className="font-semibold text-slate-800">
-              {orgData.entityType || "—"}
+            <span className="text-slate-400 block text-[11px]">Industry Category</span>
+            <span className="font-semibold text-slate-800 capitalize">
+              {orgData.industry ? orgData.industry.replace("-", " ") : "—"}
             </span>
           </div>
-          <div>
-            <span className="text-slate-400 block text-[11px]">Tax Identification (TIN)</span>
+          <div className="md:col-span-3">
+            <span className="text-slate-400 block text-[11px]">Registered Office Address</span>
             <span className="font-semibold text-slate-800">
-              {orgData.taxId || "—"}
-            </span>
-          </div>
-          <div>
-            <span className="text-slate-400 block text-[11px]">Website URL</span>
-            <span className="font-semibold text-slate-800">
-              {orgData.website ? (
-                <a
-                  href={orgData.website}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-blue-600 hover:underline flex items-center gap-1"
-                >
-                  {orgData.website} <ExternalLink className="w-3 h-3" />
-                </a>
-              ) : (
-                "—"
-              )}
+              {orgData.registeredAddress || "—"}
             </span>
           </div>
         </div>
@@ -287,7 +461,7 @@ export default function ReviewAndSubmit() {
         </div>
       </div>
 
-      {/* Section 3: Beneficial Ownership */}
+      {/* Section 3: Beneficial Ownership & Signatories */}
       <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-4">
         <div className="flex items-center justify-between border-b border-slate-100 pb-3">
           <div className="flex items-center gap-2.5">
@@ -295,7 +469,7 @@ export default function ReviewAndSubmit() {
               <Users className="w-4 h-4" />
             </div>
             <h3 className="text-sm font-bold text-slate-800">
-              Beneficial Ownership
+              Beneficial Ownership &amp; Signatories
             </h3>
           </div>
           <Link
@@ -306,25 +480,61 @@ export default function ReviewAndSubmit() {
           </Link>
         </div>
 
-        {beneficialOwners.length > 0 ? (
-          <div className="divide-y divide-slate-100">
-            {beneficialOwners.map((owner, idx) => (
-              <div key={idx} className="py-2.5 flex items-center justify-between text-xs">
-                <div>
-                  <p className="font-bold text-slate-800">{owner.fullName}</p>
-                  <p className="text-slate-400 text-[11px]">{owner.officialRole}</p>
+        {/* Beneficial Owners Subsection */}
+        <div className="space-y-2">
+          <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+            Registered Owners
+          </h4>
+          {ownersProvideLater ? (
+            <p className="text-xs text-amber-600 font-medium">Marked as &quot;Do this later&quot;</p>
+          ) : beneficialOwners.length > 0 ? (
+            <div className="divide-y divide-slate-100">
+              {beneficialOwners.map((owner, idx) => (
+                <div key={idx} className="py-2.5 flex items-center justify-between text-xs">
+                  <div>
+                    <p className="font-bold text-slate-800">{owner.fullName || "—"}</p>
+                    <p className="text-slate-400 text-[11px]">
+                      {owner.officialRole || "—"}
+                      {owner.ownershipType ? ` • ${owner.ownershipType} Ownership` : ""}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <span className="inline-block px-2 py-0.5 bg-blue-50 text-blue-700 rounded text-[11px] font-bold">
+                      {owner.ownershipStake !== "" && owner.ownershipStake !== undefined
+                        ? `${owner.ownershipStake}% Ownership`
+                        : "—"}
+                    </span>
+                    <p className="text-slate-400 text-[11px] mt-0.5">{owner.country || "—"}</p>
+                  </div>
                 </div>
-                <div className="text-right">
-                  <span className="inline-block px-2 py-0.5 bg-blue-50 text-blue-700 rounded text-[11px] font-bold">
-                    {owner.ownershipStake}% Ownership
-                  </span>
-                  <p className="text-slate-400 text-[11px] mt-0.5">{owner.country}</p>
-                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-xs text-slate-400">No beneficial owners added.</p>
+          )}
+        </div>
+
+        {/* Authorized Signatories Subsection */}
+        {(signatories.length > 0 || signatoriesProvideLater) && (
+          <div className="pt-3 border-t border-slate-100 space-y-2">
+            <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+              Authorized Signatories
+            </h4>
+            {signatoriesProvideLater ? (
+              <p className="text-xs text-amber-600 font-medium">Marked as &quot;Do this later&quot;</p>
+            ) : (
+              <div className="divide-y divide-slate-100">
+                {signatories.map((sig, idx) => (
+                  <div key={idx} className="py-2 flex items-center justify-between text-xs">
+                    <div>
+                      <p className="font-bold text-slate-800">{sig.fullName || "—"}</p>
+                      <p className="text-slate-400 text-[11px]">{sig.officialRole || "—"}</p>
+                    </div>
+                  </div>
+                ))}
               </div>
-            ))}
+            )}
           </div>
-        ) : (
-          <p className="text-xs text-slate-400">No beneficial owners added.</p>
         )}
       </div>
 
