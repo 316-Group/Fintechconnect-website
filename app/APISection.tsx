@@ -95,9 +95,9 @@ export default function APISection() {
           </div>
 
           {/* Call To Action Button */}
-          <button className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-8 rounded-md transition-all shadow-sm text-sm active:scale-95">
+          <a href="/book-demo" className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-8 rounded-md transition-all shadow-sm text-sm active:scale-95">
             Book Demo
-          </button>
+          </a>
         </div>
 
         {/* RIGHT COLUMN: API Documentation & Graphic Showcase Placeholder */}

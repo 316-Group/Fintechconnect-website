@@ -1,5 +1,7 @@
 "use client";
 
+import ApplicationSuccess from "./Success";
+
 import React, { useState, useEffect } from "react";
 import {
   ShieldCheck,
@@ -10,7 +12,6 @@ import {
   Edit3,
   CheckCircle2,
   AlertCircle,
-  ExternalLink,
   ChevronRight,
 } from "lucide-react";
 import Link from "next/link";
@@ -18,7 +19,7 @@ import Link from "next/link";
 // Candidate keys to check in localStorage for each step
 const KEY_CANDIDATES = {
   ORGANIZATION: [
-    "onboarding_business_identity", // Added exact key used by BusinessIdentity page
+    "onboarding_business_identity",
     "business_identity_form",
     "businessIdentity",
     "organization_data",
@@ -86,6 +87,9 @@ interface UploadedDoc {
 }
 
 export default function ReviewAndSubmit() {
+  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [generatedId, setGeneratedId] = useState("23402");
+
   const [orgData, setOrgData] = useState<OrganizationData>({});
   const [complianceData, setComplianceData] = useState<ComplianceData>({});
   const [jurisdictions, setJurisdictions] = useState<string[]>([]);
@@ -120,7 +124,6 @@ export default function ReviewAndSubmit() {
       // 1. Business / Organization Data
       const rawOrg = getFromLocalStorage(KEY_CANDIDATES.ORGANIZATION);
       if (rawOrg) {
-        // Construct full street address from BusinessIdentity form fields
         const addressParts = [
           rawOrg.houseNumber,
           rawOrg.streetName,
@@ -295,7 +298,7 @@ export default function ReviewAndSubmit() {
 
     setTimeout(() => {
       setIsSubmitting(false);
-      alert("Application submitted successfully!");
+      setIsSubmitted(true);
     }, 1500);
   };
 
@@ -305,6 +308,11 @@ export default function ReviewAndSubmit() {
         Loading review details...
       </div>
     );
+  }
+
+  // Render Success Screen after form submission
+  if (isSubmitted) {
+    return <ApplicationSuccess applicationId={generatedId} />;
   }
 
   return (

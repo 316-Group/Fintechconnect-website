@@ -21,25 +21,28 @@ const INITIAL_FORM_DATA = {
 };
 
 export default function BusinessIdentity() {
-  // Lazily initialize state from localStorage if present
-  const [formData, setFormData] = useState(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        try {
-          return JSON.parse(saved);
-        } catch (error) {
-          console.error("Error parsing stored form data:", error);
-        }
+  const [formData, setFormData] = useState(INITIAL_FORM_DATA);
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  // Load saved state from localStorage after initial render
+  useEffect(() => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      try {
+        setFormData(JSON.parse(saved));
+      } catch (error) {
+        console.error("Error parsing stored form data:", error);
       }
     }
-    return INITIAL_FORM_DATA;
-  });
+    setIsLoaded(true);
+  }, []);
 
-  // Automatically save form updates to localStorage
+  // Save form updates to localStorage after initial load
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(formData));
-  }, [formData]);
+    if (isLoaded) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(formData));
+    }
+  }, [formData, isLoaded]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>

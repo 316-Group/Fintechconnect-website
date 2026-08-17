@@ -93,12 +93,13 @@ export default function WhyUsSection() {
           </p>
           
           {/* Contact Button */}
-          <button 
+          <a 
+            href='/book-demo'
             className={`bg-black hover:bg-slate-800 text-white text-sm lg:text-base font-semibold py-3.5 px-8 rounded-full shadow-sm active:scale-95 ${getAnimatedClass(part1Visible)}`}
             style={{ transitionDelay: '300ms' }}
           >
             Contact us
-          </button>
+          </a>
         </div>
 
         {/* Right Side: Mockup & Asset Composition Area */}
