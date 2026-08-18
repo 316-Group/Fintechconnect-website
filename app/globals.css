@@ -131,3 +131,17 @@
     @apply font-sans;
   }
 }
+
+/* Standard 15.6" screens & 1080p desktop monitors (1536px+) */
+@media (min-width: 1536px) {
+  html {
+    font-size: 18px; /* Default browser root is 16px */
+  }
+}
+
+/* Large desktop displays & 4K screens (1920px+) */
+@media (min-width: 1920px) {
+  html {
+    font-size: 20px;
+  }
+}

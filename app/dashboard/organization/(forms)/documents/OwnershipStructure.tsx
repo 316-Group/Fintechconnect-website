@@ -199,44 +199,45 @@ export default function OwnershipStructure({
 
   // Confirm selection and add selected owners to lower form state
   const handleAddSelectedOwners = () => {
-    const ownersToAdd = extractedOwners.filter((_, i) => selectedOwnerIndexes.includes(i));
+  const ownersToAdd = extractedOwners.filter((_, i) => selectedOwnerIndexes.includes(i));
 
-    if (ownersToAdd.length > 0) {
-      // 1. Add to effective owners list
-      setEffectiveOwners((prev) => {
-        const existingNames = new Set(prev.map((o) => o.fullName.toLowerCase()));
-        const uniqueNewOwners = ownersToAdd.filter(
-          (o) => !existingNames.has(o.fullName.toLowerCase())
-        );
-        return [...prev, ...uniqueNewOwners];
+  if (ownersToAdd.length > 0) {
+    // 1. Add to effective owners list without ownership stake data
+    setEffectiveOwners ((prev) => {
+      const existingNames = new Set(prev.map((o) => o.fullName.toLowerCase()));
+      const uniqueNewOwners = ownersToAdd
+        .filter((o) => !existingNames.has(o.fullName.toLowerCase()))
+        .map(({ ownershipStake, ...rest }) => ({ ...rest, ownershipStake: "" })); // Include ownershipStake as empty string
+
+      return [...prev, ...uniqueNewOwners];
+    });
+
+    // 2. Add pre-filled cards directly to beneficial owners fields with empty stake
+    setBeneficialOwners((prevCards) => {
+      // Clear default empty initial card if it hasn't been touched
+      const cleanedCards = prevCards.filter((c) => c.firstName || c.lastName || c.registeredOwnerName);
+
+      const newCards: OwnerCardState[] = ownersToAdd.map((owner, idx) => {
+        const nameParts = owner.fullName ? owner.fullName.trim().split(" ") : [];
+        return {
+          id: `extracted-${Date.now()}-${idx}`,
+          registeredOwnerName: owner.fullName,
+          firstName: nameParts[0] || "",
+          lastName: nameParts.slice(1).join(" ") || "",
+          docType: "",
+          role: owner.officialRole || "",
+          stake: "", // Set stake to empty string
+          country: owner.country || "",
+          isRegistered: true,
+        };
       });
 
-      // 2. Add pre-filled cards directly to beneficial owners fields
-      setBeneficialOwners((prevCards) => {
-        // Clear default empty initial card if it hasn't been touched
-        const cleanedCards = prevCards.filter((c) => c.firstName || c.lastName || c.registeredOwnerName);
+      return [...cleanedCards, ...newCards];
+    });
+  }
 
-        const newCards: OwnerCardState[] = ownersToAdd.map((owner, idx) => {
-          const nameParts = owner.fullName ? owner.fullName.trim().split(" ") : [];
-          return {
-            id: `extracted-${Date.now()}-${idx}`,
-            registeredOwnerName: owner.fullName,
-            firstName: nameParts[0] || "",
-            lastName: nameParts.slice(1).join(" ") || "",
-            docType: "",
-            role: owner.officialRole,
-            stake: owner.ownershipStake ? String(owner.ownershipStake) : "",
-            country: owner.country,
-            isRegistered: true,
-          };
-        });
-
-        return [...cleanedCards, ...newCards];
-      });
-    }
-
-    setIsSuccessModalOpen(false);
-  };
+  setIsSuccessModalOpen(false);
+};
 
   const handleAddBeneficialOwner = () => {
     setBeneficialOwners((prev) => [
@@ -540,129 +541,119 @@ export default function OwnershipStructure({
       )}
 
       {/* UBO UPLOAD SUCCESS & PARSED OWNERS MODAL */}
-      {isSuccessModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
-          <div className="bg-white rounded-3xl p-6 md:p-8 max-w-lg w-full text-center shadow-2xl border border-slate-100 transform transition-all animate-in fade-in zoom-in-95 duration-200">
-            
-            {/* Success Icon */}
-            <div className="mx-auto mb-4 w-16 h-16 rounded-full bg-blue-50 flex items-center justify-center relative">
-              <div className="w-11 h-11 rounded-full bg-blue-100 flex items-center justify-center">
-                <div className="w-8 h-8 rounded-full bg-[#0A63F8] flex items-center justify-center text-white shadow-md">
-                  <Check className="w-4 h-4 stroke-[3]" />
-                </div>
-              </div>
-            </div>
+{isSuccessModalOpen && (
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
+    <div className="bg-white rounded-3xl p-6 md:p-8 max-w-lg w-full text-center shadow-2xl border border-slate-100 transform transition-all animate-in fade-in zoom-in-95 duration-200">
+      
+      {/* Success Icon */}
+      <div className="mx-auto mb-4 w-16 h-16 rounded-full bg-blue-50 flex items-center justify-center relative">
+        <div className="w-11 h-11 rounded-full bg-blue-100 flex items-center justify-center">
+          <div className="w-8 h-8 rounded-full bg-[#0A63F8] flex items-center justify-center text-white shadow-md">
+            <Check className="w-4 h-4 stroke-[3]" />
+          </div>
+        </div>
+      </div>
 
-            {/* Modal Heading */}
-            <h3 className="text-xl font-extrabold text-slate-900 tracking-tight mb-1">
-              Upload Successful
-            </h3>
-            
-            <p className="text-xs text-slate-500 leading-relaxed max-w-sm mx-auto mb-5">
-              We parsed your <strong className="font-bold text-slate-800">UBO Register Document</strong>. Select which owners you want to add to the fields below:
-            </p>
+      {/* Modal Heading */}
+      <h3 className="text-xl font-extrabold text-slate-900 tracking-tight mb-1">
+        Upload Successful
+      </h3>
+      
+      <p className="text-xs text-slate-500 leading-relaxed max-w-sm mx-auto mb-5">
+        We parsed your <strong className="font-bold text-slate-800">UBO Register Document</strong>. Select which owners you want to add to the fields below:
+      </p>
 
-            {/* Extracted Owners Checklist */}
-            {isParsing ? (
-              <div className="py-8 flex flex-col items-center justify-center gap-2 text-slate-500">
-                <Sparkles className="w-6 h-6 text-blue-600 animate-spin" />
-                <span className="text-xs font-medium">Extracting names from document...</span>
+      {/* Extracted Owners Checklist */}
+      {isParsing ? (
+        <div className="py-8 flex flex-col items-center justify-center gap-2 text-slate-500">
+          <Sparkles className="w-6 h-6 text-blue-600 animate-spin" />
+          <span className="text-xs font-medium">Extracting names from document...</span>
+        </div>
+      ) : (
+        <div className="mb-6 border border-slate-200 rounded-2xl overflow-hidden bg-slate-50/50">
+          {/* Checklist Header / Select All Bar */}
+          <div className="flex items-center justify-between px-4 py-2.5 bg-slate-100/80 border-b border-slate-200 text-xs font-semibold text-slate-700">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+              Found ({extractedOwners.length}) Owners
+            </span>
+            <button
+              type="button"
+              onClick={handleToggleSelectAll}
+              className="text-blue-600 hover:text-blue-800 text-[11px] font-bold flex items-center gap-1 cursor-pointer"
+            >
+              {selectedOwnerIndexes.length === extractedOwners.length ? (
+                <>
+                  <CheckSquare className="w-3.5 h-3.5" /> Deselect All
+                </>
+              ) : (
+                <>
+                  <Square className="w-3.5 h-3.5" /> Select All
+                </>
+              )}
+            </button>
+          </div>
+
+          {/* List of Parsed Owners */}
+          <div className="max-h-52 overflow-y-auto divide-y divide-slate-100 p-2">
+            {extractedOwners.length === 0 ? (
+              <div className="p-4 text-xs text-slate-400 italic">
+                No owner names detected in file.
               </div>
             ) : (
-              <div className="mb-6 border border-slate-200 rounded-2xl overflow-hidden bg-slate-50/50">
-                {/* Checklist Header / Select All Bar */}
-                <div className="flex items-center justify-between px-4 py-2.5 bg-slate-100/80 border-b border-slate-200 text-xs font-semibold text-slate-700">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                    Found ({extractedOwners.length}) Owners
-                  </span>
-                  <button
-                    type="button"
-                    onClick={handleToggleSelectAll}
-                    className="text-blue-600 hover:text-blue-800 text-[11px] font-bold flex items-center gap-1 cursor-pointer"
+              extractedOwners.map((owner, idx) => {
+                const isSelected = selectedOwnerIndexes.includes(idx);
+                return (
+                  <label
+                    key={idx}
+                    onClick={() => handleToggleSelectOwner(idx)}
+                    className={`flex items-center justify-between p-2.5 rounded-xl transition cursor-pointer text-left ${
+                      isSelected
+                        ? "bg-blue-50/60 border border-blue-200/60"
+                        : "hover:bg-slate-100/60 border border-transparent"
+                    }`}
                   >
-                    {selectedOwnerIndexes.length === extractedOwners.length ? (
-                      <>
-                        <CheckSquare className="w-3.5 h-3.5" /> Deselect All
-                      </>
-                    ) : (
-                      <>
-                        <Square className="w-3.5 h-3.5" /> Select All
-                      </>
-                    )}
-                  </button>
-                </div>
-
-                {/* List of Parsed Owners */}
-                <div className="max-h-52 overflow-y-auto divide-y divide-slate-100 p-2">
-                  {extractedOwners.length === 0 ? (
-                    <div className="p-4 text-xs text-slate-400 italic">
-                      No owner names detected in file.
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => {}} // Handled by label click
+                        className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-4 h-4 cursor-pointer"
+                      />
+                      <p className="text-xs font-bold text-slate-800">
+                        {owner.fullName}
+                      </p>
                     </div>
-                  ) : (
-                    extractedOwners.map((owner, idx) => {
-                      const isSelected = selectedOwnerIndexes.includes(idx);
-                      return (
-                        <label
-                          key={idx}
-                          onClick={() => handleToggleSelectOwner(idx)}
-                          className={`flex items-center justify-between p-2.5 rounded-xl transition cursor-pointer text-left ${
-                            isSelected
-                              ? "bg-blue-50/60 border border-blue-200/60"
-                              : "hover:bg-slate-100/60 border border-transparent"
-                          }`}
-                        >
-                          <div className="flex items-center gap-3">
-                            <input
-                              type="checkbox"
-                              checked={isSelected}
-                              onChange={() => {}} // Handled by label click
-                              className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-4 h-4 cursor-pointer"
-                            />
-                            <div>
-                              <p className="text-xs font-bold text-slate-800">
-                                {owner.fullName}
-                              </p>
-                              <p className="text-[10px] text-slate-500">
-                                {owner.officialRole}
-                              </p>
-                            </div>
-                          </div>
-                          {owner.ownershipStake && (
-                            <span className="text-[11px] font-semibold text-blue-700 bg-blue-100/80 px-2 py-0.5 rounded-md">
-                              {owner.ownershipStake}% Stake
-                            </span>
-                          )}
-                        </label>
-                      );
-                    })
-                  )}
-                </div>
-              </div>
+                  </label>
+                );
+              })
             )}
-
-            {/* Modal Action Buttons */}
-            <div className="flex items-center justify-center gap-3">
-              <button
-                type="button"
-                onClick={handleAddSelectedOwners}
-                disabled={isParsing || selectedOwnerIndexes.length === 0}
-                className="bg-[#0A63F8] hover:bg-blue-700 disabled:opacity-50 text-white font-semibold text-xs px-5 py-3 rounded-xl transition cursor-pointer shadow-sm flex items-center gap-2"
-              >
-                <UserPlus className="w-3.5 h-3.5" />
-                Add Selected ({selectedOwnerIndexes.length})
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setIsSuccessModalOpen(false)}
-                className="border border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold text-xs px-5 py-3 rounded-xl transition cursor-pointer bg-white"
-              >
-                Do it Manually
-              </button>
-            </div>
           </div>
         </div>
       )}
+
+      {/* Modal Action Buttons */}
+      <div className="flex items-center justify-center gap-3">
+        <button
+          type="button"
+          onClick={handleAddSelectedOwners}
+          disabled={isParsing || selectedOwnerIndexes.length === 0}
+          className="bg-[#0A63F8] hover:bg-blue-700 disabled:opacity-50 text-white font-semibold text-xs px-5 py-3 rounded-xl transition cursor-pointer shadow-sm flex items-center gap-2"
+        >
+          <UserPlus className="w-3.5 h-3.5" />
+          Add Selected ({selectedOwnerIndexes.length})
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setIsSuccessModalOpen(false)}
+          className="border border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold text-xs px-5 py-3 rounded-xl transition cursor-pointer bg-white"
+        >
+          Do it Manually
+        </button>
+      </div>
+    </div>
+  </div>
+)}
     </div>
   );
 }
