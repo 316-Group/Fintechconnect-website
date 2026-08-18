@@ -10,7 +10,9 @@ import {
   UserCheck, 
   UserPlus,
   Check,
-  Sparkles
+  Sparkles,
+  CheckSquare,
+  Square
 } from "lucide-react";
 import { OwnerFormData } from "@/app/dashboard/organization/(forms)/beneficial-ownership/beneficiarymodal"; // Adjust path if needed
 
@@ -48,6 +50,10 @@ export default function OwnershipStructure({
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [isParsing, setIsParsing] = useState(false);
+  
+  // Extracted Owners Selection State inside Modal
+  const [extractedOwners, setExtractedOwners] = useState<OwnerFormData[]>([]);
+  const [selectedOwnerIndexes, setSelectedOwnerIndexes] = useState<number[]>([]);
 
   // Sync effective owners from props or local storage
   useEffect(() => {
@@ -102,16 +108,6 @@ export default function OwnershipStructure({
     }
   }, [JSON.stringify(effectiveOwners)]);
 
-  // --- UBO File Upload & Parsing Handlers ---
-  const handleUBOFileUpload = (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setUploadedFile(file);
-      onFileChange(e, "UBO Register");
-      setIsSuccessModalOpen(true); // Trigger success popup
-    }
-  };
-
   // Function to extract text content and parse potential owner names & percentages
   const parseFileForOwners = async (file: File): Promise<OwnerFormData[]> => {
     try {
@@ -119,7 +115,6 @@ export default function OwnershipStructure({
       const lines = text.split(/\r?\n/);
       const extractedList: OwnerFormData[] = [];
 
-      // Regular expressions for matching names and ownership percentages
       const namePattern = /([A-Z][a-zA-Z]+(?:\s+[A-Z][a-zA-Z]+)+)/;
       const stakePattern = /(\d{1,3})\s*%/;
 
@@ -130,14 +125,13 @@ export default function OwnershipStructure({
         if (nameMatch) {
           const fullName = nameMatch[1].trim();
           
-          // Filter out common document header keywords
           const isHeader = /ultimate|beneficial|owner|register|document|title|passport|national/i.test(fullName);
           
           if (!isHeader && fullName.length > 3) {
             extractedList.push({
               fullName,
               officialRole: "Extracted Owner",
-              ownershipStake: stakeMatch ? stakeMatch[1] : "25", // Ensured string type
+              ownershipStake: stakeMatch ? stakeMatch[1] : "25",
               country: "N/A",
               dob: "",
               idNumber: "",
@@ -147,20 +141,16 @@ export default function OwnershipStructure({
         }
       });
 
-      // Fallback sample parsing if raw file doesn't yield structured text
+      // Fallback sample parsing if raw text file parsing yields no result
       if (extractedList.length === 0) {
         return [
           {
             fullName: "Alex Morgan", officialRole: "Major Shareholder", ownershipStake: "50", country: "United States",
-            dob: "",
-            idNumber: "",
-            ownershipType: ""
+            dob: "", idNumber: "", ownershipType: "Direct"
           },
           {
             fullName: "Sarah Jenkins", officialRole: "Director & Owner", ownershipStake: "30", country: "United Kingdom",
-            dob: "",
-            idNumber: "",
-            ownershipType: ""
+            dob: "", idNumber: "", ownershipType: "Direct"
           },
         ];
       }
@@ -172,22 +162,79 @@ export default function OwnershipStructure({
     }
   };
 
-  const handleExtractOwners = async () => {
-    if (!uploadedFile) return;
-    setIsParsing(true);
+  // --- UBO File Upload Handler ---
+  const handleUBOFileUpload = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setUploadedFile(file);
+      onFileChange(e, "UBO Register");
+      
+      // Open modal and immediately parse contents
+      setIsSuccessModalOpen(true);
+      setIsParsing(true);
 
-    const extracted = await parseFileForOwners(uploadedFile);
+      const parsed = await parseFileForOwners(file);
+      setExtractedOwners(parsed);
+      // Select all extracted owners by default
+      setSelectedOwnerIndexes(parsed.map((_, index) => index));
+      setIsParsing(false);
+    }
+  };
 
-    // Merge extracted owners into effectiveOwners list without duplicates
-    setEffectiveOwners((prev) => {
-      const existingNames = new Set(prev.map((o) => o.fullName.toLowerCase()));
-      const uniqueNewOwners = extracted.filter(
-        (o) => !existingNames.has(o.fullName.toLowerCase())
-      );
-      return [...prev, ...uniqueNewOwners];
-    });
+  // Toggle single owner selection
+  const handleToggleSelectOwner = (index: number) => {
+    setSelectedOwnerIndexes((prev) =>
+      prev.includes(index) ? prev.filter((i) => i !== index) : [...prev, index]
+    );
+  };
 
-    setIsParsing(false);
+  // Toggle select/deselect all owners
+  const handleToggleSelectAll = () => {
+    if (selectedOwnerIndexes.length === extractedOwners.length) {
+      setSelectedOwnerIndexes([]);
+    } else {
+      setSelectedOwnerIndexes(extractedOwners.map((_, i) => i));
+    }
+  };
+
+  // Confirm selection and add selected owners to lower form state
+  const handleAddSelectedOwners = () => {
+    const ownersToAdd = extractedOwners.filter((_, i) => selectedOwnerIndexes.includes(i));
+
+    if (ownersToAdd.length > 0) {
+      // 1. Add to effective owners list
+      setEffectiveOwners((prev) => {
+        const existingNames = new Set(prev.map((o) => o.fullName.toLowerCase()));
+        const uniqueNewOwners = ownersToAdd.filter(
+          (o) => !existingNames.has(o.fullName.toLowerCase())
+        );
+        return [...prev, ...uniqueNewOwners];
+      });
+
+      // 2. Add pre-filled cards directly to beneficial owners fields
+      setBeneficialOwners((prevCards) => {
+        // Clear default empty initial card if it hasn't been touched
+        const cleanedCards = prevCards.filter((c) => c.firstName || c.lastName || c.registeredOwnerName);
+
+        const newCards: OwnerCardState[] = ownersToAdd.map((owner, idx) => {
+          const nameParts = owner.fullName ? owner.fullName.trim().split(" ") : [];
+          return {
+            id: `extracted-${Date.now()}-${idx}`,
+            registeredOwnerName: owner.fullName,
+            firstName: nameParts[0] || "",
+            lastName: nameParts.slice(1).join(" ") || "",
+            docType: "",
+            role: owner.officialRole,
+            stake: owner.ownershipStake ? String(owner.ownershipStake) : "",
+            country: owner.country,
+            isRegistered: true,
+          };
+        });
+
+        return [...cleanedCards, ...newCards];
+      });
+    }
+
     setIsSuccessModalOpen(false);
   };
 
@@ -218,7 +265,6 @@ export default function OwnershipStructure({
     );
   };
 
-  // Populate card fields automatically when a registered/extracted owner is selected
   const handleSelectRegisteredOwner = (cardId: string, selectedFullName: string) => {
     const selected = effectiveOwners.find((o) => o.fullName === selectedFullName);
 
@@ -278,7 +324,7 @@ export default function OwnershipStructure({
       {/* Accordion Content */}
       {isOpen && (
         <div className="p-4 pt-2 space-y-4 border-t border-slate-100">
-          {/* 1. UBO Register Upload Card */}
+          {/* UBO Register Upload Card */}
           <div className="border border-dashed border-slate-300 rounded-lg p-4 bg-slate-50/20 space-y-4">
             <div className="flex items-start justify-between">
               <div className="flex items-start gap-3">
@@ -326,7 +372,7 @@ export default function OwnershipStructure({
             </div>
           </div>
 
-          {/* 2. Registered / Dynamic Owner Identification Cards */}
+          {/* Registered / Dynamic Owner Identification Cards */}
           {beneficialOwners.map((owner) => {
             const ownerDisplayName =
               owner.firstName || owner.lastName
@@ -493,49 +539,123 @@ export default function OwnershipStructure({
         </div>
       )}
 
-      {/* --- UBO UPLOAD SUCCESS MODAL --- */}
+      {/* UBO UPLOAD SUCCESS & PARSED OWNERS MODAL */}
       {isSuccessModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
-          <div className="bg-white rounded-3xl p-8 max-w-md w-full text-center shadow-2xl border border-slate-100 transform transition-all animate-in fade-in zoom-in-95 duration-200">
+          <div className="bg-white rounded-3xl p-6 md:p-8 max-w-lg w-full text-center shadow-2xl border border-slate-100 transform transition-all animate-in fade-in zoom-in-95 duration-200">
             
-            {/* Layered Blue Checkmark Icon Ring */}
-            <div className="mx-auto mb-6 w-20 h-20 rounded-full bg-blue-50/80 flex items-center justify-center relative">
-              <div className="w-14 h-14 rounded-full bg-blue-100/90 flex items-center justify-center">
-                <div className="w-9 h-9 rounded-full bg-[#0A63F8] flex items-center justify-center text-white shadow-md">
-                  <Check className="w-5 h-5 stroke-[3]" />
+            {/* Success Icon */}
+            <div className="mx-auto mb-4 w-16 h-16 rounded-full bg-blue-50 flex items-center justify-center relative">
+              <div className="w-11 h-11 rounded-full bg-blue-100 flex items-center justify-center">
+                <div className="w-8 h-8 rounded-full bg-[#0A63F8] flex items-center justify-center text-white shadow-md">
+                  <Check className="w-4 h-4 stroke-[3]" />
                 </div>
               </div>
             </div>
 
-            {/* Modal Heading & Description */}
-            <h3 className="text-2xl font-extrabold text-slate-900 tracking-tight mb-3">
+            {/* Modal Heading */}
+            <h3 className="text-xl font-extrabold text-slate-900 tracking-tight mb-1">
               Upload Successful
             </h3>
             
-            <p className="text-xs text-slate-500 leading-relaxed max-w-xs mx-auto mb-8">
-              We have successfully uploaded your{" "}
-              <strong className="font-bold text-slate-800">
-                Ultimate Beneficial Owners (UBO) Register Document
-              </strong>
-              . Please select what you will like to do next
+            <p className="text-xs text-slate-500 leading-relaxed max-w-sm mx-auto mb-5">
+              We parsed your <strong className="font-bold text-slate-800">UBO Register Document</strong>. Select which owners you want to add to the fields below:
             </p>
 
-            {/* Action Buttons */}
+            {/* Extracted Owners Checklist */}
+            {isParsing ? (
+              <div className="py-8 flex flex-col items-center justify-center gap-2 text-slate-500">
+                <Sparkles className="w-6 h-6 text-blue-600 animate-spin" />
+                <span className="text-xs font-medium">Extracting names from document...</span>
+              </div>
+            ) : (
+              <div className="mb-6 border border-slate-200 rounded-2xl overflow-hidden bg-slate-50/50">
+                {/* Checklist Header / Select All Bar */}
+                <div className="flex items-center justify-between px-4 py-2.5 bg-slate-100/80 border-b border-slate-200 text-xs font-semibold text-slate-700">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                    Found ({extractedOwners.length}) Owners
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleToggleSelectAll}
+                    className="text-blue-600 hover:text-blue-800 text-[11px] font-bold flex items-center gap-1 cursor-pointer"
+                  >
+                    {selectedOwnerIndexes.length === extractedOwners.length ? (
+                      <>
+                        <CheckSquare className="w-3.5 h-3.5" /> Deselect All
+                      </>
+                    ) : (
+                      <>
+                        <Square className="w-3.5 h-3.5" /> Select All
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                {/* List of Parsed Owners */}
+                <div className="max-h-52 overflow-y-auto divide-y divide-slate-100 p-2">
+                  {extractedOwners.length === 0 ? (
+                    <div className="p-4 text-xs text-slate-400 italic">
+                      No owner names detected in file.
+                    </div>
+                  ) : (
+                    extractedOwners.map((owner, idx) => {
+                      const isSelected = selectedOwnerIndexes.includes(idx);
+                      return (
+                        <label
+                          key={idx}
+                          onClick={() => handleToggleSelectOwner(idx)}
+                          className={`flex items-center justify-between p-2.5 rounded-xl transition cursor-pointer text-left ${
+                            isSelected
+                              ? "bg-blue-50/60 border border-blue-200/60"
+                              : "hover:bg-slate-100/60 border border-transparent"
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => {}} // Handled by label click
+                              className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-4 h-4 cursor-pointer"
+                            />
+                            <div>
+                              <p className="text-xs font-bold text-slate-800">
+                                {owner.fullName}
+                              </p>
+                              <p className="text-[10px] text-slate-500">
+                                {owner.officialRole}
+                              </p>
+                            </div>
+                          </div>
+                          {owner.ownershipStake && (
+                            <span className="text-[11px] font-semibold text-blue-700 bg-blue-100/80 px-2 py-0.5 rounded-md">
+                              {owner.ownershipStake}% Stake
+                            </span>
+                          )}
+                        </label>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Modal Action Buttons */}
             <div className="flex items-center justify-center gap-3">
               <button
                 type="button"
-                onClick={handleExtractOwners}
-                disabled={isParsing}
-                className="bg-[#0A63F8] hover:bg-blue-700 text-white font-semibold text-xs px-5 py-3 rounded-xl transition cursor-pointer shadow-sm flex items-center gap-2"
+                onClick={handleAddSelectedOwners}
+                disabled={isParsing || selectedOwnerIndexes.length === 0}
+                className="bg-[#0A63F8] hover:bg-blue-700 disabled:opacity-50 text-white font-semibold text-xs px-5 py-3 rounded-xl transition cursor-pointer shadow-sm flex items-center gap-2"
               >
-                {isParsing && <Sparkles className="w-3.5 h-3.5 animate-spin" />}
-                {isParsing ? "Extracting..." : "Extract Beneficial Owners"}
+                <UserPlus className="w-3.5 h-3.5" />
+                Add Selected ({selectedOwnerIndexes.length})
               </button>
 
               <button
                 type="button"
                 onClick={() => setIsSuccessModalOpen(false)}
-                className="border border-slate-300 hover:bg-slate-50 text-slate-800 font-semibold text-xs px-5 py-3 rounded-xl transition cursor-pointer bg-white"
+                className="border border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold text-xs px-5 py-3 rounded-xl transition cursor-pointer bg-white"
               >
                 Do it Manually
               </button>
