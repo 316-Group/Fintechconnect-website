@@ -83,18 +83,19 @@ export default function VerificationKYBHub() {
   const [sentEmailStatus, setSentEmailStatus] = useState(false);
   const [sentPhoneStatus, setSentPhoneStatus] = useState(false);
 
-  // Dynamic Base Path resolution (Solution 2 for GitHub Pages)
+  // Dynamic Base Path & Mobile Verification URL resolution
   const repoName = "/Fintechconnect-website";
-  const currentPath = typeof window !== "undefined" ? window.location.pathname : "";
-  const basePath = currentPath.startsWith(repoName) ? repoName : "";
+  const [mobileVerifyUrl, setMobileVerifyUrl] = useState("https://yourdomain.com/verify/m");
 
-  // Mobile flow redirect URL (/verify/m)
-  const mobileVerifyUrl =
-    typeof window !== "undefined"
-      ? `${window.location.origin}${basePath}/verify/m`
-      : "https://yourdomain.com/verify/m";
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const currentPath = window.location.pathname;
+      const basePath = currentPath.startsWith(repoName) ? repoName : "";
+      setMobileVerifyUrl(`${window.location.origin}${basePath}/verify/m`);
+    }
+  }, []);
 
-  // QR Code Image Generator URL
+  // QR Code Image Generator URL (Guaranteed to match mobileVerifyUrl)
   const qrCodeImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(
     mobileVerifyUrl
   )}`;
@@ -244,18 +245,12 @@ export default function VerificationKYBHub() {
     alert("Bulk verification invitations triggered for all pending stakeholders!");
   };
 
+  // Triggers the Biometric Modal for any clicked stakeholder
   const handleActionClick = (person: Stakeholder) => {
-    // Save the clicked stakeholder's name so Step 1 picks it up
     if (typeof window !== "undefined") {
       localStorage.setItem("selected_applicant_name", person.fullName);
     }
-
-    const label = person.actionLabel?.toLowerCase() || "";
-    if (label.includes("complete id") || label.includes("facial scan") || label.includes("request id")) {
-      setIsModalOpen(true);
-    } else {
-      alert(`Action triggered for ${person.fullName}`);
-    }
+    setIsModalOpen(true);
   };
 
   const handleCopyLink = () => {

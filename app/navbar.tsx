@@ -73,29 +73,29 @@ export default function Navbar() {
 
   const platformModules: Record<string, { title: string; description: string, href?: string }[]> = {
     "Core Infrastructure": [
-      { title: "Core Banking Engine", description: "Production-ready banking core with multi-currency accounts, automated payments, and global rail connectivity" },
-      { title: "Real-Time Ledger", description: "Record every transaction with precision and immutable audit trails. Stay accurate, compliant, and audit-ready." },
-      { title: "Treasury Management", description: "Monitor cash, execute FX transactions, and forecast liquidity across all currencies from one dashboard" }
+      { title: "Core Banking Engine", description: "Production-ready banking core with multi-currency accounts, automated payments, and global rail connectivity", href: "/products/corebanking" },
+      { title: "Real-Time Ledger", description: "Record every transaction with precision and immutable audit trails. Stay accurate, compliant, and audit-ready.", href: "/products/realtimledger" },
+      { title: "Treasury Management", description: "Monitor cash, execute FX transactions, and forecast liquidity across all currencies from one dashboard", href: "/products/treasury" }
     ],
     "Payments & Cards": [
-      { title: "Wallet-as-a-Service", description: "Fast and reliable payment processing with support for multiple payment methods and currencies" },
-      { title: "Card Issuing", description: "Comprehensive card management system with real-time controls and analytics" },
-      { title: "Crypto Payments", description: "Automated settlement processes with full audit trail and compliance reporting" }
+      { title: "Wallet-as-a-Service", description: "Fast and reliable payment processing with support for multiple payment methods and currencies", href: "/products/wallet" },
+      { title: "Card Issuing", description: "Comprehensive card management system with real-time controls and analytics", href: "/products/cards" },
+      { title: "Crypto Payments", description: "Automated settlement processes with full audit trail and compliance reporting", href: "/products/cryptopayments" }
     ],
     "Compliance & Security": [
-      { title: "KYC/KYB Tools", description: "Built-in compliance tools for regulatory requirements across multiple jurisdictions" },
-      { title: "AML Compliance", description: "Enterprise-grade security with encryption, multi-factor authentication, and advanced threat detection" },
-      { title: "AI Fraud Monitoring", description: "Comprehensive audit logs and compliance reporting for regulatory bodies" }
+      { title: "KYC/KYB Tools", description: "Built-in compliance tools for regulatory requirements across multiple jurisdictions", href: "/products/kyc" },
+      { title: "AML Compliance", description: "Enterprise-grade security with encryption, multi-factor authentication, and advanced threat detection", href: "/products/aml" },
+      { title: "AI Fraud Monitoring", description: "Comprehensive audit logs and compliance reporting for regulatory bodies", href: "/products/ai-fraud-monitoring" }
     ],
     "Client-Facing Products": [
-      { title: "White-Label Bank Portal", description: "Native iOS and Android applications for seamless customer banking experiences" },
-      { title: "Mobile Applications", description: "Responsive web application for full banking capabilities on desktop and tablet" },
-      { title: "Crypto Wallets", description: "Powerful REST APIs for third-party integrations and custom applications" }
+      { title: "White-Label Bank Portal", description: "Native iOS and Android applications for seamless customer banking experiences", href: "/products/white-label-portal" },
+      { title: "Mobile Applications", description: "Responsive web application for full banking capabilities on desktop and tablet", href: "/products/mobile-app" },
+      { title: "Crypto Wallets", description: "Powerful REST APIs for third-party integrations and custom applications", href: "/products/crypto-wallets" }
     ],
     "Pre-Built UI Library": [
-      { title: "Design Tokens", description: "Customizable design tokens for consistent theming across all your applications" },
-      { title: "Theme Builder", description: "Intuitive interface for creating and managing themes with real-time previews" },
-      { title: "Dark & Light Modes", description: "Built-in support for dark and light modes, with automatic switching based on user preferences" }
+      { title: "Design Tokens", description: "Customizable design tokens for consistent theming across all your applications", href: "/products/design-tokens" },
+      { title: "Theme Builder", description: "Intuitive interface for creating and managing themes with real-time previews", href: "/products/theme-builder" },
+      { title: "Dark & Light Modes", description: "Built-in support for dark and light modes, with automatic switching based on user preferences", href: "/products/dark-light-modes" }
     ]
   };
 
