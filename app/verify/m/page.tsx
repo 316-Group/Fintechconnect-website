@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import { Smartphone, AlertTriangle, ShieldCheck } from "lucide-react";
+import { Smartphone, ShieldCheck } from "lucide-react";
 
 import Step1Intro from "@/app/verify/m/Step1";
 import Step2SelectId from "@/app/verify/m/Step2";
@@ -10,13 +10,19 @@ import Step3CaptureId from "@/app/verify/m/Step3";
 import Step4FaceScan from "@/app/verify/m/Step4";
 import Step5Success from "@/app/verify/m/Step5";
 
-export default function MobileVerifyPage() {
+function MobileVerifyContent() {
   const searchParams = useSearchParams();
-  const sessionId = searchParams.get("session") || searchParams.get("session_id") || "demo_session_123";
+  const sessionId =
+    searchParams.get("session") ||
+    searchParams.get("session_id") ||
+    "demo_session_123";
 
   const [currentStep, setCurrentStep] = useState<number>(1);
-  const [selectedDocType, setSelectedDocType] = useState<string>("drivers_license");
-  const [idPhoto, setIdPhoto] = useState<string | null>(null);
+  const [selectedDocType, setSelectedDocType] =
+    useState<string>("drivers_license");
+  const [idPhoto, setIdPhoto] = useState<
+    string | { front: string; back: string } | null
+  >(null);
   const [facePhoto, setFacePhoto] = useState<string | null>(null);
   const [isDesktop, setIsDesktop] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
@@ -25,7 +31,10 @@ export default function MobileVerifyPage() {
   useEffect(() => {
     const checkDevice = () => {
       const userAgent = navigator.userAgent || navigator.vendor;
-      const isMobileUA = /android|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent.toLowerCase());
+      const isMobileUA =
+        /android|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(
+          userAgent.toLowerCase()
+        );
       const isNarrowScreen = window.innerWidth < 768;
 
       // Treat as desktop if screen is wider than 768px and not a mobile UA
@@ -85,12 +94,17 @@ export default function MobileVerifyPage() {
         <div className="w-16 h-16 bg-blue-600/20 text-blue-400 border border-blue-500/30 rounded-2xl flex items-center justify-center mb-6">
           <Smartphone className="w-8 h-8" />
         </div>
-        <h2 className="text-xl font-bold tracking-tight mb-2">Mobile Device Required</h2>
+        <h2 className="text-xl font-bold tracking-tight mb-2">
+          Mobile Device Required
+        </h2>
         <p className="text-xs text-slate-400 max-w-sm leading-relaxed mb-6">
-          This verification flow requires native camera access for live facial recognition. Please scan the QR code on your desktop screen using your smartphone camera.
+          This verification flow requires native camera access for live facial
+          recognition. Please scan the QR code on your desktop screen using
+          your smartphone camera.
         </p>
         <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-800 border border-slate-700 text-[11px] text-slate-300">
-          <ShieldCheck className="w-3.5 h-3.5 text-blue-400" /> Secure Mobile Handoff
+          <ShieldCheck className="w-3.5 h-3.5 text-blue-400" /> Secure Mobile
+          Handoff
         </div>
       </div>
     );
@@ -148,5 +162,25 @@ export default function MobileVerifyPage() {
         )}
       </div>
     </main>
+  );
+}
+
+// Fallback skeleton rendered during static pre-rendering
+function VerifyLoadingFallback() {
+  return (
+    <main className="min-h-screen bg-[#F8FAFC] flex items-center justify-center font-sans">
+      <div className="text-xs text-slate-400 animate-pulse">
+        Loading verification session...
+      </div>
+    </main>
+  );
+}
+
+// Export default wrapper with Suspense boundary to fix GitHub Pages pre-render error
+export default function MobileVerifyPage() {
+  return (
+    <Suspense fallback={<VerifyLoadingFallback />}>
+      <MobileVerifyContent />
+    </Suspense>
   );
 }
