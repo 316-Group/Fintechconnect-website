@@ -83,10 +83,15 @@ export default function VerificationKYBHub() {
   const [sentEmailStatus, setSentEmailStatus] = useState(false);
   const [sentPhoneStatus, setSentPhoneStatus] = useState(false);
 
+  // Dynamic Base Path resolution (Solution 2 for GitHub Pages)
+  const repoName = "/Fintechconnect-website";
+  const currentPath = typeof window !== "undefined" ? window.location.pathname : "";
+  const basePath = currentPath.startsWith(repoName) ? repoName : "";
+
   // Mobile flow redirect URL (/verify/m)
   const mobileVerifyUrl =
     typeof window !== "undefined"
-      ? `${window.location.origin}/verify/m`
+      ? `${window.location.origin}${basePath}/verify/m`
       : "https://yourdomain.com/verify/m";
 
   // QR Code Image Generator URL
@@ -240,18 +245,18 @@ export default function VerificationKYBHub() {
   };
 
   const handleActionClick = (person: Stakeholder) => {
-  // Save the clicked stakeholder's name so Step 1 picks it up
-  if (typeof window !== "undefined") {
-    localStorage.setItem("selected_applicant_name", person.fullName);
-  }
+    // Save the clicked stakeholder's name so Step 1 picks it up
+    if (typeof window !== "undefined") {
+      localStorage.setItem("selected_applicant_name", person.fullName);
+    }
 
-  const label = person.actionLabel?.toLowerCase() || "";
-  if (label.includes("complete id") || label.includes("facial scan") || label.includes("request id")) {
-    setIsModalOpen(true);
-  } else {
-    alert(`Action triggered for ${person.fullName}`);
-  }
-};
+    const label = person.actionLabel?.toLowerCase() || "";
+    if (label.includes("complete id") || label.includes("facial scan") || label.includes("request id")) {
+      setIsModalOpen(true);
+    } else {
+      alert(`Action triggered for ${person.fullName}`);
+    }
+  };
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(mobileVerifyUrl);
