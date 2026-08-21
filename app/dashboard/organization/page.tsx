@@ -27,6 +27,7 @@ import {
   Sliders,
 } from "lucide-react";
 import Link from "next/link";
+import {getPath} from "@/utils/helper";
 
 const STORAGE_KEY_BI = "onboarding_business_identity";
 const STORAGE_KEY_COMPLIANCE_FORM = "regulatory_compliance_form";
@@ -495,7 +496,7 @@ export default function DashboardPage() {
                       <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
                         <div
                           className={`h-full rounded-full transition-all duration-300 ${
-                            isComplete ? "bg-emerald-500" : "bg-blue-600"
+                            isComplete ? "bg-blue-600" : "bg-blue-600"
                           }`}
                           style={{ width: `${card.progress}%` }}
                         />
@@ -673,23 +674,335 @@ export default function DashboardPage() {
                   </div>
                   <div>
                     <h3 className="text-lg font-bold text-white mb-6 leading-snug">
-                      AML Screening Engine
+                      AML Engine
                     </h3>
                     <p className="text-sm text-blue-100 leading-relaxed">
-                      Real-time transaction monitoring, PEP &amp; sanctions screening, and automated SAR filing generation.
+                      AI-powered anti-money laundering monitoring with predictive threat
+                      detection and automated suspicious activity reporting.
                     </p>
                   </div>
                 </div>
 
                 <div className="flex items-center justify-between pt-2">
-                  <button className="px-4 py-2 bg-white text-blue-600 hover:bg-blue-50 rounded-lg text-xs font-semibold transition-colors">
-                    Configure
+                  <button className="px-5 py-2 bg-white hover:bg-slate-100 text-blue-600 rounded-lg text-xs font-semibold transition-colors">
+                    Explore
                   </button>
-                  <span className="text-xs font-mono text-blue-200">v4.0.1</span>
+                  <span className="text-xs font-mono text-blue-200">v4.0.0-beta</span>
                 </div>
               </div>
             </div>
           </section>
+        {/* Core Transformation Section */}
+          <section className="space-y-6 pt-6">
+            <div>
+              <h2 className="text-xl font-bold text-slate-900">
+                The new standard for core transformation
+              </h2>
+              <p className="text-xs text-slate-500 mt-1">
+                Get the best of both worlds with our modular infrastructure blocks.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+              {/* Card 1: Modular by Design */}
+              <div className="lg:col-span-7 p-6 bg-white border border-slate-200/80 rounded-xl flex flex-col justify-between space-y-6 hover:shadow-sm transition-all">
+                <div className="space-y-4">
+                  <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600">
+                    <Boxes className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-slate-900 mb-2">
+                      Modular by Design
+                    </h3>
+                    <p className="text-sm text-slate-500 leading-relaxed max-w-xl">
+                      Build only what you need. Our platform features over 50+ modular
+                      components—from ledger management to virtual card issuance—that
+                      integrate piece-by-piece with your existing tech stack.
+                    </p>
+                  </div>
+                </div>
+
+                <img src={getPath("/modular.png")} alt="Modular Design" className="w-full h-full object-contain" />
+              </div>
+
+              {/* Card 2: Production-Ready Compliance */}
+              <div className="lg:col-span-5 p-6 bg-white border border-slate-200/80 rounded-xl flex flex-col justify-between space-y-6 hover:shadow-sm transition-all">
+                <div className="space-y-4">
+                  <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600">
+                    <ShieldCheck className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-slate-900 mb-2">
+                      Production-Ready Compliance
+                    </h3>
+                    <p className="text-sm text-slate-500 leading-relaxed">
+                      Automated KYC/AML, regulatory reporting, and fraud detection are
+                      baked into every module. Stay compliant globally without manual overhead.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-2.5">
+                  <div className="flex items-center gap-3 p-3 bg-slate-50/80 border border-slate-100 rounded-xl">
+                    <CheckCircle2 className="w-4 h-4 text-blue-600 flex-shrink-0" />
+                    <span className="text-sm font-semibold text-slate-800">
+                      Real-time Sanctions Screening
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3 p-3 bg-slate-50/80 border border-slate-100 rounded-xl">
+                    <CheckCircle2 className="w-4 h-4 text-blue-600 flex-shrink-0" />
+                    <span className="text-sm font-semibold text-slate-800">
+                      Automated SAR Filing
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3 p-3 bg-slate-50/80 border border-slate-100 rounded-xl">
+                    <CheckCircle2 className="w-4 h-4 text-blue-600 flex-shrink-0" />
+                    <span className="text-sm font-semibold text-slate-800">
+                      Biometric ID Verification
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 3: Speed to Market */}
+              <div className="lg:col-span-5 p-6 bg-white border border-slate-200/80 rounded-xl flex flex-col justify-between space-y-6 hover:shadow-sm transition-all">
+                <div className="space-y-4">
+                  <div className="w-10 h-10 rounded-xl bg-rose-50 flex items-center justify-center text-rose-500">
+                    <Clock className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-slate-900 mb-2">
+                      Speed to Market
+                    </h3>
+                    <p className="text-sm text-slate-500 leading-relaxed">
+                      Go from ideation to production in weeks, not months. Our
+                      pre-integrated APIs and low-code orchestration layer slash
+                      development cycles by 80%.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="pt-4 border-t border-slate-100 flex items-end justify-between">
+                  <div>
+                    <span className="text-5xl font-extrabold text-blue-600 block leading-none mb-1">
+                      80%
+                    </span>
+                    <span className="text-xs font-medium text-slate-500">
+                      Faster deployment
+                    </span>
+                  </div>
+                  <TrendingUp className="w-10 h-10 text-blue-600" />
+                </div>
+              </div>
+
+              {/* Card 4: Legacy Integration */}
+              <div className="lg:col-span-7 p-6 bg-white border border-slate-200/80 rounded-xl flex flex-col md:flex-row items-stretch gap-6 justify-between hover:shadow-sm transition-all">
+                <div className="space-y-4 flex-1 flex flex-col justify-between">
+                  <div className="space-y-4">
+                    <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600">
+                      <Workflow className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-bold text-slate-900 mb-2">
+                        Legacy Integration
+                      </h3>
+                      <p className="text-sm text-slate-500 leading-relaxed">
+                        Connect modern frontends and automated workflows to your existing
+                        core banking system via our secure middleware adapters.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="w-full md:w-48 h-36 md:h-auto bg-slate-50 border border-slate-200/60 rounded-xl flex items-center justify-center flex-shrink-0">
+                  <Sliders className="w-10 h-10 text-slate-300" />
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* Pre-integrated Connectors & Design Kit Sections */}
+          <div className="space-y-12 pt-6">
+            <section className="space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div>
+                  <h2 className="text-3xl font-bold text-slate-900">
+                    Pre-integrated Connectors
+                  </h2>
+                  <p className="text-medium text-slate-500 mt-1">
+                    Instantly deploy infrastructure with over 50+ pre-built partner integrations
+                  </p>
+                </div>
+                <a
+                  href="/connectors"
+                  className="inline-flex items-center gap-1 text-sm font-bold text-blue-600 hover:text-blue-700 transition-colors"
+                >
+                  See more connectors <ArrowRight className="w-3.5 h-3.5" />
+                </a>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {/* Plaid */}
+                <div className="p-6 bg-white border border-slate-200/80 rounded-2xl flex flex-col justify-between space-y-16 hover:shadow-sm transition-all">
+                  <div className="space-y-7">
+                    <div className="flex items-center justify-between">
+                      <div className="w-10 h-10 rounded-xl bg-slate-900 flex items-center justify-center text-white">
+                        <CreditCard className="w-5 h-5" />
+                      </div>
+                      <span className="px-2.5 py-0.5 bg-emerald-50 text-emerald-600 rounded-full text-[10px] font-bold tracking-wider">
+                        ENABLED
+                      </span>
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-bold text-slate-900 mb-3.5">
+                        Plaid
+                      </h3>
+                      <p className="text-medium text-slate-500 leading-relaxed">
+                        Connect user bank accounts for identity verification, transaction
+                        history, and real-time balance checks.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end pt-2">
+                    <button className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold transition-colors">
+                      Configure
+                    </button>
+                  </div>
+                </div>
+
+                {/* Banking Circle */}
+                <div className="p-6 bg-white border border-slate-200/80 rounded-2xl flex flex-col justify-between space-y-16 hover:shadow-sm transition-all">
+                  <div className="space-y-7">
+                    <div className="flex items-center justify-between">
+                      <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600">
+                        <Landmark className="w-5 h-5" />
+                      </div>
+                      <span className="px-2.5 py-0.5 bg-blue-50 text-blue-600 rounded-full text-[10px] font-bold tracking-wider">
+                        AVAILABLE
+                      </span>
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-bold text-slate-900 mb-3.5">
+                        Banking Circle
+                      </h3>
+                      <p className="text-medium text-slate-500 leading-relaxed">
+                        Next-gen financial utility for cross-border payments, multi-currency
+                        accounts, and clearing for global markets.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end pt-2">
+                    <button className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold transition-colors">
+                      Enable
+                    </button>
+                  </div>
+                </div>
+
+                {/* Sumsub */}
+                <div className="p-6 bg-white border border-slate-200/80 rounded-2xl flex flex-col justify-between space-y-16 hover:shadow-sm transition-all">
+                  <div className="space-y-7">
+                    <div className="flex items-center justify-between">
+                      <div className="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center text-white">
+                        <ShieldCheck className="w-5 h-5" />
+                      </div>
+                      <span className="px-2.5 py-0.5 bg-emerald-50 text-emerald-600 rounded-full text-[10px] font-bold tracking-wider">
+                        ENABLED
+                      </span>
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-bold text-slate-900 mb-3.5">
+                        Sumsub
+                      </h3>
+                      <p className="text-medium text-slate-500 leading-relaxed">
+                        AI-powered identity verification, KYC/AML compliance, and fraud
+                        prevention for global onboarding orchestration.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end pt-2">
+                    <button className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold transition-colors">
+                      Configure
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* Design Kit Section Banner */}
+            <section className="bg-blue-50/70 border border-blue-100/80 rounded-xl p-8 lg:p-10 overflow-hidden">
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+                <div className="lg:col-span-6 space-y-6">
+                  <div>
+                    <h2 className="text-3xl font-extrabold text-blue-700">
+                      Design Kit
+                    </h2>
+                    <p className="text-lg text-slate-600 leading-relaxed mt-12 mb-8 max-w-md">
+                      Our modular UI library provides pre-built, accessible components
+                      designed specifically for high-trust financial interfaces.
+                    </p>
+                  </div>
+
+                  <div className="space-y-4.5">
+                    <div className="flex items-center gap-2.5">
+                      <CheckCircle2 className="w-4 h-4 text-blue-600 flex-shrink-0" />
+                      <span className="text-sm font-semibold text-slate-800">
+                        Material Symbols Integrated
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2.5">
+                      <CheckCircle2 className="w-4 h-4 text-blue-600 flex-shrink-0" />
+                      <span className="text-sm font-semibold text-slate-800">
+                        WCAG 2.1 AA Compliant Components
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2.5">
+                      <CheckCircle2 className="w-4 h-4 text-blue-600 flex-shrink-0" />
+                      <span className="text-sm font-semibold text-slate-800">
+                        Tailwind Config Included
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="pt-2">
+                    <button className="px-5 py-3 bg-blue-200/70 hover:bg-blue-200 text-blue-900 font-bold text-xs rounded-xl transition-colors">
+                      Explore Components
+                    </button>
+                  </div>
+                </div>
+
+                <div className="lg:col-span-4 flex justify-center lg:justify-end pb-0">
+                  <img
+                    src={getPath("/Memberdashboard.png")}
+                    alt="Design Kit Mobile Preview"
+                    className="w-full max-w-sm rounded-xl pb-0"
+                  />
+                </div>
+              </div>
+            </section>
+          </div>
+
+          {/* Footer */}
+          <footer className="pt-8 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between text-[11px] text-slate-500 gap-4">
+            <div className="flex items-center gap-1.5">
+              <Lock className="w-3.5 h-3.5 text-slate-400" />
+              <span>Secure 256-bit AES Encrypted Session</span>
+            </div>
+
+            <div className="flex items-center gap-6 font-medium">
+              <a href="#" className="hover:text-slate-800 transition-colors">
+                Privacy Policy
+              </a>
+              <a href="#" className="hover:text-slate-800 transition-colors">
+                Terms of Service
+              </a>
+              <a href="#" className="hover:text-slate-800 transition-colors">
+                Contact Support
+              </a>
+            </div>
+          </footer>
         </main>
       </div>
     </div>
