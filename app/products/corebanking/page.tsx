@@ -48,12 +48,12 @@ export default function ForCreditUnions() {
 
       {/* Hero Header & Dashboard Preview Section */}
       <div ref={heroRef} className="pt-10 md:pt-16 pb-12 md:pb-20 w-full">
-        <section className="max-w-full mx-auto px-6 md:px-20 grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
+        <section className="max-w-full mx-auto px-6 md:pl-20 pr-0 grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-25 items-center">
           
           {/* Left Column: Heading, Subtitle & CTA */}
           <div className="lg:col-span-5 space-y-6">
             <h1
-              className={`text-3xl md:text-3xl lg:text-3xl font-extrabold text-slate-900 tracking-tight leading-[1.15] ${getAnimatedClass(
+              className={`text-3xl md:text-3xl lg:text-4xl font-extrabold text-slate-900 tracking-tight leading-[1.15] ${getAnimatedClass(
                 heroVisible
               )}`}
               style={{ transitionDelay: "0ms" }}
@@ -103,7 +103,7 @@ export default function ForCreditUnions() {
 
       {/* Brand Value Proposition Section */}
       <section className="bg-white py-16 md:py-24 px-6 md:px-12 lg:px-20 border-t border-slate-100">
-        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-12 gap-8 md:gap-16 items-start">
+        <div className="max-w-full mx-auto grid grid-cols-1 md:grid-cols-12 gap-8 md:gap-16 items-start">
           
           {/* Left Column - Heading */}
           <div className="md:col-span-5">
@@ -131,12 +131,9 @@ export default function ForCreditUnions() {
 
       {/* Subsections */}
       <Newmodulessection />
+      <NewfeaturesSection />
       <NewApiSection />
       <Newpartnersection />
-      <NewfeaturesSection />
-      <DynamicSection />
-      <BackgroundSection />
-      <HoverSection />
       <Footersection />
     </div>
   );
