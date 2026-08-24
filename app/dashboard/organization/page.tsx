@@ -292,7 +292,7 @@ export default function DashboardPage() {
                   key={item.name}
                   disabled={isDisabled}
                   onClick={() => !isDisabled && setActiveNav(item.name)}
-                  className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                  className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-bold transition-all ${
                     isDisabled
                       ? "opacity-40 cursor-not-allowed bg-transparent text-slate-400 select-none"
                       : isActive
