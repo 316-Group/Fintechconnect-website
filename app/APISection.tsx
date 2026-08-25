@@ -2,6 +2,7 @@
 
 import React from "react";
 import { getPath } from "@/utils/helper";
+import Link from "next/link";
 
 interface APIFeature {
   title: string;
@@ -95,9 +96,9 @@ export default function APISection() {
           </div>
 
           {/* Call To Action Button */}
-          <a href="/book-demo" className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-8 rounded-md transition-all shadow-sm text-sm active:scale-95">
+          <Link href="/book-demo" className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-8 rounded-md transition-all shadow-sm text-sm active:scale-95">
             Book Demo
-          </a>
+          </Link>
         </div>
 
         {/* RIGHT COLUMN: API Documentation & Graphic Showcase Placeholder */}

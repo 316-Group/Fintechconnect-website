@@ -19,6 +19,7 @@ import PartnerSection from './partnersection';
 import ComparisonSection from './comparisonsection';
 import HoverSection from './solutions/fintech-startups/hoversection';
 import ComplianceSection from './compliancesection';
+import Link from 'next/link';
 
 export default function MarketingHome() {
   // Trigger state for structural entry animations
@@ -108,11 +109,12 @@ export default function MarketingHome() {
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
-            <a
+            
+            <Link
               href="/book-demo"
               className="bg-[#5ce1b6] hover:bg-[#4cd0a5] text-black font-semibold py-3 px-6 rounded-md transition-all active:scale-95 shadow-lg text-center inline-block">
               Request Demo
-            </a>
+            </Link>
             <button className="border border-blue-500 bg-transparent hover:bg-slate-900 text-white font-medium py-3 px-6 rounded-md transition-all active:scale-95 text-center">
               Book Consultation
             </button>
