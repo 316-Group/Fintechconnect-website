@@ -2,12 +2,14 @@
 
 import React, { useState, useEffect } from "react";
 import { Check, AlertTriangle, RotateCcw, Loader2, ShieldCheck, ShieldAlert } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 interface Step5Props {
   livePhoto: string | null;
   idPhoto: string | null | { front: string; back: string };
-  onDone: () => void;
+  onDone?: () => void;
   onRetry?: () => void;
+  redirectPath?: string;
 }
 
 export default function Step5Success({
@@ -15,7 +17,9 @@ export default function Step5Success({
   idPhoto,
   onDone,
   onRetry,
+  redirectPath = "/dashboard/organization/verification",
 }: Step5Props) {
+  const router = useRouter();
   const [isAnalyzing, setIsAnalyzing] = useState(true);
   const [matchScore, setMatchScore] = useState<number>(0);
   const [isMatched, setIsMatched] = useState<boolean>(false);
@@ -39,7 +43,6 @@ export default function Step5Success({
       }
 
       try {
-        // Load both base64 images into Image objects
         const loadImage = (src: string): Promise<HTMLImageElement> =>
           new Promise((resolve, reject) => {
             const img = new Image();
@@ -54,7 +57,6 @@ export default function Step5Success({
           loadImage(documentImageSrc),
         ]);
 
-        // Draw and sample pixel data onto offscreen canvases
         const sampleSize = 32;
         const canvasA = document.createElement("canvas");
         const canvasB = document.createElement("canvas");
@@ -81,7 +83,6 @@ export default function Step5Success({
         const dataA = ctxA.getImageData(0, 0, sampleSize, sampleSize).data;
         const dataB = ctxB.getImageData(0, 0, sampleSize, sampleSize).data;
 
-        // Calculate RGB structural vector variance & luminance profile correlation
         let totalDiff = 0;
         let pixelCount = 0;
 
@@ -96,15 +97,15 @@ export default function Step5Success({
         }
 
         const normalizedVariance = totalDiff / (pixelCount * 255);
-        // Calculate similarity index
-        const rawSimilarity = Math.max(0, Math.min(100, Math.round((1 - normalizedVariance) * 100)));
+        const rawSimilarity = Math.max(
+          0,
+          Math.min(100, Math.round((1 - normalizedVariance) * 100))
+        );
 
-        // Matching threshold assessment (>= 60% structural similarity considered positive match)
         const matched = rawSimilarity >= 60;
-        
+
         if (isMounted) {
           setIsMatched(matched);
-          // If match succeeds, display exact 100% confidence rating, else report raw calculated match percentage
           setMatchScore(matched ? 100 : Math.max(15, rawSimilarity));
           setIsAnalyzing(false);
         }
@@ -120,13 +121,55 @@ export default function Step5Success({
 
     const timer = setTimeout(() => {
       compareFaceToDocument();
-    }, 1200); // Brief realistic processing delay
+    }, 1200);
 
     return () => {
       isMounted = false;
       clearTimeout(timer);
     };
   }, [livePhoto, documentImageSrc]);
+
+  // Completion & Reroute Handler
+  const handleDone = () => {
+    if (typeof window !== "undefined") {
+      try {
+        const applicantId = localStorage.getItem("selected_applicant_id");
+        const applicantName = localStorage.getItem("selected_applicant_name");
+
+        const existingRaw = localStorage.getItem("verified_stakeholders");
+        let verifiedList: string[] = existingRaw ? JSON.parse(existingRaw) : [];
+
+        if (applicantId && !verifiedList.includes(applicantId)) {
+          verifiedList.push(applicantId);
+        }
+        if (applicantName && !verifiedList.includes(applicantName)) {
+          verifiedList.push(applicantName);
+        }
+
+        // Persist verified stakeholder records
+        localStorage.setItem(
+          "verified_stakeholders",
+          JSON.stringify(verifiedList)
+        );
+
+        // Notify active windows/tabs of storage update
+        window.dispatchEvent(new Event("storage"));
+      } catch (error) {
+        console.error("Failed to sync verification completion to localStorage:", error);
+      }
+    }
+
+    if (onDone) {
+      onDone();
+    }
+
+    // Account for optional repository base path (e.g., GitHub Pages)
+    const repoName = "/Fintechconnect-website";
+    const currentPath = typeof window !== "undefined" ? window.location.pathname : "";
+    const basePath = currentPath.startsWith(repoName) ? repoName : "";
+
+    router.push(`${basePath}${redirectPath}`);
+  };
 
   return (
     <div className="flex-1 flex flex-col justify-between p-6 bg-white text-slate-800">
@@ -156,9 +199,7 @@ export default function Step5Success({
             <div className="text-center space-y-2 pt-2">
               <div
                 className={`w-12 h-12 rounded-full flex items-center justify-center mx-auto shadow-md transition-all ${
-                  isMatched
-                    ? "bg-[#0A63F8] text-white"
-                    : "bg-red-500 text-white"
+                  isMatched ? "bg-[#0A63F8] text-white" : "bg-red-500 text-white"
                 }`}
               >
                 {isMatched ? (
@@ -282,7 +323,7 @@ export default function Step5Success({
           {isMatched ? (
             <button
               type="button"
-              onClick={onDone}
+              onClick={handleDone}
               className="w-full bg-[#0A63F8] hover:bg-blue-700 text-white text-xs font-semibold py-3.5 rounded-xl transition-colors shadow-md cursor-pointer"
             >
               Done
@@ -301,7 +342,7 @@ export default function Step5Success({
               )}
               <button
                 type="button"
-                onClick={onDone}
+                onClick={handleDone}
                 className="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-semibold py-3 rounded-xl transition-colors cursor-pointer"
               >
                 Proceed with Flagged Status

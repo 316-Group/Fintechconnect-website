@@ -45,6 +45,10 @@ const KEY_CANDIDATES = {
     "uploaded_documents_form",
     "uploadedDocuments",
     "documents_form",
+    "documents_data",
+    "documents",
+    "organization_documents",
+    "onboarding_documents",
   ],
 };
 
@@ -83,6 +87,7 @@ interface Signatory {
 
 interface UploadedDoc {
   name: string;
+  category?: string;
   status: "uploaded" | "pending";
 }
 
@@ -260,12 +265,29 @@ export default function ReviewAndSubmit() {
           list = rawDocs.documents;
         } else if (Array.isArray(rawDocs.files)) {
           list = rawDocs.files;
+        } else if (Array.isArray(rawDocs.uploadedDocuments)) {
+          list = rawDocs.uploadedDocuments;
+        } else if (typeof rawDocs === "object" && rawDocs !== null) {
+          // Flatten dictionary format: { entityFormation: { name: '...', status: '...' } }
+          list = Object.entries(rawDocs).map(([key, value]) => {
+            if (typeof value === "string") {
+              return { name: value, category: key, status: "uploaded" };
+            } else if (typeof value === "object" && value !== null) {
+              return {
+                name: (value as any).name || (value as any).fileName || (value as any).title || key,
+                category: (value as any).category || (value as any).section || key,
+                status: (value as any).status || ((value as any).uploaded || (value as any).file ? "uploaded" : "pending"),
+              };
+            }
+            return { name: key, status: "pending" };
+          });
         }
 
         setDocuments(
           list.map((d) => ({
             name: d.name || d.fileName || d.file_name || d.title || "Document",
-            status: d.status || (d.uploaded ? "uploaded" : "pending"),
+            category: d.category || d.type || d.section || undefined,
+            status: d.status === "uploaded" || d.uploaded === true ? "uploaded" : "pending",
           }))
         );
       }
@@ -415,7 +437,7 @@ export default function ReviewAndSubmit() {
             </h3>
           </div>
           <Link
-            href="/dashboard/organization/compliance"
+            href="/dashboard/organization/regulatorycompliance"
             className="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-700"
           >
             <Edit3 className="w-3.5 h-3.5" /> Edit
@@ -481,7 +503,7 @@ export default function ReviewAndSubmit() {
             </h3>
           </div>
           <Link
-            href="/dashboard/organization/ownership"
+            href="/dashboard/organization/beneficial-ownership"
             className="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-700"
           >
             <Edit3 className="w-3.5 h-3.5" /> Edit
@@ -574,7 +596,14 @@ export default function ReviewAndSubmit() {
               >
                 <div className="flex items-center gap-2">
                   <FileText className="w-4 h-4 text-slate-400 shrink-0" />
-                  <span className="font-medium text-slate-800">{doc.name}</span>
+                  <div>
+                    <span className="font-medium text-slate-800 block">{doc.name}</span>
+                    {doc.category && (
+                      <span className="text-[10px] text-slate-400 block capitalize">
+                        {doc.category.replace(/([A-Z])/g, " $1")}
+                      </span>
+                    )}
+                  </div>
                 </div>
                 {doc.status === "uploaded" ? (
                   <span className="flex items-center gap-1 text-emerald-600 font-semibold text-[11px]">

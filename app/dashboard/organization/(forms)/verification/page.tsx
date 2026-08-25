@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   Shield,
   Building2,
@@ -17,6 +17,7 @@ import {
   Copy,
   Check,
   User,
+  CheckCircle,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -40,6 +41,7 @@ const KEY_CANDIDATES = {
     "beneficialOwners",
     "ownership_form",
   ],
+  VERIFIED_STAKEHOLDERS: ["verified_stakeholders", "completed_verifications"],
 };
 
 interface Stakeholder {
@@ -75,8 +77,9 @@ export default function VerificationKYBHub() {
 
   const [isInitialized, setIsInitialized] = useState(false);
 
-  // Modal State
+  // Modal State & Selected Person
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedPerson, setSelectedPerson] = useState<Stakeholder | null>(null);
   const [emailInput, setEmailInput] = useState("johndoe@gmail.com");
   const [phoneInput, setPhoneInput] = useState("");
   const [copied, setCopied] = useState(false);
@@ -85,7 +88,9 @@ export default function VerificationKYBHub() {
 
   // Dynamic Base Path & Mobile Verification URL resolution
   const repoName = "/Fintechconnect-website";
-  const [mobileVerifyUrl, setMobileVerifyUrl] = useState("https://yourdomain.com/verify/m");
+  const [mobileVerifyUrl, setMobileVerifyUrl] = useState(
+    "https://yourdomain.com/verify/m"
+  );
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -95,7 +100,7 @@ export default function VerificationKYBHub() {
     }
   }, []);
 
-  // QR Code Image Generator URL (Guaranteed to match mobileVerifyUrl)
+  // QR Code Image Generator URL
   const qrCodeImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(
     mobileVerifyUrl
   )}`;
@@ -123,6 +128,77 @@ export default function VerificationKYBHub() {
     return null;
   };
 
+  // Helper to check if a stakeholder ID or name is marked completed in localStorage
+  const checkIsVerified = useCallback((id: string, name: string) => {
+    const verifiedList: string[] =
+      getFromLocalStorage(KEY_CANDIDATES.VERIFIED_STAKEHOLDERS) || [];
+    return verifiedList.includes(id) || verifiedList.includes(name);
+  }, []);
+
+  // Function to mark a stakeholder as completed and sync with state + localStorage
+  const completeStakeholderVerification = (person: Stakeholder) => {
+    if (typeof window !== "undefined") {
+      const existing: string[] =
+        getFromLocalStorage(KEY_CANDIDATES.VERIFIED_STAKEHOLDERS) || [];
+      if (!existing.includes(person.id) && !existing.includes(person.fullName)) {
+        const updated = [...existing, person.id, person.fullName];
+        localStorage.setItem(
+          KEY_CANDIDATES.VERIFIED_STAKEHOLDERS[0],
+          JSON.stringify(updated)
+        );
+      }
+    }
+
+    setGroups((prev) => {
+      const updateList = (list: Stakeholder[]) =>
+        list.map((item) =>
+          item.id === person.id || item.fullName === person.fullName
+            ? {
+                ...item,
+                status: "verified" as const,
+                actionLabel: "Completed",
+              }
+            : item
+        );
+
+      return {
+        accountOwnership: updateList(prev.accountOwnership),
+        regulatoryOversight: updateList(prev.regulatoryOversight),
+        beneficialOwnership: updateList(prev.beneficialOwnership),
+        authorisedSignatories: updateList(prev.authorisedSignatories),
+      };
+    });
+  };
+
+  // Listen for verification updates from mobile flow / cross-tab storage changes
+  useEffect(() => {
+    const handleStorageChange = () => {
+      setGroups((prev) => {
+        const syncList = (list: Stakeholder[]) =>
+          list.map((person) => {
+            if (checkIsVerified(person.id, person.fullName)) {
+              return {
+                ...person,
+                status: "verified" as const,
+                actionLabel: "Completed",
+              };
+            }
+            return person;
+          });
+
+        return {
+          accountOwnership: syncList(prev.accountOwnership),
+          regulatoryOversight: syncList(prev.regulatoryOversight),
+          beneficialOwnership: syncList(prev.beneficialOwnership),
+          authorisedSignatories: syncList(prev.authorisedSignatories),
+        };
+      });
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
+  }, [checkIsVerified]);
+
   // Load and normalize stored data from all previous steps
   useEffect(() => {
     try {
@@ -135,12 +211,13 @@ export default function VerificationKYBHub() {
       const primaryName =
         rawOrg?.contactPerson || rawOrg?.applicantName || rawOrg?.legalName;
       if (primaryName) {
+        const isVer = checkIsVerified("account-1", primaryName);
         accountOwnershipList.push({
           id: "account-1",
           fullName: primaryName,
           role: "Primary Applicant",
-          status: "needs_docs",
-          actionLabel: "Complete ID & Facial Scan",
+          status: isVer ? "verified" : "needs_docs",
+          actionLabel: isVer ? "Completed" : "Complete ID & Facial Scan",
         });
       }
 
@@ -149,12 +226,13 @@ export default function VerificationKYBHub() {
       const complianceOfficer =
         rawCompliance?.contactPerson || rawCompliance?.complianceOfficer;
       if (complianceOfficer) {
+        const isVer = checkIsVerified("regulatory-1", complianceOfficer);
         regulatoryList.push({
           id: "regulatory-1",
           fullName: complianceOfficer,
           role: "Compliance/MLRO Officer",
-          status: "needs_docs",
-          actionLabel: "Request ID & Facial Scan",
+          status: isVer ? "verified" : "needs_docs",
+          actionLabel: isVer ? "Completed" : "Request ID & Facial Scan",
         });
       }
 
@@ -172,12 +250,14 @@ export default function VerificationKYBHub() {
         rawOwnerArray.forEach((owner, idx) => {
           const name = owner.fullName || owner.full_name || owner.name;
           if (name) {
+            const id = `bo-${idx}`;
+            const isVer = checkIsVerified(id, name);
             beneficialList.push({
-              id: `bo-${idx}`,
+              id,
               fullName: name,
               role: owner.officialRole || "Beneficial Owner",
-              status: "pending_email",
-              actionLabel: "Send Invitation",
+              status: isVer ? "verified" : "pending_email",
+              actionLabel: isVer ? "Completed" : "Send Invitation",
             });
           }
         });
@@ -194,12 +274,18 @@ export default function VerificationKYBHub() {
         rawSignatoryArray.forEach((sig, idx) => {
           const name = sig.fullName || sig.full_name || sig.name;
           if (name) {
+            const id = `sig-${idx}`;
+            const isVer = checkIsVerified(id, name);
             signatoryList.push({
-              id: `sig-${idx}`,
+              id,
               fullName: name,
               role: sig.officialRole || "Authorised Signatory",
-              status: "pending_email",
-              actionLabel: idx === 0 ? "Send Reminder" : "Send Invitation",
+              status: isVer ? "verified" : "pending_email",
+              actionLabel: isVer
+                ? "Completed"
+                : idx === 0
+                ? "Send Reminder"
+                : "Send Invitation",
             });
           }
         });
@@ -216,7 +302,7 @@ export default function VerificationKYBHub() {
     } finally {
       setIsInitialized(true);
     }
-  }, []);
+  }, [checkIsVerified]);
 
   const toggleSection = (sectionKey: string) => {
     setOpenSections((prev) => ({
@@ -234,7 +320,9 @@ export default function VerificationKYBHub() {
   ];
 
   const totalStakeholders = allStakeholders.length;
-  const verifiedCount = allStakeholders.filter((s) => s.status === "verified").length;
+  const verifiedCount = allStakeholders.filter(
+    (s) => s.status === "verified"
+  ).length;
   const pendingCount = totalStakeholders - verifiedCount;
 
   const handleVerifyAll = () => {
@@ -247,10 +335,19 @@ export default function VerificationKYBHub() {
 
   // Triggers the Biometric Modal for any clicked stakeholder
   const handleActionClick = (person: Stakeholder) => {
+    setSelectedPerson(person);
     if (typeof window !== "undefined") {
       localStorage.setItem("selected_applicant_name", person.fullName);
+      localStorage.setItem("selected_applicant_id", person.id);
     }
     setIsModalOpen(true);
+  };
+
+  const handleSimulateCompletion = () => {
+    if (selectedPerson) {
+      completeStakeholderVerification(selectedPerson);
+      setIsModalOpen(false);
+    }
   };
 
   const handleCopyLink = () => {
@@ -418,57 +515,80 @@ export default function VerificationKYBHub() {
               {isOpen && (
                 <div className="mt-4 space-y-3">
                   {section.data.length > 0 ? (
-                    section.data.map((person) => (
-                      <div
-                        key={person.id}
-                        className="border border-dashed border-slate-200 rounded-xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-white hover:border-slate-300 transition-colors"
-                      >
-                        {/* Person Details */}
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-lg bg-[#EFF4FE] text-[#0A63F8] font-bold text-xs flex items-center justify-center shrink-0 uppercase tracking-wider">
-                            {getInitials(person.fullName)}
+                    section.data.map((person) => {
+                      const isVerified = person.status === "verified";
+
+                      return (
+                        <div
+                          key={person.id}
+                          className={`border rounded-xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 transition-colors ${
+                            isVerified
+                              ? "bg-emerald-50/30 border-emerald-200/80"
+                              : "border-dashed border-slate-200 bg-white hover:border-slate-300"
+                          }`}
+                        >
+                          {/* Person Details */}
+                          <div className="flex items-center gap-3">
+                            <div
+                              className={`w-10 h-10 rounded-lg font-bold text-xs flex items-center justify-center shrink-0 uppercase tracking-wider ${
+                                isVerified
+                                  ? "bg-emerald-100 text-emerald-700"
+                                  : "bg-[#EFF4FE] text-[#0A63F8]"
+                              }`}
+                            >
+                              {getInitials(person.fullName)}
+                            </div>
+                            <div>
+                              <h4 className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                                {person.fullName}
+                                {isVerified && (
+                                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 inline-block" />
+                                )}
+                              </h4>
+                              <p className="text-[11px] text-slate-400 mt-0.5">
+                                {person.role}
+                              </p>
+                            </div>
                           </div>
-                          <div>
-                            <h4 className="text-xs font-bold text-slate-800">
-                              {person.fullName}
-                            </h4>
-                            <p className="text-[11px] text-slate-400 mt-0.5">
-                              {person.role}
-                            </p>
+
+                          {/* Status Tag & Action Button */}
+                          <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
+                            {person.status === "needs_docs" && (
+                              <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-red-50 text-red-600 rounded-full text-[11px] font-semibold border border-red-100">
+                                <AlertCircle className="w-3.5 h-3.5 text-red-500" />
+                                Needs Documents
+                              </span>
+                            )}
+                            {person.status === "pending_email" && (
+                              <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-slate-100 text-slate-600 rounded-full text-[11px] font-semibold border border-slate-200/60">
+                                <Clock className="w-3.5 h-3.5 text-slate-400" />
+                                Pending Email
+                              </span>
+                            )}
+                            {person.status === "verified" && (
+                              <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full text-[11px] font-semibold border border-emerald-200">
+                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                                Completed
+                              </span>
+                            )}
+
+                            <button
+                              type="button"
+                              onClick={() => handleActionClick(person)}
+                              disabled={isVerified}
+                              className={`px-4 py-1.5 border rounded-lg text-xs font-semibold transition-colors shadow-2xs ${
+                                isVerified
+                                  ? "bg-emerald-100/50 border-emerald-200 text-emerald-800 cursor-default opacity-90"
+                                  : "border-slate-200 text-slate-700 hover:bg-slate-50 bg-white cursor-pointer"
+                              }`}
+                            >
+                              {person.actionLabel ||
+                                (isVerified ? "Completed" : "Send Invitation")}
+                            </button>
                           </div>
                         </div>
-
-                        {/* Status Tag & Action Button */}
-                        <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
-                          {person.status === "needs_docs" && (
-                            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-red-50 text-red-600 rounded-full text-[11px] font-semibold border border-red-100">
-                              <AlertCircle className="w-3.5 h-3.5 text-red-500" />
-                              Needs Documents
-                            </span>
-                          )}
-                          {person.status === "pending_email" && (
-                            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-slate-100 text-slate-600 rounded-full text-[11px] font-semibold border border-slate-200/60">
-                              <Clock className="w-3.5 h-3.5 text-slate-400" />
-                              Pending Email
-                            </span>
-                          )}
-                          {person.status === "verified" && (
-                            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full text-[11px] font-semibold border border-emerald-100">
-                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                              Verified
-                            </span>
-                          )}
-
-                          <button
-                            type="button"
-                            onClick={() => handleActionClick(person)}
-                            className="px-4 py-1.5 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors bg-white shadow-2xs cursor-pointer"
-                          >
-                            {person.actionLabel || "Send Invitation"}
-                          </button>
-                        </div>
-                      </div>
-                    ))
+                      );
+                    })
                   ) : (
                     <div className="text-center py-6 text-slate-400 text-xs border border-dashed border-slate-200 rounded-xl bg-slate-50/50">
                       No stakeholder data found for this section.
@@ -498,7 +618,7 @@ export default function VerificationKYBHub() {
       </div>
 
       {/* BIOMETRIC VERIFICATION MODAL POPUP */}
-      {isModalOpen && (
+      {isModalOpen && selectedPerson && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 overflow-y-auto">
           <div className="bg-white rounded-3xl shadow-2xl max-w-3xl w-full overflow-hidden flex flex-col md:flex-row relative animate-in fade-in zoom-in-95 duration-200 my-8">
             {/* Close Button */}
@@ -518,9 +638,12 @@ export default function VerificationKYBHub() {
                   <User className="w-5 h-5" />
                 </div>
 
-                <h3 className="text-lg font-bold text-slate-900 tracking-tight mb-2">
+                <h3 className="text-lg font-bold text-slate-900 tracking-tight mb-1">
                   Biometric Verification
                 </h3>
+                <p className="text-xs font-semibold text-blue-600 mb-3">
+                  Verifying: {selectedPerson.fullName}
+                </p>
                 <p className="text-xs text-slate-600 leading-relaxed mb-8">
                   For security and compliance purposes, we require a live facial scan. This process is optimized for mobile devices with high-resolution cameras.
                 </p>
@@ -570,7 +693,6 @@ export default function VerificationKYBHub() {
 
               {/* QR Code Phone Frame Container */}
               <div className="bg-[#F8FAFC] border border-slate-200/90 rounded-2xl p-4 mb-4 w-full max-w-[240px] flex flex-col items-center shadow-2xs">
-                {/* Mockup phone bar */}
                 <div className="flex items-center justify-between w-full text-[9px] text-slate-400 mb-2 px-1">
                   <span>&lt;</span>
                   <span className="font-semibold text-slate-700">Facial Scan</span>
@@ -662,6 +784,16 @@ export default function VerificationKYBHub() {
                       Copy secure link
                     </>
                   )}
+                </button>
+
+                {/* Manual / Development Completion Button */}
+                <button
+                  type="button"
+                  onClick={handleSimulateCompletion}
+                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl py-2 px-4 text-xs font-semibold flex items-center justify-center gap-2 transition-colors cursor-pointer mt-2"
+                >
+                  <CheckCircle className="w-3.5 h-3.5 text-white" />
+                  Mark Verification as Completed
                 </button>
               </div>
             </div>
