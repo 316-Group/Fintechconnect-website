@@ -25,17 +25,19 @@ import {
   Workflow,
   TrendingUp,
   Sliders,
+  Menu,
+  X,
 } from "lucide-react";
 import Link from "next/link";
-import {getPath} from "@/utils/helper";
+import { getPath } from "@/utils/helper";
 
 const STORAGE_KEY_BI = "onboarding_business_identity";
 const STORAGE_KEY_COMPLIANCE_FORM = "regulatory_compliance_form";
-const STORAGE_KEY_COMPLIANCE_JURISDICTIONS = "regulatory_compliance_jurisdictions";
 const STORAGE_KEY_OWNERSHIP = "beneficial_ownership_form";
 
 export default function DashboardPage() {
   const [activeNav, setActiveNav] = useState("Organization");
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Dynamic KYB Step Management State
   const [steps, setSteps] = useState([
@@ -201,8 +203,102 @@ export default function DashboardPage() {
 
   return (
     <div className="flex min-h-screen bg-[#F8FAFC] font-sans text-slate-800">
-      {/* Sidebar */}
-      <aside className="w-64 border-r border-slate-200 bg-white flex flex-col justify-between shrink-0">
+      {/* Mobile Backdrop Overlay */}
+      {mobileMenuOpen && (
+        <div
+          className="fixed inset-0 bg-black/60 z-[90] md:hidden backdrop-blur-sm"
+          onClick={() => setMobileMenuOpen(false)}
+        />
+      )}
+
+      {/* Mobile Drawer Navigation Sidebar */}
+      <div
+        className={`fixed top-0 left-0 bottom-0 w-3/4 sm:w-1/2 bg-slate-950 border-r border-slate-800 z-[100] transform transition-transform duration-300 ease-in-out ${
+          mobileMenuOpen ? "translate-x-0" : "-translate-x-full"
+        } md:hidden overflow-y-auto flex flex-col justify-between`}
+      >
+        <div>
+          <div className="flex justify-between items-center p-5 border-b border-slate-800">
+            <span className="text-white font-bold text-lg">Menu</span>
+            <button
+              onClick={() => setMobileMenuOpen(false)}
+              className="text-white hover:text-blue-500 transition p-1"
+            >
+              <X size={22} />
+            </button>
+          </div>
+
+          <nav className="flex flex-col p-4 gap-1.5">
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = activeNav === item.name;
+              const isDisabled = item.name !== "Organization";
+
+              return (
+                <button
+                  key={item.name}
+                  disabled={isDisabled}
+                  onClick={() => {
+                    if (!isDisabled) {
+                      setActiveNav(item.name);
+                      setMobileMenuOpen(false);
+                    }
+                  }}
+                  className={`w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-sm font-bold transition-all ${
+                    isDisabled
+                      ? "opacity-40 cursor-not-allowed bg-transparent text-slate-500 select-none"
+                      : isActive
+                      ? "bg-blue-600 text-white"
+                      : "text-slate-300 hover:bg-slate-900 hover:text-white"
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <Icon
+                      className={`w-4 h-4 ${
+                        isDisabled
+                          ? "text-slate-500"
+                          : isActive
+                          ? "text-white"
+                          : "text-slate-400"
+                      }`}
+                    />
+                    {item.name}
+                  </div>
+                  {isDisabled && <Lock className="w-3.5 h-3.5 text-slate-500" />}
+                </button>
+              );
+            })}
+          </nav>
+        </div>
+
+        {/* Mobile Sidebar Footer / Dynamic Progress Box */}
+        <div className="p-4 space-y-3 border-t border-slate-900">
+          <button className="w-full py-2.5 bg-blue-600 text-white font-medium text-xs rounded-lg hover:bg-blue-500 transition-colors shadow-sm">
+            Save Progress
+          </button>
+
+          <div className="p-3.5 bg-slate-900 rounded-xl space-y-2 border border-slate-800">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+              Current Status
+            </span>
+            <div className="flex items-center justify-between text-xs font-semibold text-slate-300">
+              <span>
+                Step {activeStep.id} of {steps.length}
+              </span>
+              <span>{overallProgress}%</span>
+            </div>
+            <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+              <div
+                className="bg-blue-500 h-full rounded-full transition-all duration-500"
+                style={{ width: `${overallProgress}%` }}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Desktop Sidebar */}
+      <aside className="hidden md:flex w-64 border-r border-slate-200 bg-white flex-col justify-between shrink-0">
         <div>
           {/* Logo Header */}
           <div className="flex items-center gap-2.5 pl-0 pr-4 py-5 border-b border-slate-100">
@@ -330,7 +426,9 @@ export default function DashboardPage() {
               Current Status
             </span>
             <div className="flex items-center justify-between text-xs font-semibold text-slate-700">
-              <span>Step {activeStep.id} of {steps.length}</span>
+              <span>
+                Step {activeStep.id} of {steps.length}
+              </span>
               <span>{overallProgress}%</span>
             </div>
             <div className="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden">
@@ -346,31 +444,40 @@ export default function DashboardPage() {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Top Header */}
-        <header className="h-16 px-8 flex items-center justify-between bg-white border-b border-slate-100">
-          <div className="relative w-full max-w-md">
+        <header className="h-16 px-4 sm:px-6 md:px-8 flex items-center justify-between bg-white border-b border-slate-100 gap-3">
+          {/* Mobile Menu Toggle Button */}
+          <button
+            onClick={() => setMobileMenuOpen(true)}
+            className="p-2 -ml-2 text-slate-600 hover:text-slate-900 md:hidden focus:outline-none"
+            aria-label="Open Mobile Menu"
+          >
+            <Menu className="w-6 h-6" />
+          </button>
+
+          <div className="relative w-full max-w-xs sm:max-w-md">
             <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
-              placeholder="Search compliance records..."
-              className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-full text-xs placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+              placeholder="Search compliance..."
+              className="w-full pl-9 sm:pl-10 pr-3 sm:pr-4 py-2 bg-slate-50 border border-slate-200 rounded-full text-xs placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
             />
           </div>
 
-          <div className="flex items-center gap-4">
-            <button className="p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-50 rounded-full transition-colors">
+          <div className="flex items-center gap-2 sm:gap-4 shrink-0">
+            <button className="p-1.5 sm:p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-50 rounded-full transition-colors">
               <Bell className="w-4 h-4" />
             </button>
-            <button className="p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-50 rounded-full transition-colors">
+            <button className="p-1.5 sm:p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-50 rounded-full transition-colors hidden sm:block">
               <HelpCircle className="w-4 h-4" />
             </button>
-            <div className="h-4 w-px bg-slate-200 mx-1" />
-            <div className="flex items-center gap-2.5">
+            <div className="h-4 w-px bg-slate-200 mx-0.5 sm:mx-1" />
+            <div className="flex items-center gap-2">
               <img
                 src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80"
                 alt="John Doe"
                 className="w-8 h-8 rounded-full object-cover ring-1 ring-slate-200"
               />
-              <span className="text-xs font-semibold text-slate-800">
+              <span className="text-xs font-semibold text-slate-800 hidden sm:inline">
                 John Doe
               </span>
             </div>
@@ -378,17 +485,17 @@ export default function DashboardPage() {
         </header>
 
         {/* Dashboard Body */}
-        <main className="flex-1 p-8 pl-8 pr-10 space-y-8 max-w-full w-full mx-auto">
+        <main className="flex-1 p-4 sm:p-6 md:p-8 space-y-6 sm:space-y-8 max-w-full w-full mx-auto">
           {/* Dynamic KYB Hero Banner */}
-          <section className="bg-gradient-to-r from-blue-600 via-blue-600 to-indigo-600 rounded-2xl p-7 text-white shadow-lg shadow-blue-500/10 relative overflow-hidden transition-all">
-            <div className="max-w-2xl space-y-4">
+          <section className="bg-gradient-to-r from-blue-600 via-blue-600 to-indigo-600 rounded-2xl p-5 sm:p-7 text-white shadow-lg shadow-blue-500/10 relative overflow-hidden transition-all">
+            <div className="max-w-2xl space-y-3 sm:space-y-4">
               <span className="inline-block px-2.5 py-1 bg-white/10 backdrop-blur-md rounded-md text-[10px] font-bold tracking-wider uppercase">
                 KYB Process • Step {activeStep.id} of {steps.length}
               </span>
-              <h1 className="text-2xl font-bold tracking-tight">
+              <h1 className="text-xl sm:text-2xl font-bold tracking-tight">
                 {activeStep.title}
               </h1>
-              <p className="text-sm text-blue-100 leading-relaxed max-w-xl">
+              <p className="text-xs sm:text-sm text-blue-100 leading-relaxed max-w-xl">
                 {activeStep.description}
               </p>
 
@@ -410,7 +517,7 @@ export default function DashboardPage() {
             {/* Banner Action Link */}
             <Link
               href={activeStep.href}
-              className="absolute right-8 bottom-8 px-5 py-2.5 bg-white text-blue-600 rounded-xl text-xs font-semibold hover:bg-blue-50 transition-colors shadow-sm flex items-center gap-2"
+              className="mt-5 inline-flex sm:absolute sm:right-8 sm:bottom-8 sm:mt-0 px-5 py-2.5 bg-white text-blue-600 rounded-xl text-xs font-semibold hover:bg-blue-50 transition-colors shadow-sm items-center gap-2"
             >
               Continue <ArrowRight className="w-3.5 h-3.5" />
             </Link>
@@ -433,7 +540,7 @@ export default function DashboardPage() {
             </div>
 
             {/* Cards Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {steps.map((card) => {
                 const Icon = card.icon;
                 const isActive = card.id === activeStepId;
@@ -443,7 +550,7 @@ export default function DashboardPage() {
                   <div
                     key={card.id}
                     onClick={() => setActiveStepId(card.id)}
-                    className={`p-4 rounded-xl border transition-all relative flex flex-col justify-between h-48 cursor-pointer ${
+                    className={`p-4 rounded-xl border transition-all relative flex flex-col justify-between min-h-[160px] sm:h-48 cursor-pointer ${
                       isActive
                         ? "bg-blue-50/40 border-blue-600 shadow-sm ring-1 ring-blue-600/20"
                         : "bg-white border-slate-200 hover:border-slate-300"
@@ -473,7 +580,7 @@ export default function DashboardPage() {
                         </div>
                       </div>
 
-                      <h3 className="text-medium font-bold text-slate-800 mb-1">
+                      <h3 className="text-sm font-bold text-slate-800 mb-1">
                         {card.name}
                       </h3>
                       <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">
@@ -482,7 +589,7 @@ export default function DashboardPage() {
                     </div>
 
                     {/* Dynamic Card Progress Footer */}
-                    <div className="pt-2 border-t border-slate-100/80 space-y-1.5">
+                    <div className="pt-2 mt-3 border-t border-slate-100/80 space-y-1.5">
                       <div className="flex items-center justify-between text-[11px] font-medium text-slate-500">
                         <span>
                           {isComplete
@@ -495,9 +602,7 @@ export default function DashboardPage() {
                       </div>
                       <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
                         <div
-                          className={`h-full rounded-full transition-all duration-300 ${
-                            isComplete ? "bg-blue-600" : "bg-blue-600"
-                          }`}
+                          className="h-full bg-blue-600 rounded-full transition-all duration-300"
                           style={{ width: `${card.progress}%` }}
                         />
                       </div>
@@ -511,7 +616,7 @@ export default function DashboardPage() {
           {/* Personalized for You Section */}
           <section className="space-y-6">
             <div>
-              <h2 className="text-xl font-bold text-slate-900">
+              <h2 className="text-lg sm:text-xl font-bold text-slate-900">
                 Personalized for You
               </h2>
               <p className="text-xs text-slate-500 mt-1">
@@ -521,7 +626,7 @@ export default function DashboardPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
               {/* Wallet-as-a-Service Card */}
-              <div className="p-6 bg-white border border-slate-200/80 rounded-xl flex flex-col justify-between space-y-6 hover:shadow-sm transition-all">
+              <div className="p-5 sm:p-6 bg-white border border-slate-200/80 rounded-xl flex flex-col justify-between space-y-6 hover:shadow-sm transition-all">
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <Wallet className="w-6 h-6 text-blue-600" />
@@ -530,10 +635,10 @@ export default function DashboardPage() {
                     </span>
                   </div>
                   <div>
-                    <h3 className="text-lg font-bold text-slate-900 mb-6 leading-snug">
+                    <h3 className="text-base sm:text-lg font-bold text-slate-900 mb-2 sm:mb-4 leading-snug">
                       Wallet-as-a-Service
                     </h3>
-                    <p className="text-sm text-slate-500 leading-relaxed">
+                    <p className="text-xs sm:text-sm text-slate-500 leading-relaxed">
                       White-label custodial wallet infrastructure with multi-currency
                       support, real-time transaction monitoring, and secure key
                       management.
@@ -550,7 +655,7 @@ export default function DashboardPage() {
               </div>
 
               {/* Double-Entry Ledger Card */}
-              <div className="p-6 bg-white border border-slate-200/80 rounded-xl flex flex-col justify-between space-y-6 hover:shadow-sm transition-all">
+              <div className="p-5 sm:p-6 bg-white border border-slate-200/80 rounded-xl flex flex-col justify-between space-y-6 hover:shadow-sm transition-all">
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <BookOpen className="w-6 h-6 text-blue-600" />
@@ -559,10 +664,10 @@ export default function DashboardPage() {
                     </span>
                   </div>
                   <div>
-                    <h3 className="text-lg font-bold text-slate-900 mb-6 leading-snug">
+                    <h3 className="text-base sm:text-lg font-bold text-slate-900 mb-2 sm:mb-4 leading-snug">
                       Double-Entry Ledger
                     </h3>
-                    <p className="text-sm text-slate-500 leading-relaxed">
+                    <p className="text-xs sm:text-sm text-slate-500 leading-relaxed">
                       High-throughput, immutable accounting system designed for
                       institutional financial tracking and real-time reconciliation.
                     </p>
@@ -578,7 +683,7 @@ export default function DashboardPage() {
               </div>
 
               {/* Crypto Custody Card */}
-              <div className="p-6 bg-white border border-slate-200/80 rounded-xl flex flex-col justify-between space-y-6 hover:shadow-sm transition-all">
+              <div className="p-5 sm:p-6 bg-white border border-slate-200/80 rounded-xl flex flex-col justify-between space-y-6 hover:shadow-sm transition-all">
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <Lock className="w-6 h-6 text-blue-600" />
@@ -587,10 +692,10 @@ export default function DashboardPage() {
                     </span>
                   </div>
                   <div>
-                    <h3 className="text-lg font-bold text-slate-900 mb-6 leading-snug">
+                    <h3 className="text-base sm:text-lg font-bold text-slate-900 mb-2 sm:mb-4 leading-snug">
                       Crypto Custody
                     </h3>
-                    <p className="text-sm text-slate-500 leading-relaxed">
+                    <p className="text-xs sm:text-sm text-slate-500 leading-relaxed">
                       Secure cold and warm storage solutions with MPC technology for
                       digital assets. Fully compliant with global regulatory standards.
                     </p>
@@ -606,7 +711,7 @@ export default function DashboardPage() {
               </div>
 
               {/* KYC Verification Card */}
-              <div className="p-6 bg-white border border-slate-200/80 rounded-xl flex flex-col justify-between space-y-6 hover:shadow-sm transition-all">
+              <div className="p-5 sm:p-6 bg-white border border-slate-200/80 rounded-xl flex flex-col justify-between space-y-6 hover:shadow-sm transition-all">
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <BadgeCheck className="w-6 h-6 text-blue-600" />
@@ -615,10 +720,10 @@ export default function DashboardPage() {
                     </span>
                   </div>
                   <div>
-                    <h3 className="text-lg font-bold text-slate-900 mb-6 leading-snug">
+                    <h3 className="text-base sm:text-lg font-bold text-slate-900 mb-2 sm:mb-4 leading-snug">
                       KYC Verification
                     </h3>
-                    <p className="text-sm text-slate-500 leading-relaxed">
+                    <p className="text-xs sm:text-sm text-slate-500 leading-relaxed">
                       Automated identity verification pipeline with document OCR,
                       biometric matching, and sanctions screening integration.
                     </p>
@@ -634,7 +739,7 @@ export default function DashboardPage() {
               </div>
 
               {/* Card Issuance Card */}
-              <div className="p-6 bg-white border border-slate-200/80 rounded-xl flex flex-col justify-between space-y-6 hover:shadow-sm transition-all">
+              <div className="p-5 sm:p-6 bg-white border border-slate-200/80 rounded-xl flex flex-col justify-between space-y-6 hover:shadow-sm transition-all">
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <CreditCard className="w-6 h-6 text-blue-600" />
@@ -643,10 +748,10 @@ export default function DashboardPage() {
                     </span>
                   </div>
                   <div>
-                    <h3 className="text-lg font-bold text-slate-900 mb-6 leading-snug">
+                    <h3 className="text-base sm:text-lg font-bold text-slate-900 mb-2 sm:mb-4 leading-snug">
                       Card Issuance
                     </h3>
-                    <p className="text-sm text-slate-500 leading-relaxed">
+                    <p className="text-xs sm:text-sm text-slate-500 leading-relaxed">
                       Deploy virtual and physical card programs instantly. Integrated with
                       major networks for seamless global payments.
                     </p>
@@ -657,12 +762,12 @@ export default function DashboardPage() {
                   <button className="px-5 py-2 border border-blue-600 text-blue-600 hover:bg-blue-50 rounded-lg text-xs font-semibold transition-colors">
                     Enable
                   </button>
-                  <span className="text-sm font-medium text-slate-400">Add-on</span>
+                  <span className="text-xs font-medium text-slate-400">Add-on</span>
                 </div>
               </div>
 
               {/* AML Engine Card */}
-              <div className="p-6 bg-blue-600 rounded-xl flex flex-col justify-between space-y-6 shadow-md transition-all text-white">
+              <div className="p-5 sm:p-6 bg-blue-600 rounded-xl flex flex-col justify-between space-y-6 shadow-md transition-all text-white">
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <div className="w-9 h-9 rounded-lg bg-blue-500/50 flex items-center justify-center">
@@ -673,10 +778,10 @@ export default function DashboardPage() {
                     </span>
                   </div>
                   <div>
-                    <h3 className="text-lg font-bold text-white mb-6 leading-snug">
+                    <h3 className="text-base sm:text-lg font-bold text-white mb-2 sm:mb-4 leading-snug">
                       AML Engine
                     </h3>
-                    <p className="text-sm text-blue-100 leading-relaxed">
+                    <p className="text-xs sm:text-sm text-blue-100 leading-relaxed">
                       AI-powered anti-money laundering monitoring with predictive threat
                       detection and automated suspicious activity reporting.
                     </p>
@@ -692,10 +797,11 @@ export default function DashboardPage() {
               </div>
             </div>
           </section>
-        {/* Core Transformation Section */}
-          <section className="space-y-6 pt-6">
+
+          {/* Core Transformation Section */}
+          <section className="space-y-6 pt-4 sm:pt-6">
             <div>
-              <h2 className="text-xl font-bold text-slate-900">
+              <h2 className="text-lg sm:text-xl font-bold text-slate-900">
                 The new standard for core transformation
               </h2>
               <p className="text-xs text-slate-500 mt-1">
@@ -705,16 +811,16 @@ export default function DashboardPage() {
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
               {/* Card 1: Modular by Design */}
-              <div className="lg:col-span-7 p-6 bg-white border border-slate-200/80 rounded-xl flex flex-col justify-between space-y-6 hover:shadow-sm transition-all">
+              <div className="lg:col-span-7 p-5 sm:p-6 bg-white border border-slate-200/80 rounded-xl flex flex-col justify-between space-y-6 hover:shadow-sm transition-all">
                 <div className="space-y-4">
                   <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600">
                     <Boxes className="w-5 h-5" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-bold text-slate-900 mb-2">
+                    <h3 className="text-base sm:text-lg font-bold text-slate-900 mb-2">
                       Modular by Design
                     </h3>
-                    <p className="text-sm text-slate-500 leading-relaxed max-w-xl">
+                    <p className="text-xs sm:text-sm text-slate-500 leading-relaxed max-w-xl">
                       Build only what you need. Our platform features over 50+ modular
                       components—from ledger management to virtual card issuance—that
                       integrate piece-by-piece with your existing tech stack.
@@ -722,20 +828,24 @@ export default function DashboardPage() {
                   </div>
                 </div>
 
-                <img src={getPath("/modular.png")} alt="Modular Design" className="w-full h-full object-contain" />
+                <img
+                  src={getPath("/modular.png")}
+                  alt="Modular Design"
+                  className="w-full h-auto max-h-48 sm:max-h-64 object-contain"
+                />
               </div>
 
               {/* Card 2: Production-Ready Compliance */}
-              <div className="lg:col-span-5 p-6 bg-white border border-slate-200/80 rounded-xl flex flex-col justify-between space-y-6 hover:shadow-sm transition-all">
+              <div className="lg:col-span-5 p-5 sm:p-6 bg-white border border-slate-200/80 rounded-xl flex flex-col justify-between space-y-6 hover:shadow-sm transition-all">
                 <div className="space-y-4">
                   <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600">
                     <ShieldCheck className="w-5 h-5" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-bold text-slate-900 mb-2">
+                    <h3 className="text-base sm:text-lg font-bold text-slate-900 mb-2">
                       Production-Ready Compliance
                     </h3>
-                    <p className="text-sm text-slate-500 leading-relaxed">
+                    <p className="text-xs sm:text-sm text-slate-500 leading-relaxed">
                       Automated KYC/AML, regulatory reporting, and fraud detection are
                       baked into every module. Stay compliant globally without manual overhead.
                     </p>
@@ -745,19 +855,19 @@ export default function DashboardPage() {
                 <div className="space-y-2.5">
                   <div className="flex items-center gap-3 p-3 bg-slate-50/80 border border-slate-100 rounded-xl">
                     <CheckCircle2 className="w-4 h-4 text-blue-600 flex-shrink-0" />
-                    <span className="text-sm font-semibold text-slate-800">
+                    <span className="text-xs sm:text-sm font-semibold text-slate-800">
                       Real-time Sanctions Screening
                     </span>
                   </div>
                   <div className="flex items-center gap-3 p-3 bg-slate-50/80 border border-slate-100 rounded-xl">
                     <CheckCircle2 className="w-4 h-4 text-blue-600 flex-shrink-0" />
-                    <span className="text-sm font-semibold text-slate-800">
+                    <span className="text-xs sm:text-sm font-semibold text-slate-800">
                       Automated SAR Filing
                     </span>
                   </div>
                   <div className="flex items-center gap-3 p-3 bg-slate-50/80 border border-slate-100 rounded-xl">
                     <CheckCircle2 className="w-4 h-4 text-blue-600 flex-shrink-0" />
-                    <span className="text-sm font-semibold text-slate-800">
+                    <span className="text-xs sm:text-sm font-semibold text-slate-800">
                       Biometric ID Verification
                     </span>
                   </div>
@@ -765,16 +875,16 @@ export default function DashboardPage() {
               </div>
 
               {/* Card 3: Speed to Market */}
-              <div className="lg:col-span-5 p-6 bg-white border border-slate-200/80 rounded-xl flex flex-col justify-between space-y-6 hover:shadow-sm transition-all">
+              <div className="lg:col-span-5 p-5 sm:p-6 bg-white border border-slate-200/80 rounded-xl flex flex-col justify-between space-y-6 hover:shadow-sm transition-all">
                 <div className="space-y-4">
                   <div className="w-10 h-10 rounded-xl bg-rose-50 flex items-center justify-center text-rose-500">
                     <Clock className="w-5 h-5" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-bold text-slate-900 mb-2">
+                    <h3 className="text-base sm:text-lg font-bold text-slate-900 mb-2">
                       Speed to Market
                     </h3>
-                    <p className="text-sm text-slate-500 leading-relaxed">
+                    <p className="text-xs sm:text-sm text-slate-500 leading-relaxed">
                       Go from ideation to production in weeks, not months. Our
                       pre-integrated APIs and low-code orchestration layer slash
                       development cycles by 80%.
@@ -784,29 +894,29 @@ export default function DashboardPage() {
 
                 <div className="pt-4 border-t border-slate-100 flex items-end justify-between">
                   <div>
-                    <span className="text-5xl font-extrabold text-blue-600 block leading-none mb-1">
+                    <span className="text-4xl sm:text-5xl font-extrabold text-blue-600 block leading-none mb-1">
                       80%
                     </span>
                     <span className="text-xs font-medium text-slate-500">
                       Faster deployment
                     </span>
                   </div>
-                  <TrendingUp className="w-10 h-10 text-blue-600" />
+                  <TrendingUp className="w-8 h-8 sm:w-10 sm:h-10 text-blue-600" />
                 </div>
               </div>
 
               {/* Card 4: Legacy Integration */}
-              <div className="lg:col-span-7 p-6 bg-white border border-slate-200/80 rounded-xl flex flex-col md:flex-row items-stretch gap-6 justify-between hover:shadow-sm transition-all">
+              <div className="lg:col-span-7 p-5 sm:p-6 bg-white border border-slate-200/80 rounded-xl flex flex-col md:flex-row items-stretch gap-6 justify-between hover:shadow-sm transition-all">
                 <div className="space-y-4 flex-1 flex flex-col justify-between">
                   <div className="space-y-4">
                     <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600">
                       <Workflow className="w-5 h-5" />
                     </div>
                     <div>
-                      <h3 className="text-lg font-bold text-slate-900 mb-2">
+                      <h3 className="text-base sm:text-lg font-bold text-slate-900 mb-2">
                         Legacy Integration
                       </h3>
-                      <p className="text-sm text-slate-500 leading-relaxed">
+                      <p className="text-xs sm:text-sm text-slate-500 leading-relaxed">
                         Connect modern frontends and automated workflows to your existing
                         core banking system via our secure middleware adapters.
                       </p>
@@ -814,28 +924,28 @@ export default function DashboardPage() {
                   </div>
                 </div>
 
-                <div className="w-full md:w-48 h-36 md:h-auto bg-slate-50 border border-slate-200/60 rounded-xl flex items-center justify-center flex-shrink-0">
-                  <Sliders className="w-10 h-10 text-slate-300" />
+                <div className="w-full md:w-48 h-28 md:h-auto bg-slate-50 border border-slate-200/60 rounded-xl flex items-center justify-center flex-shrink-0">
+                  <Sliders className="w-8 h-8 sm:w-10 sm:h-10 text-slate-300" />
                 </div>
               </div>
             </div>
           </section>
 
           {/* Pre-integrated Connectors & Design Kit Sections */}
-          <div className="space-y-12 pt-6">
+          <div className="space-y-8 sm:space-y-12 pt-4 sm:pt-6">
             <section className="space-y-6">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div>
-                  <h2 className="text-3xl font-bold text-slate-900">
+                  <h2 className="text-2xl sm:text-3xl font-bold text-slate-900">
                     Pre-integrated Connectors
                   </h2>
-                  <p className="text-medium text-slate-500 mt-1">
+                  <p className="text-xs sm:text-sm text-slate-500 mt-1">
                     Instantly deploy infrastructure with over 50+ pre-built partner integrations
                   </p>
                 </div>
                 <a
                   href="/connectors"
-                  className="inline-flex items-center gap-1 text-sm font-bold text-blue-600 hover:text-blue-700 transition-colors"
+                  className="inline-flex items-center gap-1 text-xs sm:text-sm font-bold text-blue-600 hover:text-blue-700 transition-colors"
                 >
                   See more connectors <ArrowRight className="w-3.5 h-3.5" />
                 </a>
@@ -843,8 +953,8 @@ export default function DashboardPage() {
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {/* Plaid */}
-                <div className="p-6 bg-white border border-slate-200/80 rounded-2xl flex flex-col justify-between space-y-16 hover:shadow-sm transition-all">
-                  <div className="space-y-7">
+                <div className="p-5 sm:p-6 bg-white border border-slate-200/80 rounded-2xl flex flex-col justify-between space-y-8 sm:space-y-16 hover:shadow-sm transition-all">
+                  <div className="space-y-5 sm:space-y-7">
                     <div className="flex items-center justify-between">
                       <div className="w-10 h-10 rounded-xl bg-slate-900 flex items-center justify-center text-white">
                         <CreditCard className="w-5 h-5" />
@@ -854,10 +964,10 @@ export default function DashboardPage() {
                       </span>
                     </div>
                     <div>
-                      <h3 className="text-lg font-bold text-slate-900 mb-3.5">
+                      <h3 className="text-base sm:text-lg font-bold text-slate-900 mb-2 sm:mb-3.5">
                         Plaid
                       </h3>
-                      <p className="text-medium text-slate-500 leading-relaxed">
+                      <p className="text-xs sm:text-sm text-slate-500 leading-relaxed">
                         Connect user bank accounts for identity verification, transaction
                         history, and real-time balance checks.
                       </p>
@@ -872,8 +982,8 @@ export default function DashboardPage() {
                 </div>
 
                 {/* Banking Circle */}
-                <div className="p-6 bg-white border border-slate-200/80 rounded-2xl flex flex-col justify-between space-y-16 hover:shadow-sm transition-all">
-                  <div className="space-y-7">
+                <div className="p-5 sm:p-6 bg-white border border-slate-200/80 rounded-2xl flex flex-col justify-between space-y-8 sm:space-y-16 hover:shadow-sm transition-all">
+                  <div className="space-y-5 sm:space-y-7">
                     <div className="flex items-center justify-between">
                       <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600">
                         <Landmark className="w-5 h-5" />
@@ -883,10 +993,10 @@ export default function DashboardPage() {
                       </span>
                     </div>
                     <div>
-                      <h3 className="text-lg font-bold text-slate-900 mb-3.5">
+                      <h3 className="text-base sm:text-lg font-bold text-slate-900 mb-2 sm:mb-3.5">
                         Banking Circle
                       </h3>
-                      <p className="text-medium text-slate-500 leading-relaxed">
+                      <p className="text-xs sm:text-sm text-slate-500 leading-relaxed">
                         Next-gen financial utility for cross-border payments, multi-currency
                         accounts, and clearing for global markets.
                       </p>
@@ -901,8 +1011,8 @@ export default function DashboardPage() {
                 </div>
 
                 {/* Sumsub */}
-                <div className="p-6 bg-white border border-slate-200/80 rounded-2xl flex flex-col justify-between space-y-16 hover:shadow-sm transition-all">
-                  <div className="space-y-7">
+                <div className="p-5 sm:p-6 bg-white border border-slate-200/80 rounded-2xl flex flex-col justify-between space-y-8 sm:space-y-16 hover:shadow-sm transition-all">
+                  <div className="space-y-5 sm:space-y-7">
                     <div className="flex items-center justify-between">
                       <div className="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center text-white">
                         <ShieldCheck className="w-5 h-5" />
@@ -912,10 +1022,10 @@ export default function DashboardPage() {
                       </span>
                     </div>
                     <div>
-                      <h3 className="text-lg font-bold text-slate-900 mb-3.5">
+                      <h3 className="text-base sm:text-lg font-bold text-slate-900 mb-2 sm:mb-3.5">
                         Sumsub
                       </h3>
-                      <p className="text-medium text-slate-500 leading-relaxed">
+                      <p className="text-xs sm:text-sm text-slate-500 leading-relaxed">
                         AI-powered identity verification, KYC/AML compliance, and fraud
                         prevention for global onboarding orchestration.
                       </p>
@@ -932,35 +1042,35 @@ export default function DashboardPage() {
             </section>
 
             {/* Design Kit Section Banner */}
-            <section className="bg-blue-50/70 border border-blue-100/80 rounded-xl p-8 lg:p-10 overflow-hidden">
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-                <div className="lg:col-span-6 space-y-6">
+            <section className="bg-blue-50/70 border border-blue-100/80 rounded-xl p-5 sm:p-8 lg:p-10 overflow-hidden">
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 items-center">
+                <div className="lg:col-span-6 space-y-4 sm:space-y-6">
                   <div>
-                    <h2 className="text-3xl font-extrabold text-blue-700">
+                    <h2 className="text-2xl sm:text-3xl font-extrabold text-blue-700">
                       Design Kit
                     </h2>
-                    <p className="text-lg text-slate-600 leading-relaxed mt-12 mb-8 max-w-md">
+                    <p className="text-sm sm:text-lg text-slate-600 leading-relaxed mt-3 sm:mt-6 mb-4 sm:mb-6 max-w-md">
                       Our modular UI library provides pre-built, accessible components
                       designed specifically for high-trust financial interfaces.
                     </p>
                   </div>
 
-                  <div className="space-y-4.5">
+                  <div className="space-y-3 sm:space-y-4">
                     <div className="flex items-center gap-2.5">
                       <CheckCircle2 className="w-4 h-4 text-blue-600 flex-shrink-0" />
-                      <span className="text-sm font-semibold text-slate-800">
+                      <span className="text-xs sm:text-sm font-semibold text-slate-800">
                         Material Symbols Integrated
                       </span>
                     </div>
                     <div className="flex items-center gap-2.5">
                       <CheckCircle2 className="w-4 h-4 text-blue-600 flex-shrink-0" />
-                      <span className="text-sm font-semibold text-slate-800">
+                      <span className="text-xs sm:text-sm font-semibold text-slate-800">
                         WCAG 2.1 AA Compliant Components
                       </span>
                     </div>
                     <div className="flex items-center gap-2.5">
                       <CheckCircle2 className="w-4 h-4 text-blue-600 flex-shrink-0" />
-                      <span className="text-sm font-semibold text-slate-800">
+                      <span className="text-xs sm:text-sm font-semibold text-slate-800">
                         Tailwind Config Included
                       </span>
                     </div>
@@ -973,11 +1083,11 @@ export default function DashboardPage() {
                   </div>
                 </div>
 
-                <div className="lg:col-span-4 flex justify-center lg:justify-end pb-0">
+                <div className="lg:col-span-6 flex justify-center lg:justify-end">
                   <img
                     src={getPath("/Memberdashboard.png")}
                     alt="Design Kit Mobile Preview"
-                    className="w-full max-w-sm rounded-xl pb-0"
+                    className="w-full max-w-xs sm:max-w-sm rounded-xl"
                   />
                 </div>
               </div>
@@ -985,13 +1095,13 @@ export default function DashboardPage() {
           </div>
 
           {/* Footer */}
-          <footer className="pt-8 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between text-[11px] text-slate-500 gap-4">
+          <footer className="pt-6 sm:pt-8 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between text-[11px] text-slate-500 gap-4">
             <div className="flex items-center gap-1.5">
               <Lock className="w-3.5 h-3.5 text-slate-400" />
               <span>Secure 256-bit AES Encrypted Session</span>
             </div>
 
-            <div className="flex items-center gap-6 font-medium">
+            <div className="flex items-center gap-4 sm:gap-6 font-medium">
               <a href="#" className="hover:text-slate-800 transition-colors">
                 Privacy Policy
               </a>
