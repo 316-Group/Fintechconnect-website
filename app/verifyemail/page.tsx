@@ -1,11 +1,14 @@
 "use client";
 
-import React, { useState, useRef, ChangeEvent, KeyboardEvent, ClipboardEvent, FormEvent } from "react";
-import { useRouter } from "next/navigation";
+import React, { useState, useRef, ChangeEvent, KeyboardEvent, ClipboardEvent, FormEvent, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 
-export default function VerifyEmailPage() {
+function VerifyEmailContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const email = searchParams.get("email") || ""; // Get user email from URL
+
   const [otp, setOtp] = useState<string[]>(Array(6).fill(""));
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -13,9 +16,6 @@ export default function VerifyEmailPage() {
   const [isVerified, setIsVerified] = useState(false);
 
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
-
-  // Demo code helper
-  const DEMO_CODE = "123456";
 
   const handleInputChange = (index: number, value: string) => {
     // Only accept numeric inputs
@@ -59,12 +59,6 @@ export default function VerifyEmailPage() {
     inputRefs.current[focusIndex]?.focus();
   };
 
-  const handleFillDemoCode = () => {
-    setOtp(DEMO_CODE.split(""));
-    setError(null);
-    inputRefs.current[5]?.focus();
-  };
-
   const handleVerify = async (e: FormEvent) => {
     e.preventDefault();
     const code = otp.join("");
@@ -81,43 +75,42 @@ export default function VerifyEmailPage() {
       const response = await fetch("/api/auth/verify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code }),
+        body: JSON.stringify({ email, code }), // Send email along with code
       });
-
-      // Fallback verification check for development
-      if (!response.ok && code === DEMO_CODE) {
-        localStorage.setItem("verified", "true");
-        setIsVerified(true);
-        return;
-      }
 
       if (!response.ok) {
         const data = await response.json().catch(() => ({}));
-        throw new Error(data.message || "Invalid verification code. Use demo code 123456.");
+        throw new Error(data.message || "Invalid verification code.");
       }
 
       localStorage.setItem("verified", "true");
       setIsVerified(true);
     } catch (err: any) {
-      if (code === DEMO_CODE) {
-        localStorage.setItem("verified", "true");
-        setIsVerified(true);
-        return;
-      }
-      setError(err.message || "Invalid code. Try using demo code 123456.");
+      setError(err.message || "Invalid verification code.");
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleResendCode = () => {
-    setResendSent(true);
-    setTimeout(() => setResendSent(false), 4000);
+  // Trigger actual API endpoint to resend code to email
+  const handleResendCode = async () => {
+    if (!email) return;
+    try {
+      await fetch("/api/auth/resend-code", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      setResendSent(true);
+      setTimeout(() => setResendSent(false), 4000);
+    } catch (err) {
+      setError("Failed to resend code. Please try again.");
+    }
   };
 
   const handleGetStarted = () => {
-  router.push("/dashboard?onboarding=true");
-};
+    router.push("/dashboard?onboarding=true");
+  };
 
   return (
     <div className="min-h-screen w-full bg-[#f4f7ff] flex flex-col justify-between items-center relative font-sans overflow-x-hidden">
@@ -162,19 +155,8 @@ export default function VerifyEmailPage() {
               </h1>
               <p className="mt-2 text-xs text-slate-500 text-center leading-relaxed">
                 We've sent a secure 6-digit code to<br />
-                <span className="font-medium text-slate-700">name@company.com</span>
+                <span className="font-medium text-slate-800">{email || "your email"}</span>
               </p>
-
-              {/* Dev Demo Shortcut Pill */}
-              <div className="mt-4 flex justify-center">
-                <button
-                  type="button"
-                  onClick={handleFillDemoCode}
-                  className="text-[11px] font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 px-3 py-1 rounded-full transition-colors border border-blue-200/60"
-                >
-                  Dev Autofill Code (123456)
-                </button>
-              </div>
 
               {/* Error Banner */}
               {error && (
@@ -321,5 +303,19 @@ export default function VerifyEmailPage() {
         </div>
       </footer>
     </div>
+  );
+}
+
+export default function VerifyEmailPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-[#f4f7ff] text-slate-600">
+          Loading…
+        </div>
+      }
+    >
+      <VerifyEmailContent />
+    </Suspense>
   );
 }

@@ -2,6 +2,7 @@
 
 import React from "react";
 import { getPath } from "@/utils/helper";
+import Link from "next/link";
 
 interface LogoItem {
   id: string;
@@ -81,9 +82,9 @@ export default function NewPartnersSection() {
             custom integration work required.
           </p>
 
-          <button className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3.5 px-7 rounded-xl transition-all duration-200 shadow-md hover:shadow-lg active:scale-95 text-sm cursor-pointer">
+          <Link href="/connectors" className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3.5 px-7 rounded-xl transition-all duration-200 shadow-md hover:shadow-lg active:scale-95 text-sm cursor-pointer">
             See all connectors
-          </button>
+          </Link>
         </div>
 
         {/* RIGHT COLUMN: Infinite Dual-Direction Ticker Showcase */}

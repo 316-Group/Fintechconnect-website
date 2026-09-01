@@ -885,9 +885,9 @@ export default function OwnershipStructure({
 
       {/* DOCUMENT PREVIEW MODAL */}
       {previewModal.file && previewModal.url && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-150">
-          <div className="bg-white rounded-2xl max-w-4xl w-full h-[85vh] flex flex-col overflow-hidden shadow-2xl border border-slate-200">
-            <div className="flex items-center justify-between px-6 py-4 bg-slate-900 text-white border-b border-slate-800">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-blue/60 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+          <div className="bg-white rounded-1xl max-w-4xl w-full h-[85vh] flex flex-col overflow-hidden shadow-2xl border border-slate-200">
+            <div className="flex items-center justify-between px-6 py-4 bg-blue-600 text-white border-b border-slate-800">
               <div className="flex items-center gap-2">
                 <FileText className="w-4 h-4 text-blue-400" />
                 <h3 className="text-sm font-bold tracking-tight">

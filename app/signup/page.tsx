@@ -46,30 +46,14 @@ export default function SignUpPage() {
         body: JSON.stringify({ fullName, email, password }),
       });
 
-      const contentType = response.headers.get("content-type");
-      let data: any = {};
-
-      if (contentType && contentType.includes("application/json")) {
-        data = await response.json();
-      } else {
-        if (!response.ok) {
-          localStorage.setItem("token", "demo-token-123");
-          router.push("/verifyemail");
-          return;
-        }
-      }
+      const data = await response.json().catch(() => ({}));
 
       if (!response.ok) {
         throw new Error(data.message || `Server returned error status ${response.status}`);
       }
 
-      router.push("/verifyemail");
+      router.push(`/verifyemail?email=${encodeURIComponent(email)}`);
     } catch (err: any) {
-      if (err.name === "SyntaxError" || err.message?.includes("DOCTYPE")) {
-        localStorage.setItem("token", "demo-admin-token");
-        router.push("/verifyemail");
-        return;
-      }
       setError(err.message || "An unexpected error occurred. Please try again.");
     } finally {
       setIsLoading(false);
