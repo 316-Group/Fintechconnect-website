@@ -6,6 +6,7 @@ import Image from "next/image";
 import Navbar from "@/app/navbar";
 import { getPath } from "@/utils/helper";
 import Footersection from "@/app/Footersection";
+import Link from "next/link";
 
 // 1. Dynamic Imports: Split heavy below-the-fold sections into separate JS chunks
 const ParallaxSection = dynamic(() => import("@/app/solutions/money-transfer/parallaxsection"), {
@@ -74,14 +75,15 @@ export default function ForPaymentServiceProviders() {
             infrastructure, and payout network to move money globally — fast, cheap, and fully compliant.
           </p>
 
-          <button
+          <Link
+            href="/book-demo"
             className={`bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-8 rounded-md transition-all shadow-sm shadow-blue-600/20 text-sm active:scale-95 ${getAnimatedClass(
               heroVisible
             )}`}
             style={{ transitionDelay: "300ms" }}
           >
             Book demo
-          </button>
+          </Link>
         </section>
 
         {/* Hero Showcase Images */}

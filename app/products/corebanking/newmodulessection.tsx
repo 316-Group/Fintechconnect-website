@@ -100,7 +100,7 @@ const ModuleCard = ({
   return (
     <div
       ref={cardRef}
-      className={`bg-[#eef2ff]/70 rounded-2xl flex flex-col items-start text-left overflow-hidden group cursor-pointer transition-all duration-700 ease-out hover:shadow-lg ${
+      className={`bg-[#E9E9FD]/70 rounded-2xl flex flex-col items-start text-left overflow-hidden group cursor-pointer transition-all duration-700 ease-out hover:shadow-lg ${
         index >= 4 && !showAll ? "hidden md:flex" : "flex"
       } ${
         isVisible
@@ -177,7 +177,7 @@ export default function NewmodulesSection() {
   }, []);
 
   return (
-    <section className="py-24 bg-blue-100">
+    <section className="py-24 bg-#F5F5F5">
       <div className="w-full px-3 lg:px-6 max-w-[92.5%] mx-auto">
         {/* Header Section */}
         <h2

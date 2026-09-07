@@ -12,6 +12,7 @@ import BackgroundSection from "@/app/solutions/crypto-web3/backgroundsection";
 import HoverSection from "@/app/solutions/crypto-web3/hoversection";
 import NewfeaturesSection from "@/app/solutions/crypto-web3/newfeaturessection";
 import Newpartnersection from "@/app/solutions/crypto-web3/newpartnersection";
+import Link from "next/link";
 
 export default function ForCryptoWeb3() {
   const [heroVisible, setHeroVisible] = useState(false);
@@ -68,12 +69,13 @@ export default function ForCryptoWeb3() {
           </p>
           
           {/* 3. Book Demo CTA Button */}
-          <button 
+          <Link 
+            href="/book-demo"
             className={`bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-8 rounded-md transition-all shadow-sm shadow-blue-600/20 text-sm active:scale-95 ${getAnimatedClass(heroVisible)}`}
             style={{ transitionDelay: '300ms' }}
           >
             Book demo
-          </button>
+          </Link>
         </section>
 
         {/* 4. Showcase Image Container Block (Both Mobile and Desktop animate together) */}

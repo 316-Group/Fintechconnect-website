@@ -11,6 +11,7 @@ import BackgroundSection from "@/app/solutions/payment-service-providers/backgro
 import HoverSection from "@/app/solutions/payment-service-providers/hoversection";
 import NewfeaturesSection from "@/app/solutions/payment-service-providers/newfeaturessection";
 import Newpartnersection from "@/app/solutions/payment-service-providers/newpartnersection";
+import Link from "next/link";
 
 export default function ForPaymentServiceProviders() {
   const [heroVisible, setHeroVisible] = useState(false);
@@ -67,12 +68,13 @@ export default function ForPaymentServiceProviders() {
           </p>
           
           {/* 3. Book Demo CTA Button */}
-          <button 
+          <Link 
+            href="/book-demo"
             className={`bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-8 rounded-md transition-all shadow-sm shadow-blue-600/20 text-sm active:scale-95 ${getAnimatedClass(heroVisible)}`}
             style={{ transitionDelay: '300ms' }}
           >
             Book demo
-          </button>
+          </Link>
         </section>
 
         {/* 4. Showcase Image Container Block (Both Mobile and Desktop animate together) */}

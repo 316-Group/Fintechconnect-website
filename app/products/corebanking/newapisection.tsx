@@ -26,24 +26,24 @@ const features: ApiFeature[] = [
   },
   {
     id: 2,
-    title: "Well-documented APIs built by developers for developers",
+    title: "AI-driven liquidity projections and cash flow insights",
     description:
-      "Fapshi was birthed from frustration with existing solutions in the market, so we know your pain. Our APIs are straight to the point and well documented so that you can get started in minutes, not days. We are constantly working on the solution to make it a joy to work with.",
-    imagePath: "/products/table.png",
+      "Forecast future transaction volumes and stress-test liquid balances in real time with machine learning models engineered to keep your operational treasury balanced and secure.",
+    imagePath: "/products/apiimage.png",
   },
   {
     id: 3,
-    title: "Well-documented APIs built by developers for developers",
+    title: "Real-time webhook events and instant payment syncing",
     description:
-      "Fapshi was birthed from frustration with existing solutions in the market, so we know your pain. Our APIs are straight to the point and well documented so that you can get started in minutes, not days. We are constantly working on the solution to make it a joy to work with.",
-    imagePath: "/products/table.png",
+      "Stream live payment state updates directly into your infrastructure with zero latency. Seamlessly manage event retries, cryptographic signatures, and automated ledger reconciliations.",
+    imagePath: "/products/apiimage.png",
   },
   {
     id: 4,
-    title: "Well-documented APIs built by developers for developers",
+    title: "Enterprise security and automated compliance engine",
     description:
-      "Fapshi was birthed from frustration with existing solutions in the market, so we know your pain. Our APIs are straight to the point and well documented so that you can get started in minutes, not days. We are constantly working on the solution to make it a joy to work with.",
-    imagePath: "/products/table.png",
+      "Built-in bank-grade encryption, automated KYC verification workflows, and multi-region failover protocols ensure your financial applications stay compliant and resilient at scale.",
+    imagePath: "/products/apiimage.png",
   },
 ];
 
@@ -76,11 +76,11 @@ const sandboxSteps: SandboxStep[] = [
 
 export default function NewApiSection() {
   return (
-    <section className="bg-[#F8FAFC] py-16 md:py-24 px-6 md:px-12 lg:px-20 font-sans space-y-24">
+    <section className="bg-[#f4f5f7] py-16 md:py-24 px-6 md:px-12 lg:px-20 font-sans space-y-24">
       <div className="max-w-full mx-auto">
         {/* Header Block */}
         <div className="max-w-3xl mb-12 md:mb-16">
-          <span className="text-blue-500 font-semibold text-sm md:text-lg tracking-wide block mb-8">
+          <span className="text-blue-500 font-semibold text-sm md:text-lg tracking-wide block mb-4">
             Built for developers
           </span>
           <h2 className="text-2xl md:text-4xl font-extrabold text-slate-900 tracking-tight leading-tight mb-4">
@@ -95,33 +95,33 @@ export default function NewApiSection() {
           </p>
         </div>
 
-        {/* Staggered Cards Grid */}
+        {/* Staggered Dark Cards Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 items-start">
           {features.map((feature, index) => {
-            const isLeftColumn = index % 2 === 0;
+            const isRightColumn = index % 2 === 1;
 
             return (
               <div
                 key={feature.id}
-                className={`flex flex-col rounded-1xl overflow-hidden shadow-xs hover:shadow-md transition-shadow duration-300 ${
-                  isLeftColumn ? "md:mt-16" : ""
+                className={`flex flex-col bg-[#1c1d21] p-4 md:p-5 rounded-[28px] shadow-lg transition-transform duration-300 ${
+                  isRightColumn ? "md:mt-16" : ""
                 }`}
               >
-                {/* Top Image Container Block */}
-                <div className="bg-[#E9ECEF] p-6 md:pt-10 pb-0 pl-0 pr-0 flex items-center justify-center min-h-[280px] md:min-h-[400px]">
+                {/* White Mockup Inner Container */}
+                <div className="bg-white rounded-2xl p-4 md:p-6 mb-6 flex items-center justify-center overflow-hidden">
                   <img
                     src={getPath(feature.imagePath)}
                     alt={feature.title}
-                    className="w-full h-auto max-h-86 object-contain rounded-xl shadow-xs"
+                    className="w-full h-auto object-contain rounded-lg"
                   />
                 </div>
 
-                {/* Bottom Dark Card Details */}
-                <div className="bg-[#212529] p-6 md:p-12 space-y-3">
-                  <h3 className="text-white text-base md:text-lg font-bold leading-snug">
+                {/* Card Text Content */}
+                <div className="px-3 md:px-5 pb-4 md:pb-6 space-y-3">
+                  <h3 className="text-white text-lg md:text-xl font-bold leading-snug tracking-tight">
                     {feature.title}
                   </h3>
-                  <p className="text-slate-400 text-xs md:text-sm leading-relaxed">
+                  <p className="text-zinc-400 text-xs md:text-sm leading-relaxed font-normal">
                     {feature.description}
                   </p>
                 </div>
