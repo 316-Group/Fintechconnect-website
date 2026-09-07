@@ -4,10 +4,6 @@ import React, { useState, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
-// Dummy admin credentials for local testing
-const DEMO_ADMIN_EMAIL = 'admin@demo.com';
-const DEMO_ADMIN_PASSWORD = 'admin123';
-
 const SignInScreen: React.FC = () => {
   const router = useRouter();
 
@@ -17,26 +13,10 @@ const SignInScreen: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Helper function to fill demo credentials into state
-  const handleFillDemoAdmin = () => {
-    setEmail(DEMO_ADMIN_EMAIL);
-    setPassword(DEMO_ADMIN_PASSWORD);
-    setError(null);
-  };
-
   const handleSignIn = async (e: FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError(null);
-
-    // Bypass API call if dummy admin credentials are entered
-    if (email === DEMO_ADMIN_EMAIL && password === DEMO_ADMIN_PASSWORD) {
-      setTimeout(() => {
-        router.push('/');
-        router.refresh();
-      }, 500); // Small artificial delay for realistic feel
-      return;
-    }
 
     try {
       const response = await fetch('/api/auth/login', {
@@ -48,13 +28,17 @@ const SignInScreen: React.FC = () => {
       const data = await response.json();
 
       if (!response.ok) {
+        if (response.status === 403 && data.unverified) {
+          router.push(`/verifyemail?email=${encodeURIComponent(email)}`);
+          return;
+        }
         throw new Error(data.message || 'Invalid credentials');
       }
 
       router.push('/');
       router.refresh();
-    } catch (err: any) {
-      setError(err.message || 'An unexpected error occurred. Please try again.');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'An unexpected error occurred. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -99,13 +83,6 @@ const SignInScreen: React.FC = () => {
             <h2 className="text-2xl font-bold text-slate-900 tracking-tight">
               Sign in to your account
             </h2>
-            <button
-              type="button"
-              onClick={handleFillDemoAdmin}
-              className="mt-2 text-xs text-blue-600 hover:text-blue-800 underline font-medium cursor-pointer"
-            >
-              Fill Demo Admin Credentials
-            </button>
           </div>
 
           {/* Error Banner */}
@@ -207,7 +184,7 @@ const SignInScreen: React.FC = () => {
               </Link>
             </p>
             <div>
-              <Link href="/verify-email" className="text-slate-500 hover:text-slate-800 transition-colors">
+              <Link href="/verifyemail" className="text-slate-500 hover:text-slate-800 transition-colors">
                 Verify your email
               </Link>
             </div>

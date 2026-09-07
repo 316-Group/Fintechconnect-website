@@ -96,15 +96,21 @@ function VerifyEmailContent() {
   const handleResendCode = async () => {
     if (!email) return;
     try {
-      await fetch("/api/auth/resend-code", {
+      const response = await fetch("/api/auth/resend-code", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),
       });
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.message || "Failed to resend code.");
+      }
+
       setResendSent(true);
       setTimeout(() => setResendSent(false), 4000);
-    } catch (err) {
-      setError("Failed to resend code. Please try again.");
+    } catch (err: any) {
+      setError(err.message || "Failed to resend code. Please try again.");
     }
   };
 

@@ -22,3 +22,28 @@ model Booking {
   requirements String
   createdAt    DateTime @default(now())
 }
+
+model User {
+  id                        String    @id @default(cuid())
+  fullName                  String
+  email                     String    @unique
+  passwordHash              String
+  emailVerifiedAt           DateTime?
+  verificationCodeHash      String?
+  verificationCodeExpiresAt DateTime?
+  createdAt                 DateTime  @default(now())
+  updatedAt                 DateTime  @updatedAt
+  sessions                  Session[]
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  tokenHash String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}

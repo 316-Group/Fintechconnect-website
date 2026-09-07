@@ -47,35 +47,74 @@ export async function sendVerificationEmail({
   code: string;
 }) {
   const apiKey = process.env.RESEND_API_KEY;
-  const from = process.env.RESEND_FROM_EMAIL || "Fintech Connect <onboarding@resend.dev>";
+  const from = process.env.RESEND_FROM_EMAIL;
+  const isDev = process.env.NODE_ENV !== "production";
+  const hasValidApiKey = !!(apiKey && !apiKey.startsWith("re_xxxx") && apiKey.trim().length > 10);
 
-  if (!apiKey) {
-    console.warn(
-      "RESEND_API_KEY is not configured. Verification email was not sent. Use the generated code for local testing only."
+  if (!hasValidApiKey || !from) {
+    if (isDev) {
+      console.log(
+        `\n=======================================================\n` +
+        `[DEV MODE - NO EMAIL SERVICE CONFIGURED]\n` +
+        `Verification code for ${email}: ${code}\n` +
+        `=======================================================\n`
+      );
+      return { sent: false, code, devMode: true };
+    }
+
+    throw new Error(
+      "Email delivery is not configured. Add RESEND_API_KEY to client/.env.local and restart the dev server."
     );
-    return { sent: false, code };
   }
 
-  const resend = new Resend(apiKey);
+  try {
+    const resend = new Resend(apiKey);
 
-  await resend.emails.send({
-    from,
-    to: email,
-    subject: "Verify your email address",
-    html: `
-      <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #0f172a; max-width: 560px; margin: 0 auto;">
-        <h2 style="margin-bottom: 16px;">Verify your email</h2>
-        <p>Hello${fullName ? ` ${fullName}` : ""},</p>
-        <p>Thanks for signing up with Fintech Connect. Use the code below to verify your email address:</p>
-        <div style="margin: 24px 0; padding: 20px 24px; background: #eff6ff; border-radius: 12px; text-align: center; border: 1px solid #dbeafe;">
-          <div style="font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: #475569; margin-bottom: 8px;">Verification code</div>
-          <div style="font-size: 36px; font-weight: 700; letter-spacing: 0.25em; color: #0f172a;">${code}</div>
+    const { data, error } = await resend.emails.send({
+      from,
+      to: email,
+      subject: "Verify your email address",
+      html: `
+        <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #0f172a; max-width: 560px; margin: 0 auto;">
+          <h2 style="margin-bottom: 16px;">Verify your email</h2>
+          <p>Hello${fullName ? ` ${fullName}` : ""},</p>
+          <p>Thanks for signing up with Fintech Connect. Use the code below to verify your email address:</p>
+          <div style="margin: 24px 0; padding: 20px 24px; background: #eff6ff; border-radius: 12px; text-align: center; border: 1px solid #dbeafe;">
+            <div style="font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: #475569; margin-bottom: 8px;">Verification code</div>
+            <div style="font-size: 36px; font-weight: 700; letter-spacing: 0.25em; color: #0f172a;">${code}</div>
+          </div>
+          <p>If you did not create this account, you can safely ignore this email.</p>
+          <p style="margin-top: 20px;">Best,<br />Fintech Connect</p>
         </div>
-        <p>If you did not create this account, you can safely ignore this email.</p>
-        <p style="margin-top: 20px;">Best,<br />Fintech Connect</p>
-      </div>
-    `,
-  });
+      `,
+    });
 
-  return { sent: true, code };
+    if (error) {
+      if (isDev) {
+        console.warn(`[DEV MODE] Resend email delivery issue: ${error.message}`);
+        console.log(
+          `\n=======================================================\n` +
+          `[DEV MODE - RESEND NOT DELIVERED]\n` +
+          `Verification code for ${email}: ${code}\n` +
+          `=======================================================\n`
+        );
+        return { sent: false, code, devMode: true, error: error.message };
+      }
+      throw new Error(error.message || "Failed to send verification email");
+    }
+
+    return { sent: true, code, data };
+  } catch (err) {
+    if (isDev) {
+      console.warn(`[DEV MODE] Email delivery failed, falling back to console log:`, err);
+      console.log(
+        `\n=======================================================\n` +
+        `[DEV MODE - VERIFICATION CODE]\n` +
+        `Verification code for ${email}: ${code}\n` +
+        `=======================================================\n`
+      );
+      return { sent: false, code, devMode: true };
+    }
+    throw err;
+  }
 }

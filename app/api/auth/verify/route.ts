@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { deleteVerificationCode, getVerificationCode, normalizeEmail } from "@/lib/email";
+import { db } from "@/lib/db";
+import { hashVerificationCode, normalizeEmail } from "@/lib/auth";
 
 export async function POST(req: Request) {
   try {
@@ -13,16 +14,48 @@ export async function POST(req: Request) {
     }
 
     const normalizedEmail = normalizeEmail(String(email));
-    const storedCode = getVerificationCode(normalizedEmail)?.code;
+    const user = await db.user.findUnique({ where: { email: normalizedEmail } });
 
-    if (!storedCode || storedCode !== String(code).trim()) {
+    if (!user) {
+      return NextResponse.json(
+        { message: "No account found for this email address." },
+        { status: 404 }
+      );
+    }
+
+    if (user.emailVerifiedAt) {
+      return NextResponse.json({
+        success: true,
+        message: "Email is already verified.",
+      });
+    }
+
+    if (
+      !user.verificationCodeHash ||
+      !user.verificationCodeExpiresAt ||
+      user.verificationCodeExpiresAt < new Date()
+    ) {
+      return NextResponse.json(
+        { message: "Verification code has expired. Please request a new one." },
+        { status: 400 }
+      );
+    }
+
+    if (user.verificationCodeHash !== hashVerificationCode(String(code).trim())) {
       return NextResponse.json(
         { message: "Invalid verification code." },
         { status: 401 }
       );
     }
 
-    deleteVerificationCode(normalizedEmail);
+    await db.user.update({
+      where: { id: user.id },
+      data: {
+        emailVerifiedAt: new Date(),
+        verificationCodeHash: null,
+        verificationCodeExpiresAt: null,
+      },
+    });
 
     return NextResponse.json({
       success: true,

@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
-import { generateVerificationCode, sendVerificationEmail, storeVerificationCode } from "@/lib/email";
+import { db } from "@/lib/db";
+import { hashPassword, hashVerificationCode, normalizeEmail } from "@/lib/auth";
+import { generateVerificationCode, sendVerificationEmail } from "@/lib/email";
 
 export async function POST(req: Request) {
   try {
@@ -12,7 +14,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const normalizedEmail = String(email).trim().toLowerCase();
+    const normalizedEmail = normalizeEmail(String(email));
 
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
       return NextResponse.json(
@@ -28,12 +30,41 @@ export async function POST(req: Request) {
       );
     }
 
+    const existingUser = await db.user.findUnique({
+      where: { email: normalizedEmail },
+      select: { emailVerifiedAt: true },
+    });
+
+    if (existingUser?.emailVerifiedAt) {
+      return NextResponse.json(
+        { message: "An account with this email already exists." },
+        { status: 409 }
+      );
+    }
+
     const code = generateVerificationCode();
-    storeVerificationCode(normalizedEmail, code);
+    const passwordHash = await hashPassword(String(password));
+
+    await db.user.upsert({
+      where: { email: normalizedEmail },
+      create: {
+        fullName: String(fullName).trim(),
+        email: normalizedEmail,
+        passwordHash,
+        verificationCodeHash: hashVerificationCode(code),
+        verificationCodeExpiresAt: new Date(Date.now() + 15 * 60 * 1000),
+      },
+      update: {
+        fullName: String(fullName).trim(),
+        passwordHash,
+        verificationCodeHash: hashVerificationCode(code),
+        verificationCodeExpiresAt: new Date(Date.now() + 15 * 60 * 1000),
+      },
+    });
 
     await sendVerificationEmail({
       email: normalizedEmail,
-      fullName,
+      fullName: String(fullName).trim(),
       code,
     });
 
@@ -44,8 +75,12 @@ export async function POST(req: Request) {
     });
   } catch (error) {
     console.error("Registration error:", error);
+    if (error instanceof Error && error.message.startsWith("Email delivery is not configured")) {
+      return NextResponse.json({ message: error.message }, { status: 503 });
+    }
+
     return NextResponse.json(
-      { message: "Unable to create your account right now. Please try again." },
+      { message: error instanceof Error ? error.message : "Unable to create your account right now. Please try again." },
       { status: 500 }
     );
   }

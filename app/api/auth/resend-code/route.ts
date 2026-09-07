@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
-import { generateVerificationCode, sendVerificationEmail, storeVerificationCode } from "@/lib/email";
+import { db } from "@/lib/db";
+import { hashVerificationCode, normalizeEmail } from "@/lib/auth";
+import { generateVerificationCode, sendVerificationEmail } from "@/lib/email";
 
 export async function POST(req: Request) {
   try {
@@ -12,12 +14,29 @@ export async function POST(req: Request) {
       );
     }
 
-    const normalizedEmail = String(email).trim().toLowerCase();
+    const normalizedEmail = normalizeEmail(String(email));
+    const user = await db.user.findUnique({ where: { email: normalizedEmail } });
+
+    if (!user || user.emailVerifiedAt) {
+      return NextResponse.json(
+        { message: "Unable to resend the verification code." },
+        { status: 404 }
+      );
+    }
+
     const code = generateVerificationCode();
-    storeVerificationCode(normalizedEmail, code);
+
+    await db.user.update({
+      where: { id: user.id },
+      data: {
+        verificationCodeHash: hashVerificationCode(code),
+        verificationCodeExpiresAt: new Date(Date.now() + 15 * 60 * 1000),
+      },
+    });
 
     await sendVerificationEmail({
       email: normalizedEmail,
+      fullName: user.fullName,
       code,
     });
 
@@ -27,8 +46,12 @@ export async function POST(req: Request) {
     });
   } catch (error) {
     console.error("Resend code error:", error);
+    if (error instanceof Error && error.message.startsWith("Email delivery is not configured")) {
+      return NextResponse.json({ message: error.message }, { status: 503 });
+    }
+
     return NextResponse.json(
-      { message: "Unable to resend the verification code right now." },
+      { message: error instanceof Error ? error.message : "Unable to resend the verification code right now." },
       { status: 500 }
     );
   }
