@@ -6,17 +6,18 @@ import { useRouter } from "next/navigation";
 import { getPath } from "@/utils/helper";
 
 interface OnboardingStep4Props {
+  initialSelections?: string[];
   onNext?: (selectedTypes: string[]) => void;
   onBack?: () => void;
 }
 
-export default function OnboardingStep4({ onNext, onBack }: OnboardingStep4Props) {
+export default function OnboardingStep4({ initialSelections, onNext, onBack }: OnboardingStep4Props) {
   const router = useRouter();
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const [isOpen, setIsOpen] = useState(false);
-  // Initialized with empty array so selected section remains hidden until user selects an option
-  const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
+  // Initialized with initialSelections or empty array
+  const [selectedTypes, setSelectedTypes] = useState<string[]>(initialSelections || []);
 
   const industryOptions = [
     "Credit Union",

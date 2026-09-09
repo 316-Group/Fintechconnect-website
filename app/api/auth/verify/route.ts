@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { hashVerificationCode, normalizeEmail } from "@/lib/auth";
+import {
+  createSessionToken,
+  hashSessionToken,
+  hashVerificationCode,
+  normalizeEmail,
+} from "@/lib/auth";
 
 export async function POST(req: Request) {
   try {
@@ -21,13 +26,6 @@ export async function POST(req: Request) {
         { message: "No account found for this email address." },
         { status: 404 }
       );
-    }
-
-    if (user.emailVerifiedAt) {
-      return NextResponse.json({
-        success: true,
-        message: "Email is already verified.",
-      });
     }
 
     if (
@@ -57,10 +55,31 @@ export async function POST(req: Request) {
       },
     });
 
-    return NextResponse.json({
-      success: true,
-      message: "Email verified successfully.",
+    const maxAge = 60 * 60 * 24 * 30; // 30 days
+    const sessionToken = createSessionToken();
+
+    await db.session.create({
+      data: {
+        tokenHash: hashSessionToken(sessionToken),
+        userId: user.id,
+        expiresAt: new Date(Date.now() + maxAge * 1000),
+      },
     });
+
+    const response = NextResponse.json({
+      message: "Email verified successfully.",
+      success: true,
+    });
+
+    response.cookies.set("auth_token", sessionToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge,
+    });
+
+    return response;
   } catch (error) {
     console.error("Verification error:", error);
     return NextResponse.json(

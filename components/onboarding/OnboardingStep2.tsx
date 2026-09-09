@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { getPath } from "@/utils/helper";
 
 interface OnboardingStep2Props {
+  initialSelection?: string;
   onNext?: (selectedOptions: string[]) => void;
   onBack?: () => void;
 }
@@ -17,11 +18,11 @@ interface BusinessOption {
   icon: React.ReactNode;
 }
 
-export default function OnboardingStep2({ onNext, onBack }: OnboardingStep2Props) {
+export default function OnboardingStep2({ initialSelection, onNext, onBack }: OnboardingStep2Props) {
   const router = useRouter();
 
   // Store a single selected string option instead of an array
-  const [selectedOption, setSelectedOption] = useState<string>("startup");
+  const [selectedOption, setSelectedOption] = useState<string>(initialSelection || "startup");
 
   const businessOptions: BusinessOption[] = [
     {

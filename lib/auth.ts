@@ -36,6 +36,52 @@ export function createSessionToken() {
   return randomBytes(32).toString("hex");
 }
 
+import { cookies } from "next/headers";
+import { db } from "@/lib/db";
+
 export function hashVerificationCode(code: string) {
   return createHash("sha256").update(code).digest("hex");
+}
+
+export async function getCurrentUser(options?: { token?: string; email?: string }) {
+  let token = options?.token;
+  if (!token) {
+    try {
+      const cookieStore = await cookies();
+      token = cookieStore.get("auth_token")?.value;
+    } catch {
+      // Cookies might not be accessible outside of request scope
+    }
+  }
+
+  if (token) {
+    const tokenHash = hashSessionToken(token);
+    const session = await db.session.findUnique({
+      where: { tokenHash },
+      include: {
+        user: {
+          include: {
+            onboardingProfile: true,
+          },
+        },
+      },
+    });
+
+    if (session && session.expiresAt > new Date()) {
+      return session.user;
+    }
+  }
+
+  if (options?.email) {
+    const normalized = normalizeEmail(options.email);
+    const user = await db.user.findUnique({
+      where: { email: normalized },
+      include: {
+        onboardingProfile: true,
+      },
+    });
+    return user;
+  }
+
+  return null;
 }

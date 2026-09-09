@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { getPath } from "@/utils/helper";
 
 interface OnboardingStep5Props {
+  initialSelection?: string;
   onNext?: (selectedOption: string) => void;
   onBack?: () => void;
 }
@@ -19,11 +20,13 @@ interface BuildOption {
   icon: React.ReactNode;
 }
 
-export default function OnboardingStep5({ onNext, onBack }: OnboardingStep5Props) {
+export default function OnboardingStep5({ initialSelection, onNext, onBack }: OnboardingStep5Props) {
   const router = useRouter();
 
-  // Enforce single-choice state (defaulting to 'low_code' per design)
-  const [selectedOption, setSelectedOption] = useState<BuildOptionId>("low_code");
+  // Enforce single-choice state (defaulting to initialSelection or 'low_code' per design)
+  const [selectedOption, setSelectedOption] = useState<BuildOptionId>(
+    (initialSelection as BuildOptionId) || "low_code"
+  );
 
   const buildOptions: BuildOption[] = [
     {

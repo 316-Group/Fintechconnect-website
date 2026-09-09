@@ -28,39 +28,117 @@ function DashboardContent() {
     const isOnboarding = searchParams.get("onboarding") === "true";
     if (isOnboarding) {
       setShowOnboarding(true);
+      fetch("/api/onboarding", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "get" }),
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          if (data?.onboarding) {
+            const profile = data.onboarding;
+            if (profile.businessType) {
+              setSelectedRoles([profile.businessType]);
+            }
+            if (profile.goals && profile.goals.length > 0) {
+              setSelectedGoals(profile.goals);
+            }
+            if (profile.industries && profile.industries.length > 0) {
+              setSelectedIndustries(profile.industries);
+            }
+            if (profile.buildOption) {
+              setSelectedBuildOption(profile.buildOption);
+            }
+            if (profile.currentStep && profile.currentStep >= 1 && profile.currentStep <= 5) {
+              setCurrentStep(profile.currentStep);
+            }
+          }
+        })
+        .catch((err) => console.warn("Failed to load onboarding progress:", err));
     }
   }, [searchParams]);
 
+  const saveOnboardingData = async (data: {
+    businessType?: string;
+    goals?: string[];
+    industries?: string[];
+    buildOption?: string;
+    currentStep?: number;
+    completed?: boolean;
+  }) => {
+    try {
+      await fetch("/api/onboarding", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+    } catch (err) {
+      console.warn("Failed to persist onboarding step:", err);
+    }
+  };
+
   const handleStep1Next = () => {
     setCurrentStep(2);
+    saveOnboardingData({ currentStep: 2 });
   };
 
   const handleStep2Next = (roles: string[]) => {
     setSelectedRoles(roles);
     setCurrentStep(3);
+    saveOnboardingData({
+      businessType: roles[0] || "startup",
+      currentStep: 3,
+    });
   };
 
   const handleStep3Next = (goals: string[]) => {
     setSelectedGoals(goals);
     setCurrentStep(4);
+    saveOnboardingData({
+      goals,
+      currentStep: 4,
+    });
   };
 
   const handleStep4Next = (industries: string[]) => {
     setSelectedIndustries(industries);
     setCurrentStep(5);
+    saveOnboardingData({
+      industries,
+      currentStep: 5,
+    });
+  };
+
+  const handleStep5Next = (buildOption: string) => {
+    setSelectedBuildOption(buildOption);
+    setCurrentStep(6); // Move to Loading Screen
+    saveOnboardingData({
+      buildOption,
+      currentStep: 5,
+    });
   };
 
   const handleFinalFinish = () => {
-    // Sync onboarding data (selectedRoles, selectedGoals, selectedIndustries, selectedBuildOption) to your backend API here if needed.
+    saveOnboardingData({
+      businessType: selectedRoles[0] || undefined,
+      goals: selectedGoals,
+      industries: selectedIndustries,
+      buildOption: selectedBuildOption || undefined,
+      completed: true,
+      currentStep: 6,
+    });
     setShowOnboarding(false);
     router.replace("/dashboard/organization", { scroll: false });
   };
 
   const handleBack = () => {
-    setCurrentStep((prev) => Math.max(1, prev - 1));
+    const prevStep = Math.max(1, currentStep - 1);
+    setCurrentStep(prevStep);
+    saveOnboardingData({ currentStep: prevStep });
   };
 
   const handleSkip = () => {
+    saveOnboardingData({ completed: true });
     setShowOnboarding(false);
     router.replace("/dashboard/organization", { scroll: false });
   };
@@ -80,24 +158,34 @@ function DashboardContent() {
       )}
 
       {showOnboarding && currentStep === 2 && (
-        <OnboardingStep2 onNext={handleStep2Next} onBack={handleBack} />
+        <OnboardingStep2
+          initialSelection={selectedRoles[0]}
+          onNext={handleStep2Next}
+          onBack={handleBack}
+        />
       )}
 
       {showOnboarding && currentStep === 3 && (
-        <OnboardingStep3 onNext={handleStep3Next} onBack={handleBack} />
+        <OnboardingStep3
+          initialSelections={selectedGoals}
+          onNext={handleStep3Next}
+          onBack={handleBack}
+        />
       )}
 
       {showOnboarding && currentStep === 4 && (
-        <OnboardingStep4 onNext={handleStep4Next} onBack={handleBack} />
+        <OnboardingStep4
+          initialSelections={selectedIndustries}
+          onNext={handleStep4Next}
+          onBack={handleBack}
+        />
       )}
 
       {/* Step 5 */}
       {showOnboarding && currentStep === 5 && (
         <OnboardingStep5
-          onNext={(buildOption) => {
-            setSelectedBuildOption(buildOption);
-            setCurrentStep(6); // Move to Loading Screen
-          }}
+          initialSelection={selectedBuildOption}
+          onNext={handleStep5Next}
           onBack={handleBack}
         />
       )}

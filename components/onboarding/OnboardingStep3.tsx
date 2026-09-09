@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { getPath } from "@/utils/helper";
 
 interface OnboardingStep3Props {
+  initialSelections?: string[];
   onNext?: (selectedGoals: string[]) => void;
   onBack?: () => void;
 }
@@ -17,11 +18,13 @@ interface GoalOption {
   icon: React.ReactNode;
 }
 
-export default function OnboardingStep3({ onNext, onBack }: OnboardingStep3Props) {
+export default function OnboardingStep3({ initialSelections, onNext, onBack }: OnboardingStep3Props) {
   const router = useRouter();
 
-  // Pre-select 'launch_cards' to match the screenshot design
-  const [selectedGoals, setSelectedGoals] = useState<string[]>(["launch_cards"]);
+  // Pre-select 'launch_cards' or initialSelections if provided
+  const [selectedGoals, setSelectedGoals] = useState<string[]>(
+    initialSelections && initialSelections.length > 0 ? initialSelections : ["launch_cards"]
+  );
 
   const goalOptions: GoalOption[] = [
     {
