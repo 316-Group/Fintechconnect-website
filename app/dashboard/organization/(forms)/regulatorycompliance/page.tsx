@@ -12,11 +12,11 @@ import {
   Globe 
 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 const STORAGE_KEY_FORM = "regulatory_compliance_form";
 const STORAGE_KEY_JURISDICTIONS = "regulatory_compliance_jurisdictions";
 
-// Cross-platform vector flag renderer
 function CountryFlag({ country }: { country: string }) {
   switch (country) {
     case "United Kingdom":
@@ -87,6 +87,7 @@ function CountryFlag({ country }: { country: string }) {
 }
 
 export default function RegulatoryCompliance() {
+  const router = useRouter();
   const [formData, setFormData] = useState({
     regulatoryStatus: "",
     primaryRegulator: "",
@@ -97,6 +98,7 @@ export default function RegulatoryCompliance() {
 
   const [selectedJurisdictions, setSelectedJurisdictions] = useState<string[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   const ALL_JURISDICTIONS = [
     "United Kingdom",
@@ -106,42 +108,47 @@ export default function RegulatoryCompliance() {
     "Nigeria"
   ];
 
-  // Load from localStorage on initial client mount
   useEffect(() => {
-    const savedForm = localStorage.getItem(STORAGE_KEY_FORM);
-    const savedJurisdictions = localStorage.getItem(STORAGE_KEY_JURISDICTIONS);
-
-    if (savedForm) {
+    async function loadData() {
       try {
-        setFormData(JSON.parse(savedForm));
+        const res = await fetch("/api/dashboard/form-data");
+        const json = await res.json();
+        if (json.authenticated && json.data?.compliance) {
+          const { selectedJurisdictions: dbJurisdictions, ...restForm } = json.data.compliance;
+          setFormData(restForm);
+          setSelectedJurisdictions(dbJurisdictions || []);
+          setIsInitialized(true);
+          return;
+        }
       } catch (error) {
-        console.error("Failed to parse saved form data", error);
+        console.error("Failed to fetch compliance server data", error);
       }
+
+      const savedForm = localStorage.getItem(STORAGE_KEY_FORM);
+      const savedJurisdictions = localStorage.getItem(STORAGE_KEY_JURISDICTIONS);
+
+      if (savedForm) {
+        try {
+          setFormData(JSON.parse(savedForm));
+        } catch (error) {
+          console.error("Failed to parse saved form data", error);
+        }
+      }
+
+      if (savedJurisdictions) {
+        try {
+          setSelectedJurisdictions(JSON.parse(savedJurisdictions));
+        } catch (error) {
+          console.error("Failed to parse saved jurisdictions", error);
+        }
+      }
+
+      setIsInitialized(true);
     }
 
-    if (savedJurisdictions) {
-      try {
-        setSelectedJurisdictions(JSON.parse(savedJurisdictions));
-      } catch (error) {
-        console.error("Failed to parse saved jurisdictions", error);
-      }
-    }
-
-    setIsInitialized(true);
+    loadData();
   }, []);
 
-  // Save to localStorage whenever state changes
-  useEffect(() => {
-    if (!isInitialized) return;
-    localStorage.setItem(STORAGE_KEY_FORM, JSON.stringify(formData));
-  }, [formData, isInitialized]);
-
-  useEffect(() => {
-    if (!isInitialized) return;
-    localStorage.setItem(STORAGE_KEY_JURISDICTIONS, JSON.stringify(selectedJurisdictions));
-  }, [selectedJurisdictions, isInitialized]);
-
-  // Validation logic for required fields
   const isFormValid = Boolean(
     formData.regulatoryStatus.trim() !== "" &&
     formData.contactPerson.trim() !== "" &&
@@ -168,9 +175,33 @@ export default function RegulatoryCompliance() {
     setSelectedJurisdictions((prev) => prev.filter((item) => item !== country));
   };
 
+  const handleSaveAndContinue = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (!isFormValid || isSaving) return;
+    setIsSaving(true);
+
+    try {
+      localStorage.setItem(STORAGE_KEY_FORM, JSON.stringify(formData));
+      localStorage.setItem(STORAGE_KEY_JURISDICTIONS, JSON.stringify(selectedJurisdictions));
+
+      await fetch("/api/dashboard/form-data", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          compliance: { ...formData, selectedJurisdictions },
+        }),
+      });
+
+      router.push("/dashboard/organization/beneficial-ownership");
+    } catch (error) {
+      console.error("Failed to save regulatory compliance data", error);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   return (
     <div className="w-full mx-auto space-y-6 text-slate-800 font-sans">
-      {/* Step Heading */}
       <div>
         <div className="text-xs text-slate-400 font-medium mb-5">
           Merchants &gt; New Onboarding &gt; <span className="text-slate-600 font-semibold">Business Profile</span>
@@ -181,7 +212,6 @@ export default function RegulatoryCompliance() {
         </p>
       </div>
 
-      {/* Top Callout Banner */}
       <div className="bg-blue-50/70 border border-blue-100 rounded-xl p-4 flex gap-3">
         <Shield className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
         <div className="space-y-0.5">
@@ -192,9 +222,7 @@ export default function RegulatoryCompliance() {
         </div>
       </div>
 
-      {/* Main Form Card */}
       <div className="bg-white border border-slate-200 rounded-xl p-6 md:p-8 shadow-sm space-y-6">
-        {/* Regulatory Status */}
         <div className="space-y-1.5">
           <label className="block text-xs font-bold text-slate-800">
             Regulatory Status <span className="text-red-500">*</span>
@@ -215,7 +243,6 @@ export default function RegulatoryCompliance() {
           </div>
         </div>
 
-        {/* Primary Regulator & License Number */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <div className="space-y-1.5">
             <label className="block text-xs font-bold text-slate-800">Primary Regulator</label>
@@ -262,7 +289,6 @@ export default function RegulatoryCompliance() {
           </div>
         </div>
 
-        {/* Compliance Contact Person */}
         <div className="space-y-1.5">
           <label className="block text-xs font-bold text-slate-800">
             Compliance Contact Person <span className="text-red-500">*</span>
@@ -283,7 +309,6 @@ export default function RegulatoryCompliance() {
           </div>
         </div>
 
-        {/* Authorized Jurisdictions Dynamic Dropdown & Tag List */}
         <div className="space-y-2.5">
           <label className="block text-xs font-bold text-slate-800">Authorized Jurisdictions</label>
           <p className="text-[11px] text-slate-500">
@@ -310,7 +335,6 @@ export default function RegulatoryCompliance() {
               <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
             </div>
 
-            {/* Selected Jurisdiction Badges with SVG Flags */}
             {selectedJurisdictions.length > 0 && (
               <div className="flex flex-wrap gap-2 pt-1">
                 {selectedJurisdictions.map((country) => (
@@ -335,7 +359,6 @@ export default function RegulatoryCompliance() {
           </div>
         </div>
 
-        {/* Bottom Action Buttons */}
         <div className="flex justify-between items-center pt-4 border-t border-slate-100">
           <Link
             href="/dashboard/organization/businessidentity"
@@ -345,14 +368,15 @@ export default function RegulatoryCompliance() {
           </Link>
           <button
             type="button"
-            disabled={!isFormValid}
+            onClick={handleSaveAndContinue}
+            disabled={!isFormValid || isSaving}
             className={`px-6 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 shadow-sm transition-all ${
-              isFormValid
+              isFormValid && !isSaving
                 ? "bg-[#0A63F8] hover:bg-blue-700 text-white cursor-pointer"
                 : "bg-slate-200 text-slate-400 cursor-not-allowed shadow-none"
             }`}
           >
-            Save and Continue &rarr;
+            {isSaving ? "Saving..." : "Save and Continue \u2192"}
           </button>
         </div>
       </div>

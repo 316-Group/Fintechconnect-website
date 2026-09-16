@@ -1,9 +1,24 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Bell, HelpCircle, Check, Menu, X, ChevronDown } from "lucide-react";
+
+interface CurrentUser {
+  id: string;
+  fullName: string;
+  email: string;
+}
+
+function getInitials(name: string) {
+  return name
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((n) => n[0].toUpperCase())
+    .join("");
+}
 
 const NAV_ITEMS = [
   { label: "Dashboard", href: "/dashboard/organization" },

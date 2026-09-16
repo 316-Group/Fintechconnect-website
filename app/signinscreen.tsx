@@ -35,7 +35,7 @@ const SignInScreen: React.FC = () => {
         throw new Error(data.message || 'Invalid credentials');
       }
 
-      router.push('/');
+      router.push('/dashboard/organization');
       router.refresh();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'An unexpected error occurred. Please try again.');

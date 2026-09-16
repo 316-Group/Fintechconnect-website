@@ -31,13 +31,25 @@ import {
 import Link from "next/link";
 import { getPath } from "@/utils/helper";
 
-const STORAGE_KEY_BI = "onboarding_business_identity";
-const STORAGE_KEY_COMPLIANCE_FORM = "regulatory_compliance_form";
-const STORAGE_KEY_OWNERSHIP = "beneficial_ownership_form";
+interface CurrentUser {
+  id: string;
+  fullName: string;
+  email: string;
+}
+
+function getInitials(name: string) {
+  return name
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((n) => n[0].toUpperCase())
+    .join("");
+}
 
 export default function DashboardPage() {
   const [activeNav, setActiveNav] = useState("Organization");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
 
   // Dynamic KYB Step Management State
   const [steps, setSteps] = useState([
@@ -89,99 +101,92 @@ export default function DashboardPage() {
 
   const [activeStepId, setActiveStepId] = useState(1);
 
-  // Read LocalStorage on mount & compute field completion progress per step
+  // Fetch current user on mount
   useEffect(() => {
-    // 1. Business Identity Calculation
-    let biProgress = 0;
-    const rawBI = localStorage.getItem(STORAGE_KEY_BI);
-    if (rawBI) {
-      try {
-        const biData = JSON.parse(rawBI);
-        const requiredFields = [
-          "legalName",
-          "registrationNumber",
-          "country",
-          "industry",
-          "houseNumber",
-          "streetName",
-          "town",
-          "postCode",
-          "addressCountry",
-        ];
-        const filledCount = requiredFields.filter(
-          (field) => biData[field] && String(biData[field]).trim() !== ""
-        ).length;
-        biProgress = Math.round((filledCount / requiredFields.length) * 100);
-      } catch (err) {
-        console.error("Error parsing Business Identity storage", err);
-      }
-    }
-
-    // 2. Regulatory Compliance Calculation
-    let complianceProgress = 0;
-    const rawCompliance = localStorage.getItem(STORAGE_KEY_COMPLIANCE_FORM);
-    if (rawCompliance) {
-      try {
-        const compData = JSON.parse(rawCompliance);
-        let filledCount = 0;
-        const totalRequired = 3;
-
-        if (compData.regulatoryStatus && compData.regulatoryStatus.trim() !== "") {
-          filledCount++;
+    fetch("/api/user/me")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.authenticated && data.user) {
+          setCurrentUser(data.user);
         }
-        if (compData.contactPerson && compData.contactPerson.trim() !== "") {
-          filledCount++;
-        }
-        if (
-          compData.provideLater ||
-          (compData.licenseNumber && compData.licenseNumber.trim() !== "")
-        ) {
-          filledCount++;
-        }
-
-        complianceProgress = Math.round((filledCount / totalRequired) * 100);
-      } catch (err) {
-        console.error("Error parsing Compliance storage", err);
-      }
-    }
-
-    // 3. Beneficial Ownership Calculation
-    let ownershipProgress = 0;
-    const rawOwnership = localStorage.getItem(STORAGE_KEY_OWNERSHIP);
-    if (rawOwnership) {
-      try {
-        const { formData, beneficialOwners, signatories } = JSON.parse(rawOwnership);
-
-        // Owners Portion (50% weight)
-        const totalStake = (beneficialOwners || []).reduce(
-          (sum: number, owner: any) => sum + (Number(owner.ownershipStake) || 0),
-          0
-        );
-        const ownerScore = formData?.ownersProvideLater
-          ? 100
-          : Math.min(100, totalStake);
-
-        // Signatories Portion (50% weight)
-        const signatoryScore =
-          formData?.signatoriesProvideLater || (signatories && signatories.length > 0)
-            ? 100
-            : 0;
-
-        ownershipProgress = Math.round((ownerScore + signatoryScore) / 2);
-      } catch (err) {
-        console.error("Error parsing Beneficial Ownership storage", err);
-      }
-    }
-
-    // Update Steps State
-    setSteps((prev) =>
-      prev.map((step) => {
-        if (step.id === 1) return { ...step, progress: biProgress };
-        if (step.id === 2) return { ...step, progress: complianceProgress };
-        if (step.id === 3) return { ...step, progress: ownershipProgress };
-        return step;
       })
-    );
+      .catch((err) => console.error("Failed to fetch current user:", err));
+  }, []);
+
+  // Fetch per-user KYB form data from server and compute progress
+  useEffect(() => {
+    fetch("/api/dashboard/form-data")
+      .then((res) => res.json())
+      .then((data) => {
+        if (!data.authenticated || !data.data) return;
+        const { businessIdentity, compliance, beneficialOwnership } = data.data;
+
+        // 1. Business Identity progress
+        let biProgress = 0;
+        if (businessIdentity) {
+          const requiredFields = [
+            "legalName",
+            "registrationNumber",
+            "country",
+            "industry",
+            "houseNumber",
+            "streetName",
+            "town",
+            "postCode",
+            "addressCountry",
+          ];
+          const filledCount = requiredFields.filter(
+            (field) =>
+              (businessIdentity as Record<string, string>)[field] &&
+              String((businessIdentity as Record<string, string>)[field]).trim() !== ""
+          ).length;
+          biProgress = Math.round((filledCount / requiredFields.length) * 100);
+        }
+
+        // 2. Regulatory Compliance progress
+        let complianceProgress = 0;
+        if (compliance) {
+          const compData = compliance as Record<string, unknown>;
+          let filledCount = 0;
+          const totalRequired = 3;
+          if (compData.regulatoryStatus && String(compData.regulatoryStatus).trim() !== "") filledCount++;
+          if (compData.contactPerson && String(compData.contactPerson).trim() !== "") filledCount++;
+          if (compData.provideLater || (compData.licenseNumber && String(compData.licenseNumber).trim() !== "")) filledCount++;
+          complianceProgress = Math.round((filledCount / totalRequired) * 100);
+        }
+
+        // 3. Beneficial Ownership progress
+        let ownershipProgress = 0;
+        if (beneficialOwnership) {
+          const { formData: boFormData, beneficialOwners, signatories } =
+            beneficialOwnership as {
+              formData?: { ownersProvideLater?: boolean; signatoriesProvideLater?: boolean };
+              beneficialOwners?: { ownershipStake?: number }[];
+              signatories?: unknown[];
+            };
+
+          const totalStake = (beneficialOwners || []).reduce(
+            (sum, owner) => sum + (Number(owner.ownershipStake) || 0),
+            0
+          );
+          const ownerScore = boFormData?.ownersProvideLater ? 100 : Math.min(100, totalStake);
+          const signatoryScore =
+            boFormData?.signatoriesProvideLater || (signatories && signatories.length > 0)
+              ? 100
+              : 0;
+          ownershipProgress = Math.round((ownerScore + signatoryScore) / 2);
+        }
+
+        setSteps((prev) =>
+          prev.map((step) => {
+            if (step.id === 1) return { ...step, progress: biProgress };
+            if (step.id === 2) return { ...step, progress: complianceProgress };
+            if (step.id === 3) return { ...step, progress: ownershipProgress };
+            return step;
+          })
+        );
+      })
+      .catch((err) => console.warn("Failed to load KYB progress:", err));
   }, []);
 
   // Get active step data for banner display
@@ -471,15 +476,13 @@ export default function DashboardPage() {
               <HelpCircle className="w-4 h-4" />
             </button>
             <div className="h-4 w-px bg-slate-200 mx-0.5 sm:mx-1" />
-            <div className="flex items-center gap-2">
-              <img
-                src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80"
-                alt="John Doe"
-                className="w-8 h-8 rounded-full object-cover ring-1 ring-slate-200"
-              />
-              <span className="text-xs font-semibold text-slate-800 hidden sm:inline">
-                John Doe
+            <div className="flex items-center gap-3">
+              <span className="text-xs font-semibold text-slate-700">
+                {currentUser?.fullName ?? "Loading..."}
               </span>
+              <div className="w-8 h-8 rounded-full bg-blue-600 text-white font-bold text-xs flex items-center justify-center border border-blue-700 shrink-0">
+                {currentUser?.fullName ? getInitials(currentUser.fullName) : "U"}
+              </div>
             </div>
           </div>
         </header>

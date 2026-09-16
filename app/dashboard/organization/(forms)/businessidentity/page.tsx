@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { Info, ChevronDown } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 const STORAGE_KEY = "onboarding_business_identity";
 
@@ -21,40 +22,50 @@ const INITIAL_FORM_DATA = {
 };
 
 export default function BusinessIdentity() {
+  const router = useRouter();
   const [formData, setFormData] = useState(INITIAL_FORM_DATA);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
-  // Load saved state from localStorage after initial render
   useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
+    async function loadData() {
       try {
-        setFormData(JSON.parse(saved));
+        const res = await fetch("/api/dashboard/form-data");
+        const json = await res.json();
+        if (json.authenticated && json.data?.businessIdentity) {
+          setFormData(json.data.businessIdentity);
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(json.data.businessIdentity));
+          setIsLoaded(true);
+          return;
+        }
       } catch (error) {
-        console.error("Error parsing stored form data:", error);
+        console.error("Failed to load business identity server data", error);
       }
-    }
-    setIsLoaded(true);
-  }, []);
 
-  // Save form updates to localStorage after initial load
-  useEffect(() => {
-    if (isLoaded) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(formData));
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        try {
+          setFormData(JSON.parse(saved));
+        } catch (error) {
+          console.error("Error parsing stored form data:", error);
+        }
+      }
+      setIsLoaded(true);
     }
-  }, [formData, isLoaded]);
+
+    loadData();
+  }, []);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
-    setFormData((prev: typeof INITIAL_FORM_DATA) => ({
+    setFormData((prev) => ({
       ...prev,
       [name]: value,
     }));
   };
 
-  // Check that all required fields are filled
   const isFormValid = Boolean(
     formData.legalName.trim() &&
       formData.registrationNumber.trim() &&
@@ -67,9 +78,28 @@ export default function BusinessIdentity() {
       formData.addressCountry.trim()
   );
 
+  const handleSaveAndContinue = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (!isFormValid || isSaving) return;
+    setIsSaving(true);
+
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(formData));
+      await fetch("/api/dashboard/form-data", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ businessIdentity: formData }),
+      });
+      router.push("/dashboard/organization/regulatorycompliance");
+    } catch (error) {
+      console.error("Failed to save business identity data:", error);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   return (
     <main className="w-full mx-auto space-y-6 min-h-screen font-sans text-slate-800">
-      {/* Step Heading */}
       <div>
         <div className="text-xs text-slate-400 font-medium mb-5">
           Merchants &gt; New Onboarding &gt;{" "}
@@ -84,7 +114,6 @@ export default function BusinessIdentity() {
         </p>
       </div>
 
-      {/* Top Callout Banner */}
       <div className="bg-blue-50/70 border border-blue-100 rounded-xl p-4 flex gap-3">
         <Info className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
         <div className="space-y-1">
@@ -99,9 +128,7 @@ export default function BusinessIdentity() {
         </div>
       </div>
 
-      {/* Form Container */}
       <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-6">
-        {/* Legal Company Name */}
         <div className="space-y-1.5">
           <label className="block text-xs font-bold text-slate-700">
             Legal Company Name <span className="text-red-500">*</span>
@@ -119,7 +146,6 @@ export default function BusinessIdentity() {
           </p>
         </div>
 
-        {/* DBA Name & Registration Number */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-1.5">
             <label className="block text-xs font-bold text-slate-700">
@@ -149,7 +175,6 @@ export default function BusinessIdentity() {
           </div>
         </div>
 
-        {/* Country of Incorporation & Industry Category */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-1.5">
             <label className="block text-xs font-bold text-slate-700">
@@ -190,7 +215,6 @@ export default function BusinessIdentity() {
           </div>
         </div>
 
-        {/* Registered Office Address Section */}
         <div className="space-y-3 pt-2">
           <label className="block text-xs font-bold text-slate-700">
             Registered Office Address <span className="text-red-500">*</span>
@@ -250,7 +274,6 @@ export default function BusinessIdentity() {
           </div>
         </div>
 
-        {/* Bottom Action Buttons */}
         <div className="flex justify-between items-center pt-4 border-t border-slate-100">
           <Link
             href="/dashboard/organization"
@@ -259,22 +282,18 @@ export default function BusinessIdentity() {
             Back
           </Link>
 
-          {isFormValid ? (
-            <Link
-              href="/dashboard/organization/regulatorycompliance"
-              className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold flex items-center gap-2 shadow-sm transition-colors"
-            >
-              Save and Continue &rarr;
-            </Link>
-          ) : (
-            <button
-              type="button"
-              disabled
-              className="px-6 py-2 bg-slate-200 text-slate-400 rounded-lg text-sm font-semibold flex items-center gap-2 cursor-not-allowed transition-colors"
-            >
-              Save and Continue &rarr;
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={handleSaveAndContinue}
+            disabled={!isFormValid || isSaving}
+            className={`px-6 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 shadow-sm transition-colors ${
+              isFormValid && !isSaving
+                ? "bg-blue-600 hover:bg-blue-700 text-white cursor-pointer"
+                : "bg-slate-200 text-slate-400 cursor-not-allowed shadow-none"
+            }`}
+          >
+            {isSaving ? "Saving..." : "Save and Continue \u2192"}
+          </button>
         </div>
       </div>
     </main>

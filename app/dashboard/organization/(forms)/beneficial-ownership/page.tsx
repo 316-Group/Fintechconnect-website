@@ -12,12 +12,14 @@ import {
   X,
 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import BeneficiaryModal, { OwnerFormData } from "./beneficiarymodal";
 import SignatoryModal, { SignatoryFormData } from "./signatorymodal";
 
 const STORAGE_KEY_FORM = "beneficial_ownership_form";
 
 export default function BeneficialOwnership() {
+  const router = useRouter();
   const [openSections, setOpenSections] = useState({
     owners: true,
     signatories: true,
@@ -31,55 +33,62 @@ export default function BeneficialOwnership() {
   const [beneficialOwners, setBeneficialOwners] = useState<any[]>([]);
   const [signatories, setSignatories] = useState<any[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
-  // Modal Visibility & Edit Target State
   const [isOwnerModalOpen, setIsOwnerModalOpen] = useState(false);
   const [isSignatoryModalOpen, setIsSignatoryModalOpen] = useState(false);
   const [editingOwner, setEditingOwner] = useState<any | null>(null);
   const [editingSignatory, setEditingSignatory] = useState<any | null>(null);
 
-  // Load state from localStorage on mount
   useEffect(() => {
-    const savedForm = localStorage.getItem(STORAGE_KEY_FORM);
-    if (savedForm) {
+    async function loadData() {
       try {
-        const parsed = JSON.parse(savedForm);
-        setFormData(
-          parsed.formData || {
-            ownersProvideLater: false,
-            signatoriesProvideLater: false,
-          }
-        );
-        setBeneficialOwners(parsed.beneficialOwners || []);
-        setSignatories(parsed.signatories || []);
+        const res = await fetch("/api/dashboard/form-data");
+        const json = await res.json();
+        if (json.authenticated && json.data?.beneficialOwnership) {
+          const bo = json.data.beneficialOwnership;
+          setFormData(bo.formData || { ownersProvideLater: false, signatoriesProvideLater: false });
+          setBeneficialOwners(bo.beneficialOwners || []);
+          setSignatories(bo.signatories || []);
+          setIsInitialized(true);
+          return;
+        }
       } catch (error) {
-        console.error("Failed to parse saved ownership form", error);
+        console.error("Failed to load beneficial ownership server data", error);
       }
-    }
-    setIsInitialized(true);
-  }, []);
 
-  // Save state to localStorage on update
-  useEffect(() => {
-    if (!isInitialized) return;
-    localStorage.setItem(
-      STORAGE_KEY_FORM,
-      JSON.stringify({ formData, beneficialOwners, signatories })
-    );
-  }, [formData, beneficialOwners, signatories, isInitialized]);
+      const savedForm = localStorage.getItem(STORAGE_KEY_FORM);
+      if (savedForm) {
+        try {
+          const parsed = JSON.parse(savedForm);
+          setFormData(
+            parsed.formData || {
+              ownersProvideLater: false,
+              signatoriesProvideLater: false,
+            }
+          );
+          setBeneficialOwners(parsed.beneficialOwners || []);
+          setSignatories(parsed.signatories || []);
+        } catch (error) {
+          console.error("Failed to parse saved ownership form", error);
+        }
+      }
+      setIsInitialized(true);
+    }
+
+    loadData();
+  }, []);
 
   const toggleSection = (section: "owners" | "signatories") => {
     setOpenSections((prev) => ({ ...prev, [section]: !prev[section] }));
   };
 
-  // Calculate dynamic declared total (capped visually at 100 max)
   const rawTotalDeclaredStake = beneficialOwners.reduce(
     (acc, owner) => acc + (Number(owner.ownershipStake) || 0),
     0
   );
   const totalDeclaredStake = Math.min(rawTotalDeclaredStake, 100);
 
-  // Calculate max allowable stake for current modal context (Adding vs Editing)
   const totalStakeExcludingCurrent = beneficialOwners.reduce(
     (acc, owner) =>
       acc + (owner.id === editingOwner?.id ? 0 : Number(owner.ownershipStake) || 0),
@@ -87,10 +96,8 @@ export default function BeneficialOwnership() {
   );
   const maxAllowedStake = Math.max(0, 100 - totalStakeExcludingCurrent);
 
-  // Beneficial Owner Handlers (Add & Edit)
   const handleSaveOwner = (ownerData: OwnerFormData) => {
     const rawStake = parseFloat(ownerData.ownershipStake as any) || 0;
-    // Cap stake so cumulative total never exceeds 100%
     const clampedStake = Math.min(rawStake, maxAllowedStake);
 
     if (editingOwner) {
@@ -127,7 +134,6 @@ export default function BeneficialOwnership() {
     setBeneficialOwners((prev) => prev.filter((owner) => owner.id !== id));
   };
 
-  // Authorized Signatory Handlers (Add & Edit)
   const handleSaveSignatory = (signatoryData: SignatoryFormData) => {
     if (editingSignatory) {
       setSignatories((prev) =>
@@ -161,7 +167,27 @@ export default function BeneficialOwnership() {
     setSignatories((prev) => prev.filter((sig) => sig.id !== id));
   };
 
-  // Helper function to render all dynamic properties of an owner/signatory
+  const handleSaveAndContinue = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (isSaving) return;
+    setIsSaving(true);
+
+    const payload = { formData, beneficialOwners, signatories };
+    try {
+      localStorage.setItem(STORAGE_KEY_FORM, JSON.stringify(payload));
+      await fetch("/api/dashboard/form-data", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ beneficialOwnership: payload }),
+      });
+      router.push("/dashboard/organization/documents");
+    } catch (error) {
+      console.error("Failed to save beneficial ownership data", error);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const renderDetails = (item: Record<string, any>, excludeKeys: string[]) => {
     const entries = Object.entries(item).filter(
       ([key, val]) =>
@@ -194,7 +220,6 @@ export default function BeneficialOwnership() {
 
   return (
     <div className="w-full mx-auto space-y-6 font-sans text-slate-800 relative">
-      {/* Breadcrumb & Header */}
       <div>
         <div className="text-xs text-slate-400 font-medium mb-5">
           Merchants &gt; New Onboarding &gt;{" "}
@@ -212,7 +237,6 @@ export default function BeneficialOwnership() {
         </p>
       </div>
 
-      {/* Callout Box */}
       <div className="bg-blue-50/60 border border-blue-100/80 rounded-xl p-4 flex gap-3.5">
         <Shield className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
         <div className="space-y-0.5">
@@ -227,7 +251,6 @@ export default function BeneficialOwnership() {
         </div>
       </div>
 
-      {/* Total Declared Percentage Card */}
       <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-2xs space-y-3">
         <div className="flex items-center justify-between">
           <div>
@@ -254,7 +277,6 @@ export default function BeneficialOwnership() {
           </div>
         </div>
 
-        {/* Dynamic Progress Bar */}
         <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
           <div
             className="bg-blue-600 h-full transition-all duration-300"
@@ -268,9 +290,7 @@ export default function BeneficialOwnership() {
         </p>
       </div>
 
-      {/* Accordion Container */}
       <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-2xs space-y-6">
-        {/* ================= Accordion 1: Registered Owners ================= */}
         <div className="border border-slate-200/80 rounded-xl overflow-hidden transition-all bg-white">
           <button
             type="button"
@@ -300,7 +320,6 @@ export default function BeneficialOwnership() {
 
           {openSections.owners && (
             <div className="p-4 pt-2 space-y-4 border-t border-slate-100">
-              {/* List of Added Beneficial Owners */}
               {beneficialOwners.length > 0 && (
                 <div className="space-y-3 mb-4">
                   {beneficialOwners.map((owner) => (
@@ -324,7 +343,6 @@ export default function BeneficialOwnership() {
                             {owner.ownershipStake}%
                           </div>
 
-                          {/* Edit Button */}
                           <button
                             type="button"
                             onClick={() => handleOpenEditOwner(owner)}
@@ -334,7 +352,6 @@ export default function BeneficialOwnership() {
                             <Pencil className="w-3.5 h-3.5" />
                           </button>
 
-                          {/* Red X Delete Icon on Hover */}
                           <button
                             type="button"
                             onClick={() => handleRemoveOwner(owner.id)}
@@ -346,7 +363,6 @@ export default function BeneficialOwnership() {
                         </div>
                       </div>
 
-                      {/* Display All Remaining Information dynamically */}
                       {renderDetails(owner, [
                         "id",
                         "fullName",
@@ -359,7 +375,6 @@ export default function BeneficialOwnership() {
                 </div>
               )}
 
-              {/* Dashed Entry Box */}
               <div className="border border-dashed border-slate-300 rounded-lg p-5 bg-slate-50/20 space-y-4">
                 <div className="flex items-start justify-between">
                   <div className="flex items-start gap-3">
@@ -414,7 +429,6 @@ export default function BeneficialOwnership() {
           )}
         </div>
 
-        {/* ================= Accordion 2: Authorized Signatories ================= */}
         <div className="border border-slate-200/80 rounded-xl overflow-hidden transition-all bg-white">
           <button
             type="button"
@@ -444,7 +458,6 @@ export default function BeneficialOwnership() {
 
           {openSections.signatories && (
             <div className="p-4 pt-2 space-y-4 border-t border-slate-100">
-              {/* List of Added Authorized Signatories */}
               {signatories.length > 0 && (
                 <div className="space-y-3 mb-4">
                   {signatories.map((sig) => (
@@ -463,7 +476,6 @@ export default function BeneficialOwnership() {
                         </div>
 
                         <div className="flex items-center gap-2">
-                          {/* Edit Button */}
                           <button
                             type="button"
                             onClick={() => handleOpenEditSignatory(sig)}
@@ -473,7 +485,6 @@ export default function BeneficialOwnership() {
                             <Pencil className="w-3.5 h-3.5" />
                           </button>
 
-                          {/* Red X Delete Icon on Hover */}
                           <button
                             type="button"
                             onClick={() => handleRemoveSignatory(sig.id)}
@@ -485,14 +496,12 @@ export default function BeneficialOwnership() {
                         </div>
                       </div>
 
-                      {/* Display All Remaining Information dynamically */}
                       {renderDetails(sig, ["id", "fullName", "officialRole"])}
                     </div>
                   ))}
                 </div>
               )}
 
-              {/* Dashed Entry Box */}
               <div className="border border-dashed border-slate-300 rounded-lg p-5 bg-slate-50/20 space-y-4">
                 <div className="flex items-start justify-between">
                   <div className="flex items-start gap-3">
@@ -546,24 +555,24 @@ export default function BeneficialOwnership() {
           )}
         </div>
 
-        {/* Bottom Action Buttons */}
         <div className="flex justify-between items-center pt-4 border-t border-slate-100">
           <Link
-            href="/dashboard/compliance"
+            href="/dashboard/organization/regulatorycompliance"
             className="px-6 py-2 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
           >
             Back
           </Link>
           <button
             type="button"
+            onClick={handleSaveAndContinue}
+            disabled={isSaving}
             className="bg-[#0A63F8] hover:bg-blue-700 text-white px-6 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 shadow-2xs transition-all cursor-pointer"
           >
-            Save and Continue &rarr;
+            {isSaving ? "Saving..." : "Save and Continue \u2192"}
           </button>
         </div>
       </div>
 
-      {/* Beneficial Owner Modal */}
       <BeneficiaryModal
         isOpen={isOwnerModalOpen}
         onClose={() => {
@@ -575,7 +584,6 @@ export default function BeneficialOwnership() {
         maxAllowedStake={maxAllowedStake}
       />
 
-      {/* Signatory Modal */}
       {(() => {
         const SignatoryModalAny = SignatoryModal as any;
         return (

@@ -22,7 +22,7 @@ const features: ApiFeature[] = [
     title: "Well-documented APIs built by developers for developers",
     description:
       "Fapshi was birthed from frustration with existing solutions in the market, so we know your pain. Our APIs are straight to the point and well documented so that you can get started in minutes, not days. We are constantly working on the solution to make it a joy to work with.",
-    imagePath: "/products/table.png",
+    imagePath: "/products/apiimage.png",
   },
   {
     id: 2,

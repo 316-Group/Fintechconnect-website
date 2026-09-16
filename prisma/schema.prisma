@@ -35,6 +35,7 @@ model User {
   updatedAt                 DateTime  @updatedAt
   sessions                  Session[]
   onboardingProfile         OnboardingProfile?
+  dashboardFormData         DashboardFormData?
 }
 
 model Session {
@@ -61,4 +62,15 @@ model OnboardingProfile {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model DashboardFormData {
+  id                  String   @id @default(cuid())
+  userId              String   @unique
+  businessIdentity    Json?
+  compliance          Json?
+  beneficialOwnership Json?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
