@@ -5,57 +5,57 @@ import { getPath } from "@/utils/helper";
 
 const modules = [
   {
-    tag: "Accounts",
-    title: "Multi-Currency Accounts & vIBANs",
-    desc: "Open accounts in minutes and issue unique virtual IBANs and localised account numbers across 70+ jurisdictions. Every account carries its own balance states, permissions and lifecycle rules.",
+    tag: "Ledger Foundations",
+    title: "Shape the books behind your product",
+    desc: "Model ledger accounts, journals, and posting rules to clearly track financial activity, connect transactions to product events, and define how fees, adjustments, and settlements are handled.",
     img: "/solutions/creditunions/digitalondoarding.png",
   },
   {
-    tag: "Treasury",
-    title: "Treasury & Liquidity Management",
-    desc: "Manage float, reserves and settlement positions from one dashboard. Real-time liquidity views, multi-currency support, automated sweeps and AI-assisted rebalancing recommendations.",
+    tag: "Financial State",
+    title: "Distinguish intent from finality",
+    desc: "Clearly model financial states and transitions, from pending and held to settled, reversed, or failed, so product, operations, and finance teams can align on how each is represented, communicated, and reconciled.",
     img: "/solutions/creditunions/SMEengine.png",
   },
   {
-    tag: "Ledger",
-    title: "Double-Entry Ledger Core",
-    desc: "A sub-millisecond, immutable double-ledger underneath every product you build. Real-time balance reservations, full audit trail, and no manual reconciliation at month end.",
+    tag: "Available Funds",
+    title: "Account for value before it moves",
+    desc: "Separate ledger, available, pending, and held balances to support clear authorisation, release, expiry, and reversal flows without treating every amount as immediately booked.",
     img: "/solutions/creditunions/whitelabel.png",
   },
   {
-    tag: "Cards",
-    title: "Card Issuing",
-    desc: "Issue branded virtual and physical cards without owning card infrastructure. Configure spend controls, velocity limits and FX fees, and launch your card programme in weeks.",
+    tag: "Immutable History",
+    title: "Correct through a new financial event",
+    desc: "Maintain a clear financial history by recording corrections and reversals as new linked entries, with the original event, reason, approval, and corrective action visible for review.",
     img: "/solutions/creditunions/treasury.png",
   },
   {
-    tag: "Multi-Currency",
-    title: "FX & Multi-Currency Settlement",
-    desc: "Hold, convert and settle in 60+ currencies from a single account. Real-time rates, low-spread conversion and same-day settlement, with no hidden fees and full regulatory transparency.",
+    tag: "Financial Context",
+    title: "Make balances explainable",
+    desc: "Connect balances to their underlying entries, states, and references, giving product, finance, and operations teams a clear view of how each financial position was formed.",
     img: "/solutions/creditunions/compliance.png",
   },
   {
-    tag: "Embedded Finance",
-    title: "Wallets & Embedded Finance",
-    desc: "Embed wallets, savings accounts, virtual cards and micro-lending directly into your product. Offer your customers a branded financial account with zero banking infrastructure of your own.",
+    tag: "Control Evidence",
+    title: "Prepare records for comparison and review",
+    desc: "Support reconciliation with structured records that connect internal entries, external transactions, fees, and settlements, enabling clear matching, exception handling, and controlled adjustments.",
     img: "/solutions/creditunions/instantpayments.png",
   },
   {
-    tag: "Compliance",
-    title: "KYC, AML & Regulatory Compliance",
-    desc: "Automated identity verification, sanctions and PEP screening, transaction monitoring and regulatory reporting, pre-certified for FCA, PRA and GDPR. Compliance overhead drops without the rigour dropping with it.",
+    tag: "Event Orchestration",
+    title: "Relate movement events to posting states",
+    desc: "Connect payment and transfer events to related ledger entries, covering initiation, validation, settlement, returns, and reversals while supporting asynchronous updates and exception handling.",
     img: "/moduleimages/cardissuing.png",
   },
   {
-    tag: "Risk",
-    title: "Fraud & Transaction Risk Monitoring",
-    desc: "A self-learning fraud engine that scores every transaction in under 50ms. Behavioural profiling, network analysis, velocity rules and anomaly detection, with an automated case workflow for anything flagged.",
+    tag: "Positional Context",
+    title: "Inform position and close workflows",
+    desc: "Use ledger records to understand financial positions, settlement obligations, and timing while distinguishing expected activity from booked activity for clearer treasury review.",
     img: "/moduleimages/globalpayments.png",
   },
   {
-    tag: "Payments",
-    title: "Global Payments Infrastructure",
-    desc: "Move money domestically and cross-border across 180+ countries. SWIFT, SEPA, Faster Payments, ACH and local rails, with intelligent routing and end-to-end transaction traceability.",
+    tag: "Product Context",
+    title: "Link product rules to ledger treatment",
+    desc: "Connect product and account details with ledger postings and balances, giving product and finance teams a shared view of account lifecycles, limits, fees, and customer relationships.",
     img: "/solutions/creditunions/multicurrency.png",
   },
 ];
@@ -92,9 +92,8 @@ const ModuleCard = ({
     }
 
     return () => observer.disconnect();
-  }, [showAll]); // Refires dynamically when mobile unhides cards, triggering their entry cascade
+  }, [showAll]);
 
-  // Dynamic remainder delay logic to reset cascading rhythms row-by-row on desktop grids
   const desktopStaggerDelay = (index % 3) * 100;
 
   return (
@@ -160,7 +159,6 @@ export default function NewmodulesSection() {
   const [headerVisible, setHeaderVisible] = useState(false);
   const headerRef = useRef<HTMLHeadingElement>(null);
 
-  // Dedicated Observer for the Section's H2 Title Copy
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => {

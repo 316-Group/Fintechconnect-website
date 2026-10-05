@@ -74,7 +74,7 @@ export default function Navbar() {
   const platformModules: Record<string, { title: string; description: string, href?: string }[]> = {
     "Core Infrastructure": [
       { title: "Core Banking Engine", description: "Production-ready banking core with multi-currency accounts, automated payments, and global rail connectivity", href: "/products/corebanking" },
-      { title: "Real-Time Ledger", description: "Record every transaction with precision and immutable audit trails. Stay accurate, compliant, and audit-ready.", href: "/products/realtimledger" },
+      { title: "Real-Time Ledger", description: "Record every transaction with precision and immutable audit trails. Stay accurate, compliant, and audit-ready.", href: "/products/realtimeledger" },
       { title: "Treasury Management", description: "Monitor cash, execute FX transactions, and forecast liquidity across all currencies from one dashboard", href: "/products/treasury" }
     ],
     "Payments & Cards": [

@@ -6,16 +6,16 @@ import { getPath } from "@/utils/helper";
 import DynamicSection from "@/app/solutions/credit-unions/dynamicsection";
 import { Globe } from "@/components/ui/globe";
 import Footersection from "@/app/Footersection";
-import Newmodulessection from "@/app/products/corebanking/newmodulessection";
+import Newmodulessection from "@/app/products/realtimeledger/newmodulessection";
 import BackgroundSection from "@/app/solutions/credit-unions/backgroundsection";
-import HoverSection from "@/app/products/corebanking/hoversection";
-import NewfeaturesSection from "@/app/products/corebanking/newfeaturessection";
-import Newpartnersection from "@/app/products/corebanking/newpartnersection";
-import NewApiSection from "@/app/products/corebanking/newapisection";
-import NewCarouselSection from "@/app/products/corebanking/newcarouselsection";
-import NewDynamicSection from "@/app/products/corebanking/newdynamicsection";
-import PlatformSection from "@/app/products/corebanking/platformsection";
-import MiddleLayerSection from "@/app/products/corebanking/middlelayersection";
+import HoverSection from "@/app/products/realtimeledger/hoversection";
+import NewfeaturesSection from "@/app/products/realtimeledger/newfeaturessection";
+import Newpartnersection from "@/app/products/realtimeledger/newpartnersection";
+import NewApiSection from "@/app/products/realtimeledger/newapisection";
+import NewCarouselSection from "@/app/products/realtimeledger/newcarouselsection";
+import NewDynamicSection from "@/app/products/realtimeledger/newdynamicsection";
+import PlatformSection from "@/app/products/realtimeledger/platformsection";
+import MiddleLayerSection from "@/app/products/realtimeledger/middlelayersection";
 
 export default function ForCreditUnions() {
   const [heroVisible, setHeroVisible] = useState(false);
@@ -62,9 +62,9 @@ export default function ForCreditUnions() {
               )}`}
               style={{ transitionDelay: "0ms" }}
             >
-              Build Modern Financial Products with a Scalable{" "}
+              Build products on a ledger designed for{" "}
               <span className="text-blue-600 block sm:inline">
-                Core Banking Platform
+                clear financial state
               </span>
             </h1>
 
@@ -74,9 +74,8 @@ export default function ForCreditUnions() {
               )}`}
               style={{ transitionDelay: "150ms" }}
             >
-              Create and manage accounts, process transactions, issue cards, and
-              enable payments - all through a secure, modular core banking engine
-              designed for fintechs and crypto businesses.
+              Real-Time Ledger is designed to give product, finance and engineering teams a shared foundation 
+              for recording financial events as balanced postings. 
             </p>
 
             <div
@@ -97,8 +96,8 @@ export default function ForCreditUnions() {
             style={{ transitionDelay: "450ms" }}
           >
             <img
-              src={getPath("/products/corebanking.png")}
-              alt="Core Banking Platform Dashboard"
+              src={getPath("/products/realtimeledger.png")}
+              alt="Real-Time Ledger Dashboard"
               className="w-full h-auto lg:max-w-none object-contain lg:object-right lg:pr-0"
             />
           </div>
@@ -112,21 +111,16 @@ export default function ForCreditUnions() {
           {/* Left Column - Heading */}
           <div className="md:col-span-5">
             <h2 className="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight leading-tight">
-              The Financial Engine Behind Every Digital Bank
+              A ledger is where product intent becomes financial record
             </h2>
           </div>
 
           {/* Right Column - Paragraph Description */}
           <div className="md:col-span-7 space-y-6">
             <p className="text-slate-700 text-base md:text-lg leading-relaxed font-normal">
-              Core banking is the backbone of any financial product - it manages
-              accounts, balances, transactions, and compliance processes in real
-              time.
-            </p>
-            <p className="text-slate-700 text-base md:text-lg leading-relaxed font-normal">
-              Fintech Connect Core Banking solves fragmented bank integration, high
-              development overhead, and scaling constraints - letting your
-              business go live faster with more competitive financial offerings.
+              A financial product needs more than a balance displayed on a screen. It needs a durable account of what happened, why it happened, which rules applied, and how later activity relates to the original event. 
+              Real-Time Ledger is designed as the financial foundation for that work. It helps teams model double-entry postings, account relationships, holds, pending and booked states, 
+              and corrections made through new records rather than overwritten history
             </p>
           </div>
 

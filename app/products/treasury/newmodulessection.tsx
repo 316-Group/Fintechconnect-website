@@ -5,57 +5,57 @@ import { getPath } from "@/utils/helper";
 
 const modules = [
   {
-    tag: "Accounts",
-    title: "Multi-Currency Accounts & vIBANs",
-    desc: "Open accounts in minutes and issue unique virtual IBANs and localised account numbers across 70+ jurisdictions. Every account carries its own balance states, permissions and lifecycle rules.",
+    tag: "Payments",
+    title: "Premium Collection & Wallet Management",
+    desc: "Collect premiums via direct debit, card, open banking, or mobile money. Issue policy wallets to policyholders for instant premium storage, claims receipt, and embedded spending.",
     img: "/solutions/creditunions/digitalondoarding.png",
   },
   {
-    tag: "Treasury",
-    title: "Treasury & Liquidity Management",
-    desc: "Manage float, reserves and settlement positions from one dashboard. Real-time liquidity views, multi-currency support, automated sweeps and AI-assisted rebalancing recommendations.",
+    tag: "Claims",
+    title: "Real-Time Claims Disbursement",
+    desc: "Pay approved claims instantly to policyholder wallets, bank accounts, or mobile money. Automated payment routing, full audit trail, and real-time status notifications for policyholders.",
     img: "/solutions/creditunions/SMEengine.png",
   },
   {
-    tag: "Ledger",
-    title: "Double-Entry Ledger Core",
-    desc: "A sub-millisecond, immutable double-ledger underneath every product you build. Real-time balance reservations, full audit trail, and no manual reconciliation at month end.",
+    tag: "Security",
+    title: "AI Claims Fraud Detection",
+    desc: "A self-learning fraud engine that scores every claim in real time. Behavioural profiling, network analysis, velocity rules, and anomaly detection — with an automated case management workflow for flagged claims.",
     img: "/solutions/creditunions/whitelabel.png",
   },
   {
-    tag: "Cards",
-    title: "Card Issuing",
-    desc: "Issue branded virtual and physical cards without owning card infrastructure. Configure spend controls, velocity limits and FX fees, and launch your card programme in weeks.",
-    img: "/solutions/creditunions/treasury.png",
-  },
-  {
-    tag: "Multi-Currency",
-    title: "FX & Multi-Currency Settlement",
-    desc: "Hold, convert and settle in 60+ currencies from a single account. Real-time rates, low-spread conversion and same-day settlement, with no hidden fees and full regulatory transparency.",
-    img: "/solutions/creditunions/compliance.png",
-  },
-  {
     tag: "Embedded Finance",
-    title: "Wallets & Embedded Finance",
-    desc: "Embed wallets, savings accounts, virtual cards and micro-lending directly into your product. Offer your customers a branded financial account with zero banking infrastructure of your own.",
-    img: "/solutions/creditunions/instantpayments.png",
+    title: "Embedded Banking & Card Issuing",
+    desc: "Embed savings accounts, virtual debit cards, and micro-lending directly into your insurance products. Offer policyholders a branded financial account alongside their policy — with zero banking infrastructure required.",
+    img: "/solutions/creditunions/treasury.png",
   },
   {
     tag: "Compliance",
     title: "KYC, AML & Regulatory Compliance",
-    desc: "Automated identity verification, sanctions and PEP screening, transaction monitoring and regulatory reporting, pre-certified for FCA, PRA and GDPR. Compliance overhead drops without the rigour dropping with it.",
-    img: "/moduleimages/cardissuing.png",
+    desc: "Automated policyholder identity verification, AML screening, and regulatory reporting — pre-certified for FCA, PRA, and GDPR. Reduce compliance overhead without sacrificing rigour.",
+    img: "/solutions/creditunions/compliance.png",
   },
   {
-    tag: "Risk",
-    title: "Fraud & Transaction Risk Monitoring",
-    desc: "A self-learning fraud engine that scores every transaction in under 50ms. Behavioural profiling, network analysis, velocity rules and anomaly detection, with an automated case workflow for anything flagged.",
-    img: "/moduleimages/globalpayments.png",
+    tag: "Treasury",
+    title: "Treasury & Float Management",
+    desc: "Optimise the management of premium float, claims reserves, and investment portfolios. Real-time liquidity dashboards, multi-currency support, and AI-powered rebalancing recommendations.",
+    img: "/solutions/creditunions/instantpayments.png",
+  },
+  {
+    tag: "Cards",
+    title: "Card Issuing",
+    desc: "Issue branded virtual and physical cards without owning any card infrastructure. Configure spend controls, velocity limits, and FX fees — and go live with your card programme in weeks.",
+    img: "/moduleimages/cardissuing.png",
   },
   {
     tag: "Payments",
     title: "Global Payments Infrastructure",
-    desc: "Move money domestically and cross-border across 180+ countries. SWIFT, SEPA, Faster Payments, ACH and local rails, with intelligent routing and end-to-end transaction traceability.",
+    desc: "Power domestic and cross-border payments across 180+ countries. Real-time transaction processing with full payment traceability, FX routing, and SWIFT/SEPA/Faster Payments connectivity.",
+    img: "/moduleimages/globalpayments.png",
+  },
+  {
+    tag: "Multi-currency",
+    title: "Multi-currency Support",
+    desc: "Hold, convert, and transact in 60+ currencies from a single account. Offer your customers multi-currency wallets with real-time FX rates, low-spread conversions, and same-day settlement — with no hidden fees and full regulatory transparency.",
     img: "/solutions/creditunions/multicurrency.png",
   },
 ];
@@ -177,7 +177,7 @@ export default function NewmodulesSection() {
   }, []);
 
   return (
-    <section className="py-24 bg-[#F5F5F5]">
+    <section className="py-24 bg-#F5F5F5">
       <div className="w-full px-3 lg:px-6 max-w-[92.5%] mx-auto">
         {/* Header Section */}
         <h2
