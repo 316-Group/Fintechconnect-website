@@ -20,33 +20,33 @@ interface SandboxStep {
 const features: ApiFeature[] = [
   {
     id: 1,
-    title: "Sandbox with test fund quotas",
+    title: "Posting Contracts",
     description:
-      "Full-fidelity sandbox with seeded test balances, simulated settlement delays, and forced failure modes. Test the unhappy path before your customers find it.",
+      "Define a clear input and output contract for a proposed posting, including the programme context, account references, amount representation, intended state and idempotency reference.",
     imagePath: "/products/Apisection1.png",
     imageHeight: "h-[320px] sm:h-[380px]", // Taller card size (Top Left)
   },
   {
     id: 2,
-    title: "Typed webhooks and idempotency",
+    title: "Explicit State Transitions",
     description:
-      "Every state change emits a signed, versioned webhook. Idempotency keys on all write endpoints guarantee retries never double-debit.",
+      "Map how holds, postings, reversals, and corrections move between states, including permitted transitions and any required approvals or reasons.",
     imagePath: "/products/Apisection2.png",
     imageHeight: "h-[260px] sm:h-[310px]", // Shorter card size (Top Right)
   },
   {
     id: 3,
-    title: "SDKs and reference implementations",
+    title: "Events and Webhooks",
     description:
-      "Node, Python, Go, Java and PHP SDKs, plus an open-source reference wallet app you can fork on day one.",
+      "Describe events as versioned facts that consumers can process safely. A ledger-event guide should show the identifiers, timestamps, programme context and causation references that enable correlation across a workflow.",
     imagePath: "/products/Apisection3.png",
     imageHeight: "h-[320px] sm:h-[370px]", // Taller card size (Bottom Left)
   },
   {
     id: 4,
-    title: "Versioned, never-breaking API",
+    title: "Test and Diagnose",
     description:
-      "Versions are pinned per account. We ship additively and give 12 months' notice on any deprecation.",
+      "Provide development guidance for representative financial journeys, including normal postings, duplicate requests, delayed callbacks, reversals and reconciliation exceptions.",
     imagePath: "/products/Apisection4.png",
     imageHeight: "h-[260px] sm:h-[310px]", // Shorter card size (Bottom Right)
   },
@@ -82,15 +82,21 @@ const sandboxSteps: SandboxStep[] = [
 export default function NewApiSection() {
   return (
     <section className="bg-white py-16 md:py-24 px-6 md:px-12 lg:px-20 font-sans space-y-24">
-      <div className="max-w-7xl mx-auto">
+      <div className="max-w-full mx-auto">
         {/* Header Block */}
-        <div className="max-w-4xl mb-12 md:mb-16">
-          <p className="text-slate-700 text-base md:text-xl font-normal leading-relaxed">
-            Fintech Connect exists because our team spent years fighting
-            undocumented banking APIs. Ours are explicit, versioned and
-            predictable — REST endpoints, idempotency keys, typed webhooks and
-            SDKs in five languages. You get to a first successful call in
-            minutes, not days.
+        <div className="max-w-6xl mb-12 md:mb-16 space-y-3">
+          <p className="text-blue-600 font-bold text-sm tracking-wider uppercase">
+            BUILT FOR DEVELOPERS
+          </p>
+          <h2 className="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight leading-tight">
+            Make financial state part of the contract, not an afterthought.
+          </h2>
+          <p className="text-slate-600 text-base md:text-lg font-normal leading-relaxed pt-2">
+            Ledger integrations need an unambiguous contract. The intended
+            Real-Time Ledger developer surface focuses on the objects and
+            transitions a team needs to reason about: journal entries,
+            postings, holds, balances, reversals, references and reconciliation
+            context.
           </p>
         </div>
 

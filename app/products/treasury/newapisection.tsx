@@ -82,7 +82,7 @@ const sandboxSteps: SandboxStep[] = [
 export default function NewApiSection() {
   return (
     <section className="bg-white py-16 md:py-24 px-6 md:px-12 lg:px-20 font-sans space-y-24">
-      <div className="max-w-7xl mx-auto">
+      <div className="max-w-full mx-auto">
         {/* Header Block */}
         <div className="max-w-4xl mb-12 md:mb-16">
           <p className="text-slate-700 text-base md:text-xl font-normal leading-relaxed">

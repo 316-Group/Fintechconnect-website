@@ -5,57 +5,57 @@ import { getPath } from "@/utils/helper";
 
 const modules = [
   {
-    tag: "Payments",
-    title: "Premium Collection & Wallet Management",
-    desc: "Collect premiums via direct debit, card, open banking, or mobile money. Issue policy wallets to policyholders for instant premium storage, claims receipt, and embedded spending.",
+    tag: "Position Design",
+    title: "Cash position views with clear context",
+    desc: "Create clear cash-position views across balances, accounts, and programmes, combining internal and external records while keeping sources and timing visible.",
     img: "/solutions/creditunions/digitalondoarding.png",
   },
   {
-    tag: "Claims",
-    title: "Real-Time Claims Disbursement",
-    desc: "Pay approved claims instantly to policyholder wallets, bank accounts, or mobile money. Automated payment routing, full audit trail, and real-time status notifications for policyholders.",
+    tag: "Settlement Control",
+    title: "See obligations before they become exceptions",
+    desc: "Organise settlement activity by payment states, references, timing, and financial records to clearly track pending items, timing differences, and unresolved issues throughout the settlement lifecycle.",
     img: "/solutions/creditunions/SMEengine.png",
   },
   {
-    tag: "Security",
-    title: "AI Claims Fraud Detection",
-    desc: "A self-learning fraud engine that scores every claim in real time. Behavioural profiling, network analysis, velocity rules, and anomaly detection — with an automated case management workflow for flagged claims.",
+    tag: "Liquidity Policy",
+    title: "Configure thresholds for the right conversations",
+    desc: "Define programme-specific liquidity thresholds and alerts with clear ownership, review rules, and escalation paths to support informed treasury decisions.",
     img: "/solutions/creditunions/whitelabel.png",
   },
   {
-    tag: "Embedded Finance",
-    title: "Embedded Banking & Card Issuing",
-    desc: "Embed savings accounts, virtual debit cards, and micro-lending directly into your insurance products. Offer policyholders a branded financial account alongside their policy — with zero banking infrastructure required.",
+    tag: "Forecasting Inputs",
+    title: "Build forecasts from stated assumptions",
+    desc: "Combine planned cash flows, settlement schedules, and funding assumptions into transparent forecasts, allowing treasury teams to compare scenarios and track the assumptions behind them.",
     img: "/solutions/creditunions/treasury.png",
   },
   {
-    tag: "Compliance",
-    title: "KYC, AML & Regulatory Compliance",
-    desc: "Automated policyholder identity verification, AML screening, and regulatory reporting — pre-certified for FCA, PRA, and GDPR. Reduce compliance overhead without sacrificing rigour.",
+    tag: "Funding Workflow",
+    title: "Put funding requests through a controlled path",
+    desc: "Structure funding requests with clear amounts, purpose, references, roles, and approval paths, while defining decision rights, exceptions, and external dependencies.",
     img: "/solutions/creditunions/compliance.png",
   },
   {
-    tag: "Treasury",
-    title: "Treasury & Float Management",
-    desc: "Optimise the management of premium float, claims reserves, and investment portfolios. Real-time liquidity dashboards, multi-currency support, and AI-powered rebalancing recommendations.",
+    tag: "Treasury Reporting",
+    title: "Prepare a traceable view for finance and operations",
+    desc: "Create clear reporting views for positions, settlements, forecasts, exposures, and reconciliation, with visible source and timing context for effective operational oversight.",
     img: "/solutions/creditunions/instantpayments.png",
   },
   {
-    tag: "Cards",
-    title: "Card Issuing",
-    desc: "Issue branded virtual and physical cards without owning any card infrastructure. Configure spend controls, velocity limits, and FX fees — and go live with your card programme in weeks.",
+    tag: "Reconciliation Context",
+    title: "Turn differences into assigned follow-up",
+    desc: "Create reporting views that connect positions, settlements, forecasts, exposures, and reconciliation, with clear timing and source context for operational review.",
     img: "/moduleimages/cardissuing.png",
   },
   {
-    tag: "Payments",
-    title: "Global Payments Infrastructure",
-    desc: "Power domestic and cross-border payments across 180+ countries. Real-time transaction processing with full payment traceability, FX routing, and SWIFT/SEPA/Faster Payments connectivity.",
+    tag: "Connector Context",
+    title: "Plan for provider-neutral data exchange",
+    desc: "Define consistent treasury data structures while managing provider-specific formats, statuses, and delivery directions through controlled integrations.",
     img: "/moduleimages/globalpayments.png",
   },
   {
-    tag: "Multi-currency",
-    title: "Multi-currency Support",
-    desc: "Hold, convert, and transact in 60+ currencies from a single account. Offer your customers multi-currency wallets with real-time FX rates, low-spread conversions, and same-day settlement — with no hidden fees and full regulatory transparency.",
+    tag: "Ledger Context",
+    title: "Connect position views to financial records",
+    desc: "Connect treasury positions and settlements to ledger postings, making it clear where values originate and their current financial state.",
     img: "/solutions/creditunions/multicurrency.png",
   },
 ];
@@ -92,7 +92,7 @@ const ModuleCard = ({
     }
 
     return () => observer.disconnect();
-  }, [showAll]); // Refires dynamically when mobile unhides cards, triggering their entry cascade
+  }, [showAll]);
 
   // Dynamic remainder delay logic to reset cascading rhythms row-by-row on desktop grids
   const desktopStaggerDelay = (index % 3) * 100;
@@ -177,7 +177,7 @@ export default function NewmodulesSection() {
   }, []);
 
   return (
-    <section className="py-24 bg-#F5F5F5">
+    <section className="py-24 bg-[#F5F5F5]">
       <div className="w-full px-3 lg:px-6 max-w-[92.5%] mx-auto">
         {/* Header Section */}
         <h2

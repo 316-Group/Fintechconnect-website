@@ -25,42 +25,42 @@ const orbitNodes: OrbitNode[] = [
     id: 'accounts',
     title: 'Accounts',
     subtitle: 'Multi-currency IBANs',
-    icon: <Lock className="w-5 h-5 text-blue-600" />,
+    icon: <Lock className="w-7 h-7 text-blue-600" />,
     angle: 270, // Top
   },
   {
     id: 'cards',
     title: 'Cards',
     subtitle: 'Virtual & Physical',
-    icon: <CreditCard className="w-5 h-5 text-blue-600" />,
+    icon: <CreditCard className="w-7 h-7 text-blue-600" />,
     angle: 330, // Top Right
   },
   {
     id: 'payments',
     title: 'Payments',
     subtitle: 'SWIFT, SEPA, Faster',
-    icon: <ArrowLeftRight className="w-5 h-5 text-blue-600" />,
+    icon: <ArrowLeftRight className="w-7 h-7 text-blue-600" />,
     angle: 30, // Bottom Right
   },
   {
     id: 'fx',
     title: 'FX & Exchange',
     subtitle: 'Real-time spreads',
-    icon: <RefreshCw className="w-5 h-5 text-blue-600" />,
+    icon: <RefreshCw className="w-7 h-7 text-blue-600" />,
     angle: 90, // Bottom
   },
   {
     id: 'treasury',
     title: 'Treasury & Ledger',
     subtitle: 'Automated flow',
-    icon: <Building2 className="w-5 h-5 text-blue-600" />,
+    icon: <Building2 className="w-7 h-7 text-blue-600" />,
     angle: 150, // Bottom Left
   },
   {
     id: 'compliance',
     title: 'Compliance & KYC',
     subtitle: 'Real-time screening',
-    icon: <ShieldCheck className="w-5 h-5 text-blue-600" />,
+    icon: <ShieldCheck className="w-7 h-7 text-blue-600" />,
     angle: 210, // Top Left
   },
 ];
@@ -111,7 +111,7 @@ export default function MiddleLayerSection() {
         <div className="flex flex-col lg:flex-row items-center justify-between gap-8 lg:gap-4 relative">
           
           {/* Left Card: Front-End */}
-          <div className="w-full lg:w-72 bg-white rounded-2xl p-6 border border-slate-100 shadow-xl shadow-blue-950/5 relative z-10 shrink-0">
+          <div className="w-full lg:w-72 bg-white rounded-1xl p-6 border border-slate-100 shadow-xl shadow-blue-950/5 relative z-10 shrink-0">
             <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white mb-4 shadow-md shadow-blue-500/20">
               <Monitor className="w-5 h-5" />
             </div>
@@ -135,7 +135,7 @@ export default function MiddleLayerSection() {
             {/* Background Glow & Static Circles */}
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
               {/* Radial gradient background */}
-              <div className="w-[80%] h-[80%] rounded-full bg-radial from-blue-100/60 via-blue-50/30 to-transparent blur-2xl" />
+              <div className="w-[80%] h-[80%] rounded-full bg-radial from-blue-200/80 via-blue-100/40 to-transparent blur-2xl" />
               
               {/* Concentric Circle Guides */}
               <div className="absolute w-[240px] sm:w-[380px] lg:w-[400px] h-[240px] sm:h-[380px] lg:h-[400px] rounded-full border border-blue-200/50 border-dashed" />
@@ -165,7 +165,7 @@ export default function MiddleLayerSection() {
   <svg className="w-full h-full" viewBox="0 0 600 600">
     {orbitNodes.map((node) => {
       const rad = (node.angle * Math.PI) / 180;
-      const extendedRadius = radius * 1.3; // Increase this multiplier (e.g. 1.3, 1.4) to make arms even longer
+      const extendedRadius = radius * 1.25; // Increase this multiplier (e.g. 1.3, 1.4) to make arms even longer
       const x2 = centerCoord + extendedRadius * Math.cos(rad);
       const y2 = centerCoord + extendedRadius * Math.sin(rad);
 
@@ -187,7 +187,7 @@ export default function MiddleLayerSection() {
   {/* Endpoint Nodes */}
   {orbitNodes.map((node) => {
     const rad = (node.angle * Math.PI) / 180;
-    const extendedRadius = radius * 1.3; // Must match the extendedRadius value above
+    const extendedRadius = radius * 1.25; // Must match the extendedRadius value above
     const x = centerCoord + extendedRadius * Math.cos(rad);
     const y = centerCoord + extendedRadius * Math.sin(rad);
 
@@ -203,7 +203,7 @@ export default function MiddleLayerSection() {
         {/* Counter-Spin Wrapper ensures content stays upright */}
         <div className="animate-orbit-counter flex flex-col items-center text-center">
           {/* Icon Card */}
-          <div className="w-12 h-12 rounded-2xl bg-white shadow-md border border-slate-100 flex items-center justify-center mb-1.5 transition-transform hover:scale-110">
+          <div className="w-15 h-15 rounded-2xl bg-white shadow-md border border-slate-100 flex items-center justify-center mb-1.5 transition-transform hover:scale-110">
             {node.icon}
           </div>
 
