@@ -16,6 +16,7 @@ import NewCarouselSection from "@/app/products/realtimeledger/newcarouselsection
 import NewDynamicSection from "@/app/products/realtimeledger/newdynamicsection";
 import PlatformSection from "@/app/products/realtimeledger/platformsection";
 import MiddleLayerSection from "@/app/products/realtimeledger/middlelayersection";
+import CardSection from "./cardsection";
 
 export default function ForCreditUnions() {
   const [heroVisible, setHeroVisible] = useState(false);
@@ -134,6 +135,7 @@ export default function ForCreditUnions() {
       <NewApiSection />
       <Newpartnersection />
       <NewCarouselSection />
+      {/* <CardSection /> */}
       <PlatformSection />
       <NewDynamicSection />
       <HoverSection />

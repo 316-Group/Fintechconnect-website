@@ -16,6 +16,7 @@ import NewCarouselSection from "@/app/products/corebanking/newcarouselsection";
 import NewDynamicSection from "@/app/products/corebanking/newdynamicsection";
 import PlatformSection from "@/app/products/corebanking/platformsection";
 import MiddleLayerSection from "@/app/products/corebanking/middlelayersection";
+import CardSection from "@/app/products/corebanking/cardsection";
 
 export default function ForCreditUnions() {
   const [heroVisible, setHeroVisible] = useState(false);
@@ -140,6 +141,7 @@ export default function ForCreditUnions() {
       <NewApiSection />
       <Newpartnersection />
       <NewCarouselSection />
+      {/* <CardSection /> */}
       <PlatformSection />
       <NewDynamicSection />
       <HoverSection />

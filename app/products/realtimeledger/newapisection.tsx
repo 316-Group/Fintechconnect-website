@@ -88,7 +88,7 @@ export default function NewApiSection() {
           <p className="text-blue-600 font-bold text-sm tracking-wider uppercase">
             BUILT FOR DEVELOPERS
           </p>
-          <h2 className="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight leading-tight">
+          <h2 className="text-3xl md:text-4xl font-bold text-slate-900 tracking-tight leading-tight">
             Make financial state part of the contract, not an afterthought.
           </h2>
           <p className="text-slate-600 text-base md:text-lg font-normal leading-relaxed pt-2">
@@ -100,85 +100,37 @@ export default function NewApiSection() {
           </p>
         </div>
 
-        {/* Feature Cards Grid (Custom Sized Cards) */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 items-start">
-          {features.map((feature) => (
-            <div
-              key={feature.id}
-              className="flex flex-col bg-[#f4f5f8] p-5 md:p-6 rounded-[28px] transition-all"
-            >
-              {/* White Mockup Inner Container with Custom Height */}
-              <div
-                className={`w-full ${feature.imageHeight} bg-white rounded-2xl overflow-hidden shadow-sm flex items-top justify-center mb-6`}
-              >
-                <img
-                  src={getPath(feature.imagePath)}
-                  alt={feature.title}
-                  className="w-full h-full object-cover object-top"
-                />
+        {/* Asymmetric Feature Cards Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-6 md:gap-8 items-stretch">
+                  {features.map((feature) => (
+                    <div
+                      key={feature.id}
+                      className={`flex flex-col bg-[#f5f7fa] p-5 md:p-6 rounded-[28px] transition-all ${feature.id % 2 === 1 ? "md:col-span-7" : "md:col-span-5"}`}
+                    >
+                      {/* Image Preview Container */}
+                      <div
+                        className={`w-full ${feature.imageHeight} bg-white rounded-2xl overflow-hidden shadow-sm flex items-top justify-center mb-6 border border-slate-100`}
+                      >
+                        <img
+                          src={getPath(feature.imagePath)}
+                          alt={feature.title}
+                          className="w-full h-full object-cover object-top"
+                        />
+                      </div>
+        
+                      {/* Card Text Content */}
+                      <div className="px-1 pb-2 space-y-2.5 flex-1 flex flex-col justify-start">
+                        <h3 className="text-slate-900 text-xl md:text-2xl font-bold tracking-tight leading-snug">
+                          {feature.title}
+                        </h3>
+                        <p className="text-slate-600 text-sm md:text-base leading-relaxed font-normal">
+                          {feature.description}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
-
-              {/* Card Text Content */}
-              <div className="px-1 pb-2 space-y-2">
-                <h3 className="text-slate-900 text-xl md:text-2xl font-bold tracking-tight leading-snug">
-                  {feature.title}
-                </h3>
-                <p className="text-slate-600 text-sm md:text-base leading-relaxed font-normal">
-                  {feature.description}
-                </p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Sandbox Onboarding Steps Section */}
-      <div className="max-w-7xl mx-auto pt-12">
-        {/* Header */}
-        <div className="mb-12">
-          <span className="text-blue-600 font-bold text-lg md:text-3xl block mb-2">
-            Start exploring our sandbox
-          </span>
-          <h2 className="text-2xl md:text-4xl font-extrabold text-slate-900 tracking-tight">
-            Here’s some simple steps to get started
-          </h2>
-        </div>
-
-        {/* 4-Step Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 md:gap-10 mb-12">
-          {sandboxSteps.map((step) => (
-            <div key={step.stepNumber} className="flex flex-col space-y-3">
-              {/* Number Circle Badge */}
-              <div className="w-8 h-8 rounded-full bg-blue-600 text-white font-bold text-sm flex items-center justify-center">
-                {step.stepNumber}
-              </div>
-
-              {/* Title */}
-              <h3 className="text-blue-500 text-base md:text-lg font-bold">
-                {step.title}
-              </h3>
-
-              {/* Description */}
-              <p className="text-slate-600 text-xs md:text-sm leading-relaxed">
-                {step.description}
-              </p>
-            </div>
-          ))}
-        </div>
-
-        {/* Action Buttons */}
-        <div className="flex items-center gap-6 pt-4">
-          <button className="bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm px-6 py-3 rounded-lg transition-colors">
-            Book Demo
-          </button>
-          <a
-            href="#get-started"
-            className="text-slate-900 font-bold text-sm underline hover:text-blue-600 transition-colors decoration-2 underline-offset-4"
-          >
-            Get Started
-          </a>
-        </div>
-      </div>
-    </section>
-  );
-}
+            </section>
+          );
+        }

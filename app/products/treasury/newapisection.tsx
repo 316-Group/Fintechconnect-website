@@ -8,102 +8,76 @@ interface ApiFeature {
   title: string;
   description: string;
   imagePath: string;
-  imageHeight: string; // Specific viewport height for matching card sizes
-}
-
-interface SandboxStep {
-  stepNumber: number;
-  title: string;
-  description: string;
+  colSpan: string;
+  imageHeight: string;
 }
 
 const features: ApiFeature[] = [
   {
     id: 1,
-    title: "Sandbox with test fund quotas",
+    title: "Position and as-of semantics",
     description:
-      "Full-fidelity sandbox with seeded test balances, simulated settlement delays, and forced failure modes. Test the unhappy path before your customers find it.",
+      "Define position payloads around an explicit scope, source, time basis, balance context, and status rather than a single unexplained number. Contract notes should distinguish derived views from authoritative records and explain the relationship to the agreed ledger boundary.",
     imagePath: "/products/Apisection1.png",
-    imageHeight: "h-[320px] sm:h-[380px]", // Taller card size (Top Left)
+    colSpan: "md:col-span-7", // Wider box (Top Left)
+    imageHeight: "h-[300px] sm:h-[360px]",
   },
   {
     id: 2,
-    title: "Typed webhooks and idempotency",
+    title: "Settlement state transitions",
     description:
-      "Every state change emits a signed, versioned webhook. Idempotency keys on all write endpoints guarantee retries never double-debit.",
+      "Describe anticipated settlement states, timing differences, reversals, failures, and manual-review conditions as named transitions.",
     imagePath: "/products/Apisection2.png",
-    imageHeight: "h-[260px] sm:h-[310px]", // Shorter card size (Top Right)
+    colSpan: "md:col-span-5", // Thinner box (Top Right)
+    imageHeight: "h-[300px] sm:h-[360px]",
   },
   {
     id: 3,
-    title: "SDKs and reference implementations",
+    title: "Reviewable workflow commands",
     description:
-      "Node, Python, Go, Java and PHP SDKs, plus an open-source reference wallet app you can fork on day one.",
+      "Describe anticipated settlement states, timing differences, reversals, failures, and manual-review conditions as named transitions. A treasury contract should retain internal and external references so teams can investigate what changed and why.",
     imagePath: "/products/Apisection3.png",
-    imageHeight: "h-[320px] sm:h-[370px]", // Taller card size (Bottom Left)
+    colSpan: "md:col-span-5", // Thinner box (Bottom Left)
+    imageHeight: "h-[300px] sm:h-[360px]",
   },
   {
     id: 4,
-    title: "Versioned, never-breaking API",
+    title: "Reviewable workflow commands",
     description:
-      "Versions are pinned per account. We ship additively and give 12 months' notice on any deprecation.",
+      "Plan events and error responses that carry stable identifiers, schema versions, correlation context, and safe retry guidance. Webhook behaviour should be documented with delivery, replay, and verification expectations before use.",
     imagePath: "/products/Apisection4.png",
-    imageHeight: "h-[260px] sm:h-[310px]", // Shorter card size (Bottom Right)
-  },
-];
-
-const sandboxSteps: SandboxStep[] = [
-  {
-    stepNumber: 1,
-    title: "Create an account",
-    description:
-      "Fapshi was birthed from frustration with existing solutions in the market, so we know your pain. Our APIs are straight to the point and well documented so that you can get started in minutes, not days.",
-  },
-  {
-    stepNumber: 2,
-    title: "Get your API keys",
-    description:
-      "Generate your test API credentials directly from your developer dashboard to start authenticating your requests immediately without waiting for approval.",
-  },
-  {
-    stepNumber: 3,
-    title: "Test in sandbox",
-    description:
-      "Simulate payment flows, webhook responses, and error handling in a fully isolated test environment with zero financial risk.",
-  },
-  {
-    stepNumber: 4,
-    title: "Go live",
-    description:
-      "Complete your account verification, swap your test keys for live credentials, and start processing real-time production transactions seamlessly.",
+    colSpan: "md:col-span-7", // Wider box (Bottom Right)
+    imageHeight: "h-[300px] sm:h-[360px]",
   },
 ];
 
 export default function NewApiSection() {
   return (
-    <section className="bg-white py-16 md:py-24 px-6 md:px-12 lg:px-20 font-sans space-y-24">
+    <section className="bg-white py-16 md:py-24 px-6 md:px-12 lg:px-20 font-sans">
       <div className="max-w-full mx-auto">
         {/* Header Block */}
-        <div className="max-w-4xl mb-12 md:mb-16">
-          <p className="text-slate-700 text-base md:text-xl font-normal leading-relaxed">
-            Fintech Connect exists because our team spent years fighting
-            undocumented banking APIs. Ours are explicit, versioned and
-            predictable — REST endpoints, idempotency keys, typed webhooks and
-            SDKs in five languages. You get to a first successful call in
-            minutes, not days.
+        <div className="max-w-6xl mb-12 md:mb-16">
+          <span className="text-xs font-bold tracking-widest text-blue-600 uppercase block mb-3">
+            BUILT FOR DEVELOPERS
+          </span>
+          <h2 className="text-3xl sm:text-4xl md:text-4xl font-bold tracking-tight text-slate-900 leading-[1.2] mb-4">
+            Treasury contracts that make state and context explicit
+          </h2>
+          <p className="text-slate-600 text-base md:text-lg font-normal leading-relaxed">
+            Treasury integrations should be understandable before they are operational. The intended developer experience centres on documented, provider-neutral contracts for position context, settlement obligations, forecast inputs, funding-workflow states, and reporting requests.
           </p>
         </div>
 
-        {/* Feature Cards Grid (Custom Sized Cards) */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 items-start">
+        {/* Asymmetric Feature Cards Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-6 md:gap-8 items-stretch">
           {features.map((feature) => (
             <div
               key={feature.id}
-              className="flex flex-col bg-[#f4f5f8] p-5 md:p-6 rounded-[28px] transition-all"
+              className={`flex flex-col bg-[#f5f7fa] p-5 md:p-6 rounded-[28px] transition-all ${feature.colSpan}`}
             >
-              {/* White Mockup Inner Container with Custom Height */}
+              {/* Image Preview Container */}
               <div
-                className={`w-full ${feature.imageHeight} bg-white rounded-2xl overflow-hidden shadow-sm flex items-top justify-center mb-6`}
+                className={`w-full ${feature.imageHeight} bg-white rounded-2xl overflow-hidden shadow-sm flex items-top justify-center mb-6 border border-slate-100`}
               >
                 <img
                   src={getPath(feature.imagePath)}
@@ -113,7 +87,7 @@ export default function NewApiSection() {
               </div>
 
               {/* Card Text Content */}
-              <div className="px-1 pb-2 space-y-2">
+              <div className="px-1 pb-2 space-y-2.5 flex-1 flex flex-col justify-start">
                 <h3 className="text-slate-900 text-xl md:text-2xl font-bold tracking-tight leading-snug">
                   {feature.title}
                 </h3>
@@ -123,54 +97,6 @@ export default function NewApiSection() {
               </div>
             </div>
           ))}
-        </div>
-      </div>
-
-      {/* Sandbox Onboarding Steps Section */}
-      <div className="max-w-7xl mx-auto pt-12">
-        {/* Header */}
-        <div className="mb-12">
-          <span className="text-blue-600 font-bold text-lg md:text-3xl block mb-2">
-            Start exploring our sandbox
-          </span>
-          <h2 className="text-2xl md:text-4xl font-extrabold text-slate-900 tracking-tight">
-            Here’s some simple steps to get started
-          </h2>
-        </div>
-
-        {/* 4-Step Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 md:gap-10 mb-12">
-          {sandboxSteps.map((step) => (
-            <div key={step.stepNumber} className="flex flex-col space-y-3">
-              {/* Number Circle Badge */}
-              <div className="w-8 h-8 rounded-full bg-blue-600 text-white font-bold text-sm flex items-center justify-center">
-                {step.stepNumber}
-              </div>
-
-              {/* Title */}
-              <h3 className="text-blue-500 text-base md:text-lg font-bold">
-                {step.title}
-              </h3>
-
-              {/* Description */}
-              <p className="text-slate-600 text-xs md:text-sm leading-relaxed">
-                {step.description}
-              </p>
-            </div>
-          ))}
-        </div>
-
-        {/* Action Buttons */}
-        <div className="flex items-center gap-6 pt-4">
-          <button className="bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm px-6 py-3 rounded-lg transition-colors">
-            Book Demo
-          </button>
-          <a
-            href="#get-started"
-            className="text-slate-900 font-bold text-sm underline hover:text-blue-600 transition-colors decoration-2 underline-offset-4"
-          >
-            Get Started
-          </a>
         </div>
       </div>
     </section>

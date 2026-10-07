@@ -94,41 +94,51 @@ export default function PlatformSection() {
         {/* Main Section Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-stretch">
           
-          {/* Left Feature Selector Column */}
-          <div className="lg:col-span-4 flex flex-col space-y-3.5 justify-between">
-            {leftCapabilities.map((item) => {
-              const isActive = activeTab === item.id;
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => setActiveTab(item.id)}
-                  className={`w-full text-left p-6 rounded-2xl transition-all duration-200 border cursor-pointer relative ${
-                    isActive
-                      ? 'bg-[#0042cc] text-white border-transparent shadow-md'
-                      : 'bg-white text-slate-800 border-slate-100 hover:border-slate-200 hover:bg-slate-50/50'
-                  }`}
-                >
-                  <div className="flex justify-between items-start mb-2">
-                    <h3 className={`font-semibold text-base sm:text-lg pr-4 ${isActive ? 'text-white' : 'text-slate-900'}`}>
-                      {item.title}
-                    </h3>
-                    {isActive && (
-                      <span className="w-2 h-2 rounded-full bg-blue-300 shrink-0 mt-2" />
-                    )}
-                  </div>
-                  <p className={`text-xs sm:text-sm leading-relaxed ${isActive ? 'text-blue-100' : 'text-slate-500'}`}>
-                    {item.description}
-                  </p>
-                </button>
-              );
-            })}
+          {/* Left Feature Selector Column + Bottom Consultation Info */}
+          <div className="lg:col-span-4 flex flex-col justify-between space-y-6">
+            <div className="flex flex-col space-y-3.5">
+              {leftCapabilities.map((item) => {
+                const isActive = activeTab === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => setActiveTab(item.id)}
+                    className={`w-full text-left p-6 rounded-2xl transition-all duration-200 border cursor-pointer relative ${
+                      isActive
+                        ? 'bg-[#0042cc] text-white border-transparent shadow-md'
+                        : 'bg-white text-slate-800 border-slate-100 hover:border-slate-200 hover:bg-slate-50/50'
+                    }`}
+                  >
+                    <div className="flex justify-between items-start mb-2">
+                      <h3 className={`font-semibold text-base sm:text-lg pr-4 ${isActive ? 'text-white' : 'text-slate-900'}`}>
+                        {item.title}
+                      </h3>
+                      {isActive && (
+                        <span className="w-2 h-2 rounded-full bg-blue-300 shrink-0 mt-2" />
+                      )}
+                    </div>
+                    <p className={`text-xs sm:text-sm leading-relaxed ${isActive ? 'text-blue-100' : 'text-slate-500'}`}>
+                      {item.description}
+                    </p>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Bottom Left Consultations Info (Remains on the bottom left) */}
+            <div className="pt-2 flex items-center gap-2.5 text-xs sm:text-sm text-slate-600">
+              <span className="w-2 h-2 rounded-full bg-blue-600 shrink-0" />
+              <span>
+                Architect consultations scheduled within 24 business hours • ISO 20022 &amp; SOC2 Type II Certified
+              </span>
+            </div>
           </div>
 
-          {/* Right Main Showcase Container */}
-          <div className="lg:col-span-8 bg-[#f5f8ff] rounded-3xl p-4 sm:p-6 lg:p-8 border border-slate-100/80 flex flex-col lg:flex-row gap-6 sm:gap-8 items-center">
+          {/* Right Main Showcase Container (Stretches to enclose button & stretched image) */}
+          <div className="lg:col-span-8 bg-[#f5f8ff] rounded-3xl p-4 sm:p-6 lg:p-8 border border-slate-100/80 flex flex-col lg:flex-row gap-6 sm:gap-8 items-stretch h-full">
             
-            {/* Image Section */}
-            <div className="w-full lg:w-1/2 h-[320px] sm:h-[420px] lg:h-full min-h-[380px] relative rounded-2xl overflow-hidden shadow-sm shrink-0">
+            {/* Image Section (Stretches full height down to the bottom edge alongside the button) */}
+            <div className="w-full lg:w-1/2 min-h-[340px] sm:min-h-[420px] lg:min-h-full h-full relative rounded-2xl overflow-hidden shadow-sm shrink-0">
               <Image
                 src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=1200&q=80"
                 alt="Fintech team collaborating around a laptop"
@@ -138,48 +148,43 @@ export default function PlatformSection() {
               />
             </div>
 
-            {/* Content List Section */}
+            {/* Content List Section & Embedded Bottom CTA Button */}
             <div className="w-full lg:w-1/2 flex flex-col justify-between py-2 space-y-6">
-              <h3 className="text-slate-900 font-bold text-base sm:text-lg leading-snug">
-                Empower your service teams and institutional clients with synchronized multi-currency ledgers, instant corporate accounts, and automated operations.
-              </h3>
+              <div className="space-y-6">
+                <h3 className="text-slate-900 font-bold text-base sm:text-lg leading-snug">
+                  Empower your service teams and institutional clients with synchronized multi-currency ledgers, instant corporate accounts, and automated operations.
+                </h3>
 
-              <div className="space-y-5">
-                {rightFeatures.map((feat, index) => (
-                  <div key={index} className="flex items-start gap-4">
-                    <div className="w-10 h-10 rounded-xl bg-blue-100/70 flex items-center justify-center shrink-0 mt-0.5">
-                      {feat.icon}
+                <div className="space-y-5">
+                  {rightFeatures.map((feat, index) => (
+                    <div key={index} className="flex items-start gap-4">
+                      <div className="w-10 h-10 rounded-xl bg-blue-100/70 flex items-center justify-center shrink-0 mt-0.5">
+                        {feat.icon}
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-sm text-blue-600 mb-0.5">
+                          {feat.title}
+                        </h4>
+                        <p className="text-xs text-slate-500 leading-relaxed">
+                          {feat.description}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <h4 className="font-bold text-sm text-slate-900 mb-0.5">
-                        {feat.title}
-                      </h4>
-                      <p className="text-xs text-slate-500 leading-relaxed">
-                        {feat.description}
-                      </p>
-                    </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
+              </div>
+
+              {/* CTA Button placed inside the right container */}
+              <div className="pt-4 border-t border-blue-100/60">
+                <button className="w-full inline-flex items-center justify-center gap-2 bg-[#0042cc] hover:bg-blue-700 text-white font-medium text-sm px-6 py-3.5 rounded-xl transition-colors shadow-sm shrink-0 cursor-pointer">
+                  <span>Discuss your account architecture</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
               </div>
             </div>
 
           </div>
 
-        </div>
-
-        {/* Bottom Banner & CTA */}
-        <div className="mt-8 pt-4 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2.5 text-xs sm:text-sm text-slate-600">
-            <span className="w-2 h-2 rounded-full bg-blue-600 shrink-0" />
-            <span>
-              Architect consultations scheduled within 24 business hours • ISO 20022 &amp; SOC2 Type II Certified
-            </span>
-          </div>
-
-          <button className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-[#0042cc] hover:bg-blue-700 text-white font-medium text-sm px-6 py-3 rounded-lg transition-colors shadow-sm shrink-0">
-            <span>Discuss your account architecture</span>
-            <ArrowRight className="w-4 h-4" />
-          </button>
         </div>
 
       </div>

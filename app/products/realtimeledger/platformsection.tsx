@@ -149,7 +149,7 @@ export default function PlatformSection() {
                       <h4 className="font-bold text-sm text-blue-600 mb-1">
                         {feat.title}
                       </h4>
-                      <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
+                      <p className="text-xs sm:text-xs text-slate-600 leading-relaxed">
                         {feat.description}
                       </p>
                     </div>

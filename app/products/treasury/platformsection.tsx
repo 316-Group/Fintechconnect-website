@@ -24,52 +24,47 @@ interface RightFeature {
 
 const leftCapabilities: LeftCapability[] = [
   {
-    id: 'account-config',
-    title: 'Account product configuration',
-    description: 'Shape account types and customer journeys around the commercial proposition you are building.',
+    id: 'position-view',
+    title: 'Position view configuration',
+    description: 'Define views by programme, account context, source, as-of time, and review purpose. Make assumptions visible so teams can understand what a position represents before acting on it.',
   },
   {
-    id: 'connected-ledger',
-    title: 'Connected ledger & workflow',
-    description: 'Give payment, card and wallet actions a common account foundation rather than separate product silos.',
+    id: 'settlement-context',
+    title: 'Settlement and exception context',
+    description: 'Relate expected settlements, external references, timing differences, and follow-up work in a structured operating view designed for investigation and ownership.',
   },
   {
-    id: 'realtime-balance',
-    title: 'Real-time balance visibility',
-    description: 'Support clear available and pending balance states across the customer and operational experience.',
-  },
-  {
-    id: 'developer-apis',
-    title: 'Developer core banking APIs',
-    description: 'Connect accounts, balances and transactions to your product through a documented API rather than a vendor integration project.',
+    id: 'threshold-escalation',
+    title: 'Threshold and escalation design',
+    description: 'Configure conditions that surface liquidity questions to the appropriate roles, with ownership, evidence, and change control considered as part of the programme design.',
   },
 ];
 
 const rightFeatures: RightFeature[] = [
   {
     icon: <Users className="w-5 h-5 text-blue-600" />,
-    title: 'Fintech Connect Live Desk',
-    description: 'Personalize high-value client interactions with dedicated multi-currency virtual accounts and automated statements.',
+    title: 'Forecast assumptions',
+    description: 'Record planned inflows, outflows, timing, and scenario assumptions with an explicit context for comparison and review.',
   },
   {
     icon: <Phone className="w-5 h-5 text-blue-600" />,
-    title: 'Instant Corporate vIBANs',
-    description: 'Issue unique localized corporate numbers and virtual accounts for all client payments across 70+ jurisdictions.',
+    title: 'Reconciliation Handoff',
+    description: 'Relate treasury questions to reconciliation differences and evidence so exceptions can be assessed through an agreed ownership path.',
   },
   {
     icon: <BarChart3 className="w-5 h-5 text-blue-600" />,
-    title: 'Automated Ledger Controls',
-    description: 'Eliminate manual reconciliation with sub-millisecond double-entry ledger tracking and real-time balance reservations.',
+    title: 'Funding Work Items',
+    description: 'Frame funding requests as controlled workflow items with relevant references, assigned roles, and programme-specific approval expectations.',
   },
   {
     icon: <Grid className="w-5 h-5 text-blue-600" />,
-    title: 'Modular App & API Marketplace',
-    description: 'Secure client records and enable automated compliance with pre-built KYC, AML, and ERP integrations.',
+    title: 'Reporting Context',
+    description: 'Prepare finance and operations views with clear source, period, scope, and configuration context for accountable discussion.',
   },
 ];
 
 export default function PlatformSection() {
-  const [activeTab, setActiveTab] = useState<string>('account-config');
+  const [activeTab, setActiveTab] = useState<string>('position-view');
 
   return (
     <section className="w-full bg-white py-16 px-4 sm:px-6 lg:px-20 text-slate-900 font-sans">
@@ -81,13 +76,13 @@ export default function PlatformSection() {
             PLATFORM CAPABILITIES
           </span>
           <h2 className="text-3xl sm:text-4xl lg:text-[2.65rem] font-bold tracking-tight text-slate-900 leading-[1.15] mb-4">
-            Your financial platform for{' '}
+            A treasury foundation for{' '}
             <span className="text-blue-600">
-              innovative client services &amp; streamlined operations
+              clearer financial operations
             </span>
           </h2>
           <p className="text-base sm:text-lg text-slate-600 font-normal leading-relaxed max-w-3xl">
-            Deliver institutional-grade financial workflows through a unified, modular banking experience engineered for enterprise treasury and fintech operators.
+            Treasury Management is designed to connect the questions finance and operations teams ask with the records, workflows, and context needed to answer them. Use the module to frame position views, settlement oversight, liquidity review, forecasts, and reporting as related operating capabilities.
           </p>
         </div>
 
@@ -95,7 +90,7 @@ export default function PlatformSection() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-stretch">
           
           {/* Left Feature Selector Column */}
-          <div className="lg:col-span-4 flex flex-col space-y-3.5 justify-between">
+          <div className="lg:col-span-4 flex flex-col space-y-3.5 justify-start">
             {leftCapabilities.map((item) => {
               const isActive = activeTab === item.id;
               return (
@@ -131,7 +126,7 @@ export default function PlatformSection() {
             <div className="w-full lg:w-1/2 h-[320px] sm:h-[420px] lg:h-full min-h-[380px] relative rounded-2xl overflow-hidden shadow-sm shrink-0">
               <Image
                 src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=1200&q=80"
-                alt="Fintech team collaborating around a laptop"
+                alt="Treasury management team collaborating around desktop screens"
                 fill
                 priority
                 className="object-cover object-center"
@@ -141,7 +136,7 @@ export default function PlatformSection() {
             {/* Content List Section */}
             <div className="w-full lg:w-1/2 flex flex-col justify-between py-2 space-y-6">
               <h3 className="text-slate-900 font-bold text-base sm:text-lg leading-snug">
-                Empower your service teams and institutional clients with synchronized multi-currency ledgers, instant corporate accounts, and automated operations.
+                Build a treasury operating design that keeps financial context, human review, and connected dependencies in view.
               </h3>
 
               <div className="space-y-5">
@@ -151,7 +146,7 @@ export default function PlatformSection() {
                       {feat.icon}
                     </div>
                     <div>
-                      <h4 className="font-bold text-sm text-slate-900 mb-0.5">
+                      <h4 className="font-bold text-sm text-blue-600 mb-0.5">
                         {feat.title}
                       </h4>
                       <p className="text-xs text-slate-500 leading-relaxed">
@@ -172,12 +167,12 @@ export default function PlatformSection() {
           <div className="flex items-center gap-2.5 text-xs sm:text-sm text-slate-600">
             <span className="w-2 h-2 rounded-full bg-blue-600 shrink-0" />
             <span>
-              Architect consultations scheduled within 24 business hours • ISO 20022 &amp; SOC2 Type II Certified
+              Designed to be scoped with your ledger, reconciliation, operational, and connector decisions.
             </span>
           </div>
 
           <button className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-[#0042cc] hover:bg-blue-700 text-white font-medium text-sm px-6 py-3 rounded-lg transition-colors shadow-sm shrink-0">
-            <span>Discuss your account architecture</span>
+            <span>Discuss your treasury management product</span>
             <ArrowRight className="w-4 h-4" />
           </button>
         </div>

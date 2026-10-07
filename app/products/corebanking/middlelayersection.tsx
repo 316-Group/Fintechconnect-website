@@ -111,7 +111,7 @@ export default function MiddleLayerSection() {
         <div className="flex flex-col lg:flex-row items-center justify-between gap-8 lg:gap-4 relative">
           
           {/* Left Card: Front-End */}
-          <div className="w-full lg:w-72 bg-white rounded-1xl p-6 border border-slate-100 shadow-xl shadow-blue-950/5 relative z-10 shrink-0">
+          <div className="w-7xl lg:w-72 bg-white rounded-1xl p-6 border border-slate-100 shadow-xl shadow-blue-950/5 relative z-10 shrink-0">
             <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white mb-4 shadow-md shadow-blue-500/20">
               <Monitor className="w-5 h-5" />
             </div>

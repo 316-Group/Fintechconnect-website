@@ -16,6 +16,7 @@ import NewCarouselSection from "@/app/products/treasury/newcarouselsection";
 import NewDynamicSection from "@/app/products/treasury/newdynamicsection";
 import PlatformSection from "@/app/products/treasury/platformsection";
 import MiddleLayerSection from "@/app/products/treasury/middlelayersection";
+import CardSection from "./cardsection";
 
 export default function ForCreditUnions() {
   const [heroVisible, setHeroVisible] = useState(false);
@@ -134,6 +135,7 @@ export default function ForCreditUnions() {
       <NewApiSection />
       <Newpartnersection />
       <NewCarouselSection />
+      {/* <CardSection /> */}
       <PlatformSection />
       <NewDynamicSection />
       <HoverSection />
