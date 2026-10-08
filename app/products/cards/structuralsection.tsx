@@ -9,6 +9,7 @@ import {
   Sliders,
   FileText,
 } from "lucide-react";
+import { getPath } from "@/utils/helper";
 
 export default function StructuralSection() {
   const [isVisible, setIsVisible] = useState(false);
@@ -39,15 +40,15 @@ export default function StructuralSection() {
         <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
           <div className="max-w-2xl">
             <span className="text-xs font-bold tracking-widest text-blue-600 uppercase block mb-3">
-              STRUCTURAL MODULES
+              LIFECYCLE ARCHITECTURE
             </span>
             <h2 className="text-3xl sm:text-3xl lg:text-4xl font-extrabold text-slate-900 tracking-tight leading-tight">
-              Architectural components engineered for high-velocity orchestration.
+              Card lifecycle primitives engineered for deterministic control.
             </h2>
           </div>
           <p className="text-slate-500 text-sm sm:text-lg leading-relaxed max-w-md font-normal">
-            Every component operates as an autonomous, contract-driven building
-            block. Choose only the modules your operational setup requires.
+            Every stage operates as an autonomous, contract-driven state
+            transition backed by immutable ledger events.
           </p>
         </div>
 
@@ -71,33 +72,28 @@ export default function StructuralSection() {
                       <Wallet className="w-5 h-5" />
                     </div>
                     <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                      MODULE 01
+                      01 CORE MODULE
                     </span>
                   </div>
                   <span className="text-[11px] font-semibold text-blue-600 bg-blue-50 px-3 py-1 rounded-full border border-blue-100">
-                    schema: v2 balances
+                    schema: v1 cards
                   </span>
                 </div>
 
                 <h3 className="text-xl sm:text-2xl font-bold text-slate-900 mb-2">
-                  Balances &amp; Funding Routines
+                  Module 01: Issuance &amp; Tokenization
                 </h3>
                 <p className="text-xs sm:text-lg text-slate-500 leading-relaxed font-normal mb-6">
-                  Deterministic balance partitioning maintaining separate
-                  available, pending hold, and regulatory reserve sub-ledgers.
-                  Configured with automated sweep rules and multi-source top-up
-                  journeys.
+                  Virtual instant provisioning, physical card manufacturing dispatch payloads, and device wallet token bindings executed via single deterministic mutations.
                 </p>
               </div>
 
-              {/* MODULE 01 IMAGE PLACEHOLDER */}
-              
-                <img
-                  src="/products/wallet/module1.png"
-                  alt="Module 01 Visual Asset"
-                  className="w-full h-full object-contain"
-                />
-              
+              {/* MODULE 01 IMAGE */}
+              <img
+                src={getPath('/products/cards/module1.png')}
+                alt="Module 01 Visual Asset"
+                className="w-full h-full object-contain"
+              />
             </div>
 
             {/* MODULE 02 */}
@@ -115,26 +111,24 @@ export default function StructuralSection() {
                     <Users className="w-5 h-5" />
                   </div>
                   <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                    MODULE 02
+                    02 RISK PERIMETER
                   </span>
                 </div>
 
                 <h3 className="text-xl sm:text-2xl font-bold text-slate-900 mb-2">
-                  Participant Lifecycle Mapping
+                  Module 02: Spend Controls &amp; Velocity Rules
                 </h3>
                 <p className="text-xs sm:text-lg text-slate-500 leading-relaxed font-normal mb-6">
-                  Establish individual or entity wallet ownership hierarchies.
-                  Maintain lifecycle hooks across pending onboarding,
-                  operational active, and other stages.
+                  MCC code restrictions, merchant allowlists, country geofencing boundaries, and rolling time-window spend caps checked synchronously during authorization.
                 </p>
               </div>
 
-              {/* MODULE 02 IMAGE PLACEHOLDER */}
+              {/* MODULE 02 IMAGE */}
               <img
-                  src="/products/wallet/module2.png"
-                  alt="Module 02 Visual Asset"
-                  className="w-full h-full object-contain"
-                />
+                src={getPath('/products/cards/module2.png')}
+                alt="Module 02 Visual Asset"
+                className="w-full h-full object-contain"
+              />
             </div>
           </div>
 
@@ -156,21 +150,16 @@ export default function StructuralSection() {
                       <ArrowLeftRight className="w-5 h-5" />
                     </div>
                     <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                      MODULE 03
+                      03 AUTHORIZATION ENGINE
                     </span>
                   </div>
-                  <span className="text-[11px] font-semibold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-md">
-                    Idempotent Keys
-                  </span>
                 </div>
 
                 <h3 className="text-lg sm:text-2xl font-bold text-slate-900 mb-2">
-                  Transfer Journeys &amp; Routing
+                  Module 03: Authorization &amp; Dual-Custody Holds
                 </h3>
                 <p className="text-xs sm:text-lg text-slate-500 leading-relaxed font-normal">
-                  Execute internal peer-to-peer transfers, programmatic fee
-                  splits, and scheduled external disbursements with cryptographic
-                  idempotency to eliminate duplicate settlement calls.
+                  Cryptographic validation of spend headroom with automated hold segregation on user balance vaults. Guaranteed zero double-spend concurrency.
                 </p>
               </div>
             </div>
@@ -190,16 +179,17 @@ export default function StructuralSection() {
                     <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600">
                       <CreditCard className="w-5 h-5" />
                     </div>
+                    <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                      04 CLEARING CORE
+                    </span>
                   </div>
-                  <span className="text-xs font-bold text-slate-400">04</span>
                 </div>
 
                 <h3 className="text-lg sm:text-2xl font-bold text-slate-900 mb-2">
-                  Card &amp; Account Links
+                  Module 04: Clearing Correlation &amp; Capture
                 </h3>
                 <p className="text-xs sm:text-lg text-slate-500 leading-relaxed font-normal">
-                  Bridge virtual accounts, commercial deposit lines, and card
-                  token objects directly to wallet balance partitions.
+                  Deterministic linking of clearing files back to exact original authorization holds. Programmatic over-capture and under-capture balance reconciliation.
                 </p>
               </div>
             </div>
@@ -219,17 +209,17 @@ export default function StructuralSection() {
                     <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600">
                       <Sliders className="w-5 h-5" />
                     </div>
+                    <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                      05 SECURITY ISOLATION
+                    </span>
                   </div>
-                  <span className="text-xs font-bold text-slate-400">05</span>
                 </div>
 
                 <h3 className="text-lg sm:text-2xl font-bold text-slate-900 mb-2">
-                  Limits &amp; Permissions
+                  Module 05: Data Minimization &amp; Token Vault
                 </h3>
                 <p className="text-xs sm:text-lg text-slate-500 leading-relaxed font-normal">
-                  Enforce velocity rules, rolling aggregate caps, approval
-                  hierarchies, and dual-custody parameters at the ingresse
-                  boundary.
+                  PCI-scope reduction through cryptographic tokens, programmatic PAN masking, and transient ephemeral keys that never touch your application layer.
                 </p>
               </div>
             </div>
@@ -252,32 +242,26 @@ export default function StructuralSection() {
                     <FileText className="w-5 h-5" />
                   </div>
                   <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                    MODULE 06
-                  </span>
-                  <span className="text-[11px] font-semibold text-blue-600 bg-blue-50 px-3 py-0.5 rounded-full border border-blue-100">
-                    Foundational Core
+                    06 ARBITRATION &amp; REVERSAL
                   </span>
                 </div>
 
                 <h3 className="text-xl sm:text-2xl font-bold text-slate-900 mb-2">
-                  Operations &amp; Deterministic Reconciliation
+                  Module 06: Dispute &amp; Chargeback Lifecycles
                 </h3>
                 <p className="text-xs sm:text-lg text-slate-500 leading-relaxed font-normal">
-                  Immutable, append-only double-entry journals for every balance
-                  change. Provides scheduled settlement generation, raw audit
-                  log export, and structured exception reconciliation
-                  workflows.
+                  Structured evidence collection, formal scheme-independent arbitration packaging, automated representment filing, and atomic double-entry ledger reversals.
                 </p>
               </div>
             </div>
 
-            {/* MODULE 06 IMAGE PLACEHOLDER */}
-            <div className="w-full lg:w-1/2 min-h-[180px] rounded-2xl bg-slate-50 border-0 border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-400 p-6 text-center">
+            {/* MODULE 06 IMAGE */}
+            <div className="w-full min-h-[180px] rounded-2xl border-0 border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-400 text-center">
               <img
-                  src="/products/wallet/module3.png"
-                  alt="Module 03 Visual Asset"
-                  className="w-full h-full object-contain"
-                />
+                src={getPath('/products/cards/module3.png')}
+                alt="Module 06 Visual Asset"
+                className="w-full h-full object-cover"
+              />
             </div>
           </div>
         </div>

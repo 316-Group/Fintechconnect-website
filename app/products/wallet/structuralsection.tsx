@@ -272,7 +272,7 @@ export default function StructuralSection() {
             </div>
 
             {/* MODULE 06 IMAGE PLACEHOLDER */}
-            <div className="w-full lg:w-1/2 min-h-[180px] rounded-2xl bg-slate-50 border-0 border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-400 p-6 text-center">
+            <div className="w-full min-h-[180px] rounded-2xl border-0 border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-400 text-center">
               <img
                   src="/products/wallet/module3.png"
                   alt="Module 03 Visual Asset"

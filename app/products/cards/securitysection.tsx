@@ -54,7 +54,7 @@ const securityCards: SecurityCard[] = [
 
 export default function SecuritySection() {
   return (
-    <section className="w-full bg-[#f4f6fa] py-16 md:py-24 px-4 sm:px-6 lg:px-20 font-sans text-slate-900">
+    <section className="w-full bg-white py-16 md:py-24 px-4 sm:px-6 lg:px-20 font-sans text-slate-900">
       <div className="max-w-full mx-auto space-y-12">
         
         {/* Header Section */}
@@ -77,7 +77,7 @@ export default function SecuritySection() {
           {securityCards.map((card) => (
             <div
               key={card.id}
-              className="bg-white rounded-2xl p-6 border border-slate-100/80 shadow-xs flex flex-col justify-between hover:shadow-md transition-shadow duration-200"
+              className="bg-[#f4f6fa] rounded-2xl p-6 border border-slate-100/80 shadow-xs flex flex-col justify-between hover:shadow-md transition-shadow duration-200"
             >
               <div>
                 {/* Icon Container */}

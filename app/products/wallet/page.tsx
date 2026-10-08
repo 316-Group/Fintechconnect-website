@@ -8,19 +8,19 @@ import { Globe } from "@/components/ui/globe";
 import Footersection from "@/app/Footersection";
 import Newmodulessection from "@/app/products/treasury/newmodulessection";
 import BackgroundSection from "@/app/solutions/credit-unions/backgroundsection";
-import HoverSection from "@/app/products/treasury/hoversection";
+import HoverSection from "./hoversection";
 import NewfeaturesSection from "@/app/products/treasury/newfeaturessection";
-import Newpartnersection from "@/app/products/treasury/newpartnersection";
+import Newpartnersection from "./newpartnersection";
 import NewApiSection from "@/app/products/treasury/newapisection";
-import NewCarouselSection from "@/app/products/treasury/newcarouselsection";
-import NewDynamicSection from "@/app/products/treasury/newdynamicsection";
+import NewCarouselSection from "./newcarouselsection";
+import NewDynamicSection from "./newdynamicsection";
 import PlatformSection from "@/app/products/treasury/platformsection";
-import MiddleLayerSection from "@/app/products/wallet/middlelayersection";
 import StructuralSection from "./structuralsection";
 import SecuritySection from "./securitysection";
 import DropdownSection from "./dropdownsection";
 import JourneySection from "./journeysection";
 import Link from "next/link";
+import NewCardsSection from "./newcardssection";
 
 export default function ForCreditUnions() {
   const [heroVisible, setHeroVisible] = useState(false);
@@ -140,7 +140,7 @@ export default function ForCreditUnions() {
       {/* Subsections */}
       <StructuralSection />
       <JourneySection />
-      
+      <NewCardsSection />
       
       <SecuritySection />
       <Newpartnersection />

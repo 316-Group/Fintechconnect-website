@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { ChevronDown, CheckCircle2, ArrowUpRight, Cpu } from 'lucide-react';
+import { ChevronDown, CheckCircle2, Cpu } from 'lucide-react';
 
 interface OperatingProfile {
   id: string;
@@ -18,101 +18,101 @@ interface OperatingProfile {
 
 const operatingProfiles: OperatingProfile[] = [
   {
-    id: 'scaleups-neobanks',
+    id: 'corporate-expense-fleet',
     stepNumber: '01',
-    title: 'Fintech Scaleups & Neobanks',
-    profileSubtitle: 'Profile: Consumer & Business Account Virtualization',
+    title: 'Corporate Expense & Fleet Operators',
+    profileSubtitle: 'Profile: Dynamic Fleet & Employee Spend Management',
     overview:
-      'Engineered for rapid consumer and corporate onboarding with modular vIBAN issuance, automated sub-ledger partitioning, and flexible spend controls.',
+      'Automate enterprise procurement and employee travel expense management with instant virtual card creation, automated receipt matching, and strict merchant category locks.',
     capabilities: [
       {
-        title: 'Virtual Account Engine',
-        description: 'Instantly spin up multi-currency vIBANs with sub-second ledger synchronization.',
+        title: 'Merchant Category (MCC) Locking',
+        description: 'Restrict card usage strictly to fuel stations, airlines, hotel chains, or pre-approved SaaS suppliers.',
       },
       {
-        title: 'Programmable Sub-Ledgers',
-        description: 'Partition funds into distinct available, pending hold, and vault balance buckets.',
+        title: 'Automated Spend Thresholds',
+        description: 'Set daily, weekly, or per-transaction spending caps with real-time approval workflow triggers.',
       },
       {
-        title: 'Custom Cards & Velocity Rules',
-        description: 'Embed virtual and physical card issuance with real-time auth hook controls.',
+        title: 'Real-time ERP & Accounting Sync',
+        description: 'Automatically stream transaction receipts and line-item categorization directly to your ERP or accounting ledger.',
       },
     ],
-    tags: ['API Onboarding', 'vIBAN Issuance', 'Real-Time Balances', 'Spend Controls'],
+    tags: ['MCC Locking', 'Fleet Controls', 'ERP Sync', 'Real-time Approvals'],
   },
   {
-    id: 'marketplaces-platforms',
+    id: 'neobanks-consumer-wallets',
     stepNumber: '02',
-    title: 'Marketplaces & Platforms',
-    profileSubtitle: 'Profile: Split Settlements & Seller Payout Routines',
+    title: 'Fintech Neobanks & Consumer Wallets',
+    profileSubtitle: 'Profile: Physical & Virtual Debit/Credit Programme',
     overview:
-      'Automate complex multi-party money flows, platform fee deductions, seller escrow holds, and scheduled disbursement runs across global corridors.',
+      'Issue white-labeled physical and Apple/Google Pay virtual cards directly to consumer wallets with customizable cashback tiers, push provisioning, and instant freeze controls.',
     capabilities: [
       {
-        title: 'Automated Split Settlements',
-        description: 'Programmatically split payment volume between platform take-rate and merchant accounts.',
+        title: 'Instant Push Provisioning',
+        description: 'Allow users to add newly issued virtual cards directly to Apple Wallet or Google Pay within seconds.',
       },
       {
-        title: 'Merchant Escrow & Holds',
-        description: 'Hold funds dynamically based on order delivery triggers or compliance conditions.',
+        title: 'Customizable Rewards Engine',
+        description: 'Configure real-time cashback, merchant discounts, and loyalty point accruals per customer account tier.',
       },
       {
-        title: 'Corridor Mass Payouts',
-        description: 'Trigger low-cost domestic rail payouts across 70+ countries using idempotent APIs.',
+        title: 'Interactive Card Controls',
+        description: 'Enable instant card freezing, PIN resets, online purchase toggles, and international usage restrictions.',
       },
     ],
-    tags: ['Split Payments', 'Escrow Mechanics', 'Batch Payouts', 'Automated Fee Deduction'],
+    tags: ['Apple/Google Pay', 'Push Provisioning', 'Rewards Engine', 'Card Freeze Controls'],
   },
   {
-    id: 'banks-depositories',
+    id: 'marketplaces-contractor-payouts',
     stepNumber: '03',
-    title: 'Commercial Banks & Depository Institutions',
-    profileSubtitle: 'Profile: Core Ledger Virtualization & Depository Sync',
+    title: 'Marketplaces & Contractor Payouts',
+    profileSubtitle: 'Profile: Gig-Economy & Vendor Disbursement Cards',
     overview:
-      'Modernize legacy core banking infrastructure without core replacement by introducing an agile, API-first middle layer for digital treasury client experiences.',
+      'Streamline gig-worker disbursements, seller payouts, and contractor fee management with instant payout cards tied directly to marketplace balance sub-ledgers.',
     capabilities: [
       {
-        title: 'Core Ledger Shadowing',
-        description: 'Maintain real-time shadow sub-ledgers without placing load on legacy mainframes.',
+        title: 'Instant On-Demand Payouts',
+        description: 'Disburse gig earnings or seller funds directly onto dedicated payout cards immediately upon task completion.',
       },
       {
-        title: 'ISO 20022 Data Enrichment',
-        description: 'Enrich transaction messages with native ISO 20022 structured remittance metadata.',
+        title: 'Sub-Ledger Earnings Isolation',
+        description: 'Separate gross earnings, marketplace take-rates, and tax reserves into distinct balance partitions.',
       },
       {
-        title: 'Enterprise Liquidity Portal',
-        description: 'Provide institutional clients with real-time multi-account visibility and automated sweeps.',
+        title: 'Global Contractor Multi-Currency',
+        description: 'Issue localized virtual card accounts to international contractors across 60+ currencies.',
       },
     ],
-    tags: ['ISO 20022 Native', 'Core Shadowing', 'Enterprise Treasury', 'Audit Logs'],
+    tags: ['Instant Payouts', 'Gig Economy', 'Tax Sub-Ledgers', 'Multi-Currency'],
   },
   {
-    id: 'crossborder-operators',
+    id: 'embedded-vertical-saas',
     stepNumber: '04',
-    title: 'Embedded & Cross-Border Operators',
-    profileSubtitle: 'Profile: Multi-Corridor Float & Currency Pools',
+    title: 'Embedded & Vertical SaaS Platforms',
+    profileSubtitle: 'Profile: White-Label Native Financial Workflows',
     overview:
-      'Optimize international liquidity and FX margins across multi-currency float pools with automated rate locking, internal clearing, and local domestic rails.',
+      'Embed card issuance directly into industry-specific software (healthcare, construction, logistics) to monetize software usage through interchange revenue sharing models.',
     capabilities: [
       {
-        title: 'Multi-Currency Float Pools',
-        description: 'Unify multi-jurisdiction float into centralized real-time treasury balances.',
+        title: 'Interchange Revenue Sharing',
+        description: 'Monetize platform transaction volume through programmatic interchange revenue split structures.',
       },
       {
-        title: 'Dynamic FX Rate Locking',
-        description: 'Lock in real-time FX spreads automatically upon transaction initiation.',
+        title: 'White-Label UI Components',
+        description: 'Integrate fully customizable, PCI-compliant card management components directly into your web app.',
       },
       {
-        title: 'Local Rail Routing',
-        description: 'Bypass costly SWIFT intermediary fees by routing through domestic ACH & SEPA rails.',
+        title: 'Contextual Single-Use Virtual Cards',
+        description: 'Generate ephemeral single-use virtual cards automatically when purchase orders or invoices are approved.',
       },
     ],
-    tags: ['Multi-Currency Float', 'Instant FX Locks', 'Local ACH / SEPA', 'Cross-Border Clearing'],
+    tags: ['Embedded Finance', 'Interchange Revenue', 'PCI-Compliant SDK', 'Single-Use Virtual Cards'],
   },
 ];
 
 export default function DropdownSection() {
-  const [openProfileId, setOpenProfileId] = useState<string | null>('scaleups-neobanks');
+  const [openProfileId, setOpenProfileId] = useState<string | null>('corporate-expense-fleet');
 
   const toggleProfile = (id: string) => {
     setOpenProfileId((prev) => (prev === id ? null : id));
@@ -129,11 +129,11 @@ export default function DropdownSection() {
               OPERATING FRAMEWORKS
             </span>
             <h2 className="text-3xl sm:text-4xl lg:text-[2.65rem] font-extrabold text-slate-900 tracking-tight leading-[1.15]">
-              Configured for diverse operating models.
+              Configured for diverse issuance models.
             </h2>
           </div>
           <p className="text-slate-500 text-sm sm:text-lg leading-relaxed max-w-sm font-normal">
-            Explore architectural configuration profiles tailored to specific entity topologies and transaction flows.
+            Explore architectural configurations tailored to specific corporate, retail, and embedded platform programmes.
           </p>
         </div>
 
@@ -164,7 +164,7 @@ export default function DropdownSection() {
                       <h3 className="text-lg sm:text-xl font-bold text-slate-900 leading-snug">
                         {profile.title}
                       </h3>
-                      <p className="text-xs sm:text-lg text-slate-500 font-normal mt-0.5">
+                      <p className="text-xs sm:text-sm text-slate-500 font-normal mt-0.5">
                         {profile.profileSubtitle}
                       </p>
                     </div>
@@ -184,7 +184,7 @@ export default function DropdownSection() {
                 {isOpen && (
                   <div className="px-6 pb-8 sm:px-8 sm:pb-8 pt-2 border-t border-slate-100/80 space-y-6">
                     {/* Overview Paragraph */}
-                    <p className="text-lg text-slate-600 leading-relaxed max-w-3xl">
+                    <p className="text-sm sm:text-base text-slate-600 leading-relaxed max-w-3xl">
                       {profile.overview}
                     </p>
 
@@ -193,16 +193,16 @@ export default function DropdownSection() {
                       {profile.capabilities.map((cap, idx) => (
                         <div
                           key={idx}
-                          className="bg-[#f8fafe] p-5 rounded-1xl border border-blue-50/80 flex flex-col justify-between"
+                          className="bg-[#f8fafe] p-5 rounded-xl border border-blue-50/80 flex flex-col justify-between"
                         >
                           <div>
                             <div className="flex items-center gap-2 text-blue-600 mb-2">
                               <CheckCircle2 className="w-4 h-4 shrink-0" />
-                              <h4 className="font-bold text-xs sm:text-lg text-slate-900">
+                              <h4 className="font-bold text-xs sm:text-sm text-slate-900">
                                 {cap.title}
                               </h4>
                             </div>
-                            <p className="text-lg text-slate-500 leading-relaxed font-normal">
+                            <p className="text-xs sm:text-sm text-slate-500 leading-relaxed font-normal">
                               {cap.description}
                             </p>
                           </div>
@@ -210,10 +210,10 @@ export default function DropdownSection() {
                       ))}
                     </div>
 
-                    {/* Tags Footer */}
-                    {/*<div className="flex flex-wrap items-center gap-2 pt-2">
+                    {/* Feature Tags List */}
+                    <div className="flex flex-wrap items-center gap-2 pt-2">
                       <span className="text-xs font-semibold text-slate-400 mr-2 flex items-center gap-1">
-                        <Cpu className="w-3.5 h-3.5 text-blue-600" /> Key Features:
+                        <Cpu className="w-3.5 h-3.5 text-blue-600" /> Programme Features:
                       </span>
                       {profile.tags.map((tag, idx) => (
                         <span
@@ -223,7 +223,7 @@ export default function DropdownSection() {
                           {tag}
                         </span>
                       ))}
-                    </div>*/}
+                    </div>
                   </div>
                 )}
               </div>

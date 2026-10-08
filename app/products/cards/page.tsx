@@ -15,12 +15,12 @@ import NewApiSection from "@/app/products/treasury/newapisection";
 import NewCarouselSection from "./newcarouselsection";
 import NewDynamicSection from "./newdynamicsection";
 import PlatformSection from "@/app/products/treasury/platformsection";
-import MiddleLayerSection from "@/app/products/wallet/middlelayersection";
 import StructuralSection from "./structuralsection";
 import SecuritySection from "./securitysection";
 import DropdownSection from "./dropdownsection";
 import JourneySection from "./journeysection";
 import Link from "next/link";
+import NewCardSection from "./newcardssection";
 
 export default function ForCreditUnions() {
   const [heroVisible, setHeroVisible] = useState(false);
@@ -104,7 +104,7 @@ export default function ForCreditUnions() {
 
           {/* DESKTOP ONLY IMAGE */}
           <img 
-            src={getPath("/products/wallet/hero.png")} 
+            src={getPath("/products/cards/hero.png")} 
             alt="Fintech Connect dashboard visualization"
             className="hidden md:block w-full h-auto md:px-20 md:py-12 md:mb-0 md:object-contain rounded-2xl shadow-2xl shadow-slate-300/60"
           />
@@ -117,7 +117,7 @@ export default function ForCreditUnions() {
       {/* Subsections */}
       <StructuralSection />
       <JourneySection />
-      
+      <NewCardSection />
       
       <SecuritySection />
       <Newpartnersection />
