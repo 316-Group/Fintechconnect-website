@@ -70,7 +70,7 @@ export default function MiddleLayerSection() {
   const radius = 200;
 
   return (
-    <section className="w-full bg-white py-16 px-4 sm:px-6 lg:px-20 font-sans overflow-hidden text-slate-900">
+    <section className="w-full bg-white py-16 px-4 sm:px-6 lg:px-0 font-sans overflow-hidden text-slate-900">
       {/* Inline styles for custom spinning & counter-rotation animations */}
       <style>{`
         @keyframes orbitSpin {
@@ -94,7 +94,7 @@ export default function MiddleLayerSection() {
       `}</style>
 
       {/* Constrained max-w-7xl container to keep side cards tied to the center graphic */}
-      <div className="max-w-8xl mx-auto">
+      <div className="max-w-7xl mx-auto">
         {/* Header Section */}
         <div className="text-center max-w-3xl mx-auto mb-12 sm:mb-16">
           <span className="text-xs font-bold tracking-widest text-blue-600 uppercase block mb-3">

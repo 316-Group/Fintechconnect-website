@@ -118,7 +118,7 @@ export default function ForCreditUnions() {
 
           {/* Right Column - Paragraph Description */}
           <div className="md:col-span-7 space-y-6">
-            <p className="text-slate-700 text-base md:text-lg leading-relaxed font-normal">
+            <p className="text-slate-700 text-base md:text-2xl leading-relaxed font-normal">
               A financial product needs more than a balance displayed on a screen. It needs a durable account of what happened, why it happened, which rules applied, and how later activity relates to the original event. 
               Real-Time Ledger is designed as the financial foundation for that work. It helps teams model double-entry postings, account relationships, holds, pending and booked states, 
               and corrections made through new records rather than overwritten history

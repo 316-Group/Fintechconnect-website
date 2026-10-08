@@ -119,12 +119,12 @@ export default function ForCreditUnions() {
 
           {/* Right Column - Paragraph Description */}
           <div className="md:col-span-7 space-y-6">
-            <p className="text-slate-700 text-base md:text-lg leading-relaxed font-normal">
+            <p className="text-slate-700 text-lg md:text-2xl leading-relaxed font-normal">
               Core banking is the backbone of any financial product - it manages
               accounts, balances, transactions, and compliance processes in real
               time.
             </p>
-            <p className="text-slate-700 text-base md:text-lg leading-relaxed font-normal">
+            <p className="text-slate-700 text-lg md:text-2xl leading-relaxed font-normal">
               Fintech Connect Core Banking solves fragmented bank integration, high
               development overhead, and scaling constraints - letting your
               business go live faster with more competitive financial offerings.

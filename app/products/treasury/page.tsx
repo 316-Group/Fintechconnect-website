@@ -118,7 +118,7 @@ export default function ForCreditUnions() {
 
           {/* Right Column - Paragraph Description */}
           <div className="md:col-span-7 space-y-6">
-            <p className="text-slate-700 text-base md:text-lg leading-relaxed font-normal">
+            <p className="text-slate-700 text-base md:text-2xl leading-relaxed font-normal">
               Fintech Connect Treasury Management is the proposed module for shaping that layer around each programmes products, partners, calendars, and responsibility model.
                It is intended to help institutions define how position data is assembled, how thresholds surface work, and how approved actions move through controlled workflows. 
               The result is a more coherent treasury operating design that can sit alongside the ledger, payment flows, reconciliation processes, and selected connected sources.
