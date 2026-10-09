@@ -12,13 +12,13 @@ import HoverSection from "./hoversection";
 import NewfeaturesSection from "@/app/products/treasury/newfeaturessection";
 import Newpartnersection from "./newpartnersection";
 import NewApiSection from "@/app/products/treasury/newapisection";
-import NewCarouselSection from "./newcarouselsection";
+
 import NewDynamicSection from "./newdynamicsection";
 import PlatformSection from "@/app/products/treasury/platformsection";
 import StructuralSection from "./structuralsection";
-import SecuritySection from "./securitysection";
+
 import DropdownSection from "./dropdownsection";
-import JourneySection from "./journeysection";
+
 import Link from "next/link";
 import NewCardSection from "./newcardssection";
 
@@ -66,7 +66,7 @@ export default function ForCreditUnions() {
             className={`text-3xl md:text-5xl font-bold text-slate-900 mb-6 tracking-tight max-w-full ${getAnimatedClass(heroVisible)}`}
             style={{ transitionDelay: '0ms' }}
           >
-            Orchestrate Crypto Payment Flows Across <span className="text-blue-600">Your Configured Boundaries</span>
+            Bring AI Fraud Monitoring into a <span className="text-blue-600">Governed Decision Journey</span>
           </h1>
           
           {/* 2. Subtitle Description Paragraph */}
@@ -74,8 +74,7 @@ export default function ForCreditUnions() {
             className={`text-slate-600 font-normal text-base md:text-lg mb-8 leading-relaxed md:max-w-[85%] mx-auto ${getAnimatedClass(heroVisible)}`}
             style={{ transitionDelay: '150ms' }}
           >
-            Coordinate digital asset validation, screening checkpoints, travel-rule data capture, and network dispatch without taking custody or managing private keys. 
-            Configurable routing and immutable audit records engineered for institutional workflow control.
+            Connect transaction signals, configurable policies, risk context, and analyst review in a structured workflow that keeps decisions accountable.
           </p>
           
           {/* 3. Book Demo CTA Button */}
@@ -104,7 +103,7 @@ export default function ForCreditUnions() {
 
           {/* DESKTOP ONLY IMAGE */}
           <img 
-            src={getPath("/products/wallet/hero.png")} 
+            src={getPath("/products/cards/hero.png")} 
             alt="Fintech Connect dashboard visualization"
             className="hidden md:block w-full h-auto md:px-20 md:py-12 md:mb-0 md:object-contain rounded-2xl shadow-2xl shadow-slate-300/60"
           />
@@ -116,13 +115,12 @@ export default function ForCreditUnions() {
 
       {/* Subsections */}
       <StructuralSection />
-      <JourneySection />
+      
       <NewCardSection />
       
       
-      <SecuritySection />
       <Newpartnersection />
-      <NewCarouselSection />
+      
       {/* <CardSection /> */}
       <DropdownSection />
       <NewDynamicSection />

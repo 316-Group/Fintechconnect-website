@@ -2,11 +2,11 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import {
-  Wallet,
-  Users,
-  ArrowLeftRight,
-  CreditCard,
-  Sliders,
+  CheckCircle2,
+  ShieldCheck,
+  FileCheck,
+  Network,
+  Activity,
   FileText,
 } from "lucide-react";
 
@@ -39,25 +39,24 @@ export default function StructuralSection() {
         <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
           <div className="max-w-2xl">
             <span className="text-xs font-bold tracking-widest text-blue-600 uppercase block mb-3">
-              STRUCTURAL MODULES
+              MODULAR ARCHITECTURE
             </span>
             <h2 className="text-3xl sm:text-3xl lg:text-4xl font-extrabold text-slate-900 tracking-tight leading-tight">
-              Architectural components engineered for high-velocity orchestration.
+              A programmable orchestration substrate for crypto payments.
             </h2>
           </div>
           <p className="text-slate-500 text-sm sm:text-lg leading-relaxed max-w-md font-normal">
-            Every component operates as an autonomous, contract-driven building
-            block. Choose only the modules your operational setup requires.
+            Construct custom workflow logic between your customer interfaces, risk providers, and cold/warm signing nodes with declarative primitives.
           </p>
         </div>
 
         {/* MODULES GRID CONTAINER */}
         <div className="space-y-6">
-          {/* TOP ROW: MODULE 01 & MODULE 02 */}
+          {/* TOP ROW: CARD 01 & CARD 02 */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
-            {/* MODULE 01 */}
+            {/* NETWORK & ADDRESS VALIDATION */}
             <div
-              className={`lg:col-span-7 bg-white rounded-xl p-6 sm:p-8 border border-slate-100 shadow-sm flex flex-col justify-between transition-all duration-700 ease-out transform-gpu ${
+              className={`lg:col-span-7 bg-white rounded-2xl p-6 sm:p-8 border border-slate-100 shadow-xs flex flex-col justify-between transition-all duration-700 ease-out transform-gpu ${
                 isVisible
                   ? "opacity-100 translate-x-0"
                   : "opacity-0 -translate-x-12 pointer-events-none"
@@ -65,44 +64,31 @@ export default function StructuralSection() {
               style={{ transitionDelay: isVisible ? "0ms" : "0ms" }}
             >
               <div>
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600">
-                      <Wallet className="w-5 h-5" />
-                    </div>
-                    <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                      MODULE 01
-                    </span>
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600">
+                    <CheckCircle2 className="w-5 h-5" />
                   </div>
-                  <span className="text-[11px] font-semibold text-blue-600 bg-blue-50 px-3 py-1 rounded-full border border-blue-100">
-                    schema: v2 balances
-                  </span>
                 </div>
 
                 <h3 className="text-xl sm:text-2xl font-bold text-slate-900 mb-2">
-                  Balances &amp; Funding Routines
+                  Network &amp; Address Validation
                 </h3>
                 <p className="text-xs sm:text-lg text-slate-500 leading-relaxed font-normal mb-6">
-                  Deterministic balance partitioning maintaining separate
-                  available, pending hold, and regulatory reserve sub-ledgers.
-                  Configured with automated sweep rules and multi-source top-up
-                  journeys.
+                  Deterministic syntactic and cryptographic checksum evaluation across protocol standards. Ingress requests with malformed addresses or invalid parameter trees are isolated before queue commitment.
                 </p>
               </div>
 
-              {/* MODULE 01 IMAGE PLACEHOLDER */}
-              
-                <img
-                  src="/products/wallet/module1.png"
-                  alt="Module 01 Visual Asset"
-                  className="w-full h-full object-contain"
-                />
-              
+              {/* IMAGE 1 */}
+              <img
+                src="/products/wallet/module1.png"
+                alt="Network and Address Validation Visual"
+                className="w-full h-full object-contain"
+              />
             </div>
 
-            {/* MODULE 02 */}
+            {/* SCREENING CHECKPOINTS */}
             <div
-              className={`lg:col-span-5 bg-white rounded-xl p-6 sm:p-8 border border-slate-100 shadow-sm flex flex-col justify-between transition-all duration-700 ease-out transform-gpu ${
+              className={`lg:col-span-5 bg-white rounded-2xl p-6 sm:p-8 border border-slate-100 shadow-xs flex flex-col justify-between transition-all duration-700 ease-out transform-gpu ${
                 isVisible
                   ? "opacity-100 translate-x-0"
                   : "opacity-0 -translate-x-12 pointer-events-none"
@@ -112,37 +98,32 @@ export default function StructuralSection() {
               <div>
                 <div className="flex items-center gap-3 mb-4">
                   <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600">
-                    <Users className="w-5 h-5" />
+                    <ShieldCheck className="w-5 h-5" />
                   </div>
-                  <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                    MODULE 02
-                  </span>
                 </div>
 
                 <h3 className="text-xl sm:text-2xl font-bold text-slate-900 mb-2">
-                  Participant Lifecycle Mapping
+                  Screening Checkpoints
                 </h3>
                 <p className="text-xs sm:text-lg text-slate-500 leading-relaxed font-normal mb-6">
-                  Establish individual or entity wallet ownership hierarchies.
-                  Maintain lifecycle hooks across pending onboarding,
-                  operational active, and other stages.
+                  Enforce synchronous pre-dispatch risk queries against client-designated sanction lists, high-risk cluster feeds, and AML metadata hooks.
                 </p>
               </div>
 
-              {/* MODULE 02 IMAGE PLACEHOLDER */}
+              {/* IMAGE 2 */}
               <img
-                  src="/products/wallet/module2.png"
-                  alt="Module 02 Visual Asset"
-                  className="w-full h-full object-contain"
-                />
+                src="/products/wallet/module2.png"
+                alt="Screening Checkpoints Visual"
+                className="w-full h-full object-contain"
+              />
             </div>
           </div>
 
-          {/* MIDDLE ROW: MODULE 03, MODULE 04 & MODULE 05 */}
+          {/* MIDDLE ROW: CARD 03, CARD 04 & CARD 05 */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
-            {/* MODULE 03 */}
+            {/* TRAVEL-RULE DATA CAPTURE */}
             <div
-              className={`bg-white rounded-xl p-6 sm:p-8 border border-slate-100 shadow-sm flex flex-col justify-between transition-all duration-700 ease-out transform-gpu ${
+              className={`bg-white rounded-2xl p-6 sm:p-8 border border-slate-100 shadow-xs flex flex-col justify-between transition-all duration-700 ease-out transform-gpu ${
                 isVisible
                   ? "opacity-100 translate-x-0"
                   : "opacity-0 -translate-x-12 pointer-events-none"
@@ -150,34 +131,24 @@ export default function StructuralSection() {
               style={{ transitionDelay: isVisible ? "300ms" : "0ms" }}
             >
               <div>
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600">
-                      <ArrowLeftRight className="w-5 h-5" />
-                    </div>
-                    <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                      MODULE 03
-                    </span>
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600">
+                    <FileCheck className="w-5 h-5" />
                   </div>
-                  <span className="text-[11px] font-semibold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-md">
-                    Idempotent Keys
-                  </span>
                 </div>
 
                 <h3 className="text-lg sm:text-2xl font-bold text-slate-900 mb-2">
-                  Transfer Journeys &amp; Routing
+                  Travel-Rule Data Capture
                 </h3>
                 <p className="text-xs sm:text-lg text-slate-500 leading-relaxed font-normal">
-                  Execute internal peer-to-peer transfers, programmatic fee
-                  splits, and scheduled external disbursements with cryptographic
-                  idempotency to eliminate duplicate settlement calls.
+                  Binds originator and beneficiary metadata packets to transaction payloads according to programmable threshold parameters before custodial handoff.
                 </p>
               </div>
             </div>
 
-            {/* MODULE 04 */}
+            {/* CUSTODY & NETWORK ROUTING */}
             <div
-              className={`bg-white rounded-xl p-6 sm:p-8 border border-slate-100 shadow-sm flex flex-col justify-between transition-all duration-700 ease-out transform-gpu ${
+              className={`bg-white rounded-2xl p-6 sm:p-8 border border-slate-100 shadow-xs flex flex-col justify-between transition-all duration-700 ease-out transform-gpu ${
                 isVisible
                   ? "opacity-100 translate-x-0"
                   : "opacity-0 -translate-x-12 pointer-events-none"
@@ -185,28 +156,24 @@ export default function StructuralSection() {
               style={{ transitionDelay: isVisible ? "450ms" : "0ms" }}
             >
               <div>
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600">
-                      <CreditCard className="w-5 h-5" />
-                    </div>
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600">
+                    <Network className="w-5 h-5" />
                   </div>
-                  <span className="text-xs font-bold text-slate-400">04</span>
                 </div>
 
                 <h3 className="text-lg sm:text-2xl font-bold text-slate-900 mb-2">
-                  Card &amp; Account Links
+                  Custody &amp; Network Routing
                 </h3>
                 <p className="text-xs sm:text-lg text-slate-500 leading-relaxed font-normal">
-                  Bridge virtual accounts, commercial deposit lines, and card
-                  token objects directly to wallet balance partitions.
+                  Direct validated transactions to pre-configured signer infrastructure, internal MPC vaults, or direct network broadcasting gateways without vendor lock-in.
                 </p>
               </div>
             </div>
 
-            {/* MODULE 05 */}
+            {/* CONFIRMATION MONITORING */}
             <div
-              className={`bg-white rounded-xl p-6 sm:p-8 border border-slate-100 shadow-sm flex flex-col justify-between transition-all duration-700 ease-out transform-gpu ${
+              className={`bg-white rounded-2xl p-6 sm:p-8 border border-slate-100 shadow-xs flex flex-col justify-between transition-all duration-700 ease-out transform-gpu ${
                 isVisible
                   ? "opacity-100 translate-x-0"
                   : "opacity-0 -translate-x-12 pointer-events-none"
@@ -214,70 +181,72 @@ export default function StructuralSection() {
               style={{ transitionDelay: isVisible ? "600ms" : "0ms" }}
             >
               <div>
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600">
-                      <Sliders className="w-5 h-5" />
-                    </div>
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600">
+                    <Activity className="w-5 h-5" />
                   </div>
-                  <span className="text-xs font-bold text-slate-400">05</span>
                 </div>
 
                 <h3 className="text-lg sm:text-2xl font-bold text-slate-900 mb-2">
-                  Limits &amp; Permissions
+                  Confirmation Monitoring
                 </h3>
                 <p className="text-xs sm:text-lg text-slate-500 leading-relaxed font-normal">
-                  Enforce velocity rules, rolling aggregate caps, approval
-                  hierarchies, and dual-custody parameters at the ingresse
-                  boundary.
+                  Track block progression and multi-node quorum depth deterministically. Receives real-time state alerts without maintaining dedicated node fleets.
                 </p>
               </div>
             </div>
           </div>
 
-          {/* BOTTOM ROW: MODULE 06 */}
+          {/* BOTTOM ROW: CARD 06 */}
           <div
-            className={`bg-white rounded-xl p-6 sm:p-8 border border-slate-100 shadow-sm flex flex-col lg:flex-row gap-8 items-stretch transition-all duration-700 ease-out transform-gpu ${
+            className={`bg-white rounded-2xl p-6 sm:p-8 border border-slate-100 shadow-xs flex flex-col lg:flex-row gap-8 items-stretch transition-all duration-700 ease-out transform-gpu ${
               isVisible
                 ? "opacity-100 translate-x-0"
                 : "opacity-0 -translate-x-12 pointer-events-none"
             }`}
             style={{ transitionDelay: isVisible ? "750ms" : "0ms" }}
           >
-            {/* MODULE 06 LEFT TEXT CONTENT */}
+            {/* AUDIT TRAIL LEFT CONTENT */}
             <div className="w-full lg:w-1/2 flex flex-col justify-between">
               <div>
                 <div className="flex items-center gap-3 mb-4">
                   <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600">
                     <FileText className="w-5 h-5" />
                   </div>
-                  <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                    MODULE 06
-                  </span>
-                  <span className="text-[11px] font-semibold text-blue-600 bg-blue-50 px-3 py-0.5 rounded-full border border-blue-100">
-                    Foundational Core
-                  </span>
                 </div>
 
                 <h3 className="text-xl sm:text-2xl font-bold text-slate-900 mb-2">
-                  Operations &amp; Deterministic Reconciliation
+                  Audit Trail &amp; Structured Reporting
                 </h3>
-                <p className="text-xs sm:text-lg text-slate-500 leading-relaxed font-normal">
-                  Immutable, append-only double-entry journals for every balance
-                  change. Provides scheduled settlement generation, raw audit
-                  log export, and structured exception reconciliation
-                  workflows.
+                <p className="text-xs sm:text-lg text-slate-500 leading-relaxed font-normal mb-6">
+                  Every pipeline evaluation, state transition, counterparty packet attachment, and dispatch receipt is committed into an immutable, append-only operational journal for institutional audit reporting.
                 </p>
+
+                {/* STATUS BADGES AT BOTTOM */}
+                <div className="flex flex-wrap items-center gap-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                  <span className="flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                    APPEND_ONLY
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                    HASH_LINKED
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+                    EXPORTABLE_JSON
+                  </span>
+                </div>
               </div>
             </div>
 
-            {/* MODULE 06 IMAGE PLACEHOLDER */}
+            {/* AUDIT TRAIL IMAGE AREA */}
             <div className="w-full lg:w-1/2 min-h-[180px] rounded-2xl bg-slate-50 border-0 border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-400 p-6 text-center">
               <img
-                  src="/products/wallet/module3.png"
-                  alt="Module 03 Visual Asset"
-                  className="w-full h-full object-contain"
-                />
+                src="/products/wallet/module3.png"
+                alt="Audit Trail Visual Asset"
+                className="w-full h-full object-contain"
+              />
             </div>
           </div>
         </div>

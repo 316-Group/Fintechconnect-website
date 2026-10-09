@@ -85,7 +85,7 @@ export default function Navbar() {
     "Compliance & Security": [
       { title: "KYC/KYB Tools", description: "Built-in compliance tools for regulatory requirements across multiple jurisdictions", href: "/products/kyc" },
       { title: "AML Compliance", description: "Enterprise-grade security with encryption, multi-factor authentication, and advanced threat detection", href: "/products/aml" },
-      { title: "AI Fraud Monitoring", description: "Comprehensive audit logs and compliance reporting for regulatory bodies", href: "/products/ai-fraud-monitoring" }
+      { title: "AI Fraud Monitoring", description: "Comprehensive audit logs and compliance reporting for regulatory bodies", href: "/products/aifraud" }
     ],
     "Client-Facing Products": [
       { title: "White-Label Bank Portal", description: "Native iOS and Android applications for seamless customer banking experiences", href: "/products/white-label-portal" },
