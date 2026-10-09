@@ -9,6 +9,7 @@ import {
   Sliders,
   FileText,
 } from "lucide-react";
+import { getPath } from "@/utils/helper";
 
 export default function StructuralSection() {
   const [isVisible, setIsVisible] = useState(false);
@@ -93,7 +94,7 @@ export default function StructuralSection() {
               {/* MODULE 01 IMAGE PLACEHOLDER */}
               
                 <img
-                  src="/products/wallet/module1.png"
+                  src={getPath("/products/wallet/module1.png")}
                   alt="Module 01 Visual Asset"
                   className="w-full h-full object-contain"
                 />
@@ -131,7 +132,7 @@ export default function StructuralSection() {
 
               {/* MODULE 02 IMAGE PLACEHOLDER */}
               <img
-                  src="/products/wallet/module2.png"
+                  src={getPath("/products/wallet/module2.png")}
                   alt="Module 02 Visual Asset"
                   className="w-full h-full object-contain"
                 />
@@ -274,7 +275,7 @@ export default function StructuralSection() {
             {/* MODULE 06 IMAGE PLACEHOLDER */}
             <div className="w-full min-h-[180px] rounded-2xl border-0 border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-400 text-center">
               <img
-                  src="/products/wallet/module3.png"
+                  src={getPath("/products/wallet/module3.png")}
                   alt="Module 03 Visual Asset"
                   className="w-full h-full object-contain"
                 />

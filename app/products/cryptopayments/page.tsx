@@ -15,7 +15,6 @@ import NewApiSection from "@/app/products/treasury/newapisection";
 import NewCarouselSection from "./newcarouselsection";
 import NewDynamicSection from "./newdynamicsection";
 import PlatformSection from "@/app/products/treasury/platformsection";
-import MiddleLayerSection from "@/app/products/wallet/middlelayersection";
 import StructuralSection from "./structuralsection";
 import SecuritySection from "./securitysection";
 import DropdownSection from "./dropdownsection";
@@ -66,7 +65,7 @@ export default function ForCreditUnions() {
             className={`text-3xl md:text-5xl font-bold text-slate-900 mb-6 tracking-tight max-w-full ${getAnimatedClass(heroVisible)}`}
             style={{ transitionDelay: '0ms' }}
           >
-            Build Card Programmes around the <span className="text-blue-600">Experience You Desire</span>
+            Orchestrate Crypto Payment Flows Across <span className="text-blue-600">Your Configured Boundaries</span>
           </h1>
           
           {/* 2. Subtitle Description Paragraph */}
@@ -74,8 +73,8 @@ export default function ForCreditUnions() {
             className={`text-slate-600 font-normal text-base md:text-lg mb-8 leading-relaxed md:max-w-[85%] mx-auto ${getAnimatedClass(heroVisible)}`}
             style={{ transitionDelay: '150ms' }}
           >
-            Configure virtual and physical card issuance, programme-level controls, and multi-state
-            authorization rules without taking on proprietary card infrastructure
+            Coordinate digital asset validation, screening checkpoints, travel-rule data capture, and network dispatch without taking custody or managing private keys. 
+            Configurable routing and immutable audit records engineered for institutional workflow control.
           </p>
           
           {/* 3. Book Demo CTA Button */}

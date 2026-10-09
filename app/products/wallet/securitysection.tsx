@@ -7,6 +7,7 @@ import {
   Webhook, 
   Clock 
 } from 'lucide-react';
+import { getPath } from '@/utils/helper';
 
 interface SecurityCard {
   id: number;
@@ -108,7 +109,7 @@ export default function SecuritySection() {
 
         {/* Bottom Dark Banner */}
         <img
-            src="/products/wallet/securitybackground.png"
+            src={getPath("/products/wallet/securitybackground.png")}
             alt="Security and Trust Banner"
             className="w-full h-auto rounded-2xl mt-12"
           />
