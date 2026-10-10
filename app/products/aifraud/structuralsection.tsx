@@ -1,14 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
-import {
-  Wallet,
-  Users,
-  ArrowLeftRight,
-  CreditCard,
-  Sliders,
-  FileText,
-} from "lucide-react";
+import { SlidersHorizontal } from "lucide-react";
 import { getPath } from "@/utils/helper";
 
 export default function StructuralSection() {
@@ -40,15 +33,14 @@ export default function StructuralSection() {
         <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
           <div className="max-w-2xl">
             <span className="text-xs font-bold tracking-widest text-blue-600 uppercase block mb-3">
-              LIFECYCLE ARCHITECTURE
+              CORE MODULES
             </span>
             <h2 className="text-3xl sm:text-3xl lg:text-4xl font-extrabold text-slate-900 tracking-tight leading-tight">
-              Card lifecycle primitives engineered for deterministic control.
+              Make fraud review part of the product architecture, not a disconnected afterthought.
             </h2>
           </div>
-          <p className="text-slate-500 text-sm sm:text-lg leading-relaxed max-w-md font-normal">
-            Every stage operates as an autonomous, contract-driven state
-            transition backed by immutable ledger events.
+          <p className="text-slate-500 text-sm sm:text-base leading-relaxed max-w-md font-normal">
+            Bring transaction context, risk signals, configurable policies, and analyst decisions into a shared review experience. Preserve human oversight and clear decision responsibility.
           </p>
         </div>
 
@@ -58,7 +50,7 @@ export default function StructuralSection() {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
             {/* MODULE 01 */}
             <div
-              className={`lg:col-span-7 bg-white rounded-xl p-6 sm:p-8 border border-slate-100 shadow-sm flex flex-col justify-between transition-all duration-700 ease-out transform-gpu ${
+              className={`lg:col-span-7 bg-white rounded-2xl p-6 sm:p-8 border border-slate-100/80 shadow-xs flex flex-col justify-between transition-all duration-700 ease-out transform-gpu ${
                 isVisible
                   ? "opacity-100 translate-x-0"
                   : "opacity-0 -translate-x-12 pointer-events-none"
@@ -66,39 +58,29 @@ export default function StructuralSection() {
               style={{ transitionDelay: isVisible ? "0ms" : "0ms" }}
             >
               <div>
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600">
-                      <Wallet className="w-5 h-5" />
-                    </div>
-                    <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                      01 CORE MODULE
-                    </span>
-                  </div>
-                  <span className="text-[11px] font-semibold text-blue-600 bg-blue-50 px-3 py-1 rounded-full border border-blue-100">
-                    schema: v1 cards
-                  </span>
-                </div>
+                <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 block mb-3">
+                  SIGNAL CONTEXT
+                </span>
 
                 <h3 className="text-xl sm:text-2xl font-bold text-slate-900 mb-2">
-                  Module 01: Issuance &amp; Tokenization
+                  Bring Relevant Activity Into View
                 </h3>
-                <p className="text-xs sm:text-lg text-slate-500 leading-relaxed font-normal mb-6">
-                  Virtual instant provisioning, physical card manufacturing dispatch payloads, and device wallet token bindings executed via single deterministic mutations.
+                <p className="text-xs sm:text-base text-slate-500 leading-relaxed font-normal mb-6">
+                  Connect transaction details, customer history, and related activity around reviewable risk signals.
                 </p>
               </div>
 
               {/* MODULE 01 IMAGE */}
               <img
                 src={getPath('/products/cards/module1.png')}
-                alt="Module 01 Visual Asset"
+                alt="Bring Relevant Activity Into View"
                 className="w-full h-full object-contain"
               />
             </div>
 
             {/* MODULE 02 */}
             <div
-              className={`lg:col-span-5 bg-white rounded-xl p-6 sm:p-8 border border-slate-100 shadow-sm flex flex-col justify-between transition-all duration-700 ease-out transform-gpu ${
+              className={`lg:col-span-5 bg-white rounded-2xl p-6 sm:p-8 border border-slate-100/80 shadow-xs flex flex-col justify-between transition-all duration-700 ease-out transform-gpu ${
                 isVisible
                   ? "opacity-100 translate-x-0"
                   : "opacity-0 -translate-x-12 pointer-events-none"
@@ -106,27 +88,22 @@ export default function StructuralSection() {
               style={{ transitionDelay: isVisible ? "150ms" : "0ms" }}
             >
               <div>
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600">
-                    <Users className="w-5 h-5" />
-                  </div>
-                  <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                    02 RISK PERIMETER
-                  </span>
-                </div>
+                <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 block mb-3">
+                  POLICY DESIGN
+                </span>
 
                 <h3 className="text-xl sm:text-2xl font-bold text-slate-900 mb-2">
-                  Module 02: Spend Controls &amp; Velocity Rules
+                  Configure Decision Logic
                 </h3>
-                <p className="text-xs sm:text-lg text-slate-500 leading-relaxed font-normal mb-6">
-                  MCC code restrictions, merchant allowlists, country geofencing boundaries, and rolling time-window spend caps checked synchronously during authorization.
+                <p className="text-xs sm:text-base text-slate-500 leading-relaxed font-normal mb-6">
+                  Define thresholds, routing conditions, exceptions, and approval rules through controlled configuration.
                 </p>
               </div>
 
               {/* MODULE 02 IMAGE */}
               <img
                 src={getPath('/products/cards/module2.png')}
-                alt="Module 02 Visual Asset"
+                alt="Configure Decision Logic"
                 className="w-full h-full object-contain"
               />
             </div>
@@ -136,7 +113,7 @@ export default function StructuralSection() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
             {/* MODULE 03 */}
             <div
-              className={`bg-white rounded-xl p-6 sm:p-8 border border-slate-100 shadow-sm flex flex-col justify-between transition-all duration-700 ease-out transform-gpu ${
+              className={`bg-white rounded-2xl p-6 sm:p-8 border border-slate-100/80 shadow-xs flex flex-col justify-between transition-all duration-700 ease-out transform-gpu ${
                 isVisible
                   ? "opacity-100 translate-x-0"
                   : "opacity-0 -translate-x-12 pointer-events-none"
@@ -144,29 +121,25 @@ export default function StructuralSection() {
               style={{ transitionDelay: isVisible ? "300ms" : "0ms" }}
             >
               <div>
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600">
-                      <ArrowLeftRight className="w-5 h-5" />
-                    </div>
-                    <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                      03 AUTHORIZATION ENGINE
-                    </span>
-                  </div>
+                <div className="w-9 h-9 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 mb-4">
+                  <SlidersHorizontal className="w-4 h-4" />
                 </div>
+                <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 block mb-1.5">
+                  SCREENING WORKFLOW
+                </span>
 
-                <h3 className="text-lg sm:text-2xl font-bold text-slate-900 mb-2">
-                  Module 03: Authorization &amp; Dual-Custody Holds
+                <h3 className="text-lg sm:text-xl font-bold text-slate-900 mb-2">
+                  Screening With Context
                 </h3>
-                <p className="text-xs sm:text-lg text-slate-500 leading-relaxed font-normal">
-                  Cryptographic validation of spend headroom with automated hold segregation on user balance vaults. Guaranteed zero double-spend concurrency.
+                <p className="text-xs sm:text-sm text-slate-500 leading-relaxed font-normal">
+                  Present reason codes, contributing signals, policy references, and model-version context for informed review.
                 </p>
               </div>
             </div>
 
             {/* MODULE 04 */}
             <div
-              className={`bg-white rounded-xl p-6 sm:p-8 border border-slate-100 shadow-sm flex flex-col justify-between transition-all duration-700 ease-out transform-gpu ${
+              className={`bg-white rounded-2xl p-6 sm:p-8 border border-slate-100/80 shadow-xs flex flex-col justify-between transition-all duration-700 ease-out transform-gpu ${
                 isVisible
                   ? "opacity-100 translate-x-0"
                   : "opacity-0 -translate-x-12 pointer-events-none"
@@ -174,29 +147,25 @@ export default function StructuralSection() {
               style={{ transitionDelay: isVisible ? "450ms" : "0ms" }}
             >
               <div>
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600">
-                      <CreditCard className="w-5 h-5" />
-                    </div>
-                    <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                      04 CLEARING CORE
-                    </span>
-                  </div>
+                <div className="w-9 h-9 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 mb-4">
+                  <SlidersHorizontal className="w-4 h-4" />
                 </div>
+                <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 block mb-1.5">
+                  RISK CLASSIFICATION
+                </span>
 
-                <h3 className="text-lg sm:text-2xl font-bold text-slate-900 mb-2">
-                  Module 04: Clearing Correlation &amp; Capture
+                <h3 className="text-lg sm:text-xl font-bold text-slate-900 mb-2">
+                  Accountable Review Hand-offs
                 </h3>
-                <p className="text-xs sm:text-lg text-slate-500 leading-relaxed font-normal">
-                  Deterministic linking of clearing files back to exact original authorization holds. Programmatic over-capture and under-capture balance reconciliation.
+                <p className="text-xs sm:text-sm text-slate-500 leading-relaxed font-normal">
+                  Connect potential fraud alerts to reviewer assignments, evidence, escalation, and decision history.
                 </p>
               </div>
             </div>
 
             {/* MODULE 05 */}
             <div
-              className={`bg-white rounded-xl p-6 sm:p-8 border border-slate-100 shadow-sm flex flex-col justify-between transition-all duration-700 ease-out transform-gpu ${
+              className={`bg-white rounded-2xl p-6 sm:p-8 border border-slate-100/80 shadow-xs flex flex-col justify-between transition-all duration-700 ease-out transform-gpu ${
                 isVisible
                   ? "opacity-100 translate-x-0"
                   : "opacity-0 -translate-x-12 pointer-events-none"
@@ -204,22 +173,18 @@ export default function StructuralSection() {
               style={{ transitionDelay: isVisible ? "600ms" : "0ms" }}
             >
               <div>
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600">
-                      <Sliders className="w-5 h-5" />
-                    </div>
-                    <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                      05 SECURITY ISOLATION
-                    </span>
-                  </div>
+                <div className="w-9 h-9 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 mb-4">
+                  <SlidersHorizontal className="w-4 h-4" />
                 </div>
+                <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 block mb-1.5">
+                  AML CASEWORK
+                </span>
 
-                <h3 className="text-lg sm:text-2xl font-bold text-slate-900 mb-2">
-                  Module 05: Data Minimization &amp; Token Vault
+                <h3 className="text-lg sm:text-xl font-bold text-slate-900 mb-2">
+                  Alert-to-Case Workflows
                 </h3>
-                <p className="text-xs sm:text-lg text-slate-500 leading-relaxed font-normal">
-                  PCI-scope reduction through cryptographic tokens, programmatic PAN masking, and transient ephemeral keys that never touch your application layer.
+                <p className="text-xs sm:text-sm text-slate-500 leading-relaxed font-normal">
+                  Retain review outcomes and feedback to support governed policy and model evaluation.
                 </p>
               </div>
             </div>
@@ -227,7 +192,7 @@ export default function StructuralSection() {
 
           {/* BOTTOM ROW: MODULE 06 */}
           <div
-            className={`bg-white rounded-xl p-6 sm:p-8 border border-slate-100 shadow-sm flex flex-col lg:flex-row gap-8 items-stretch transition-all duration-700 ease-out transform-gpu ${
+            className={`bg-white rounded-2xl p-6 sm:p-8 border border-slate-100/80 shadow-xs flex flex-col lg:flex-row gap-8 items-stretch transition-all duration-700 ease-out transform-gpu ${
               isVisible
                 ? "opacity-100 translate-x-0"
                 : "opacity-0 -translate-x-12 pointer-events-none"
@@ -237,29 +202,24 @@ export default function StructuralSection() {
             {/* MODULE 06 LEFT TEXT CONTENT */}
             <div className="w-full lg:w-1/2 flex flex-col justify-between">
               <div>
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600">
-                    <FileText className="w-5 h-5" />
-                  </div>
-                  <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                    06 ARBITRATION &amp; REVERSAL
-                  </span>
-                </div>
+                <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 block mb-3">
+                  ONBOARDING REVIEW
+                </span>
 
                 <h3 className="text-xl sm:text-2xl font-bold text-slate-900 mb-2">
-                  Module 06: Dispute &amp; Chargeback Lifecycles
+                  Monitoring &amp; Oversight
                 </h3>
-                <p className="text-xs sm:text-lg text-slate-500 leading-relaxed font-normal">
-                  Structured evidence collection, formal scheme-independent arbitration packaging, automated representment filing, and atomic double-entry ledger reversals.
+                <p className="text-xs sm:text-base text-slate-500 leading-relaxed font-normal">
+                  Track policy changes, model references, exceptions, alert queues, and follow-up work.
                 </p>
               </div>
             </div>
 
             {/* MODULE 06 IMAGE */}
-            <div className="w-full min-h-[180px] rounded-2xl border-0 border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-400 text-center">
+            <div className="w-full lg:w-1/2 min-h-[180px] rounded-2xl border-0 border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-400 text-center">
               <img
                 src={getPath('/products/cards/module3.png')}
-                alt="Module 06 Visual Asset"
+                alt="Monitoring & Oversight"
                 className="w-full h-full object-cover"
               />
             </div>

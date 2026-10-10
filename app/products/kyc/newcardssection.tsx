@@ -1,41 +1,36 @@
 'use client';
 
 import React from 'react';
-import { Gauge, SlidersHorizontal, ShieldCheck } from 'lucide-react';
-import {getPath} from "@/utils/helper";
+import { Globe, GitFork, Shield } from 'lucide-react';
 
 interface FeatureCard {
   id: number;
   icon: React.ReactNode;
   title: string;
   description: string;
-  imageSrc?: string;
 }
 
 const cardsData: FeatureCard[] = [
   {
     id: 1,
-    icon: <Gauge className="w-4 h-4 text-blue-600" />,
-    title: 'Velocity Caps',
+    icon: <Globe className="w-5 h-5 text-blue-600" />,
+    title: 'Multi-Currency Sub-Ledgers',
     description:
-      'Enforce upper expenditure limits across calendar intervals and physical access channels.',
-    imageSrc: getPath('/products/cards/card1.png'), // Replace with your image path
+      'Establish isolated balance nodes for 60+ ISO currency codes under a singular owner profile. Decimal precision, notation rules, and rounding logic are configured per denomination.',
   },
   {
     id: 2,
-    icon: <SlidersHorizontal className="w-4 h-4 text-blue-600" />,
-    title: 'MCC Rules Engine',
+    icon: <GitFork className="w-5 h-5 text-blue-600" />,
+    title: 'Cross-Border Settlement Routing',
     description:
-      'Lock usage to verified enterprise supplier codes and automatically block high-risk categories.',
-    imageSrc: getPath('/products/cards/card2.png'), // Replace with your image path
+      'Define programmatic routing bridges connecting local depository accounts with international disbursement paths. Maintain intermediate settlement accounts during transit.',
   },
   {
     id: 3,
-    icon: <ShieldCheck className="w-4 h-4 text-blue-600" />,
-    title: 'Dual-Custody Thresholds',
+    icon: <Shield className="w-5 h-5 text-blue-600" />,
+    title: 'Programme Funding Boundaries',
     description:
-      'Require programmatic secondary operational authorization for transactions exceeding risk limits.',
-    imageSrc: getPath('/products/cards/card3.png'), // Replace with your image path
+      'Segment treasury float pools, establish distinct programmatic reserves for chargeback protection, and set automated threshold triggers to replenish operational balances.',
   },
 ];
 
@@ -45,15 +40,15 @@ export default function NewCardsSection() {
       <div className="max-w-full mx-auto space-y-12">
         
         {/* Header Section */}
-        <div className="max-w-3xl">
+        <div className="max-w-2xl">
           <span className="text-xs font-bold tracking-widest text-blue-600 uppercase block mb-3">
             MULTI-JURISDICTION SCOPE
           </span>
           <h2 className="text-3xl sm:text-4xl lg:text-[2.65rem] font-extrabold text-slate-900 tracking-tight leading-[1.15] mb-4">
-            Fine-grained policy parameters configured at the software boundary.
+            Multi-currency parameters built into core objects.
           </h2>
-          <p className="text-slate-500 text-sm sm:text-base leading-relaxed font-normal">
-            Define programmatic rules and operational thresholds across individual cards or entire fleets.
+          <p className="text-slate-500 text-sm sm:text-lg leading-relaxed font-normal">
+            Configure geographic corridors, segregated accounts, and currency pair settlement directly inside wallet templates.
           </p>
         </div>
 
@@ -62,40 +57,22 @@ export default function NewCardsSection() {
           {cardsData.map((card) => (
             <div
               key={card.id}
-              className="bg-white rounded-2xl border border-slate-100/80 shadow-xs hover:shadow-md transition-shadow duration-200 overflow-hidden flex flex-col justify-between"
+              className="bg-white rounded-2xl p-7 sm:p-8 border border-slate-100/80 shadow-xs flex flex-col justify-start hover:shadow-md transition-shadow duration-200"
             >
-              {/* Image Container Slot at Top */}
-              <div className="w-full h-48 sm:h-80 bg-slate-100 relative overflow-hidden">
-                {card.imageSrc ? (
-                  <img
-                    src={card.imageSrc}
-                    alt={card.title}
-                    className="w-full h-full object-cover object-center"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-xs font-semibold text-slate-400 bg-slate-100">
-                    Image Placeholder
-                  </div>
-                )}
+              {/* Icon Badge */}
+              <div className="w-15 h-15 rounded-xl bg-blue-50/80 border border-blue-100/60 flex items-center justify-center mt-8 mb-8 shrink-0">
+                {card.icon}
               </div>
 
-              {/* Card Content */}
-              <div className="p-6 sm:p-7 flex flex-col justify-between flex-1 space-y-3">
-                {/* Title & Icon Header Row */}
-                <div className="flex items-center justify-between gap-3">
-                  <h3 className="text-base sm:text-xl font-bold text-slate-900 leading-snug">
-                    {card.title}
-                  </h3>
-                  <div className="w-10 h-10 rounded-lg bg-blue-50/80 border border-blue-100/60 flex items-center justify-center shrink-0">
-                    {card.icon}
-                  </div>
-                </div>
+              {/* Title */}
+              <h3 className="text-lg sm:text-2xl font-bold text-slate-900 mb-5 leading-snug">
+                {card.title}
+              </h3>
 
-                {/* Description */}
-                <p className="text-xs sm:text-lg text-slate-500 leading-relaxed font-normal">
-                  {card.description}
-                </p>
-              </div>
+              {/* Description */}
+              <p className="text-xs sm:text-lg text-slate-500 leading-relaxed font-normal mb-10">
+                {card.description}
+              </p>
             </div>
           ))}
         </div>
