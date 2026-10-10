@@ -102,7 +102,7 @@ export default function StructuralSection() {
 
               {/* MODULE 02 IMAGE */}
               <img
-                src={getPath('/products/cards/module2.png')}
+                src={getPath('/products/aifraudmodule2.png')}
                 alt="Configure Decision Logic"
                 className="w-full h-full object-contain"
               />

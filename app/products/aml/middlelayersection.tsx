@@ -104,7 +104,7 @@ export default function MiddleLayerSection() {
             A configurable Middle Layer <span className="text-blue-600">for AML Review</span>
           </h2>
           <p className="text-sm sm:text-base text-slate-500 font-normal leading-relaxed max-w-2xl mx-auto">
-            Monetize existing institutional, enterprise, and broker relationships by embedding modular banking, foreign exchange, and treasury directly under your brand.
+            Connect monitoring signals with customer context, transaction activity, investigation cases, and evidence records while keeping escalation responsibilities clearly defined.
           </p>
         </div>
 

@@ -22,6 +22,8 @@ import DropdownSection from "./dropdownsection";
 import Link from "next/link";
 import NewCardSection from "./newcardssection";
 import MiddleLayerSection from "./middlelayersection";
+import LargeCardSection from "./largecardsection";
+
 
 export default function ForCreditUnions() {
   const [heroVisible, setHeroVisible] = useState(false);
@@ -96,7 +98,7 @@ export default function ForCreditUnions() {
           {/* MOBILE ONLY IMAGE */}
           <div className="block md:hidden w-full overflow-hidden rounded-2xl shadow-2xl shadow-slate-300/60 pl-4 pr-0 pt-10 pb-20">
             <img 
-              src={getPath("/mobileimage.png")} 
+              src={getPath("/products/amlmobile.png")} 
               alt="Fintech Connect dashboard visualization mobile"
               className="w-full h-auto transform scale-128 origin-left" 
             />
@@ -104,7 +106,7 @@ export default function ForCreditUnions() {
 
           {/* DESKTOP ONLY IMAGE */}
           <img 
-            src={getPath("/products/cards/hero.png")} 
+            src={getPath("/products/amlhero.png")} 
             alt="Fintech Connect dashboard visualization"
             className="hidden md:block w-full h-auto md:px-20 md:py-12 md:mb-0 md:object-contain rounded-2xl shadow-2xl shadow-slate-300/60"
           />
@@ -118,8 +120,12 @@ export default function ForCreditUnions() {
       <StructuralSection />
       
       <NewCardSection />
+      
+
       <MiddleLayerSection />
       
+      <LargeCardSection />
+
       <Newpartnersection />
       
       {/* <CardSection /> */}

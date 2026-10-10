@@ -72,7 +72,7 @@ export default function StructuralSection() {
 
               {/* MODULE 01 IMAGE */}
               <img
-                src={getPath('/products/cards/module1.png')}
+                src={getPath('/products/kybmodule1.png')}
                 alt="Individual Identity Journeys"
                 className="w-full h-full object-contain"
               />
@@ -102,7 +102,7 @@ export default function StructuralSection() {
 
               {/* MODULE 02 IMAGE */}
               <img
-                src={getPath('/products/cards/module2.png')}
+                src={getPath('/products/kybmodule2.png')}
                 alt="Business Verification & Ownership"
                 className="w-full h-full object-contain"
               />
@@ -218,7 +218,7 @@ export default function StructuralSection() {
             {/* MODULE 06 IMAGE */}
             <div className="w-full lg:w-1/2 min-h-[180px] rounded-2xl border-0 border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-400 text-center">
               <img
-                src={getPath('/products/cards/module3.png')}
+                src={getPath('/products/kybmodule3.png')}
                 alt="Periodic Review & Evidence History"
                 className="w-full h-full object-cover"
               />

@@ -36,11 +36,11 @@ export default function StructuralSection() {
               CORE MODULES
             </span>
             <h2 className="text-3xl sm:text-3xl lg:text-4xl font-extrabold text-slate-900 tracking-tight leading-tight">
-              Bring identity, business context, and review into one decision-ready journey.
+              Connect alerts, investigation context, evidence, and reporting preparation.
             </h2>
           </div>
           <p className="text-slate-500 text-sm sm:text-base leading-relaxed max-w-md font-normal">
-            Build onboarding workflows that connect customer information, business relationships, screening inputs, and supporting evidence. Keep verification results distinct from final decisions while giving teams the context they need for informed review.
+            Bring structure to AML operations with configurable workflows that connect monitoring activity, investigation records, reviewer decisions, and controlled escalation.
           </p>
         </div>
 
@@ -59,21 +59,21 @@ export default function StructuralSection() {
             >
               <div>
                 <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 block mb-3">
-                  ONBOARDING DESIGN
+                  MONITORING CONTEXT
                 </span>
 
                 <h3 className="text-xl sm:text-2xl font-bold text-slate-900 mb-2">
-                  Individual Identity Journeys
+                  Bring Related Activity Into View
                 </h3>
                 <p className="text-xs sm:text-base text-slate-500 leading-relaxed font-normal mb-6">
-                  Collect identity information, consent, and supporting documents through a structured onboarding process.
+                  Connect customer, account, transaction, and historical case information around monitoring signals.
                 </p>
               </div>
 
               {/* MODULE 01 IMAGE */}
               <img
-                src={getPath('/products/cards/module1.png')}
-                alt="Individual Identity Journeys"
+                src={getPath('/products/amlmodule1.png')}
+                alt="Bring Related Activity Into View"
                 className="w-full h-full object-contain"
               />
             </div>
@@ -89,21 +89,21 @@ export default function StructuralSection() {
             >
               <div>
                 <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 block mb-3">
-                  BUSINESS CONTEXT
+                  ALERT TRIAGE
                 </span>
 
                 <h3 className="text-xl sm:text-2xl font-bold text-slate-900 mb-2">
-                  Business Verification &amp; Ownership
+                  Structure Alert Assessment
                 </h3>
                 <p className="text-xs sm:text-base text-slate-500 leading-relaxed font-normal mb-6">
-                  Connect business details, ownership relationships, and authorised representatives in one reviewable view.
+                  Organise alerts by priority, supporting context, reviewer assignment, and next steps.
                 </p>
               </div>
 
               {/* MODULE 02 IMAGE */}
               <img
-                src={getPath('/products/cards/module2.png')}
-                alt="Business Verification & Ownership"
+                src={getPath('/products/amlmodule2.png')}
+                alt="Structure Alert Assessment"
                 className="w-full h-full object-contain"
               />
             </div>
@@ -132,7 +132,7 @@ export default function StructuralSection() {
                   Screening With Context
                 </h3>
                 <p className="text-xs sm:text-sm text-slate-500 leading-relaxed font-normal">
-                  Review potential matches alongside supporting information, decision reasons, and escalation paths.
+                  Bring investigation notes, linked records, supporting documents, and reviewer decisions into one case.
                 </p>
               </div>
             </div>
@@ -155,10 +155,10 @@ export default function StructuralSection() {
                 </span>
 
                 <h3 className="text-lg sm:text-xl font-bold text-slate-900 mb-2">
-                  Configurable Risk Assessment
+                  Route Accountable Decisions
                 </h3>
                 <p className="text-xs sm:text-sm text-slate-500 leading-relaxed font-normal">
-                  Assess customer and business risk using programme-defined factors, evidence, and review rules.
+                  Define approval responsibilities, escalation conditions, and review handoffs for sensitive cases.
                 </p>
               </div>
             </div>
@@ -184,7 +184,7 @@ export default function StructuralSection() {
                   Alert-to-Case Workflows
                 </h3>
                 <p className="text-xs sm:text-sm text-slate-500 leading-relaxed font-normal">
-                  Connect monitoring signals to case assignments, supporting evidence, and review stages.
+                  Organise case records and supporting evidence for programme-approved reporting processes.
                 </p>
               </div>
             </div>
@@ -207,10 +207,10 @@ export default function StructuralSection() {
                 </span>
 
                 <h3 className="text-xl sm:text-2xl font-bold text-slate-900 mb-2">
-                  Periodic Review &amp; Evidence History
+                  Review Change Over Time
                 </h3>
                 <p className="text-xs sm:text-base text-slate-500 leading-relaxed font-normal">
-                  Keep previous decisions, refreshed evidence, and reassessment triggers connected over time.
+                  Track new alerts, changing circumstances, prior decisions, and outstanding review tasks.
                 </p>
               </div>
             </div>
@@ -218,8 +218,8 @@ export default function StructuralSection() {
             {/* MODULE 06 IMAGE */}
             <div className="w-full lg:w-1/2 min-h-[180px] rounded-2xl border-0 border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-400 text-center">
               <img
-                src={getPath('/products/cards/module3.png')}
-                alt="Periodic Review & Evidence History"
+                src={getPath('/products/amlmodule3.png')}
+                alt="Review Change Over Time"
                 className="w-full h-full object-cover"
               />
             </div>
