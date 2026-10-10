@@ -1,4 +1,5 @@
 // app/terms/page.tsx
+"use client";
 import LegalPageLayout from "@/components/LegalPageLayout";
 import Navbar from "../navbar";
 import FooterSection from "@/app/Footersection";

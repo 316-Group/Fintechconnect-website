@@ -21,6 +21,7 @@ import DropdownSection from "./dropdownsection";
 
 import Link from "next/link";
 import NewCardSection from "./newcardssection";
+import MiddleLayerSection from "./middlelayersection";
 
 export default function ForCreditUnions() {
   const [heroVisible, setHeroVisible] = useState(false);
@@ -117,6 +118,7 @@ export default function ForCreditUnions() {
       <StructuralSection />
       
       <NewCardSection />
+      <MiddleLayerSection />
       
       
       <Newpartnersection />

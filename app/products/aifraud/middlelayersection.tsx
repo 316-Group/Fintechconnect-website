@@ -101,7 +101,7 @@ export default function MiddleLayerSection() {
             YOU BRING THE RELATIONSHIP - WE POWER THE ENGINE
           </span>
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-slate-900 tracking-tight leading-tight mb-4">
-            A configurable Middle Layer <span className="text-blue-600">for AML Review</span>
+            A Configurable Middle Layer <span className="text-blue-600">for Fraud Monitoring</span>
           </h2>
           <p className="text-sm sm:text-base text-slate-500 font-normal leading-relaxed max-w-2xl mx-auto">
             Monetize existing institutional, enterprise, and broker relationships by embedding modular banking, foreign exchange, and treasury directly under your brand.

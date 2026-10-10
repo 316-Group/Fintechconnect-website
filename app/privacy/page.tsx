@@ -1,4 +1,8 @@
 // app/privacy/page.tsx
+"use client";
+
+import React from "react";
+
 import LegalPageLayout from "@/components/LegalPageLayout";
 import Navbar from "../navbar";
 import FooterSection from "@/app/Footersection";
