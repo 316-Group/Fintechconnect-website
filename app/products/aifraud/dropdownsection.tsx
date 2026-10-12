@@ -18,101 +18,101 @@ interface OperatingProfile {
 
 const operatingProfiles: OperatingProfile[] = [
   {
-    id: 'corporate-expense-fleet',
+    id: 'real-time-transaction-scoring',
     stepNumber: '01',
-    title: 'Corporate Expense & Fleet Operators',
-    profileSubtitle: 'Profile: Dynamic Fleet & Employee Spend Management',
+    title: 'Real-Time Transaction Risk Scoring',
+    profileSubtitle: 'Profile: In-Flight Machine Learning Inference & Scoring',
     overview:
-      'Automate enterprise procurement and employee travel expense management with instant virtual card creation, automated receipt matching, and strict merchant category locks.',
+      'Evaluate authorization payloads instantly against advanced behavioral models, device fingerprinting, and network anomaly detection heuristics before funds leave the vault.',
     capabilities: [
       {
-        title: 'Merchant Category (MCC) Locking',
-        description: 'Restrict card usage strictly to fuel stations, airlines, hotel chains, or pre-approved SaaS suppliers.',
+        title: 'Sub-Millisecond Model Inference',
+        description: 'Execute deep neural networks and gradient boosting classifiers within the synchronous authorization window.',
       },
       {
-        title: 'Automated Spend Thresholds',
-        description: 'Set daily, weekly, or per-transaction spending caps with real-time approval workflow triggers.',
+        title: 'Behavioral Baseline Profiling',
+        description: 'Detect velocity spikes, unusual spending geography shifts, and device anomalies against historical customer baselines.',
       },
       {
-        title: 'Real-time ERP & Accounting Sync',
-        description: 'Automatically stream transaction receipts and line-item categorization directly to your ERP or accounting ledger.',
+        title: 'Automated Decision Routing',
+        description: 'Dynamically route transactions across Approve, Challenge, Step-up MFA, or Decline pathways based on risk scores.',
       },
     ],
-    tags: ['MCC Locking', 'Fleet Controls', 'ERP Sync', 'Real-time Approvals'],
+    tags: ['Sub-ms Inference', 'Behavioral Biometrics', 'Device Fingerprinting', 'Automated Routing'],
   },
   {
-    id: 'neobanks-consumer-wallets',
+    id: 'adaptive-policy-orchestration',
     stepNumber: '02',
-    title: 'Fintech Neobanks & Consumer Wallets',
-    profileSubtitle: 'Profile: Physical & Virtual Debit/Credit Programme',
+    title: 'Adaptive Policy & Rule Orchestration',
+    profileSubtitle: 'Profile: Dynamic Risk Thresholds & Compliance Controls',
     overview:
-      'Issue white-labeled physical and Apple/Google Pay virtual cards directly to consumer wallets with customizable cashback tiers, push provisioning, and instant freeze controls.',
+      'Empower risk engineering teams to deploy, version-control, and test sophisticated rule sets without requiring disruptive code deployments or core infrastructure updates.',
     capabilities: [
       {
-        title: 'Instant Push Provisioning',
-        description: 'Allow users to add newly issued virtual cards directly to Apple Wallet or Google Pay within seconds.',
+        title: 'Visual Policy Builder',
+        description: 'Construct multi-variable logical rules combining velocity checks, MCC restrictions, and ML risk tiers.',
       },
       {
-        title: 'Customizable Rewards Engine',
-        description: 'Configure real-time cashback, merchant discounts, and loyalty point accruals per customer account tier.',
+        title: 'Shadow Mode Testing',
+        description: 'Evaluate new fraud rules against live historical traffic in shadow mode to measure false-positive impacts safely.',
       },
       {
-        title: 'Interactive Card Controls',
-        description: 'Enable instant card freezing, PIN resets, online purchase toggles, and international usage restrictions.',
+        title: 'Version-Controlled Audit Logs',
+        description: 'Maintain immutable records of every rule modification, policy author, and deployment timestamp for compliance audits.',
       },
     ],
-    tags: ['Apple/Google Pay', 'Push Provisioning', 'Rewards Engine', 'Card Freeze Controls'],
+    tags: ['Visual Rule Builder', 'Shadow Testing', 'Version Control', 'Audit Trails'],
   },
   {
-    id: 'marketplaces-contractor-payouts',
+    id: 'intelligent-analyst-casework',
     stepNumber: '03',
-    title: 'Marketplaces & Contractor Payouts',
-    profileSubtitle: 'Profile: Gig-Economy & Vendor Disbursement Cards',
+    title: 'Intelligent Analyst Casework & Triage',
+    profileSubtitle: 'Profile: Human-in-the-Loop Investigation Workbenches',
     overview:
-      'Streamline gig-worker disbursements, seller payouts, and contractor fee management with instant payout cards tied directly to marketplace balance sub-ledgers.',
+      'Streamline manual fraud investigations by aggregating linked entity networks, transaction graphs, and automated evidence packages into a unified analyst workbench.',
     capabilities: [
       {
-        title: 'Instant On-Demand Payouts',
-        description: 'Disburse gig earnings or seller funds directly onto dedicated payout cards immediately upon task completion.',
+        title: 'Automated Evidence Packaging',
+        description: 'Instantly assemble KYC records, related alert timelines, and device fingerprints when an escalation triggers.',
       },
       {
-        title: 'Sub-Ledger Earnings Isolation',
-        description: 'Separate gross earnings, marketplace take-rates, and tax reserves into distinct balance partitions.',
+        title: 'Entity Link Analysis',
+        description: 'Visualize hidden connections between colluding fraud rings using shared devices, funding sources, or IP addresses.',
       },
       {
-        title: 'Global Contractor Multi-Currency',
-        description: 'Issue localized virtual card accounts to international contractors across 60+ currencies.',
+        title: 'SLA-Driven Queue Routing',
+        description: 'Intelligently distribute cases to analysts based on specialization, current caseload, and severity SLAs.',
       },
     ],
-    tags: ['Instant Payouts', 'Gig Economy', 'Tax Sub-Ledgers', 'Multi-Currency'],
+    tags: ['Case Management', 'Entity Link Analysis', 'Evidence Aggregation', 'Queue Routing'],
   },
   {
-    id: 'embedded-vertical-saas',
+    id: 'feedback-loop-model-retraining',
     stepNumber: '04',
-    title: 'Embedded & Vertical SaaS Platforms',
-    profileSubtitle: 'Profile: White-Label Native Financial Workflows',
+    title: 'Feedback Loop & Model Retraining',
+    profileSubtitle: 'Profile: Closed-Loop Machine Learning Optimization',
     overview:
-      'Embed card issuance directly into industry-specific software (healthcare, construction, logistics) to monetize software usage through interchange revenue sharing models.',
+      'Connect downstream chargeback adjudications and manual analyst verdicts directly back to upstream model training pipelines to continually suppress false positives.',
     capabilities: [
       {
-        title: 'Interchange Revenue Sharing',
-        description: 'Monetize platform transaction volume through programmatic interchange revenue split structures.',
+        title: 'Chargeback Reconciliation Sync',
+        description: 'Automatically map confirmed fraud chargebacks and dispute outcomes back to original model prediction scores.',
       },
       {
-        title: 'White-Label UI Components',
-        description: 'Integrate fully customizable, PCI-compliant card management components directly into your web app.',
+        title: 'Drift Monitoring & Alerts',
+        description: 'Detect data drift and feature degradation in production machine learning models with automated alerting triggers.',
       },
       {
-        title: 'Contextual Single-Use Virtual Cards',
-        description: 'Generate ephemeral single-use virtual cards automatically when purchase orders or invoices are approved.',
+        title: 'Automated Labeling Pipelines',
+        description: 'Streamline training dataset generation using verified analyst review labels and final transaction disposition states.',
       },
     ],
-    tags: ['Embedded Finance', 'Interchange Revenue', 'PCI-Compliant SDK', 'Single-Use Virtual Cards'],
+    tags: ['Model Retraining', 'Drift Monitoring', 'Chargeback Sync', 'Feedback Loops'],
   },
 ];
 
 export default function DropdownSection() {
-  const [openProfileId, setOpenProfileId] = useState<string | null>('corporate-expense-fleet');
+  const [openProfileId, setOpenProfileId] = useState<string | null>('real-time-transaction-scoring');
 
   const toggleProfile = (id: string) => {
     setOpenProfileId((prev) => (prev === id ? null : id));
@@ -129,11 +129,11 @@ export default function DropdownSection() {
               OPERATING FRAMEWORKS
             </span>
             <h2 className="text-3xl sm:text-4xl lg:text-[2.65rem] font-extrabold text-slate-900 tracking-tight leading-[1.15]">
-              Configured for diverse issuance models.
+              Configured for advanced AI fraud prevention.
             </h2>
           </div>
           <p className="text-slate-500 text-sm sm:text-lg leading-relaxed max-w-sm font-normal">
-            Explore architectural configurations tailored to specific corporate, retail, and embedded platform programmes.
+            Explore architectural frameworks tailored to real-time machine learning scoring, adaptive policy orchestration, and automated threat defense.
           </p>
         </div>
 

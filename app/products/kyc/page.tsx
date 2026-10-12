@@ -95,7 +95,7 @@ export default function ForCreditUnions() {
           style={{ transitionDelay: '450ms' }}
         >
           {/* MOBILE ONLY IMAGE */}
-          <div className="block md:hidden w-full overflow-hidden rounded-2xl shadow-2xl shadow-slate-300/60 pl-4 pr-0 pt-10 pb-20">
+          <div className="block md:hidden w-full overflow-hidden rounded-2xl shadow-2xl shadow-slate-300/60 pl-0 pr-0 pt-10 pb-20">
             <img 
               src={getPath("/products/kybhero.png")} 
               alt="Fintech Connect dashboard visualization mobile"

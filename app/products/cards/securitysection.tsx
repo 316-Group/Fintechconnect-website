@@ -108,11 +108,11 @@ export default function SecuritySection() {
         </div>
 
         {/* Bottom Dark Banner */}
-        <img
-            src={getPath("/products/wallet/securitybackground.png")}
-            alt="Security and Trust Banner"
-            className="w-full h-auto rounded-2xl mt-12"
-          />
+                <img
+                    src={getPath("/products/wallet/securitybackground.png")}
+                    alt="Security and Trust Banner"
+                    className="hidden md:block w-full h-auto rounded-2xl mt-12"
+                  />
       
   
 
