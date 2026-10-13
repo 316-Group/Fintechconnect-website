@@ -26,42 +26,42 @@ const orbitNodes: OrbitNode[] = [
     title: 'Accounts',
     subtitle: 'Multi-currency IBANs',
     icon: <Lock className="w-7 h-7 text-blue-600" />,
-    angle: 270, // Top
+    angle: 270,
   },
   {
     id: 'cards',
     title: 'Cards',
     subtitle: 'Virtual & Physical',
     icon: <CreditCard className="w-7 h-7 text-blue-600" />,
-    angle: 330, // Top Right
+    angle: 330,
   },
   {
     id: 'payments',
     title: 'Payments',
     subtitle: 'SWIFT, SEPA, Faster',
     icon: <ArrowLeftRight className="w-7 h-7 text-blue-600" />,
-    angle: 30, // Bottom Right
+    angle: 30,
   },
   {
     id: 'fx',
     title: 'FX & Exchange',
     subtitle: 'Real-time spreads',
     icon: <RefreshCw className="w-7 h-7 text-blue-600" />,
-    angle: 90, // Bottom
+    angle: 90,
   },
   {
     id: 'treasury',
     title: 'Treasury & Ledger',
     subtitle: 'Automated flow',
     icon: <Building2 className="w-7 h-7 text-blue-600" />,
-    angle: 150, // Bottom Left
+    angle: 150,
   },
   {
     id: 'compliance',
     title: 'Compliance & KYC',
     subtitle: 'Real-time screening',
     icon: <ShieldCheck className="w-7 h-7 text-blue-600" />,
-    angle: 210, // Top Left
+    angle: 210,
   },
 ];
 
@@ -93,26 +93,26 @@ export default function MiddleLayerSection() {
         }
       `}</style>
 
-      {/* Constrained max-w-7xl container to keep side cards tied to the center graphic */}
-      <div className="max-w-7xl mx-auto">
+      {/* Expanded container width to give optimal room between elements */}
+      <div className="max-w-[1520px] mx-auto">
         {/* Header Section */}
         <div className="text-center max-w-3xl mx-auto mb-12 sm:mb-16">
           <span className="text-xs font-bold tracking-widest text-blue-600 uppercase block mb-3">
             YOU BRING THE RELATIONSHIP - WE POWER THE ENGINE
           </span>
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-slate-900 tracking-tight leading-tight mb-4">
-            A Configurable Middle Layer <span className="text-blue-600">for Fraud Monitoring</span>
+            A configurable Middle Layer <span className="text-blue-600">for AI Fraud</span>
           </h2>
           <p className="text-sm sm:text-base text-slate-500 font-normal leading-relaxed max-w-2xl mx-auto">
-            Monetize existing institutional, enterprise, and broker relationships by embedding modular banking, foreign exchange, and treasury directly under your brand.
+            Connect monitoring signals with customer context, transaction activity, investigation cases, and evidence records while keeping escalation responsibilities clearly defined.
           </p>
         </div>
 
-        {/* Main Content Layout */}
-        <div className="flex flex-col lg:flex-row items-center justify-center gap-8 lg:gap-8 relative">
+        {/* Main Content Layout with controlled wider gaps */}
+        <div className="flex flex-col lg:flex-row items-center justify-between gap-10 lg:gap-18 relative">
           
           {/* Left Card: Front-End */}
-          <div className="w-full lg:w-72 bg-white rounded-2xl p-6 border border-slate-100 shadow-xl shadow-blue-950/5 relative z-10 shrink-0">
+          <div className="w-full max-w-md lg:max-w-none lg:w-80 bg-white rounded-2xl p-6 sm:p-7 border border-slate-100 shadow-xl shadow-blue-950/5 relative z-10 shrink-0">
             <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white mb-4 shadow-md shadow-blue-500/20">
               <Monitor className="w-5 h-5" />
             </div>
@@ -125,19 +125,19 @@ export default function MiddleLayerSection() {
               Your clients use <span className="text-blue-600">your platform</span>
             </h3>
 
-            <p className="text-xs text-slate-500 leading-relaxed">
+            <p className="text-xs sm:text-sm text-slate-500 leading-relaxed">
               Seamless financial experience they already trust. Fully white-labeled web app, mobile app, and client portal styled with your logo and domain.
             </p>
           </div>
 
           {/* Center Graphic: Orbiting Wheel */}
-          <div className="relative w-[340px] sm:w-[520px] lg:w-[600px] h-[340px] sm:h-[520px] lg:h-[600px] flex items-center justify-center shrink-0 my-4 lg:my-0">
+          <div className="relative w-[340px] sm:w-[520px] lg:w-[560px] h-[340px] sm:h-[520px] lg:h-[560px] flex items-center justify-center shrink-0 my-4 lg:my-0">
             
             {/* Background Glow & Static Circles */}
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
               <div className="w-[80%] h-[80%] rounded-full bg-radial from-blue-200/80 via-blue-100/40 to-transparent blur-2xl" />
-              <div className="absolute w-[240px] sm:w-[380px] lg:w-[400px] h-[240px] sm:h-[380px] lg:h-[400px] rounded-full border border-blue-200/50 border-dashed" />
-              <div className="absolute w-[310px] sm:w-[490px] lg:w-[520px] h-[310px] sm:h-[490px] lg:h-[520px] rounded-full border border-slate-100" />
+              <div className="absolute w-[240px] sm:w-[380px] lg:w-[380px] h-[240px] sm:h-[380px] lg:h-[380px] rounded-full border border-blue-200/50 border-dashed" />
+              <div className="absolute w-[310px] sm:w-[490px] lg:w-[490px] h-[310px] sm:h-[490px] lg:h-[490px] rounded-full border border-slate-100" />
             </div>
 
             {/* Static Center Logo Hub */}
@@ -224,7 +224,7 @@ export default function MiddleLayerSection() {
           </div>
 
           {/* Right Card: Value Creation */}
-          <div className="w-full lg:w-72 bg-white rounded-2xl p-6 border border-slate-100 shadow-xl shadow-blue-950/5 relative z-10 shrink-0">
+          <div className="w-full max-w-md lg:max-w-none lg:w-80 bg-white rounded-2xl p-6 sm:p-7 border border-slate-100 shadow-xl shadow-blue-950/5 relative z-10 shrink-0">
             <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white mb-4 shadow-md shadow-blue-500/20">
               <TrendingUp className="w-5 h-5" />
             </div>
@@ -237,7 +237,7 @@ export default function MiddleLayerSection() {
               You unlock <span className="text-blue-600">recurring revenue</span>
             </h3>
 
-            <p className="text-xs text-slate-500 leading-relaxed">
+            <p className="text-xs sm:text-sm text-slate-500 leading-relaxed">
               Every deposit, card transaction, FX conversion, and account transfer creates high-margin recurring fee revenue for your business model.
             </p>
           </div>

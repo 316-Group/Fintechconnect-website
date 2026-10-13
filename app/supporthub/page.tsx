@@ -202,14 +202,14 @@ export default function SupportHubPage() {
                     >
                       <button
                         onClick={() => toggleFaq(currentId)}
-                        className="w-full py-5 flex items-center justify-between text-left group hover:text-[#f0004c] transition-colors focus:outline-none"
+                        className="w-full py-5 flex items-center justify-between text-left group hover:text-blue-600 transition-colors focus:outline-none"
                       >
-                        <span className="text-lg font-semibold text-slate-900 group-hover:text-[#f0004c] transition-colors pr-6">
+                        <span className="text-lg font-semibold text-slate-900 group-hover:text-blue-600 transition-colors pr-6">
                           {faq.question}
                         </span>
                         
                         {/* Smoothly shifting Plus/Minus symbol */}
-                        <div className="relative flex items-center justify-center w-6 h-6 shrink-0 text-slate-500 group-hover:text-[#f0004c]">
+                        <div className="relative flex items-center justify-center w-6 h-6 shrink-0 text-slate-500 group-hover:text-blue-600">
                           <span className={`absolute w-4 h-0.5 bg-current transform transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
                           <span className={`absolute h-4 w-0.5 bg-current transform transition-transform duration-200 ${isOpen ? 'rotate-90 scale-0' : ''}`} />
                         </div>
