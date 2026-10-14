@@ -8,6 +8,7 @@ import HoverSection from "@/app/solutions/fintech-startups/hoversection";
 import BuildSection from './buildsection';
 import BackgroundSection from './backgroundsection';
 import NewCardsSection from './newcardssection';
+import CanvasSection from './canvassection';
 
 export default function WhiteLabelHero() {
   return (
@@ -55,8 +56,8 @@ export default function WhiteLabelHero() {
       </section>
       
       <NewCardsSection />
+      <CanvasSection />
       <BuildSection />
-
       <HoverSection />
       <BackgroundSection />
       <Footersection />
