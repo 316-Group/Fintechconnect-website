@@ -73,7 +73,7 @@ export default function BuildSection() {
   // Dynamic token radius mapper for desktop view elements
   const getRadiusClass = () => {
     if (buttonRadius === 'sharp') return 'rounded-none';
-    if (buttonRadius === 'pill') return 'rounded-full';
+    if (buttonRadius === 'pill') return 'rounded-3xl';
     return 'rounded-xl';
   };
 
