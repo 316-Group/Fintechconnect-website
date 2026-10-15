@@ -88,8 +88,8 @@ export default function Navbar() {
       { title: "AI Fraud Monitoring", description: "Comprehensive audit logs and compliance reporting for regulatory bodies", href: "/products/aifraud" }
     ],
     "Client-Facing Products": [
-      { title: "White-Label Bank Portal", description: "Native iOS and Android applications for seamless customer banking experiences", href: "/white-label" },
-      { title: "Mobile Applications", description: "Responsive web application for full banking capabilities on desktop and tablet", href: "/products/mobile-app" },
+      { title: "White-Label Bank Portal", description: "Responsive web application for full banking capabilities on desktop and tablet", href: "/white-label" },
+      { title: "Mobile Applications", description: "Native iOS and Android applications for seamless customer banking experiences", href: "/products/mobile-app" },
       { title: "Crypto Wallets", description: "Powerful REST APIs for third-party integrations and custom applications", href: "/products/crypto-wallets" }
     ],
     "Pre-Built UI Library": [

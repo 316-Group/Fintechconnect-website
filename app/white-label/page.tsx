@@ -20,7 +20,7 @@ export default function WhiteLabelHero() {
           
           {/* CENTERED HEADER, SUBTITLE & CTA */}
           <div className="max-w-5xl text-center space-y-6">
-            <h1 className="text-4xl sm:text-5xl lg:text-5xl text-slate-900 tracking-tight leading-[1.15]">
+            <h1 className="text-4xl sm:text-5xl lg:text-5xl text-slate-900 font-bold tracking-tight leading-[1.15]">
               Your brand. Your banking experience.<br />
               Built <span className="text-blue-600">exactly the way you envision it.</span>
             </h1>
