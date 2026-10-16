@@ -90,7 +90,7 @@ export default function Navbar() {
     "Client-Facing Products": [
       { title: "White-Label Bank Portal", description: "Responsive web application for full banking capabilities on desktop and tablet", href: "/white-label" },
       { title: "Mobile Applications", description: "Native iOS and Android applications for seamless customer banking experiences", href: "/products/mobile-app" },
-      { title: "Crypto Wallets", description: "Powerful REST APIs for third-party integrations and custom applications", href: "/products/cryptowallets" }
+      { title: "Crypto Wallets", description: "Powerful REST APIs for third-party integrations and custom applications", href: "/products/crypto-wallets" }
     ],
     "Pre-Built UI Library": [
       { title: "Design Tokens", description: "Customizable design tokens for consistent theming across all your applications", href: "/products/design-tokens" },
