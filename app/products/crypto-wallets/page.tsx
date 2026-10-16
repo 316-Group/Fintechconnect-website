@@ -12,6 +12,7 @@ import NewCardsSection from './newcardssection';
 import DevSection from './devsection';
 import ModelSection from './modelsection';
 import ConfigSection from './configsection';
+import NewBackgroundSection from './newbackgroundsection';
 
 
 export default function WhiteLabelHero() {
@@ -63,6 +64,7 @@ export default function WhiteLabelHero() {
       <StructuralSection />
       <ConfigSection />
       <DevSection />
+      <NewBackgroundSection />
       <HoverSection />
       <BackgroundSection />
       <Footersection />

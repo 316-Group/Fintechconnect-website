@@ -8,50 +8,176 @@ import {
   CreditCard, 
   ArrowLeftRight, 
   Bell, 
-  Lock, 
   FileText, 
-  Sparkles, 
   Sun, 
   Moon, 
   Monitor, 
-  Upload, 
-  CheckCircle2,
   Sliders,
   Home,
   PieChart,
   Settings,
   RefreshCw,
-  TrendingUp,
-  LockKeyhole,
-  ChevronRight,
-  Search,
-  Wallet,
   PiggyBank,
-  Plus,
-  ArrowUpRight,
   ArrowDownLeft,
   Palette,
   LayoutGrid,
-  GripVertical
+  GripVertical,
+  Plus,
+  Trash2
 } from 'lucide-react';
 
-interface ModuleItem {
+interface ModuleAsset {
   id: string;
   title: string;
   subtitle: string;
   category: 'balances' | 'actions' | 'fx' | 'ledger' | 'security';
-  icon: React.ReactNode;
+  badge: string;
+  badgeColor: string;
+  renderPreview: (accentColor: string, radiusClass: string, isDark: boolean) => React.ReactNode;
 }
 
-const availableModules: ModuleItem[] = [
-  { id: 'accounts', title: 'Multi-Layer Balance Card', subtitle: 'Available vs Reserved breakdown', category: 'balances', icon: <CreditCard className="w-4 h-4 text-blue-600" /> },
-  { id: 'cards', title: 'Virtual Metallic Card', subtitle: 'Debit card widget with freeze & chip', category: 'balances', icon: <Sliders className="w-4 h-4 text-blue-600" /> },
-  { id: 'transfers', title: 'Quick Actions Matrix', subtitle: 'Send, Request, Pay & QR shortcuts', category: 'actions', icon: <ArrowLeftRight className="w-4 h-4 text-blue-600" /> },
-  { id: 'fx', title: 'FX Ticker & Wallets', subtitle: 'Multi-currency wallets with live spread', category: 'fx', icon: <RefreshCw className="w-4 h-4 text-blue-600" /> },
-  { id: 'vaults', title: 'Automated Vaults & Goals', subtitle: 'High-yield savings pockets', category: 'balances', icon: <PiggyBank className="w-4 h-4 text-blue-600" /> },
-  { id: 'analytics', title: 'Spending Intelligence', subtitle: 'Merchant categorization & budgets', category: 'ledger', icon: <PieChart className="w-4 h-4 text-blue-600" /> },
-  { id: 'security', title: 'Biometric Shield & 2FA', subtitle: 'FaceID, session tokens & audit', category: 'security', icon: <ShieldCheck className="w-4 h-4 text-blue-600" /> },
-  { id: 'notifications', title: 'Real-Time Webhooks', subtitle: 'Push alerts & instant triggers', category: 'security', icon: <Bell className="w-4 h-4 text-blue-600" /> },
+const availableModules: ModuleAsset[] = [
+  { 
+    id: 'accounts', 
+    title: 'Multi-Layer Balance Card', 
+    subtitle: 'Available vs Reserved breakdown', 
+    category: 'balances', 
+    badge: 'Core',
+    badgeColor: 'bg-blue-50 text-blue-600 border border-blue-100',
+    renderPreview: (accentColor, radiusClass, isDark) => (
+      <div className={`p-4 text-white shadow-md bg-gradient-to-br from-blue-600 via-indigo-600 to-blue-700 relative overflow-hidden ${radiusClass}`}>
+        <span className="text-[10px] font-bold uppercase tracking-wider opacity-80 block mb-1">Primary Checking Account</span>
+        <div className="text-xl font-black tracking-tight mb-2">$24,650.00</div>
+        <div className="flex justify-between items-center text-[10px] opacity-90 border-t border-white/20 pt-2">
+          <span>Avail: $23,800.00</span>
+          <span>Hold: $850.00</span>
+        </div>
+      </div>
+    )
+  },
+  { 
+    id: 'cards', 
+    title: 'Recent Activity Card', 
+    subtitle: 'Show recent activity with merchant logos', 
+    category: 'balances', 
+    badge: 'Security',
+    badgeColor: 'bg-purple-50 text-purple-600 border border-purple-100',
+    renderPreview: (accentColor, radiusClass, isDark) => (
+      <div className={`p-3.5 text-white shadow-md bg-gradient-to-tr from-slate-900 via-blue-950 to-slate-800 border border-white/10 ${radiusClass}`}>
+        <div className="flex justify-between items-start mb-2">
+          <span className="font-extrabold text-[10px] tracking-wider">APEX PLATINUM</span>
+          <CreditCard className="w-3.5 h-3.5 opacity-80" />
+        </div>
+        <div className="font-mono text-xs tracking-widest mb-2">•••• 9012</div>
+        <div className="flex justify-between items-end text-[9px] opacity-90">
+          <span>EXP 08/29</span>
+          <span className="bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded text-[8px] font-bold">ACTIVE</span>
+        </div>
+      </div>
+    )
+  },
+  { 
+    id: 'transfers', 
+    title: 'Quick Actions Matrix', 
+    subtitle: 'Send, Request, Pay & QR shortcuts', 
+    category: 'actions', 
+    badge: 'Action',
+    badgeColor: 'bg-emerald-50 text-emerald-600 border border-emerald-100',
+    renderPreview: (accentColor, radiusClass, isDark) => (
+      <div className={`grid grid-cols-4 gap-1.5 p-2 bg-slate-50 border border-slate-200/80 ${radiusClass}`}>
+        {['Send', 'Request', 'Scan', 'Split'].map((act, i) => (
+          <div key={i} className={`py-2 bg-blue-600 text-white text-[9px] font-bold text-center shadow-xs ${radiusClass}`}>
+            {act}
+          </div>
+        ))}
+      </div>
+    )
+  },
+  { 
+    id: 'fx', 
+    title: 'FX Ticker & Wallets', 
+    subtitle: 'Multi-currency wallets with live spread', 
+    category: 'fx', 
+    badge: 'Global',
+    badgeColor: 'bg-amber-50 text-amber-600 border border-amber-100',
+    renderPreview: (accentColor, radiusClass, isDark) => (
+      <div className={`grid grid-cols-3 gap-1.5 p-2 bg-slate-50 border border-slate-200/80 text-[10px] ${radiusClass}`}>
+        <div className={`p-1.5 bg-white border border-slate-200 ${radiusClass}`}>
+          <span className="text-[8px] text-slate-400 block font-semibold">USD</span>
+          <span className="font-bold text-slate-800">$18.2k</span>
+        </div>
+        <div className={`p-1.5 bg-white border border-slate-200 ${radiusClass}`}>
+          <span className="text-[8px] text-slate-400 block font-semibold">EUR</span>
+          <span className="font-bold text-slate-800">€6.4k</span>
+        </div>
+        <div className={`p-1.5 bg-white border border-slate-200 ${radiusClass}`}>
+          <span className="text-[8px] text-slate-400 block font-semibold">GBP</span>
+          <span className="font-bold text-slate-800">£2.1k</span>
+        </div>
+      </div>
+    )
+  },
+  { 
+    id: 'vaults', 
+    title: 'Automated Vaults & Goals', 
+    subtitle: 'High-yield savings pockets', 
+    category: 'balances', 
+    badge: 'Savings',
+    badgeColor: 'bg-purple-50 text-purple-600 border border-purple-100',
+    renderPreview: (accentColor, radiusClass, isDark) => (
+      <div className={`p-3 bg-white border border-slate-200/80 ${radiusClass}`}>
+        <div className="flex justify-between items-center mb-1 text-[10px] font-bold">
+          <span>Tax Reserve Vault</span>
+          <span className="text-purple-600">$4,850</span>
+        </div>
+        <div className={`w-full bg-slate-100 h-1.5 overflow-hidden ${radiusClass}`}>
+          <div className={`bg-purple-600 h-full w-[65%] ${radiusClass}`} />
+        </div>
+      </div>
+    )
+  },
+  { 
+    id: 'analytics', 
+    title: 'Spending Intelligence', 
+    subtitle: 'Merchant categorization & budgets', 
+    category: 'ledger', 
+    badge: 'AI',
+    badgeColor: 'bg-indigo-50 text-indigo-600 border border-indigo-100',
+    renderPreview: (accentColor, radiusClass, isDark) => (
+      <div className={`p-3 bg-white border border-slate-200/80 flex items-center justify-between text-[10px] ${radiusClass}`}>
+        <span className="font-bold text-slate-700">Monthly Burn Rate</span>
+        <span className="font-extrabold text-blue-600">-12.4% vs last month</span>
+      </div>
+    )
+  },
+  { 
+    id: 'security', 
+    title: 'Biometric Shield & 2FA', 
+    subtitle: 'FaceID, session tokens & audit', 
+    category: 'security', 
+    badge: 'Shield',
+    badgeColor: 'bg-emerald-50 text-emerald-600 border border-emerald-100',
+    renderPreview: (accentColor, radiusClass, isDark) => (
+      <div className={`p-3 bg-white border border-slate-200/80 flex items-center justify-between text-[10px] ${radiusClass}`}>
+        <span className="font-bold text-slate-700">FaceID Authentication</span>
+        <span className="text-emerald-600 font-bold">Enforced</span>
+      </div>
+    )
+  },
+  { 
+    id: 'notifications', 
+    title: 'Real-Time Webhooks', 
+    subtitle: 'Push alerts & instant triggers', 
+    category: 'security', 
+    badge: 'API',
+    badgeColor: 'bg-blue-50 text-blue-600 border border-blue-100',
+    renderPreview: (accentColor, radiusClass, isDark) => (
+      <div className={`p-3 bg-white border border-slate-200/80 flex items-center justify-between text-[10px] ${radiusClass}`}>
+        <span className="font-bold text-slate-700">Webhook Status</span>
+        <span className="text-emerald-500 font-bold">200 OK (12ms)</span>
+      </div>
+    )
+  },
 ];
 
 export default function BuildSection() {
@@ -66,19 +192,46 @@ export default function BuildSection() {
   const [accentColor, setAccentColor] = useState('#0A63F8');
   const [interfaceMode, setInterfaceMode] = useState<'light' | 'dark' | 'auto'>('light');
   const [buttonRadius, setButtonRadius] = useState<'rounded' | 'sharp' | 'pill'>('rounded');
-  const [activeModules, setActiveModules] = useState<string[]>(['accounts', 'cards', 'transfers', 'fx', 'vaults', 'analytics', 'security']);
   
-  // App Preview Interactive State
+  // Canvas State: Starts completely empty on page load
+  const [canvasModules, setCanvasModules] = useState<string[]>([]);
+  
+  // App Preview Navigation & Interactive State
   const [activeTab, setActiveTab] = useState<'home' | 'cards' | 'activity' | 'settings' | 'send' | 'fx'>('home');
   const [isCardFrozen, setIsCardFrozen] = useState(false);
   const [vaultBalance, setVaultBalance] = useState(4850);
   const [sendAmount, setSendAmount] = useState('2,500.00');
   const [fxOutputAmount, setFxOutputAmount] = useState('924.50');
 
-  const toggleModule = (id: string) => {
-    setActiveModules(prev => 
-      prev.includes(id) ? prev.filter(m => m !== id) : [...prev, id]
-    );
+  // Drag and Drop state handlers
+  const [draggedId, setDraggedId] = useState<string | null>(null);
+
+  const handleDragStart = (e: React.DragEvent, id: string) => {
+    setDraggedId(id);
+    e.dataTransfer.setData('text/plain', id);
+  };
+
+  const handleDropOnCanvas = (e: React.DragEvent) => {
+    e.preventDefault();
+    if (draggedId && !canvasModules.includes(draggedId)) {
+      setCanvasModules(prev => [...prev, draggedId]);
+    }
+    setDraggedId(null);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
+
+  const removeCanvasModule = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setCanvasModules(prev => prev.filter(m => m !== id));
+  };
+
+  const addModuleToCanvas = (id: string) => {
+    if (!canvasModules.includes(id)) {
+      setCanvasModules(prev => [...prev, id]);
+    }
   };
 
   // Dynamic token radius mapper for mobile view elements
@@ -321,14 +474,14 @@ export default function BuildSection() {
               </div>
             )}
 
-            {/* TAB 2: REFINED COMPONENTS & MODULES SETTINGS */}
+            {/* TAB 2: DRAG-AND-DROP ASSET LIBRARY & MODULES */}
             {studioTab === 'components' && (
               <div className="space-y-6">
                 
                 {/* FILTER PILLS */}
                 <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
                   {[
-                    { id: 'all', label: `All Modules (${availableModules.length})` },
+                    { id: 'all', label: `All (${availableModules.length})` },
                     { id: 'balances', label: 'Balances & Cards' },
                     { id: 'actions', label: 'Actions' },
                     { id: 'fx', label: 'FX & Wallets' },
@@ -349,43 +502,41 @@ export default function BuildSection() {
                 </div>
 
                 <div className="text-[11px] text-slate-600 bg-gradient-to-r from-blue-50/80 to-indigo-50/40 border border-blue-100 p-3.5 rounded-2xl flex items-center gap-3">
-                  <div className="w-7 h-7 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-xs">
-                    <GripVertical className="w-4 h-4" />
-                  </div>
-                  <span>Toggle modules below to instantly enable or remove features in the interactive mobile application preview.</span>
+                  
+                  <span>Drag tiles into the phone canvas or reorder in-place.</span>
                 </div>
 
-                {/* REFINED MODULE CARDS GRID */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* DRAGGABLE FULL ASSET CARDS GRID */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-[460px] overflow-y-auto pr-1">
                   {filteredModules.map((mod) => {
-                    const isActive = activeModules.includes(mod.id);
+                    const isAdded = canvasModules.includes(mod.id);
                     return (
                       <div
                         key={mod.id}
-                        onClick={() => toggleModule(mod.id)}
-                        className={`p-4 rounded-2xl border transition-all duration-200 cursor-pointer flex flex-col justify-between space-y-4 hover:-translate-y-0.5 ${
-                          isActive 
-                            ? 'border-blue-600 bg-gradient-to-br from-blue-50/50 to-white shadow-sm ring-1 ring-blue-600/20' 
-                            : 'border-slate-200/90 bg-white hover:border-slate-300 hover:shadow-xs'
+                        draggable
+                        onDragStart={(e) => handleDragStart(e, mod.id)}
+                        onClick={() => addModuleToCanvas(mod.id)}
+                        className={`p-4 rounded-2xl border bg-white transition-all duration-200 cursor-grab active:cursor-grabbing flex flex-col justify-between space-y-3 hover:border-blue-500 hover:shadow-md relative ${
+                          isAdded ? 'border-blue-500 ring-1 ring-blue-500/20 bg-blue-50/20' : 'border-slate-200/90'
                         }`}
                       >
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="flex items-start gap-3">
-                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-xs ${
-                              isActive ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-500'
-                            }`}>
-                              {React.cloneElement(mod.icon as React.ReactElement<{ className?: string }>, { className: `w-4 h-4 ${isActive ? 'text-white' : 'text-blue-600'}` })}
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <div className="flex items-center gap-2 mb-0.5">
+                              <h4 className="text-xs font-extrabold text-slate-900">{mod.title}</h4>
+                              <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${mod.badgeColor}`}>{mod.badge}</span>
                             </div>
-                            <div>
-                              <h4 className="text-xs font-extrabold text-slate-900 leading-snug">{mod.title}</h4>
-                              <p className="text-[10px] text-slate-500 mt-0.5 leading-relaxed">{mod.subtitle}</p>
-                            </div>
+                            <p className="text-[10px] text-slate-500">{mod.subtitle}</p>
                           </div>
+                          <div className="flex items-center gap-1.5 text-slate-400">
+                            {isAdded && <Check className="w-3.5 h-3.5 text-blue-600 stroke-[3]" />}
+                            <GripVertical className="w-4 h-4" />
+                          </div>
+                        </div>
 
-                          {/* REFINED TOGGLE SWITCH UI */}
-                          <div className={`w-10 h-6 rounded-full transition-colors relative p-1 shrink-0 ${isActive ? 'bg-blue-600' : 'bg-slate-300'}`}>
-                            <div className={`w-4 h-4 rounded-full bg-white transition-transform shadow-xs ${isActive ? 'translate-x-4' : 'translate-x-0'}`} />
-                          </div>
+                        {/* MINI COMPONENT ASSET PREVIEW */}
+                        <div className="pointer-events-none scale-95 origin-top-left">
+                          {mod.renderPreview(accentColor, 'rounded-lg', isDark)}
                         </div>
                       </div>
                     );
@@ -407,7 +558,7 @@ export default function BuildSection() {
 
           </div>
 
-          {/* RIGHT COLUMN: STICKY MOBILE SCREEN PREVIEW */}
+          {/* RIGHT COLUMN: STICKY MOBILE SCREEN PREVIEW WITH INTERACTIVE TABS */}
           <div className="lg:col-span-5 flex flex-col items-center sticky top-8">
             
             <div className="w-full flex items-center justify-between mb-4 px-2">
@@ -434,7 +585,7 @@ export default function BuildSection() {
 
               <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-100">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                Live Preview
+                Live Studio
               </div>
             </div>
 
@@ -446,10 +597,14 @@ export default function BuildSection() {
                 <div className="w-12 h-1 bg-slate-800 rounded-full" />
               </div>
 
-              {/* Screen Inner Container */}
-              <div className={`w-full rounded-[36px] overflow-hidden flex flex-col h-[660px] pt-12 pb-4 px-5 transition-colors duration-300 relative ${
-                isDark ? 'bg-slate-950 text-slate-100' : 'bg-[#f8fafc] text-slate-900'
-              }`}>
+              {/* Screen Inner Container (DROP ZONE) */}
+              <div 
+                onDrop={handleDropOnCanvas}
+                onDragOver={handleDragOver}
+                className={`w-full rounded-[36px] overflow-hidden flex flex-col h-[660px] pt-12 pb-4 px-5 transition-colors duration-300 relative ${
+                  isDark ? 'bg-slate-950 text-slate-100' : 'bg-[#f8fafc] text-slate-900'
+                }`}
+              >
                 
                 {/* App Status Header */}
                 <div className="flex items-center justify-between mb-4">
@@ -463,7 +618,7 @@ export default function BuildSection() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    {activeModules.includes('notifications') && (
+                    {canvasModules.includes('notifications') && (
                       <div className={`w-7 h-7 flex items-center justify-center text-xs shadow-xs ${currentRadius} ${isDark ? 'bg-slate-900 text-slate-300 border border-slate-800' : 'bg-white text-slate-600 border border-slate-200'}`}>
                         <Bell className="w-3.5 h-3.5" />
                       </div>
@@ -474,215 +629,252 @@ export default function BuildSection() {
                   </div>
                 </div>
 
-                {/* SCROLLABLE APP BODY (APPLYING dynamic currentRadius to all cards & buttons) */}
-                <div className="flex-1 overflow-y-auto space-y-4 pr-0.5 pb-16 scrollbar-none">
+                {/* SCROLLABLE APP BODY / DROP ZONE */}
+                <div className="flex-1 overflow-y-auto space-y-4 pr-0.5 pb-16 scrollbar-none flex flex-col">
                   
-                  {activeTab === 'home' && (
-                    <>
-                      {activeModules.includes('accounts') ? (
-                        <div className={`p-4 text-white shadow-xl bg-gradient-to-br ${getGradientStyle()} relative overflow-hidden ${currentRadius}`}>
-                          <span className="text-[10px] font-bold uppercase tracking-wider opacity-80 block mb-1">
-                            {template === 'corporate' ? 'Corporate Treasury' : 'Primary Checking Account'}
-                          </span>
-                          <div className="text-2xl font-black tracking-tight mb-3">$24,650.00</div>
-                          <div className={`flex justify-between items-center text-[10px] opacity-90 border-t border-white/20 pt-2.5`}>
-                            <span>Available Balance</span>
-                            <span className={`bg-white/20 px-2 py-0.5 font-medium ${currentRadius}`}>USD / IBAN</span>
-                          </div>
-                        </div>
-                      ) : null}
-
-                      {/* Quick Actions Grid */}
-                      <div className="grid grid-cols-4 gap-2">
-                        {activeModules.includes('transfers') && (
-                          <div 
-                            onClick={() => setActiveTab('send')}
-                            className={`flex flex-col items-center justify-center gap-1 p-2.5 border cursor-pointer hover:border-blue-600 transition-all ${currentRadius} ${isDark ? 'bg-slate-900 border-slate-800 text-slate-200' : 'bg-white border-slate-100 shadow-xs text-slate-800'}`}
-                          >
-                            <ArrowLeftRight className="w-4 h-4 text-blue-600" />
-                            <span className="text-[9px] font-bold">Send</span>
-                          </div>
-                        )}
-                        {activeModules.includes('cards') && (
-                          <div onClick={() => setActiveTab('cards')} className={`flex flex-col items-center justify-center gap-1 p-2.5 border cursor-pointer hover:border-blue-600 transition-all ${currentRadius} ${isDark ? 'bg-slate-900 border-slate-800 text-slate-200' : 'bg-white border-slate-100 shadow-xs text-slate-800'}`}>
-                            <CreditCard className="w-4 h-4 text-blue-600" />
-                            <span className="text-[9px] font-bold">Cards</span>
-                          </div>
-                        )}
-                        {activeModules.includes('fx') && (
-                          <div 
-                            onClick={() => setActiveTab('fx')}
-                            className={`flex flex-col items-center justify-center gap-1 p-2.5 border cursor-pointer hover:border-blue-600 transition-all ${currentRadius} ${isDark ? 'bg-slate-900 border-slate-800 text-slate-200' : 'bg-white border-slate-100 shadow-xs text-slate-800'}`}
-                          >
-                            <RefreshCw className="w-4 h-4 text-blue-600" />
-                            <span className="text-[9px] font-bold">FX</span>
-                          </div>
-                        )}
-                        {activeModules.includes('vaults') && (
-                          <div className={`flex flex-col items-center justify-center gap-1 p-2.5 border ${currentRadius} ${isDark ? 'bg-slate-900 border-slate-800 text-slate-200' : 'bg-white border-slate-100 shadow-xs text-slate-800'}`}>
-                            <PiggyBank className="w-4 h-4 text-blue-600" />
-                            <span className="text-[9px] font-bold">Vaults</span>
-                          </div>
-                        )}
+                  {canvasModules.length === 0 ? (
+                    /* EMPTY STATE WITH INSTRUCTIONS AND SUGGESTIONS */
+                    <div className="flex-1 flex flex-col items-center justify-center text-center p-6 border-2 border-dashed border-blue-300/60 rounded-2xl bg-blue-50/20 my-auto space-y-3">
+                      <div className="w-12 h-12 rounded-2xl bg-blue-100 text-blue-600 flex items-center justify-center shadow-sm">
+                        <Plus className="w-6 h-6" />
                       </div>
+                      <div className="space-y-1">
+                        <h4 className="text-xs font-extrabold text-slate-900">Start building your app.</h4>
+                        <p className="text-[11px] text-slate-500 leading-relaxed">
+                          Drag tiles from the left asset library or click any card to add components to your canvas.
+                        </p>
+                      </div>
+                      <div className="pt-2 flex flex-wrap gap-1.5 justify-center">
+                        {['Multi-Layer Balance Card', 'Virtual Metallic Card', 'Quick Actions'].map((sug, i) => (
+                          <span key={i} className="text-[9px] font-bold bg-white border border-slate-200 px-2.5 py-1 rounded-full text-slate-600 shadow-2xs">
+                            + {sug}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    /* INTERACTIVE TABS & MODULES RENDERED ACCORDING TO USER NAVIGATION */
+                    <>
+                      {activeTab === 'home' && (
+                        <>
+                          {canvasModules.includes('accounts') && (
+                            <div className={`p-4 text-white shadow-xl bg-gradient-to-br ${getGradientStyle()} relative overflow-hidden ${currentRadius}`}>
+                              <span className="text-[10px] font-bold uppercase tracking-wider opacity-80 block mb-1">
+                                {template === 'corporate' ? 'Corporate Treasury' : 'Primary Checking Account'}
+                              </span>
+                              <div className="text-2xl font-black tracking-tight mb-3">$24,650.00</div>
+                              <div className="flex justify-between items-center text-[10px] opacity-90 border-t border-white/20 pt-2.5">
+                                <span>Available Balance</span>
+                                <span className={`bg-white/20 px-2 py-0.5 font-medium ${currentRadius}`}>USD / IBAN</span>
+                              </div>
+                            </div>
+                          )}
 
-                      {activeModules.includes('vaults') && (
-                        <div className={`p-3.5 border ${currentRadius} ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100 shadow-xs'}`}>
-                          <div className="flex justify-between items-center mb-1 text-xs font-bold">
-                            <span>Tax Reserve Vault</span>
-                            <span className="text-purple-600">${vaultBalance.toLocaleString()}</span>
+                          {canvasModules.includes('transfers') && (
+                            <div className="grid grid-cols-4 gap-2">
+                              <div 
+                                onClick={() => setActiveTab('send')}
+                                className={`flex flex-col items-center justify-center gap-1 p-2.5 border cursor-pointer hover:border-blue-600 transition-all ${currentRadius} ${isDark ? 'bg-slate-900 border-slate-800 text-slate-200' : 'bg-white border-slate-100 shadow-xs text-slate-800'}`}
+                              >
+                                <ArrowLeftRight className="w-4 h-4 text-blue-600" />
+                                <span className="text-[9px] font-bold">Send</span>
+                              </div>
+                              <div onClick={() => setActiveTab('cards')} className={`flex flex-col items-center justify-center gap-1 p-2.5 border cursor-pointer hover:border-blue-600 transition-all ${currentRadius} ${isDark ? 'bg-slate-900 border-slate-800 text-slate-200' : 'bg-white border-slate-100 shadow-xs text-slate-800'}`}>
+                                <CreditCard className="w-4 h-4 text-blue-600" />
+                                <span className="text-[9px] font-bold">Cards</span>
+                              </div>
+                              <div 
+                                onClick={() => setActiveTab('fx')}
+                                className={`flex flex-col items-center justify-center gap-1 p-2.5 border cursor-pointer hover:border-blue-600 transition-all ${currentRadius} ${isDark ? 'bg-slate-900 border-slate-800 text-slate-200' : 'bg-white border-slate-100 shadow-xs text-slate-800'}`}
+                              >
+                                <RefreshCw className="w-4 h-4 text-blue-600" />
+                                <span className="text-[9px] font-bold">FX</span>
+                              </div>
+                              <div className={`flex flex-col items-center justify-center gap-1 p-2.5 border ${currentRadius} ${isDark ? 'bg-slate-900 border-slate-800 text-slate-200' : 'bg-white border-slate-100 shadow-xs text-slate-800'}`}>
+                                <PiggyBank className="w-4 h-4 text-blue-600" />
+                                <span className="text-[9px] font-bold">Vaults</span>
+                              </div>
+                            </div>
+                          )}
+
+                          {canvasModules.includes('vaults') && (
+                            <div className={`p-3.5 border ${currentRadius} ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100 shadow-xs'}`}>
+                              <div className="flex justify-between items-center mb-1 text-xs font-bold">
+                                <span>Tax Reserve Vault</span>
+                                <span className="text-purple-600">${vaultBalance.toLocaleString()}</span>
+                              </div>
+                              <div className={`w-full bg-slate-100 h-1.5 overflow-hidden mb-2 ${currentRadius}`}>
+                                <div className={`bg-purple-600 h-full w-[65%] ${currentRadius}`} />
+                              </div>
+                              <button onClick={() => setVaultBalance(v => v + 100)} className="text-[10px] text-purple-600 font-bold hover:underline cursor-pointer">
+                                + Deposit $100
+                              </button>
+                            </div>
+                          )}
+
+                          {canvasModules.includes('analytics') && (
+                            <div className={`p-3.5 border flex items-center justify-between text-xs ${currentRadius} ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100 shadow-xs'}`}>
+                              <span className="font-bold">Monthly Burn Intelligence</span>
+                              <PieChart className="w-4 h-4 text-blue-600" />
+                            </div>
+                          )}
+
+                          {canvasModules.includes('security') && (
+                            <div className={`p-3.5 border flex items-center justify-between text-xs ${currentRadius} ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100 shadow-xs'}`}>
+                              <span className="font-bold">Biometric FaceID Shield</span>
+                              <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                            </div>
+                          )}
+
+                          {/* Recent Activity viewable on Home when activity or general modules present */}
+                          <div className="space-y-2 pt-2">
+                            <span className="text-[11px] font-bold text-slate-400 px-1">Recent Activity</span>
+                            <div className={`p-3 border flex items-center justify-between ${currentRadius} ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100 shadow-xs'}`}>
+                              <div className="flex items-center gap-2.5">
+                                <div className={`w-7 h-7 bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold ${currentRadius}`}>
+                                  <ArrowDownLeft className="w-3.5 h-3.5" />
+                                </div>
+                                <div>
+                                  <h4 className="text-xs font-bold">Stripe Payout</h4>
+                                  <p className="text-[9px] text-slate-400">Today, 08:30</p>
+                                </div>
+                              </div>
+                              <span className="text-xs font-bold text-emerald-600">+$4,200.00</span>
+                            </div>
                           </div>
-                          <div className={`w-full bg-slate-100 h-1.5 overflow-hidden mb-2 ${currentRadius}`}>
-                            <div className={`bg-purple-600 h-full w-[65%] ${currentRadius}`} />
+                        </>
+                      )}
+
+                      {/* CARDS TAB PAGE VIEW */}
+                      {activeTab === 'cards' && (
+                        <div className="space-y-3">
+                          <div className={`p-4 text-white shadow-lg bg-gradient-to-tr ${isCardFrozen ? 'from-slate-600 to-slate-700 grayscale' : getGradientStyle()} ${currentRadius}`}>
+                            <div className="flex justify-between items-start mb-4">
+                              <span className="font-extrabold text-xs tracking-wider">{brandName ? brandName.toUpperCase() : 'MY BANK'}</span>
+                              <CreditCard className="w-4 h-4 opacity-80" />
+                            </div>
+                            <div className="font-mono text-xs tracking-widest mb-3">4892 •••• •••• 7104</div>
+                            <div className="flex justify-between items-end text-[9px] opacity-90">
+                              <span>LEXI STERLING</span>
+                              <span>09/28</span>
+                            </div>
                           </div>
-                          <button onClick={() => setVaultBalance(v => v + 100)} className="text-[10px] text-purple-600 font-bold hover:underline">
-                            + Deposit $100
-                          </button>
+
+                          <div className={`p-3 border flex items-center justify-between ${currentRadius} ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100 shadow-xs'}`}>
+                            <div>
+                              <h4 className="text-xs font-bold">Freeze Card</h4>
+                              <p className="text-[9px] text-slate-400">Block instant transactions</p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setIsCardFrozen(!isCardFrozen)}
+                              className={`w-9 h-5 rounded-full relative p-0.5 cursor-pointer transition-colors ${isCardFrozen ? 'bg-blue-600' : 'bg-slate-300'}`}
+                            >
+                              <div className={`w-4 h-4 rounded-full bg-white transition-transform ${isCardFrozen ? 'translate-x-4' : 'translate-x-0'}`} />
+                            </button>
+                          </div>
                         </div>
                       )}
 
-                      {/* Recent Activity */}
-                      <div className="space-y-2">
-                        <span className="text-[11px] font-bold text-slate-400 px-1">Recent Activity</span>
-                        <div className={`p-3 border flex items-center justify-between ${currentRadius} ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100 shadow-xs'}`}>
-                          <div className="flex items-center gap-2.5">
-                            <div className={`w-7 h-7 bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold ${currentRadius}`}>
-                              <ArrowDownLeft className="w-3.5 h-3.5" />
+                      {/* ACTIVITY TAB PAGE VIEW */}
+                      {activeTab === 'activity' && (
+                        <div className="space-y-2">
+                          <span className="text-[11px] font-bold text-slate-400 px-1">Ledger History</span>
+                          {['Stripe Payout (+$1,850)', 'AWS Hosting (-$240.50)', 'Client Wire (+$5,400)'].map((t, idx) => (
+                            <div key={idx} className={`p-2.5 border text-xs font-semibold ${currentRadius} ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100 shadow-xs'}`}>
+                              {t}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* SETTINGS TAB PAGE VIEW */}
+                      {activeTab === 'settings' && (
+                        <div className="space-y-2">
+                          <span className="text-[11px] font-bold text-slate-400 px-1">Security &amp; Biometrics</span>
+                          <div className={`p-3 border text-xs ${currentRadius} ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100 shadow-xs'}`}>
+                            <span className="font-bold block mb-1">FaceID Authentication</span>
+                            <p className="text-[9px] text-slate-400">Enforced for all outbound transfers.</p>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* SEND WIRE SUB-PAGE VIEW */}
+                      {activeTab === 'send' && (
+                        <div className="space-y-4">
+                          <div className="flex items-center justify-between">
+                            <button onClick={() => setActiveTab('home')} className="text-xs font-bold text-blue-600 hover:underline flex items-center gap-1 cursor-pointer">
+                              &larr; Back to Home
+                            </button>
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Wire Transfer</span>
+                          </div>
+                          <div className={`p-4 border space-y-3 ${currentRadius} ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100 shadow-xs'}`}>
+                            <div>
+                              <label className="text-[10px] text-slate-400 block mb-1 font-semibold">Recipient IBAN / Account</label>
+                              <input type="text" readOnly value="US89 APX 0000 9182 7364" className={`w-full bg-slate-50 border border-slate-200 p-2.5 text-xs font-mono text-slate-700 ${currentRadius}`} />
                             </div>
                             <div>
-                              <h4 className="text-xs font-bold">Stripe Payout</h4>
-                              <p className="text-[9px] text-slate-400">Today, 08:30</p>
+                              <label className="text-[10px] text-slate-400 block mb-1 font-semibold">Transfer Amount (USD)</label>
+                              <input 
+                                type="text" 
+                                value={sendAmount} 
+                                onChange={(e) => setSendAmount(e.target.value)}
+                                className={`w-full bg-slate-50 border border-slate-200 p-2.5 text-xs font-bold text-slate-900 ${currentRadius}`} 
+                              />
                             </div>
+                            <button 
+                              type="button" 
+                              onClick={() => alert('Wire transfer successfully dispatched!')}
+                              className={`w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md transition-all cursor-pointer ${currentRadius}`}
+                            >
+                              Confirm &amp; Send Wire
+                            </button>
                           </div>
-                          <span className="text-xs font-bold text-emerald-600">+$4,200.00</span>
                         </div>
-                      </div>
+                      )}
+
+                      {/* FX SPOT EXCHANGE SUB-PAGE VIEW */}
+                      {activeTab === 'fx' && (
+                        <div className="space-y-4">
+                          <div className="flex items-center justify-between">
+                            <button onClick={() => setActiveTab('home')} className="text-xs font-bold text-blue-600 hover:underline flex items-center gap-1 cursor-pointer">
+                              &larr; Back to Home
+                            </button>
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">FX Spot Swap</span>
+                          </div>
+                          <div className={`p-4 border space-y-3 ${currentRadius} ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100 shadow-xs'}`}>
+                            <div className={`flex justify-between items-center bg-slate-50 p-3 border border-slate-200 text-xs ${currentRadius}`}>
+                              <div>
+                                <span className="text-[9px] text-slate-400 block font-semibold">You Pay</span>
+                                <span className="font-bold text-slate-900">1,000.00 USD</span>
+                              </div>
+                              <span className={`bg-blue-100 text-blue-600 px-2 py-0.5 text-[10px] font-bold ${currentRadius}`}>USD</span>
+                            </div>
+                            <div className="flex justify-center">
+                              <div className={`w-7 h-7 bg-blue-50 text-blue-600 flex items-center justify-center border border-blue-100 shadow-xs ${currentRadius}`}>
+                                <RefreshCw className="w-3.5 h-3.5" />
+                              </div>
+                            </div>
+                            <div className={`flex justify-between items-center bg-slate-50 p-3 border border-slate-200 text-xs ${currentRadius}`}>
+                              <div>
+                                <span className="text-[9px] text-slate-400 block font-semibold">You Receive (EUR)</span>
+                                <span className="font-bold text-slate-900">{fxOutputAmount} EUR</span>
+                              </div>
+                              <span className={`bg-purple-100 text-purple-600 px-2 py-0.5 text-[10px] font-bold ${currentRadius}`}>EUR</span>
+                            </div>
+                            <button 
+                              type="button" 
+                              onClick={() => alert('FX spot currency exchange executed successfully!')}
+                              className={`w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md transition-all cursor-pointer ${currentRadius}`}
+                            >
+                              Execute Spot Swap
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                    
                     </>
-                  )}
-
-                  {/* SEND WIRE SUB-PAGE VIEW */}
-                  {activeTab === 'send' && (
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <button onClick={() => setActiveTab('home')} className="text-xs font-bold text-blue-600 hover:underline flex items-center gap-1">
-                          &larr; Back to Home
-                        </button>
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Wire Transfer</span>
-                      </div>
-                      <div className={`p-4 border space-y-3 ${currentRadius} ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100 shadow-xs'}`}>
-                        <div>
-                          <label className="text-[10px] text-slate-400 block mb-1 font-semibold">Recipient IBAN / Account</label>
-                          <input type="text" readOnly value="US89 APX 0000 9182 7364" className={`w-full bg-slate-50 border border-slate-200 p-2.5 text-xs font-mono text-slate-700 ${currentRadius}`} />
-                        </div>
-                        <div>
-                          <label className="text-[10px] text-slate-400 block mb-1 font-semibold">Transfer Amount (USD)</label>
-                          <input 
-                            type="text" 
-                            value={sendAmount} 
-                            onChange={(e) => setSendAmount(e.target.value)}
-                            className={`w-full bg-slate-50 border border-slate-200 p-2.5 text-xs font-bold text-slate-900 ${currentRadius}`} 
-                          />
-                        </div>
-                        <button 
-                          type="button" 
-                          onClick={() => alert('Wire transfer successfully dispatched!')}
-                          className={`w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md transition-all cursor-pointer ${currentRadius}`}
-                        >
-                          Confirm &amp; Send Wire
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* FX SPOT EXCHANGE SUB-PAGE VIEW */}
-                  {activeTab === 'fx' && (
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <button onClick={() => setActiveTab('home')} className="text-xs font-bold text-blue-600 hover:underline flex items-center gap-1">
-                          &larr; Back to Home
-                        </button>
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">FX Spot Swap</span>
-                      </div>
-                      <div className={`p-4 border space-y-3 ${currentRadius} ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100 shadow-xs'}`}>
-                        <div className={`flex justify-between items-center bg-slate-50 p-3 border border-slate-200 text-xs ${currentRadius}`}>
-                          <div>
-                            <span className="text-[9px] text-slate-400 block font-semibold">You Pay</span>
-                            <span className="font-bold text-slate-900">1,000.00 USD</span>
-                          </div>
-                          <span className={`bg-blue-100 text-blue-600 px-2 py-0.5 text-[10px] font-bold ${currentRadius}`}>USD</span>
-                        </div>
-                        <div className="flex justify-center">
-                          <div className={`w-7 h-7 bg-blue-50 text-blue-600 flex items-center justify-center border border-blue-100 shadow-xs ${currentRadius}`}>
-                            <RefreshCw className="w-3.5 h-3.5" />
-                          </div>
-                        </div>
-                        <div className={`flex justify-between items-center bg-slate-50 p-3 border border-slate-200 text-xs ${currentRadius}`}>
-                          <div>
-                            <span className="text-[9px] text-slate-400 block font-semibold">You Receive (EUR)</span>
-                            <span className="font-bold text-slate-900">{fxOutputAmount} EUR</span>
-                          </div>
-                          <span className={`bg-purple-100 text-purple-600 px-2 py-0.5 text-[10px] font-bold ${currentRadius}`}>EUR</span>
-                        </div>
-                        <button 
-                          type="button" 
-                          onClick={() => alert('FX spot currency exchange executed successfully!')}
-                          className={`w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md transition-all cursor-pointer ${currentRadius}`}
-                        >
-                          Execute Spot Swap
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {activeTab === 'cards' && (
-                    <div className="space-y-3">
-                      <div className={`p-4 text-white shadow-lg bg-gradient-to-tr ${isCardFrozen ? 'from-slate-600 to-slate-700 grayscale' : getGradientStyle()} ${currentRadius}`}>
-                        <div className="flex justify-between items-start mb-4">
-                          <span className="font-extrabold text-xs tracking-wider">{brandName ? brandName.toUpperCase() : 'MY BANK'}</span>
-                          <CreditCard className="w-4 h-4 opacity-80" />
-                        </div>
-                        <div className="font-mono text-xs tracking-widest mb-3">4892 •••• •••• 7104</div>
-                        <div className="flex justify-between items-end text-[9px] opacity-90">
-                          <span>LEXI STERLING</span>
-                          <span>09/28</span>
-                        </div>
-                      </div>
-
-                      <div className={`p-3 border flex items-center justify-between ${currentRadius} ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100 shadow-xs'}`}>
-                        <div>
-                          <h4 className="text-xs font-bold">Freeze Card</h4>
-                          <p className="text-[9px] text-slate-400">Block instant transactions</p>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => setIsCardFrozen(!isCardFrozen)}
-                          className={`w-9 h-5 rounded-full relative p-0.5 cursor-pointer transition-colors ${isCardFrozen ? 'bg-blue-600' : 'bg-slate-300'}`}
-                        >
-                          <div className={`w-4 h-4 rounded-full bg-white transition-transform ${isCardFrozen ? 'translate-x-4' : 'translate-x-0'}`} />
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {activeTab === 'activity' && (
-                    <div className="space-y-2">
-                      <span className="text-[11px] font-bold text-slate-400 px-1">Ledger History</span>
-                      {['Stripe Payout (+$1,850)', 'AWS Hosting (-$240.50)', 'Client Wire (+$5,400)'].map((t, idx) => (
-                        <div key={idx} className={`p-2.5 border text-xs font-semibold ${currentRadius} ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100 shadow-xs'}`}>
-                          {t}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {activeTab === 'settings' && (
-                    <div className="space-y-2">
-                      <span className="text-[11px] font-bold text-slate-400 px-1">Security &amp; Biometrics</span>
-                      <div className={`p-3 border text-xs ${currentRadius} ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100 shadow-xs'}`}>
-                        <span className="font-bold block mb-1">FaceID Authentication</span>
-                        <p className="text-[9px] text-slate-400">Enforced for all outbound transfers.</p>
-                      </div>
-                    </div>
                   )}
 
                 </div>
@@ -718,13 +910,5 @@ export default function BuildSection() {
 
       </div>
     </section>
-  );
-}
-
-function ChevronDown(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg {...props} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-    </svg>
   );
 }

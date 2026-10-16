@@ -9,6 +9,7 @@ import BuildSection from './buildsection';
 import BackgroundSection from './backgroundsection';
 import NewCardsSection from './newcardssection';
 import CanvasSection from './canvassection';
+import NewBackgroundSection from './newbackgroundsection';
 
 export default function WhiteLabelHero() {
   return (
@@ -58,6 +59,7 @@ export default function WhiteLabelHero() {
       <NewCardsSection />
       <CanvasSection />
       <BuildSection />
+      <NewBackgroundSection />
       <HoverSection />
       <BackgroundSection />
       <Footersection />
