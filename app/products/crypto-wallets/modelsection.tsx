@@ -1,11 +1,66 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { User, TrendingUp, CheckCircle2, Shield } from "lucide-react";
 
+const cardsData = [
+  {
+    id: "A",
+    number: "01",
+    title: "Held by your institution",
+    whoSigns: "Programme infrastructure and authorized internal signers per designated mandate.",
+    typicalFit: "Treasury operations, enterprise working capital, and internal liquidity reserves.",
+  },
+  {
+    id: "B",
+    number: "02",
+    title: "Held by an approved custodian",
+    whoSigns: "Third-party regulated custodian via programmatic signature mandates.",
+    typicalFit: "Regulated corporate programmes, institutional funds, and regulated financial entities.",
+  },
+  {
+    id: "C",
+    number: "03",
+    title: "Held by the end user",
+    whoSigns: "End user via an external independent client interface or native device key.",
+    typicalFit: "Self-directed participant models and open ecosystem interfaces.",
+  },
+];
+
 export default function ModelSection() {
+  const [isVisible, setIsVisible] = useState(false);
+  const sectionRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+          observer.disconnect(); // Trigger only once
+        }
+      },
+      { 
+        threshold: 0.15, // Trigger when 15% of the section is visible
+        rootMargin: "0px 0px -50px 0px" 
+      }
+    );
+
+    if (sectionRef.current) {
+      observer.observe(sectionRef.current);
+    }
+
+    return () => {
+      if (sectionRef.current) {
+        observer.unobserve(sectionRef.current);
+      }
+    };
+  }, []);
+
   return (
-    <section className="w-full bg-[#f4f6fc] py-16 md:py-24 px-4 sm:px-6 lg:px-20 font-sans text-slate-900 overflow-hidden">
+    <section 
+      ref={sectionRef}
+      className="w-full bg-[#f4f6fc] py-16 md:py-24 px-4 sm:px-6 lg:px-20 font-sans text-slate-900 overflow-hidden"
+    >
       <div className="max-w-full mx-auto space-y-12">
         
         {/* SECTION HEADER */}
@@ -24,197 +79,84 @@ export default function ModelSection() {
         {/* 3 CARDS GRID CONTAINER */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
           
-          {/* ARRANGEMENT A */}
-          <div className="bg-white rounded-2xl p-6 sm:p-8 border border-slate-200/80 shadow-xs flex flex-col justify-between space-y-8">
-            <div className="space-y-6">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400">
-                  ARRANGEMENT A
-                </span>
-                <span className="text-[11px] font-bold text-slate-400">
-                  01
-                </span>
-              </div>
+          {cardsData.map((card, index) => (
+            <div
+              key={card.id}
+              // Scroll animation classes + Hover "pop up" classes
+              className={`
+                relative bg-white rounded-2xl p-6 sm:p-8 
+                border border-slate-200/80 shadow-sm 
+                flex flex-col justify-between space-y-8 
+                transform transition-all duration-500 ease-out
+                hover:-translate-y-2 hover:scale-[1.03] hover:shadow-2xl hover:border-blue-600 hover:z-10 group
+                ${isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-12"}
+              `}
+              // Delay is only applied before the element is visible, preventing hover lag after animation
+              style={{ transitionDelay: isVisible ? "0ms" : `${index * 150}ms` }}
+            >
+              <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 transition-colors duration-300 group-hover:text-blue-600">
+                    ARRANGEMENT {card.id}
+                  </span>
+                  <span className="text-[11px] font-bold text-slate-400 transition-colors duration-300 group-hover:text-blue-600">
+                    {card.number}
+                  </span>
+                </div>
 
-              <div className="space-y-2">
-                <h3 className="text-xl sm:text-2xl font-extrabold text-slate-900 leading-snug">
-                  Held by your institution
-                </h3>
-              </div>
+                <div className="space-y-2">
+                  <h3 className="text-xl sm:text-2xl font-extrabold text-slate-900 leading-snug">
+                    {card.title}
+                  </h3>
+                </div>
 
-              <div className="space-y-4 pt-2 text-xs">
-                <div className="space-y-1.5">
-                  <div className="flex items-center gap-2 text-slate-400 font-bold uppercase tracking-wider text-[12px]">
-                    <User className="w-3.5 h-3.5 text-slate-400" />
-                    <span>Who signs</span>
+                <div className="space-y-4 pt-2 text-xs">
+                  <div className="space-y-1.5">
+                    <div className="flex items-center gap-2 text-slate-400 font-bold uppercase tracking-wider text-[12px] transition-colors duration-300 group-hover:text-blue-600">
+                      <User className="w-3.5 h-3.5 transition-colors duration-300 group-hover:text-blue-600" />
+                      <span>Who signs</span>
+                    </div>
+                    <p className="text-slate-600 leading-relaxed font-normal text-[13px]">
+                      {card.whoSigns}
+                    </p>
                   </div>
-                  <p className="text-slate-600 leading-relaxed font-normal text-[13px]">
-                    Programme infrastructure and authorized internal signers per designated mandate.
+
+                  <div className="space-y-1.5 pt-2">
+                    <div className="flex items-center gap-2 text-slate-400 font-bold uppercase tracking-wider text-[12px] transition-colors duration-300 group-hover:text-blue-600">
+                      <TrendingUp className="w-3.5 h-3.5 transition-colors duration-300 group-hover:text-blue-600" />
+                      <span>Typical fit</span>
+                    </div>
+                    <p className="text-slate-600 leading-relaxed font-normal text-[13px]">
+                      {card.typicalFit}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Bottom Info Boxes (Identical across all cards) */}
+              <div className="space-y-3 pt-4 border-t border-slate-100">
+                <div className="bg-slate-50/80 border border-slate-100 rounded-xl p-3.5 space-y-1 transition-colors duration-300 group-hover:border-blue-100">
+                  <div className="flex items-center gap-2 text-[12px] font-extrabold text-blue-600">
+                    <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                    <span>What Fintech Connect handles</span>
+                  </div>
+                  <p className="text-[13px] text-slate-500 leading-relaxed pl-5">
+                    Wallet records, policies, screening checkpoints, approvals, audit trail.
                   </p>
                 </div>
 
-                <div className="space-y-1.5 pt-2">
-                  <div className="flex items-center gap-2 text-slate-400 font-bold uppercase tracking-wider text-[12px]">
-                    <TrendingUp className="w-3.5 h-3.5 text-slate-400" />
-                    <span>Typical fit</span>
+                <div className="bg-slate-50/80 border border-slate-100 rounded-xl p-3.5 space-y-1 transition-colors duration-300 group-hover:border-blue-100">
+                  <div className="flex items-center gap-2 text-[13px] font-extrabold text-slate-700">
+                    <Shield className="w-3.5 h-3.5 shrink-0 text-slate-500 transition-colors duration-300 group-hover:text-blue-600" />
+                    <span>What stays with the programme</span>
                   </div>
-                  <p className="text-slate-600 leading-relaxed font-normal text-[13px]">
-                    Treasury operations, enterprise working capital, and internal liquidity reserves.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-3 pt-4 border-t border-slate-100">
-              <div className="bg-slate-50/80 border border-slate-100 rounded-xl p-3.5 space-y-1">
-                <div className="flex items-center gap-2 text-[12px] font-extrabold text-blue-600">
-                  <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
-                  <span>What Fintech Connect handles</span>
-                </div>
-                <p className="text-[13px] text-slate-500 leading-relaxed pl-5">
-                  Wallet records, policies, screening checkpoints, approvals, audit trail.
-                </p>
-              </div>
-
-              <div className="bg-slate-50/80 border border-slate-100 rounded-xl p-3.5 space-y-1">
-                <div className="flex items-center gap-2 text-[13px] font-extrabold text-slate-700">
-                  <Shield className="w-3.5 h-3.5 shrink-0 text-slate-500" />
-                  <span>What stays with the programme</span>
-                </div>
-                <p className="text-[13px] text-slate-500 leading-relaxed pl-5">
-                  Custody arrangement, licensing and regulatory approvals, customer relationship &amp; dispute policies.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* ARRANGEMENT B (HIGHLIGHTED WITH BLUE BORDER) */}
-          <div className="bg-white rounded-2xl p-6 sm:p-8 border-2 border-blue-600 shadow-md flex flex-col justify-between space-y-8 relative">
-            <div className="space-y-6">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-extrabold uppercase tracking-wider text-blue-600">
-                  ARRANGEMENT B
-                </span>
-                <span className="text-[11px] font-bold text-blue-600">
-                  02
-                </span>
-              </div>
-
-              <div className="space-y-2">
-                <h3 className="text-xl sm:text-2xl font-extrabold text-slate-900 leading-snug">
-                  Held by an approved custodian
-                </h3>
-              </div>
-
-              <div className="space-y-4 pt-2 text-xs">
-                <div className="space-y-1.5">
-                  <div className="flex items-center gap-2 text-blue-600 font-bold uppercase tracking-wider text-[12px]">
-                    <User className="w-3.5 h-3.5 text-blue-600" />
-                    <span>Who signs</span>
-                  </div>
-                  <p className="text-slate-600 leading-relaxed font-normal text-[13px]">
-                    Third-party regulated custodian via programmatic signature mandates.
-                  </p>
-                </div>
-
-                <div className="space-y-1.5 pt-2">
-                  <div className="flex items-center gap-2 text-blue-600 font-bold uppercase tracking-wider text-[12px]">
-                    <TrendingUp className="w-3.5 h-3.5 text-blue-600" />
-                    <span>Typical fit</span>
-                  </div>
-                  <p className="text-slate-600 leading-relaxed font-normal text-[13px]">
-                    Regulated corporate programmes, institutional funds, and regulated financial entities.
+                  <p className="text-[13px] text-slate-500 leading-relaxed pl-5">
+                    Custody arrangement, licensing and regulatory approvals, customer relationship &amp; dispute policies.
                   </p>
                 </div>
               </div>
             </div>
-
-            <div className="space-y-3 pt-4 border-t border-slate-100">
-              <div className="bg-slate-50/80 border border-slate-100 rounded-xl p-3.5 space-y-1">
-                <div className="flex items-center gap-2 text-[13px] font-extrabold text-blue-600">
-                  <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
-                  <span>What Fintech Connect handles</span>
-                </div>
-                <p className="text-[13px] text-slate-500 leading-relaxed pl-5">
-                  Wallet records, policies, screening checkpoints, approvals, audit trail.
-                </p>
-              </div>
-
-              <div className="bg-slate-50/80 border border-slate-100 rounded-xl p-3.5 space-y-1">
-                <div className="flex items-center gap-2 text-[13px] font-extrabold text-slate-700">
-                  <Shield className="w-3.5 h-3.5 shrink-0 text-slate-500" />
-                  <span>What stays with the programme</span>
-                </div>
-                <p className="text-[13px] text-slate-500 leading-relaxed pl-5 text-[13px]">
-                  Custody arrangement, licensing and regulatory approvals, customer relationship &amp; dispute policies.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* ARRANGEMENT C */}
-          <div className="bg-white rounded-2xl p-6 sm:p-8 border border-slate-200/80 shadow-xs flex flex-col justify-between space-y-8">
-            <div className="space-y-6">
-              <div className="flex items-center justify-between">
-                <span className="text-[12px] font-extrabold uppercase tracking-wider text-slate-400">
-                  ARRANGEMENT C
-                </span>
-                <span className="text-[12px] font-bold text-slate-400">
-                  03
-                </span>
-              </div>
-
-              <div className="space-y-2">
-                <h3 className="text-xl sm:text-2xl font-extrabold text-slate-900 leading-snug">
-                  Held by the end user
-                </h3>
-              </div>
-
-              <div className="space-y-4 pt-2 text-xs">
-                <div className="space-y-1.5">
-                  <div className="flex items-center gap-2 text-slate-400 font-bold uppercase tracking-wider text-[12px]">
-                    <User className="w-3.5 h-3.5 text-slate-400" />
-                    <span>Who signs</span>
-                  </div>
-                  <p className="text-slate-600 leading-relaxed font-normal text-[13px]">
-                    End user via an external independent client interface or native device key.
-                  </p>
-                </div>
-
-                <div className="space-y-1.5 pt-2">
-                  <div className="flex items-center gap-2 text-slate-400 font-bold uppercase tracking-wider text-[12px]">
-                    <TrendingUp className="w-3.5 h-3.5 text-slate-400" />
-                    <span>Typical fit</span>
-                  </div>
-                  <p className="text-slate-600 leading-relaxed font-normal text-[13px]">
-                    Self-directed participant models and open ecosystem interfaces.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-3 pt-4 border-t border-slate-100">
-              <div className="bg-slate-50/80 border border-slate-100 rounded-xl p-3.5 space-y-1">
-                <div className="flex items-center gap-2 text-[13px] font-extrabold text-blue-600">
-                  <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
-                  <span>What Fintech Connect handles</span>
-                </div>
-                <p className="text-[13px] text-slate-500 leading-relaxed pl-5">
-                  Wallet records, policies, screening checkpoints, approvals, audit trail.
-                </p>
-              </div>
-
-              <div className="bg-slate-50/80 border border-slate-100 rounded-xl p-3.5 space-y-1">
-                <div className="flex items-center gap-2 text-[13px] font-extrabold text-slate-700">
-                  <Shield className="w-3.5 h-3.5 shrink-0 text-slate-500" />
-                  <span>What stays with the programme</span>
-                </div>
-                <p className="text-[13px] text-slate-500 leading-relaxed pl-5">
-                  Custody arrangement, licensing and regulatory approvals, customer relationship &amp; dispute policies.
-                </p>
-              </div>
-            </div>
-          </div>
+          ))}
 
         </div>
 
@@ -222,7 +164,7 @@ export default function ModelSection() {
         <div className="flex justify-center pt-4">
           <button
             type="button"
-            className="bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm sm:text-base px-8 py-3.5 rounded-xl shadow-lg shadow-blue-600/25 transition-all cursor-pointer text-center"
+            className="bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm sm:text-base px-8 py-3.5 rounded-xl shadow-lg shadow-blue-600/25 transition-all duration-300 hover:scale-105 cursor-pointer text-center"
           >
             Start building your wallet
           </button>

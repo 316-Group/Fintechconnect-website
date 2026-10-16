@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Palette, LayoutGrid, CheckCheck } from 'lucide-react';
 
 interface FeatureCard {
@@ -43,12 +43,35 @@ const cardsData: FeatureCard[] = [
 ];
 
 export default function NewCardsSection() {
+  const [isVisible, setIsVisible] = useState(false);
+  const sectionRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+          if (sectionRef.current) observer.unobserve(sectionRef.current);
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (sectionRef.current) {
+      observer.observe(sectionRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, []);
+
   return (
-    <section className="w-full bg-[#f8faff] py-16 md:py-24 px-4 sm:px-6 lg:px-20 font-sans text-slate-900">
+    <section ref={sectionRef} className="w-full bg-[#f8faff] py-16 md:py-24 px-4 sm:px-6 lg:px-20 font-sans text-slate-900 overflow-hidden">
       <div className="max-w-full mx-auto space-y-12">
         
         {/* Header Section */}
-        <div className="max-w-3xl space-y-3">
+        <div className={`max-w-3xl space-y-3 transition-all duration-700 ease-out ${
+          isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-8'
+        }`}>
           <span className="text-xs font-bold tracking-widest text-blue-600 uppercase block mb-3">
             SCOPE &amp; RESPONSIBILITIES
           </span>
@@ -60,12 +83,17 @@ export default function NewCardsSection() {
           </p>
         </div>
 
-        {/* 3-Cards Grid */}
+        {/* 3-Cards Grid with Staggered Left-to-Right Animation */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
-          {cardsData.map((card) => (
+          {cardsData.map((card, index) => (
             <div
               key={card.id}
-              className="bg-white rounded-2xl p-7 sm:p-8 border border-slate-100/80 shadow-xs flex flex-col justify-between hover:shadow-md transition-shadow duration-200"
+              className={`bg-white rounded-2xl p-7 sm:p-8 border border-slate-100/80 shadow-xs flex flex-col justify-between hover:shadow-md transition-all duration-700 ease-out ${
+                isVisible 
+                  ? 'opacity-100 translate-x-0 translate-y-0' 
+                  : 'opacity-0 -translate-x-12'
+              }`}
+              style={{ transitionDelay: `${index * 380}ms` }}
             >
               <div>
                 {/* Top Row: Icon Badge & Status Tag */}
