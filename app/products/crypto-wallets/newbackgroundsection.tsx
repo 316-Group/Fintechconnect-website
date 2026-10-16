@@ -64,7 +64,7 @@ export default function NewBackgroundSection() {
   return (
     <section 
       ref={sectionRef}
-      className="relative max-w-full h-[400px] bg-[#050508] overflow-hidden flex items-center justify-center font-sans"
+      className="relative max-w-full h-[530px] md:h-[400px] bg-[#050508] overflow-hidden flex items-center justify-center font-sans"
     >
       {/* Background Image */}
       <img 
