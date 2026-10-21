@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Outfit } from 'next/font/google';
 import {
+  AlertCircle,
   ArrowDown,
   ArrowDownLeft,
   ArrowRight,
@@ -18,16 +19,22 @@ import {
   Clock,
   Contrast,
   Copy,
+  Download,
   Eye,
   FileText,
+  Fingerprint,
+  Globe,
   GripVertical,
   Home,
   Landmark,
   Lock,
   LogIn,
+  Mail,
+  Monitor,
   Moon,
   Palette,
   Pencil,
+  Phone,
   Plus,
   PlusCircle,
   QrCode,
@@ -35,9 +42,11 @@ import {
   RefreshCw,
   Search,
   Send,
+  Share2,
   ShieldCheck,
   ShoppingCart,
   Signal,
+  Smartphone,
   Snowflake,
   Sparkles,
   Sun,
@@ -70,7 +79,6 @@ type ModuleId =
   | 'security'
   | 'notifications'
   | 'signin'
-  | 'signInWithGoogle'
   | 'accountsPage'
   | 'directTransferEngine'
   | 'multiMarketFX'
@@ -87,7 +95,18 @@ type ModuleId =
   | 'historyPage'
   | 'splash'
   | 'profile'
-  | 'freezeCard';
+  | 'freezeCard'
+  | 'accountPortfolio'
+  | 'routingWireData'
+  | 'statementsExport'
+  | 'cardPreview'
+  | 'cardControls'
+  | 'pinVault'
+  | 'alertCenter'
+  | 'deliveryChannels'
+  | 'identityCard'
+  | 'securityBaseline'
+  | 'connectedDevices';
 type RadiusMode = 'rounded' | 'sharp' | 'pill';
 type TabId = 'home' | 'cards' | 'activity' | 'settings' | 'send' | 'fx';
 type AppKind = 'banking' | 'fintech' | 'psp' | 'wallet' | 'crypto';
@@ -229,23 +248,13 @@ const availableModules: ModuleAsset[] = [
     },
   },
   {
-    id: 'signin', title: 'Sign-In Gate', subtitle: 'Brand lockup, email & Face ID entry', category: 'onboarding', badge: 'Auth',
+    id: 'signin', title: 'Sign-In Screen', subtitle: 'Email, password, captcha & quick login', category: 'onboarding', badge: 'Auth',
     badgeColor: 'bg-slate-100 text-slate-600 border border-slate-200',
     code: {
-      swiftui: `SignInGate(email: state.email, onFaceID: auth.faceID)`,
-      typescript: `export const SignInGate = () => (\n  <AuthCard method="faceID" onSuccess={goHome} />\n);`,
-      reactnative: `<SignInGate onSuccess={goHome} />`,
-      kotlin: `SignInGate(onFaceId = auth::faceId)`,
-    },
-  },
-  {
-    id: 'signInWithGoogle', title: 'Sign In with Google', subtitle: 'One-tap OAuth Google sign-in', category: 'onboarding', badge: 'Auth',
-    badgeColor: 'bg-slate-100 text-slate-600 border border-slate-200',
-    code: {
-      swiftui: `SignInWithGoogle(onSuccess: auth.googleSignIn)`,
-      typescript: `export const SignInWithGoogle = () => (\n  <GoogleAuthButton onSuccess={handleGoogle} />\n);`,
-      reactnative: `<SignInWithGoogle onSuccess={handleGoogle} />`,
-      kotlin: `SignInWithGoogle(onSuccess = auth::googleSignIn)`,
+      swiftui: `SignInScreen(\n  email: $email,\n  password: $pw,\n  onSignIn: auth.signIn\n)`,
+      typescript: `export const SignInScreen = () => (\n  <SignInForm onSignIn={signIn} />\n);`,
+      reactnative: `<SignInScreen onSignIn={signIn} />`,
+      kotlin: `SignInScreen(onSignIn = auth::signIn)`,
     },
   },
   {
@@ -381,6 +390,120 @@ const availableModules: ModuleAsset[] = [
       kotlin: `OutstandingReceivables(items = store.pending, onRemind = ::remind)`,
     },
   },
+  /* ------------------- Cards (7.1 – 7.3) ------------------- */
+  {
+    id: 'cardPreview', title: '7.1 Card Preview', subtitle: 'Metal card with active NFC badge', category: 'security', badge: 'Card',
+    badgeColor: 'bg-emerald-50 text-emerald-600 border border-emerald-100',
+    code: {
+      swiftui: `CardPreview(holder: "C MUTHU KRISHNAN", last4: "8824", tier: .platinum)`,
+      typescript: `export const CardPreview = () => (\n  <MetalCard tier="platinum" last4="8824" />\n);`,
+      reactnative: `<CardPreview last4="8824" />`,
+      kotlin: `CardPreview(last4 = "8824", tier = Tier.PLATINUM)`,
+    },
+  },
+  {
+    id: 'cardControls', title: '7.2 Card Controls', subtitle: 'Freeze / online / NFC + spend limit', category: 'security', badge: 'Card',
+    badgeColor: 'bg-emerald-50 text-emerald-600 border border-emerald-100',
+    code: {
+      swiftui: `CardControls(frozen: $frozen, online: $online, nfc: $nfc, limit: 5000)`,
+      typescript: `export const CardControls = () => (\n  <SecuritySwitches limit={5000} />\n);`,
+      reactnative: `<CardControls limit={5000} />`,
+      kotlin: `CardControls(limit = 5000.0)`,
+    },
+  },
+  {
+    id: 'pinVault', title: '7.3 PIN Vault', subtitle: 'Hold to view, change PIN, report lost', category: 'security', badge: 'Card',
+    badgeColor: 'bg-emerald-50 text-emerald-600 border border-emerald-100',
+    code: {
+      swiftui: `PinVault(onView: pin::reveal, onChange: pin::change, onReport: report)`,
+      typescript: `export const PinVault = () => (\n  <PinVaultActions />\n);`,
+      reactnative: `<PinVault />`,
+      kotlin: `PinVault(onChange = pin::change, onReport = ::report)`,
+    },
+  },
+  /* ------------------- Notifications (9.1 – 9.2) ------------------- */
+  {
+    id: 'alertCenter', title: '9.1 Alert Center', subtitle: 'Recent alerts feed with mark all as read', category: 'security', badge: 'Push',
+    badgeColor: 'bg-blue-50 text-blue-600 border border-blue-100',
+    code: {
+      swiftui: `AlertCenter(items: store.alerts)`,
+      typescript: `export const AlertCenter = () => (\n  <AlertFeed items={alerts} onMarkAllRead={markAll} />\n);`,
+      reactnative: `<AlertCenter items={alerts} />`,
+      kotlin: `AlertCenter(items = store.alerts)`,
+    },
+  },
+  {
+    id: 'deliveryChannels', title: '9.2 Delivery Channels', subtitle: 'Push / weekly / security preferences', category: 'security', badge: 'Push',
+    badgeColor: 'bg-blue-50 text-blue-600 border border-blue-100',
+    code: {
+      swiftui: `DeliveryChannels(prefs: $prefs)`,
+      typescript: `export const DeliveryChannels = () => (\n  <DeliveryChannelsForm prefs={prefs} />\n);`,
+      reactnative: `<DeliveryChannels prefs={prefs} />`,
+      kotlin: `DeliveryChannels(prefs = prefs)`,
+    },
+  },
+  /* ------------------- Profile (10.1 – 10.3) ------------------- */
+  {
+    id: 'identityCard', title: '10.1 Identity Card', subtitle: 'Avatar, tier, tax ID and residence', category: 'security', badge: 'KYC',
+    badgeColor: 'bg-blue-50 text-blue-600 border border-blue-100',
+    code: {
+      swiftui: `IdentityCard(user: auth.current)`,
+      typescript: `export const IdentityCard = () => (\n  <IdentityCardView user={user} tier="BLACK" />\n);`,
+      reactnative: `<IdentityCard user={user} />`,
+      kotlin: `IdentityCard(user = auth.current)`,
+    },
+  },
+  {
+    id: 'securityBaseline', title: '10.2 Security Baseline', subtitle: 'Password, biometrics, hardware key', category: 'security', badge: 'Shield',
+    badgeColor: 'bg-emerald-50 text-emerald-600 border border-emerald-100',
+    code: {
+      swiftui: `SecurityBaseline(passwordAge: 3, faceID: true, hardwareKey: true)`,
+      typescript: `export const SecurityBaseline = () => (\n  <SecurityBaselineList />\n);`,
+      reactnative: `<SecurityBaseline />`,
+      kotlin: `SecurityBaseline(faceID = true, hardwareKey = true)`,
+    },
+  },
+  {
+    id: 'connectedDevices', title: '10.3 Connected Devices', subtitle: 'Active sessions and log-out-all', category: 'security', badge: 'Shield',
+    badgeColor: 'bg-emerald-50 text-emerald-600 border border-emerald-100',
+    code: {
+      swiftui: `ConnectedDevices(sessions: store.sessions)`,
+      typescript: `export const ConnectedDevices = () => (\n  <ActiveSessions sessions={sessions} />\n);`,
+      reactnative: `<ConnectedDevices sessions={sessions} />`,
+      kotlin: `ConnectedDevices(sessions = store.sessions)`,
+    },
+  },
+  /* ------------------- Accounts (3.1 – 3.3) ------------------- */
+  {
+    id: 'accountPortfolio', title: '3.1 Account Portfolio', subtitle: 'Everyday, savings and travel wallet', category: 'balances', badge: 'Core',
+    badgeColor: 'bg-blue-50 text-blue-600 border border-blue-100',
+    code: {
+      swiftui: `AccountPortfolio(accounts: store.accounts)`,
+      typescript: `export const AccountPortfolio = () => (\n  <AccountsGrid accounts={accounts} />\n);`,
+      reactnative: `<AccountPortfolio accounts={accounts} />`,
+      kotlin: `AccountPortfolio(accounts = store.accounts)`,
+    },
+  },
+  {
+    id: 'routingWireData', title: '3.2 Routing & Wire Data', subtitle: 'Holder, ACH routing and account number', category: 'balances', badge: 'Data',
+    badgeColor: 'bg-blue-50 text-blue-600 border border-blue-100',
+    code: {
+      swiftui: `RoutingWireData(holder: "Alex Rivera", routing: "021000021")`,
+      typescript: `export const RoutingWireData = () => (\n  <WireDetails onShare={share} />\n);`,
+      reactnative: `<RoutingWireData onShare={share} />`,
+      kotlin: `RoutingWireData(onShare = ::share)`,
+    },
+  },
+  {
+    id: 'statementsExport', title: '3.3 Statements Export', subtitle: 'Cycle, format and SHA-256 seal', category: 'ledger', badge: 'Data',
+    badgeColor: 'bg-amber-50 text-amber-600 border border-amber-100',
+    code: {
+      swiftui: `StatementsExport(cycle: .oct2024, format: .pdf)`,
+      typescript: `export const StatementsExport = () => (\n  <AuditedStatements cycle={cycle} />\n);`,
+      reactnative: `<StatementsExport cycle={cycle} />`,
+      kotlin: `StatementsExport(cycle = Cycle.OCT_2024)`,
+    },
+  },
   /* ------------------- Others ------------------- */
   {
     id: 'historyPage', title: 'Ledger Filter Bar', subtitle: 'Date range, status and type chips', category: 'ledger', badge: 'Data',
@@ -433,16 +556,16 @@ const APP_KINDS: { id: AppKind; label: string; blurb: string }[] = [
 ];
 
 const PAGES: { id: PageId; label: string; modules: ModuleId[] }[] = [
-  { id: 'signin', label: 'Sign In', modules: ['signin', 'signInWithGoogle'] },
+  { id: 'signin', label: 'Sign In', modules: ['signin'] },
   { id: 'home', label: 'Home', modules: ['accounts', 'cashflow', 'transfers', 'vaults', 'cards'] },
-  { id: 'accounts', label: 'Accounts', modules: ['accountsPage', 'accounts'] },
+  { id: 'accounts', label: 'Accounts', modules: ['accountPortfolio', 'routingWireData', 'statementsExport'] },
   { id: 'transfers', label: 'Transfers', modules: ['directTransferEngine', 'multiMarketFX', 'recurringStanding', 'authorizationModal'] },
   { id: 'send', label: 'Send', modules: ['recentRecipients', 'beneficiaryValidation', 'sendMoneyAmount', 'transferSuccess'] },
   { id: 'payments', label: 'Payments', modules: ['peerInvoicing', 'paymentQR', 'splitPayment', 'outstandingReceivables'] },
-  { id: 'cards', label: 'Cards', modules: ['cards', 'freezeCard', 'vaults'] },
+  { id: 'cards', label: 'Cards', modules: ['cardPreview', 'cardControls', 'pinVault'] },
   { id: 'history', label: 'Transaction history', modules: ['historyPage', 'cards', 'analytics'] },
-  { id: 'notifications', label: 'Notifications', modules: ['notifications', 'profile'] },
-  { id: 'profile', label: 'Profile and security', modules: ['profile', 'security'] },
+  { id: 'notifications', label: 'Notifications', modules: ['alertCenter', 'deliveryChannels'] },
+  { id: 'profile', label: 'Profile and security', modules: ['identityCard', 'securityBaseline', 'connectedDevices'] },
   { id: 'splash', label: 'Splash Screens', modules: ['splash'] },
 ];
 
@@ -454,6 +577,8 @@ const PAGE_TO_TAB: Record<PageId, TabId> = {
 const TAB_TO_PAGE: Record<TabId, PageId> = {
   home: 'home', cards: 'cards', activity: 'history', settings: 'profile', send: 'send', fx: 'home',
 };
+
+const SINGLE_SLOT: Partial<Record<PageId, boolean>> = { transfers: true };
 
 const INITIAL_BALANCE = 25000.4;
 const INITIAL_INCOME = 20000;
@@ -472,10 +597,6 @@ const INITIAL_SAVINGS: SavingsGoal[] = [
   { id: 'macbook', name: 'Macbook Pro M1', amount: 1499 },
 ];
 
-/* -------------------------------------------------------------------------- */
-/*  Helpers                                                                   */
-/* -------------------------------------------------------------------------- */
-
 const usd = (n: number) => n.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
 const whole = (n: number) => `$ ${Math.round(n).toLocaleString('en-US')}`;
 const round2 = (n: number) => Math.round(n * 100) / 100;
@@ -492,7 +613,7 @@ const ringVar = (color: string) => ({ ['--tw-ring-color' as string]: color } as 
 
 const buildInitialPages = (): Record<PageId, ModuleId[]> => {
   const out = {} as Record<PageId, ModuleId[]>;
-  for (const p of PAGES) out[p.id] = p.id === 'home' ? [] : p.modules;
+  for (const p of PAGES) out[p.id] = [];
   return out;
 };
 
@@ -514,7 +635,8 @@ interface ViewActions {
   toggleFaceId: () => void;
   openAlerts: () => void;
   signIn: () => void;
-  signInWithGoogle: () => void;
+  skipSignIn: () => void;
+  quickSignIn: (provider: 'google' | 'facebook' | 'apple' | 'phone') => void;
   toggleFreeze: () => void;
 }
 
@@ -537,7 +659,7 @@ const noop = () => {};
 const noopActions: ViewActions = {
   send: noop, payments: noop, payBill: noop, topUp: noop, openWallet: noop, openFx: noop,
   openHistory: noop, seeAllSavings: noop, deposit: noop, toggleFaceId: noop, openAlerts: noop,
-  signIn: noop, signInWithGoogle: noop, toggleFreeze: noop,
+  signIn: noop, skipSignIn: noop, quickSignIn: noop, toggleFreeze: noop,
 };
 
 function Tap({
@@ -592,6 +714,18 @@ function SectionHeader({ ctx, title, action, onAction }: { ctx: ViewCtx; title: 
   );
 }
 
+function ModuleHeader({ ctx, code, title }: { ctx: ViewCtx; code: string; title: string }) {
+  return (
+    <>
+      <div className="flex items-center justify-between">
+        <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: ctx.accent }}>{code}</p>
+        <GripVertical className="h-3.5 w-3.5 text-slate-300" aria-hidden />
+      </div>
+      <p className="text-[14px] font-bold">{title}</p>
+    </>
+  );
+}
+
 function BalanceCard({ ctx }: { ctx: ViewCtx }) {
   return (
     <div
@@ -601,8 +735,6 @@ function BalanceCard({ ctx }: { ctx: ViewCtx }) {
       style={{ background: INK }}
     >
       <span aria-hidden className="absolute -right-7 -top-7 h-[84px] w-[84px] rounded-full" style={{ background: ctx.accent }} />
-      <span aria-hidden className="absolute -right-6 top-[34%] h-16 w-16 rounded-full" style={{ background: YELLOW }} />
-      <span aria-hidden className="absolute -bottom-7 -left-7 h-[76px] w-[76px] rounded-full" style={{ background: GREEN }} />
       <div className="relative">
         <p className="text-[10px] text-white/60">Total Balance</p>
         <p className="mt-1 text-[26px] font-bold leading-none tracking-tight">{usd(ctx.balance)}</p>
@@ -758,53 +890,440 @@ function AlertsRow({ ctx }: { ctx: ViewCtx }) {
   );
 }
 
-/* ------------------------- page-specific modules -------------------------- */
+/* -------------------------- Sign-in (new design) --------------------------- */
+
+function GoogleSvg({ className = 'h-3.5 w-3.5' }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 48 48" className={className} aria-hidden>
+      <path fill="#FFC107" d="M43.6 20.1H42V20H24v8h11.3c-1.6 4.7-6.1 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 8 3l5.7-5.7C34 5.5 29.3 3.5 24 3.5 12.7 3.5 3.5 12.7 3.5 24S12.7 44.5 24 44.5c11.3 0 20.5-9.2 20.5-20.5 0-1.3-.1-2.6-.4-3.9z" />
+      <path fill="#FF3D00" d="M5.3 14.7l6.6 4.8C13.6 15.1 18.4 12 24 12c3.1 0 5.8 1.2 8 3l5.7-5.7C34 5.5 29.3 3.5 24 3.5c-7.4 0-13.8 4.1-17.1 10.2z" />
+      <path fill="#4CAF50" d="M24 44.5c5.2 0 9.9-2 13.5-5.2l-6.2-5.2c-2 1.5-4.6 2.4-7.3 2.4-5.2 0-9.6-3.3-11.2-7.9l-6.5 5C9.8 40.1 16.3 44.5 24 44.5z" />
+      <path fill="#1976D2" d="M43.6 20.1H42V20H24v8h11.3c-.8 2.3-2.2 4.3-4.1 5.7l6.2 5.2C42.2 35.6 44.5 30.2 44.5 24c0-1.3-.1-2.6-.9-3.9z" />
+    </svg>
+  );
+}
+
+function FacebookSvg({ className = 'h-3.5 w-3.5' }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="#1877F2" aria-hidden>
+      <path d="M24 12c0-6.627-5.373-12-12-12S0 5.373 0 12c0 5.99 4.388 10.954 10.125 11.854V15.47H7.078V12h3.047V9.356c0-3.007 1.792-4.668 4.533-4.668 1.312 0 2.686.234 2.686.234v2.953H15.83c-1.491 0-1.956.925-1.956 1.874V12h3.328l-.532 3.469h-2.796v8.384C19.612 22.954 24 17.99 24 12z" />
+    </svg>
+  );
+}
+
+function AppleSvg({ className = 'h-3.5 w-3.5' }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="currentColor" aria-hidden>
+      <path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" />
+    </svg>
+  );
+}
 
 function SignInCard({ ctx }: { ctx: ViewCtx }) {
+  const fieldCls = `flex items-center gap-2 border px-3 py-2.5 ${ctx.radius.icon} ${ctx.isDark ? 'border-slate-700 bg-slate-800' : 'border-slate-200 bg-slate-50'}`;
   return (
     <div className={`space-y-3 p-4 ${ctx.radius.card} ${surface(ctx.isDark)}`}>
-      <div className="flex items-center gap-2.5">
-        <span className="grid h-9 w-9 place-items-center rounded-xl text-white" style={{ background: ctx.accent }}><Lock className="h-4 w-4" /></span>
-        <div><p className="text-[13px] font-bold">Welcome back</p><p className="text-[9px] text-slate-400">Sign in to continue</p></div>
+      <div>
+        <label className="mb-1 block text-[10px] font-semibold">Email</label>
+        <div className={fieldCls}>
+          <Mail className="h-3.5 w-3.5 text-slate-400" />
+          <span className="text-[11px] text-slate-400">Enter Your Email</span>
+        </div>
       </div>
-      <div className={`px-3 py-2 text-[10px] text-slate-400 ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800' : 'bg-slate-50'}`}>you@example.com</div>
-      <Tap ctx={ctx} onClick={ctx.actions.signIn} label="Sign in with Face ID" className={`flex w-full items-center justify-center gap-2 py-2.5 text-[11px] font-bold text-white ${ctx.radius.icon}`}>
-        <span className={`flex w-full items-center justify-center gap-2 py-2.5 text-[11px] font-bold text-white ${ctx.radius.icon}`} style={{ background: ctx.accent }}>
-          <LogIn className="h-3.5 w-3.5" /> Sign in with Face ID
-        </span>
+      <div>
+        <label className="mb-1 block text-[10px] font-semibold">Password</label>
+        <div className={fieldCls}>
+          <Lock className="h-3.5 w-3.5 text-slate-400" />
+          <span className="text-[11px] text-slate-400">Enter Your Password</span>
+        </div>
+      </div>
+      <p className="cursor-pointer text-[11px] font-bold underline">Forgot Password?</p>
+      <div className={`flex items-center justify-between border px-3 py-2.5 ${ctx.radius.icon} ${ctx.isDark ? 'border-slate-700 bg-slate-800' : 'border-slate-200 bg-slate-50'}`}>
+        <div className="flex items-center gap-2 text-slate-500">
+          <svg viewBox="0 0 24 24" className="h-4 w-4 fill-current" aria-hidden><path d="M4 2 19 12 12.5 13.5 9.5 20Z" /></svg>
+          <span className="text-[10px] font-medium">Click to start verification</span>
+        </div>
+        <div className="grid h-5 w-5 place-items-center rounded bg-black text-white"><Check className="h-3 w-3" /></div>
+      </div>
+      <Tap ctx={ctx} onClick={ctx.actions.signIn} label="Sign in" className="block w-full">
+        <span className={`block w-full py-2.5 text-center text-[11px] font-bold text-white ${ctx.radius.icon}`} style={{ background: 'linear-gradient(to bottom, #374151, #111827)' }}>Sign in</span>
+      </Tap>
+      <Tap ctx={ctx} onClick={ctx.actions.skipSignIn} label="Skip for now" className="block w-full">
+        <span className={`block w-full border py-2.5 text-center text-[11px] font-bold ${ctx.radius.icon} ${ctx.isDark ? 'border-slate-700 text-slate-100' : 'border-slate-200 bg-white text-slate-900'}`}>Skip for now</span>
+      </Tap>
+      <div className={`flex items-end justify-between gap-2 border-t pt-3 ${ctx.isDark ? 'border-slate-700' : 'border-slate-200'}`}>
+        <div>
+          <p className="text-[10px] text-slate-500">Don't have an account?</p>
+          <p className="cursor-pointer text-[11px] font-bold underline">Sign up</p>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="text-[9px] text-slate-400">Quick Login:</span>
+          <Tap ctx={ctx} onClick={() => ctx.actions.quickSignIn('google')} label="Continue with Google" className="grid h-7 w-7 place-items-center rounded-full border border-slate-200 bg-white"><GoogleSvg /></Tap>
+          <Tap ctx={ctx} onClick={() => ctx.actions.quickSignIn('facebook')} label="Continue with Facebook" className="grid h-7 w-7 place-items-center rounded-full border border-slate-200 bg-white"><FacebookSvg /></Tap>
+          <Tap ctx={ctx} onClick={() => ctx.actions.quickSignIn('apple')} label="Continue with Apple" className="grid h-7 w-7 place-items-center rounded-full border border-slate-200 bg-white text-slate-900"><AppleSvg /></Tap>
+          <Tap ctx={ctx} onClick={() => ctx.actions.quickSignIn('phone')} label="Continue with phone number" className="grid h-7 w-7 place-items-center rounded-full border border-slate-200 bg-white text-slate-700"><Phone className="h-3.5 w-3.5" /></Tap>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* -------------------------- Accounts page modules -------------------------- */
+
+function AccountPortfolio({ ctx }: { ctx: ViewCtx }) {
+  const rows = [
+    { name: 'Everyday Checking', right: '··· 4912', bal: '$12,450.20', badge: 'Active', badgeColor: 'text-emerald-600' },
+    { name: 'High-Yield Savings', right: '4.85% APY', bal: '$11,200.00', badge: 'Tier 1 Pot', badgeColor: 'text-slate-500' },
+    { name: 'Euro Travel Wallet', right: 'EUR', bal: '€1,200.00', badge: 'IBAN DE89…', badgeColor: 'text-slate-500' },
+  ];
+  return (
+    <div className={`space-y-3 p-3.5 ${ctx.radius.card} ${surface(ctx.isDark)}`}>
+      <ModuleHeader ctx={ctx} code="3.1 My Accounts" title="Account Portfolio" />
+      <div className="space-y-2">
+        {rows.map((r) => (
+          <div key={r.name} className={`p-3 ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800' : 'bg-slate-50'}`}>
+            <div className="flex items-center justify-between">
+              <p className="text-[11px] font-semibold">{r.name}</p>
+              <p className="text-[9px] text-slate-400">{r.right}</p>
+            </div>
+            <div className="mt-1 flex items-baseline justify-between">
+              <p className="text-[16px] font-bold">{r.bal}</p>
+              <p className={`text-[9px] font-semibold ${r.badgeColor}`}>{r.badge}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+      <button type="button" className={`w-full flex items-center justify-center gap-1 py-2.5 text-[11px] font-bold ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800 text-slate-200' : 'bg-slate-100 text-slate-800'}`}>
+        <Plus className="h-3 w-3" /> Open New Pocket
+      </button>
+    </div>
+  );
+}
+
+function RoutingWireData({ ctx }: { ctx: ViewCtx }) {
+  return (
+    <div className={`space-y-3 p-3.5 ${ctx.radius.card} ${surface(ctx.isDark)}`}>
+      <ModuleHeader ctx={ctx} code="3.2 Account Details" title="Routing & Wire Data" />
+      <div className={`p-3 ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800' : 'bg-slate-50'}`}>
+        <p className="text-[9px] text-slate-400">Account Holder</p>
+        <p className="mt-0.5 text-[11px] font-semibold">Alex Rivera · Apex Holdings LLC</p>
+      </div>
+      {[{ label: 'ACH Routing Number', value: '021000021' }, { label: 'Account Number', value: '884920194821' }].map((row) => (
+        <div key={row.label} className={`flex items-center justify-between p-3 ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800' : 'bg-slate-50'}`}>
+          <div>
+            <p className="text-[9px] text-slate-400">{row.label}</p>
+            <p className="mt-0.5 font-mono text-[11px] font-bold">{row.value}</p>
+          </div>
+          <button type="button" aria-label={`Copy ${row.label}`} className={`grid h-7 w-7 place-items-center ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-700 text-slate-200' : 'bg-white text-slate-600 shadow-sm'}`}>
+            <Copy className="h-3 w-3" />
+          </button>
+        </div>
+      ))}
+      <button type="button" className={`w-full flex items-center justify-center gap-1.5 py-2.5 text-[11px] font-bold text-white ${ctx.radius.icon}`} style={{ background: '#C026D3' }}>
+        <Share2 className="h-3 w-3" /> Share Bank Details
+      </button>
+    </div>
+  );
+}
+
+function StatementsExport({ ctx }: { ctx: ViewCtx }) {
+  const [format, setFormat] = useState<'pdf' | 'csv'>('pdf');
+  return (
+    <div className={`space-y-3 p-3.5 ${ctx.radius.card} ${surface(ctx.isDark)}`}>
+      <ModuleHeader ctx={ctx} code="3.3 Statements Export" title="Monthly Audited Files" />
+      <div>
+        <p className="text-[9px] text-slate-400 mb-1">Select Statement Cycle</p>
+        <div className={`flex items-center justify-between p-3 ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800' : 'bg-slate-50'}`}>
+          <span className="text-[11px]">October 2024 (Current)</span>
+          <ChevronDown className="h-3 w-3 text-slate-400" />
+        </div>
+      </div>
+      <div>
+        <p className="text-[9px] text-slate-400 mb-1">Format</p>
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={() => setFormat('pdf')}
+            className={`py-2 text-[11px] font-bold ${ctx.radius.icon} ${format === 'pdf' ? 'text-white' : ctx.isDark ? 'bg-slate-800 text-slate-200' : 'bg-slate-100 text-slate-700'}`}
+            style={format === 'pdf' ? { background: '#0284C7' } : undefined}
+          >
+            PDF Format
+          </button>
+          <button
+            type="button"
+            onClick={() => setFormat('csv')}
+            className={`py-2 text-[11px] font-bold ${ctx.radius.icon} ${format === 'csv' ? 'text-white' : ctx.isDark ? 'bg-slate-800 text-slate-200' : 'bg-slate-100 text-slate-700'}`}
+            style={format === 'csv' ? { background: '#0284C7' } : undefined}
+          >
+            CSV Sheet
+          </button>
+        </div>
+      </div>
+      <div className={`flex items-start gap-2 p-3 ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800' : 'bg-blue-50'}`}>
+        <ShieldCheck className="h-4 w-4 shrink-0 text-blue-500" />
+        <p className="text-[9px] leading-relaxed text-slate-600 dark:text-slate-300">
+          Cryptographically sealed with SHA-256 for tax filing
+        </p>
+      </div>
+      <button type="button" className={`w-full flex items-center justify-center gap-1.5 py-2.5 text-[11px] font-bold ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800 text-slate-100' : 'bg-slate-100 text-slate-800'}`}>
+        <Download className="h-3 w-3" /> Download {format === 'pdf' ? 'PDF (1.2 MB)' : 'CSV'}
+      </button>
+    </div>
+  );
+}
+
+/* -------------------------- Cards page modules ----------------------------- */
+
+function CardPreview({ ctx }: { ctx: ViewCtx }) {
+  return (
+    <div
+      className={`relative h-[132px] overflow-hidden p-5 text-white ${ctx.radius.card} ${
+        ctx.isDark ? 'ring-1 ring-white/10' : 'shadow-[0_10px_28px_rgba(20,20,40,0.22)]'
+      }`}
+      style={{ background: INK }}
+    >
+      <span aria-hidden className="absolute -right-7 -top-7 h-[84px] w-[84px] rounded-full" style={{ background: ctx.accent }} />
+      <div className="relative">
+        <p className="text-[10px] text-white/60">Total Balance</p>
+        <p className="mt-1 text-[26px] font-bold leading-none tracking-tight">{usd(ctx.balance)}</p>
+      </div>
+      <Tap ctx={ctx} onClick={ctx.actions.openWallet} label="Open wallet" className="absolute bottom-4 right-4 flex items-center gap-2 text-[10px] font-semibold">
+        My Wallet
+        <span className="grid h-7 w-7 place-items-center rounded-full bg-white" style={{ color: INK }}><ArrowRight className="h-3.5 w-3.5" /></span>
       </Tap>
     </div>
   );
 }
 
-function GoogleSignInCard({ ctx }: { ctx: ViewCtx }) {
+function CardControls({ ctx }: { ctx: ViewCtx }) {
+  const [frozen, setFrozen] = useState(false);
+  const [online, setOnline] = useState(true);
+  const [nfc, setNfc] = useState(true);
+  const items = [
+    { key: 'freeze', label: 'Freeze Card', Icon: Snowflake, value: frozen, set: setFrozen },
+    { key: 'online', label: 'Online Payments', Icon: Globe, value: online, set: setOnline },
+    { key: 'nfc', label: 'Contactless (NFC)', Icon: Wifi, value: nfc, set: setNfc },
+  ];
   return (
-    <div className={`space-y-3 p-4 ${ctx.radius.card} ${surface(ctx.isDark)}`}>
-      <div className="flex items-center gap-2.5">
-        <span className={`grid h-9 w-9 place-items-center bg-white ring-1 ring-slate-200 ${ctx.radius.icon}`}>
-          <svg viewBox="0 0 48 48" className="h-4 w-4" aria-hidden>
-            <path fill="#FFC107" d="M43.6 20.1H42V20H24v8h11.3c-1.6 4.7-6.1 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 8 3l5.7-5.7C34 5.5 29.3 3.5 24 3.5 12.7 3.5 3.5 12.7 3.5 24S12.7 44.5 24 44.5c11.3 0 20.5-9.2 20.5-20.5 0-1.3-.1-2.6-.4-3.9z" />
-            <path fill="#FF3D00" d="M5.3 14.7l6.6 4.8C13.6 15.1 18.4 12 24 12c3.1 0 5.8 1.2 8 3l5.7-5.7C34 5.5 29.3 3.5 24 3.5c-7.4 0-13.8 4.1-17.1 10.2z" />
-            <path fill="#4CAF50" d="M24 44.5c5.2 0 9.9-2 13.5-5.2l-6.2-5.2c-2 1.5-4.6 2.4-7.3 2.4-5.2 0-9.6-3.3-11.2-7.9l-6.5 5C9.8 40.1 16.3 44.5 24 44.5z" />
-            <path fill="#1976D2" d="M43.6 20.1H42V20H24v8h11.3c-.8 2.3-2.2 4.3-4.1 5.7l6.2 5.2C42.2 35.6 44.5 30.2 44.5 24c0-1.3-.1-2.6-.9-3.9z" />
-          </svg>
-        </span>
-        <div><p className="text-[13px] font-bold">Sign in with Google</p><p className="text-[9px] text-slate-400">Use your Google account</p></div>
+    <div className={`space-y-3 p-3.5 ${ctx.radius.card} ${surface(ctx.isDark)}`}>
+      <ModuleHeader ctx={ctx} code="7.2 Card Controls" title="Security Switches" />
+      <div className="space-y-2">
+        {items.map(({ key, label, Icon, value, set }) => (
+          <div key={key} className={`flex items-center justify-between p-3 ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800' : 'bg-slate-50'}`}>
+            <div className="flex items-center gap-2">
+              <Icon className="h-4 w-4" />
+              <span className="text-[11px] font-medium">{label}</span>
+            </div>
+            <Switch checked={value} onChange={() => set(!value)} label={label} accent={ctx.accent} interactive={ctx.interactive} />
+          </div>
+        ))}
       </div>
-      <Tap ctx={ctx} onClick={ctx.actions.signInWithGoogle} label="Continue with Google"
-        className={`flex w-full items-center justify-center gap-2 border py-2.5 text-[11px] font-semibold ${ctx.radius.icon} ${ctx.isDark ? 'border-slate-700 bg-slate-800 text-slate-100' : 'border-slate-200 bg-white text-slate-900'}`}>
-        <svg viewBox="0 0 48 48" className="h-3.5 w-3.5" aria-hidden>
-          <path fill="#FFC107" d="M43.6 20.1H42V20H24v8h11.3c-1.6 4.7-6.1 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 8 3l5.7-5.7C34 5.5 29.3 3.5 24 3.5 12.7 3.5 3.5 12.7 3.5 24S12.7 44.5 24 44.5c11.3 0 20.5-9.2 20.5-20.5 0-1.3-.1-2.6-.4-3.9z" />
-          <path fill="#FF3D00" d="M5.3 14.7l6.6 4.8C13.6 15.1 18.4 12 24 12c3.1 0 5.8 1.2 8 3l5.7-5.7C34 5.5 29.3 3.5 24 3.5c-7.4 0-13.8 4.1-17.1 10.2z" />
-          <path fill="#4CAF50" d="M24 44.5c5.2 0 9.9-2 13.5-5.2l-6.2-5.2c-2 1.5-4.6 2.4-7.3 2.4-5.2 0-9.6-3.3-11.2-7.9l-6.5 5C9.8 40.1 16.3 44.5 24 44.5z" />
-          <path fill="#1976D2" d="M43.6 20.1H42V20H24v8h11.3c-.8 2.3-2.2 4.3-4.1 5.7l6.2 5.2C42.2 35.6 44.5 30.2 44.5 24c0-1.3-.1-2.6-.9-3.9z" />
-        </svg>
-        Continue with Google
-      </Tap>
-      <p className="text-center text-[8px] leading-snug text-slate-400">Google will share your name and email address.</p>
+      <div>
+        <div className="flex items-center justify-between text-[10px] mb-1">
+          <span className="text-slate-500">Monthly Spend Limit</span>
+          <span className="font-semibold">$2,500 / $5,000</span>
+        </div>
+        <div className="h-2 overflow-hidden rounded-full bg-slate-200">
+          <div className="h-full rounded-full" style={{ width: '50%', background: ctx.accent }} />
+        </div>
+      </div>
+      <p className="text-center text-[9px] text-slate-400">Limits reset in 8 days</p>
     </div>
   );
 }
+
+function PinVault({ ctx }: { ctx: ViewCtx }) {
+  return (
+    <div className={`space-y-3 p-3.5 ${ctx.radius.card} ${surface(ctx.isDark)}`}>
+      <ModuleHeader ctx={ctx} code="7.3 Card Security" title="PIN Vault & Replacement" />
+      <div className="flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-300 p-6 text-center">
+        <Fingerprint className="h-8 w-8 text-slate-600" />
+        <p className="text-[12px] font-semibold">Hold to View PIN</p>
+        <p className="text-[9px] text-slate-500">Reveals physical terminal code</p>
+      </div>
+      <button type="button" className={`w-full flex items-center justify-between p-3 ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800' : 'bg-slate-50'}`}>
+        <div className="flex items-center gap-2">
+          <Lock className="h-4 w-4" />
+          <span className="text-[11px] font-semibold">Change PIN</span>
+        </div>
+        <ChevronRight className="h-3 w-3 text-slate-400" />
+      </button>
+      <button type="button" className={`w-full flex items-center justify-center gap-1.5 py-2.5 text-[11px] font-semibold text-rose-500 ${ctx.radius.icon} ${ctx.isDark ? 'bg-rose-900/20' : 'bg-rose-50'}`}>
+        <AlertCircle className="h-3.5 w-3.5" /> Report Lost or Stolen
+      </button>
+    </div>
+  );
+}
+
+/* -------------------------- Notifications modules -------------------------- */
+
+function AlertCenter({ ctx }: { ctx: ViewCtx }) {
+  const items = [
+    { title: 'Payment Received: $4,250.00', sub: 'Your employer deposited funds via FedACH.', time: '10m ago', tone: 'blue', Icon: DollarIcon },
+    { title: 'New Login from Chrome Mac', sub: 'New York, US · IP 192.88.21.0', time: '2h ago', tone: 'gray', Icon: ShieldCheck },
+    { title: 'October Statement Ready', sub: 'Your monthly checking statement is ready for download.', time: '1d ago', tone: 'gray', Icon: FileText },
+  ] as const;
+  return (
+    <div className={`space-y-3 p-3.5 ${ctx.radius.card} ${surface(ctx.isDark)}`}>
+      <ModuleHeader ctx={ctx} code="9.1 Alert Feed" title="Alert Center" />
+      <div className="space-y-2">
+        {items.map((item) => (
+          <div key={item.title} className={`flex items-start gap-2.5 p-3 ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800' : 'bg-slate-50'}`}>
+            <span className={`grid h-8 w-8 shrink-0 place-items-center ${ctx.radius.icon} ${item.tone === 'blue' ? 'bg-blue-700 text-white' : ctx.isDark ? 'bg-slate-700 text-slate-200' : 'bg-slate-200 text-slate-600'}`}>
+              <item.Icon className="h-3.5 w-3.5" />
+            </span>
+            <div className="min-w-0">
+              <p className="text-[11px] font-semibold">{item.title}</p>
+              <p className="text-[9px] leading-snug text-slate-500">{item.sub}</p>
+              <p className="mt-0.5 text-[8px] text-slate-400">{item.time}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+      <p className="text-center text-[11px] font-semibold" style={{ color: ctx.accent }}>Mark all as read</p>
+    </div>
+  );
+}
+
+function DeliveryChannels({ ctx }: { ctx: ViewCtx }) {
+  const [large, setLarge] = useState(true);
+  const [weekly, setWeekly] = useState(true);
+  const [security, setSecurity] = useState(true);
+  const items = [
+    { key: 'large', title: 'Push Alerts for Large Payments', sub: 'Notify when debit exceeds $10.00', value: large, set: setLarge },
+    { key: 'weekly', title: 'Weekly Spending Digest', sub: 'Summary sent Sunday evening', value: weekly, set: setWeekly },
+    { key: 'security', title: 'Security & Anomaly Warnings', sub: 'Critical unblockable security emails', value: security, set: setSecurity },
+  ];
+  return (
+    <div className={`space-y-3 p-3.5 ${ctx.radius.card} ${surface(ctx.isDark)}`}>
+      <ModuleHeader ctx={ctx} code="9.2 Preferences" title="Delivery Channels" />
+      <div className="space-y-2">
+        {items.map((item) => (
+          <div key={item.key} className={`flex items-center justify-between p-3 ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800' : 'bg-slate-50'}`}>
+            <div className="min-w-0">
+              <p className="text-[11px] font-semibold">{item.title}</p>
+              <p className="text-[9px] text-slate-500">{item.sub}</p>
+            </div>
+            <Switch checked={item.value} onChange={() => item.set(!item.value)} label={item.title} accent={ctx.accent} interactive={ctx.interactive} />
+          </div>
+        ))}
+      </div>
+      <div className="flex items-center justify-between pt-2 border-t border-slate-200 dark:border-slate-700">
+        <span className="text-[9px] text-slate-500">Delivery via APNs & Webhook</span>
+        <span className="text-[9px] font-semibold" style={{ color: ctx.accent }}>Save Rule Set</span>
+      </div>
+    </div>
+  );
+}
+
+/* -------------------------- Profile page modules --------------------------- */
+
+function IdentityCard({ ctx }: { ctx: ViewCtx }) {
+  return (
+    <div className={`space-y-3 p-3.5 ${ctx.radius.card} ${surface(ctx.isDark)}`}>
+      <ModuleHeader ctx={ctx} code="10.1 Identity Card" title="" />
+      <div className="flex items-center gap-3">
+        <div className="grid h-14 w-14 place-items-center rounded-2xl bg-amber-700 text-white text-lg font-bold">AR</div>
+        <div className="min-w-0">
+          <div className="flex items-center gap-1.5">
+            <p className="text-[14px] font-bold">Alex Rivera</p>
+            <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
+          </div>
+          <p className="text-[10px] text-slate-500">alex.rivera@fintech.io</p>
+          <p className="mt-0.5 text-[9px] font-bold text-amber-700">BLACK MEMBER</p>
+        </div>
+      </div>
+      <div className="space-y-2 border-t border-slate-200 pt-3 dark:border-slate-700">
+        <div className="flex justify-between text-[10px]">
+          <span className="text-slate-500">Tax ID (SSN)</span>
+          <span className="font-mono">••••••8921</span>
+        </div>
+        <div className="flex justify-between text-[10px]">
+          <span className="text-slate-500">Residence</span>
+          <span>New York, United States</span>
+        </div>
+      </div>
+      <button type="button" className={`w-full py-2.5 text-[11px] font-bold ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800 text-slate-100' : 'bg-slate-100 text-slate-800'}`}>
+        Edit Account Identity
+      </button>
+    </div>
+  );
+}
+
+function SecurityBaseline({ ctx }: { ctx: ViewCtx }) {
+  const [biometrics, setBiometrics] = useState(true);
+  return (
+    <div className={`space-y-3 p-3.5 ${ctx.radius.card} ${surface(ctx.isDark)}`}>
+      <ModuleHeader ctx={ctx} code="10.2 Security Settings" title="Security Baseline" />
+      <div className="space-y-2">
+        <div className={`flex items-center justify-between p-3 ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800' : 'bg-slate-50'}`}>
+          <div>
+            <p className="text-[11px] font-semibold">Password</p>
+            <p className="text-[9px] text-slate-500">Updated 3 mos ago</p>
+          </div>
+          <button type="button" className="text-[10px] font-semibold" style={{ color: ctx.accent }}>Update</button>
+        </div>
+        <div className={`flex items-center justify-between p-3 ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800' : 'bg-slate-50'}`}>
+          <div>
+            <p className="text-[11px] font-semibold">Biometrics (Face ID)</p>
+            <p className="text-[9px] text-emerald-600">Active & Enrolled</p>
+          </div>
+          <Switch checked={biometrics} onChange={() => setBiometrics(!biometrics)} label="Biometrics" accent={ctx.accent} interactive={ctx.interactive} />
+        </div>
+        <div className={`flex items-center justify-between p-3 ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800' : 'bg-slate-50'}`}>
+          <div>
+            <p className="text-[11px] font-semibold">Hardware Authenticator</p>
+            <p className="text-[9px] text-slate-500">YubiKey 5C NFC</p>
+          </div>
+          <ShieldCheck className="h-4 w-4 text-emerald-600" />
+        </div>
+      </div>
+      <div className="flex justify-between border-t border-slate-200 pt-2 dark:border-slate-700">
+        <span className="text-[9px] text-slate-500">Security Score: 98%</span>
+        <span className="text-[9px] font-semibold text-emerald-600">Optimal</span>
+      </div>
+    </div>
+  );
+}
+
+function ConnectedDevices({ ctx }: { ctx: ViewCtx }) {
+  const devices = [
+    { name: 'iPhone 15 Pro', sub: 'New York, US · This device', active: true, Icon: Smartphone },
+    { name: 'MacBook Pro 16"', sub: 'Chrome 128 · Active 2h ago', active: false, Icon: Monitor },
+  ];
+  return (
+    <div className={`space-y-3 p-3.5 ${ctx.radius.card} ${surface(ctx.isDark)}`}>
+      <ModuleHeader ctx={ctx} code="10.3 Active Sessions" title="Connected Devices" />
+      <div className="space-y-2">
+        {devices.map((d) => (
+          <div key={d.name} className={`flex items-center justify-between p-3 ${ctx.radius.icon} ${d.active ? 'bg-indigo-50 dark:bg-indigo-900/20' : ctx.isDark ? 'bg-slate-800' : 'bg-slate-50'}`}>
+            <div className="flex items-center gap-2">
+              <d.Icon className="h-4 w-4" />
+              <div>
+                <p className="text-[11px] font-semibold">{d.name}</p>
+                <p className="text-[9px] text-slate-500">{d.sub}</p>
+              </div>
+            </div>
+            {d.active ? <span className="h-2.5 w-2.5 rounded-full bg-emerald-600" /> : <button type="button" className="text-[9px] font-semibold text-rose-500">Revoke</button>}
+          </div>
+        ))}
+      </div>
+      <button type="button" className={`w-full py-2.5 text-[11px] font-semibold text-rose-500 ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800' : 'bg-slate-100'}`}>
+        Log Out All Other Devices
+      </button>
+    </div>
+  );
+}
+
+function DollarIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M12 2v20M17 6H9a3 3 0 0 0 0 6h6a3 3 0 0 1 0 6H7" />
+    </svg>
+  );
+}
+
+/* ------------------------- legacy page modules ----------------------------- */
 
 function AccountsOverview({ ctx }: { ctx: ViewCtx }) {
   const rows = [['Everyday Checking', '$12,480.20', 'USD'], ['High-Yield Savings', '$8,920.00', 'USD'], ['Euro Travel Account', '€3,410.55', 'EUR']];
@@ -823,15 +1342,10 @@ function AccountsOverview({ ctx }: { ctx: ViewCtx }) {
   );
 }
 
-/* ---------- 4.1 Direct Transfer Engine ---------- */
 function DirectTransferEngine({ ctx }: { ctx: ViewCtx }) {
   return (
     <div className={`space-y-3 p-3.5 ${ctx.radius.card} ${surface(ctx.isDark)}`}>
-      <div className="flex items-center justify-between">
-        <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: ctx.accent }}>4.1 Transfer Form</p>
-        <GripVertical className="h-3.5 w-3.5 text-slate-300" aria-hidden />
-      </div>
-      <p className="text-[14px] font-bold">Direct Transfer Engine</p>
+      <ModuleHeader ctx={ctx} code="4.1 Transfer Form" title="Direct Transfer Engine" />
       <div>
         <p className="text-[9px] text-slate-400 mb-1">From Account</p>
         <div className={`flex items-center justify-between px-3 py-2.5 ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800' : 'bg-slate-100'}`}>
@@ -868,15 +1382,10 @@ function DirectTransferEngine({ ctx }: { ctx: ViewCtx }) {
   );
 }
 
-/* ---------- 4.2 Mid-Market FX Swap ---------- */
 function MultiMarketFX({ ctx }: { ctx: ViewCtx }) {
   return (
     <div className={`space-y-3 p-3.5 ${ctx.radius.card} ${surface(ctx.isDark)}`}>
-      <div className="flex items-center justify-between">
-        <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: ctx.accent }}>4.2 Currency Exchange</p>
-        <GripVertical className="h-3.5 w-3.5 text-slate-300" aria-hidden />
-      </div>
-      <p className="text-[14px] font-bold">Mid-Market FX Swap</p>
+      <ModuleHeader ctx={ctx} code="4.2 Currency Exchange" title="Mid-Market FX Swap" />
       <div className={`p-3 ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800' : 'bg-slate-100'}`}>
         <div className="flex items-center justify-between mb-1">
           <span className="text-[9px] text-slate-400">You send exactly</span>
@@ -885,31 +1394,22 @@ function MultiMarketFX({ ctx }: { ctx: ViewCtx }) {
         <div className="flex items-center justify-between">
           <p className="text-[18px] font-bold">1,000.00</p>
           <div className="flex items-center gap-1 bg-white px-2 py-1 rounded-md ring-1 ring-slate-200">
-            <span className="text-[10px]">🇺🇸</span>
-            <span className="text-[10px] font-bold">USD</span>
-            <ChevronDown className="h-2.5 w-2.5" />
+            <span className="text-[10px]">🇺🇸</span><span className="text-[10px] font-bold">USD</span><ChevronDown className="h-2.5 w-2.5" />
           </div>
         </div>
       </div>
       <div className="flex items-center justify-between">
-        <span className="text-[9px] text-slate-500 flex items-center gap-1">
-          <Lock className="h-2.5 w-2.5" /> 1 USD = 0.9214 EUR (Guaranteed 1m)
-        </span>
-        <button aria-label="Swap currencies" className={`grid h-6 w-6 place-items-center rounded-full`} style={{ background: ctx.accent }}>
-          <RefreshCw className="h-3 w-3 text-white" />
-        </button>
+        <span className="text-[9px] text-slate-500 flex items-center gap-1"><Lock className="h-2.5 w-2.5" /> 1 USD = 0.9214 EUR (Guaranteed 1m)</span>
+        <button aria-label="Swap currencies" className={`grid h-6 w-6 place-items-center rounded-full`} style={{ background: ctx.accent }}><RefreshCw className="h-3 w-3 text-white" /></button>
       </div>
       <div className={`p-3 ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800' : 'bg-slate-100'}`}>
         <div className="flex items-center justify-between mb-1">
-          <span className="text-[9px] text-slate-400">Recipient gets</span>
-          <span className="text-[9px] text-slate-400">Live Rate</span>
+          <span className="text-[9px] text-slate-400">Recipient gets</span><span className="text-[9px] text-slate-400">Live Rate</span>
         </div>
         <div className="flex items-center justify-between">
           <p className="text-[18px] font-bold text-emerald-600">921.40</p>
           <div className="flex items-center gap-1 bg-white px-2 py-1 rounded-md ring-1 ring-slate-200">
-            <span className="text-[10px]">🇪🇺</span>
-            <span className="text-[10px] font-bold">EUR</span>
-            <ChevronDown className="h-2.5 w-2.5" />
+            <span className="text-[10px]">🇪🇺</span><span className="text-[10px] font-bold">EUR</span><ChevronDown className="h-2.5 w-2.5" />
           </div>
         </div>
       </div>
@@ -918,21 +1418,14 @@ function MultiMarketFX({ ctx }: { ctx: ViewCtx }) {
   );
 }
 
-/* ---------- 4.3 Recurring Standing Order ---------- */
 function RecurringStanding({ ctx }: { ctx: ViewCtx }) {
   return (
     <div className={`space-y-3 p-3.5 ${ctx.radius.card} ${surface(ctx.isDark)}`}>
-      <div className="flex items-center justify-between">
-        <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: ctx.accent }}>4.3 Scheduled Transfer</p>
-        <GripVertical className="h-3.5 w-3.5 text-slate-300" aria-hidden />
-      </div>
-      <p className="text-[14px] font-bold">Recurring Standing Order</p>
+      <ModuleHeader ctx={ctx} code="4.3 Scheduled Transfer" title="Recurring Standing Order" />
       <div className={`p-3 ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800' : 'bg-slate-100'}`}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="grid h-8 w-8 place-items-center rounded-md text-white" style={{ background: NAVY }}>
-              <Landmark className="h-4 w-4" />
-            </span>
+            <span className="grid h-8 w-8 place-items-center rounded-md text-white" style={{ background: NAVY }}><Landmark className="h-4 w-4" /></span>
             <div>
               <p className="text-[11px] font-bold">Prime Manhattan Realty</p>
               <p className="text-[8px] text-slate-500">Monthly Rent · #402</p>
@@ -940,42 +1433,30 @@ function RecurringStanding({ ctx }: { ctx: ViewCtx }) {
           </div>
           <span className="h-3 w-3 rounded-sm" style={{ background: NAVY }} />
         </div>
-        <div className="flex items-center justify-between mt-3 pt-2 border-t border-slate-200 dark:border-slate-700">
-          <div>
-            <p className="text-[8px] text-slate-400">Amount</p>
-            <p className="text-[11px] font-bold">$2,100.00 / mo</p>
-          </div>
-          <div className="text-right">
-            <p className="text-[8px] text-slate-400">Next Run</p>
-            <p className="text-[11px] font-bold">Nov 1, 2024</p>
-          </div>
+        <div className="mt-3 flex items-center justify-between border-t border-slate-200 pt-2 dark:border-slate-700">
+          <div><p className="text-[8px] text-slate-400">Amount</p><p className="text-[11px] font-bold">$2,100.00 / mo</p></div>
+          <div className="text-right"><p className="text-[8px] text-slate-400">Next Run</p><p className="text-[11px] font-bold">Nov 1, 2024</p></div>
         </div>
       </div>
-      <p className="flex items-center gap-1 text-[9px] text-slate-500">
-        <Clock className="h-3 w-3" /> Automatic notification 24h prior to execution
-      </p>
+      <p className="flex items-center gap-1 text-[9px] text-slate-500"><Clock className="h-3 w-3" /> Automatic notification 24h prior to execution</p>
       <button type="button" className={`w-full py-2.5 text-[11px] font-bold ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-700 text-slate-200' : 'bg-slate-200 text-slate-800'}`}>Modify Schedule Rules</button>
     </div>
   );
 }
 
-/* ---------- 4.4 Authorization Modal ---------- */
 function AuthorizationModal({ ctx }: { ctx: ViewCtx }) {
   return (
     <div className={`space-y-3 p-3.5 ${ctx.radius.card} ${surface(ctx.isDark)}`}>
-      <div className="flex items-center justify-between">
-        <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: ctx.accent }}>4.4 Authorization Modal</p>
-        <GripVertical className="h-3.5 w-3.5 text-slate-300" aria-hidden />
-      </div>
-      <p className="text-[10px] uppercase tracking-wider text-slate-400 text-center">Payment Review</p>
-      <p className="text-[26px] font-bold text-center">$500.00</p>
-      <p className="text-[10px] text-slate-400 text-center">to Sarah Jenkins · Chase Bank</p>
-      <div className="space-y-1.5 pt-2 border-t border-slate-200 dark:border-slate-700">
+      <ModuleHeader ctx={ctx} code="4.4 Authorization Modal" title="" />
+      <p className="text-center text-[10px] uppercase tracking-wider text-slate-400">Payment Review</p>
+      <p className="text-center text-[26px] font-bold">$500.00</p>
+      <p className="text-center text-[10px] text-slate-400">to Sarah Jenkins · Chase Bank</p>
+      <div className="space-y-1.5 border-t border-slate-200 pt-2 dark:border-slate-700">
         <div className="flex justify-between text-[10px]"><span className="text-slate-400">Network Fee</span><span className="text-emerald-600 font-semibold">Free (FedNow Rail)</span></div>
         <div className="flex justify-between text-[10px]"><span className="text-slate-400">Estimated Delivery</span><span className="font-semibold">Within seconds</span></div>
         <div className="flex justify-between text-[10px]"><span className="text-slate-400">Origin Account</span><span className="font-semibold">··· 4912</span></div>
       </div>
-      <button type="button" className={`w-full py-2.5 text-[11px] font-bold text-white ${ctx.radius.icon} flex items-center justify-center gap-2`} style={{ background: '#14B8A6' }}>
+      <button type="button" className={`w-full flex items-center justify-center gap-2 py-2.5 text-[11px] font-bold text-white ${ctx.radius.icon}`} style={{ background: '#14B8A6' }}>
         <Lock className="h-3 w-3" /> Authorize Transfer ($500.00)
       </button>
       <p className="text-center text-[9px] text-slate-400">Cancel transaction</p>
@@ -983,7 +1464,6 @@ function AuthorizationModal({ ctx }: { ctx: ViewCtx }) {
   );
 }
 
-/* ---------- 5.1 Recent Recipients ---------- */
 function RecentRecipients({ ctx }: { ctx: ViewCtx }) {
   const contacts = [
     { initials: 'SJ', name: 'Sarah J.', color: 'bg-blue-500', ring: true },
@@ -992,26 +1472,20 @@ function RecentRecipients({ ctx }: { ctx: ViewCtx }) {
   ];
   return (
     <div className={`space-y-3 p-3.5 ${ctx.radius.card} ${surface(ctx.isDark)}`}>
-      <div className="flex items-center justify-between">
-        <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: ctx.accent }}>5.1 Recent Recipients</p>
-        <GripVertical className="h-3.5 w-3.5 text-slate-300" aria-hidden />
-      </div>
-      <p className="text-[14px] font-bold">One-Tap Contacts Dock</p>
-      <div className="grid grid-cols-4 gap-2 items-start">
+      <ModuleHeader ctx={ctx} code="5.1 Recent Recipients" title="One-Tap Contacts Dock" />
+      <div className="grid grid-cols-4 items-start gap-2">
         <div className="flex flex-col items-center gap-1.5">
-          <div className="grid h-11 w-11 place-items-center rounded-full border-2 border-dashed border-slate-300">
-            <Plus className="h-4 w-4 text-slate-400" />
-          </div>
+          <div className="grid h-11 w-11 place-items-center rounded-full border-2 border-dashed border-slate-300"><Plus className="h-4 w-4 text-slate-400" /></div>
           <span className="text-[9px] text-slate-500">Add New</span>
         </div>
         {contacts.map((c) => (
           <div key={c.name} className="flex flex-col items-center gap-1.5">
-            <div className={`grid h-11 w-11 place-items-center rounded-full text-[11px] font-bold text-white ${c.color} ${c.ring ? 'ring-2 ring-offset-2 ring-blue-600' : ''}`}>{c.initials}</div>
+            <div className={`grid h-11 w-11 place-items-center rounded-full text-[11px] font-bold text-white ${c.color} ${c.ring ? 'ring-2 ring-blue-600 ring-offset-2' : ''}`}>{c.initials}</div>
             <span className="text-[9px] font-medium">{c.name}</span>
           </div>
         ))}
       </div>
-      <div className="flex justify-between pt-2 border-t border-slate-200 dark:border-slate-700">
+      <div className="flex justify-between border-t border-slate-200 pt-2 dark:border-slate-700">
         <span className="text-[9px] text-slate-500">Synced with Device Contacts</span>
         <span className="text-[9px] font-semibold" style={{ color: ctx.accent }}>Manage (24)</span>
       </div>
@@ -1019,120 +1493,84 @@ function RecentRecipients({ ctx }: { ctx: ViewCtx }) {
   );
 }
 
-/* ---------- 5.2 Beneficiary Validation ---------- */
 function BeneficiaryValidation({ ctx }: { ctx: ViewCtx }) {
   return (
     <div className={`space-y-3 p-3.5 ${ctx.radius.card} ${surface(ctx.isDark)}`}>
-      <div className="flex items-center justify-between">
-        <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: ctx.accent }}>5.2 Add Recipient</p>
-        <GripVertical className="h-3.5 w-3.5 text-slate-300" aria-hidden />
-      </div>
-      <p className="text-[14px] font-bold">Beneficiary Validation</p>
+      <ModuleHeader ctx={ctx} code="5.2 Add Recipient" title="Beneficiary Validation" />
       <div>
         <p className="text-[9px] text-slate-400 mb-1">Legal Full Name</p>
-        <div className={`px-3 py-2 ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800' : 'bg-slate-100'}`}>
-          <span className="text-[11px] text-slate-400">e.g. Liam Gallagher</span>
-        </div>
+        <div className={`px-3 py-2 ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800' : 'bg-slate-100'}`}><span className="text-[11px] text-slate-400">e.g. Liam Gallagher</span></div>
       </div>
       <div>
         <div className="flex justify-between mb-1">
           <p className="text-[9px] text-slate-400">Routing Number or SWIFT</p>
-          <p className="text-[9px] text-emerald-600 font-semibold">Auto-detected: Chase</p>
+          <p className="text-[9px] font-semibold text-emerald-600">Auto-detected: Chase</p>
         </div>
-        <div className={`px-3 py-2 ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800' : 'bg-slate-100'}`}>
-          <span className="text-[11px]">021000021</span>
-        </div>
+        <div className={`px-3 py-2 ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800' : 'bg-slate-100'}`}><span className="text-[11px]">021000021</span></div>
       </div>
       <button type="button" className={`w-full py-2.5 text-[11px] font-bold text-white ${ctx.radius.icon}`} style={{ background: NAVY }}>Save Beneficiary</button>
     </div>
   );
 }
 
-/* ---------- 5.3 Send Money Focus ---------- */
 function SendMoneyAmount({ ctx }: { ctx: ViewCtx }) {
   return (
     <div className={`space-y-3 p-3.5 ${ctx.radius.card} ${surface(ctx.isDark)}`}>
-      <div className="flex items-center justify-between">
-        <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: ctx.accent }}>5.3 Send Money Focus</p>
-        <GripVertical className="h-3.5 w-3.5 text-slate-300" aria-hidden />
-      </div>
-      <p className="text-[9px] uppercase tracking-wider text-slate-400 text-center">Amount to Dispatch</p>
-      <p className="text-[36px] font-bold text-center leading-none">$120.00</p>
+      <ModuleHeader ctx={ctx} code="5.3 Send Money Focus" title="" />
+      <p className="text-center text-[9px] uppercase tracking-wider text-slate-400">Amount to Dispatch</p>
+      <p className="text-center text-[36px] font-bold leading-none">$120.00</p>
       <div className={`flex items-center gap-2 px-3 py-2.5 ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800' : 'bg-slate-100'}`}>
-        <Pencil className="h-3 w-3 text-slate-400" />
-        <span className="text-[11px]">Dinner &amp; drinks 🍕</span>
+        <Pencil className="h-3 w-3 text-slate-400" /><span className="text-[11px]">Dinner &amp; drinks 🍕</span>
       </div>
-      <button type="button" className={`w-full py-2.5 text-[11px] font-bold text-white ${ctx.radius.icon} flex items-center justify-center gap-2`} style={{ background: NAVY }}>
+      <button type="button" className={`flex w-full items-center justify-center gap-2 py-2.5 text-[11px] font-bold text-white ${ctx.radius.icon}`} style={{ background: NAVY }}>
         <ArrowRight className="h-3 w-3" /> Review Payment
       </button>
     </div>
   );
 }
 
-/* ---------- 5.4 Transfer Success ---------- */
 function TransferSuccess({ ctx }: { ctx: ViewCtx }) {
   return (
-    <div className={`space-y-3 p-3.5 ${ctx.radius.card} ${surface(ctx.isDark)} text-center`}>
-      <div className="flex items-center justify-between">
-        <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: ctx.accent }}>5.4 Transfer Success</p>
-        <GripVertical className="h-3.5 w-3.5 text-slate-300" aria-hidden />
-      </div>
-      <div className="grid h-12 w-12 mx-auto place-items-center rounded-full bg-emerald-100">
-        <div className="grid h-7 w-7 place-items-center rounded-full border-2 border-emerald-600">
-          <Check className="h-4 w-4 text-emerald-600" />
-        </div>
+    <div className={`space-y-3 p-3.5 text-center ${ctx.radius.card} ${surface(ctx.isDark)}`}>
+      <ModuleHeader ctx={ctx} code="5.4 Transfer Success" title="" />
+      <div className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-emerald-100">
+        <div className="grid h-7 w-7 place-items-center rounded-full border-2 border-emerald-600"><Check className="h-4 w-4 text-emerald-600" /></div>
       </div>
       <p className="text-[16px] font-bold">Transfer Dispatched!</p>
       <p className="text-[10px] text-slate-500">$120.00 sent to Sarah Jenkins</p>
-      <p className="text-[9px] text-slate-400 font-mono">TXID: #US-99214-88A</p>
+      <p className="font-mono text-[9px] text-slate-400">TXID: #US-99214-88A</p>
       <div className="grid grid-cols-2 gap-2 pt-2">
-        <button type="button" className={`py-2.5 text-[11px] font-semibold ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-700 text-slate-100' : 'bg-slate-100 text-slate-800'} flex items-center justify-center gap-1.5`}>
-          <Send className="h-3 w-3" /> Share
-        </button>
+        <button type="button" className={`flex items-center justify-center gap-1.5 py-2.5 text-[11px] font-semibold ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-700 text-slate-100' : 'bg-slate-100 text-slate-800'}`}><Send className="h-3 w-3" /> Share</button>
         <button type="button" className={`py-2.5 text-[11px] font-bold text-white ${ctx.radius.icon}`} style={{ background: '#3B82F6' }}>Done</button>
       </div>
     </div>
   );
 }
 
-/* ---------- 6.1 Peer Invoicing ---------- */
 function PeerInvoicing({ ctx }: { ctx: ViewCtx }) {
   return (
     <div className={`space-y-3 p-3.5 ${ctx.radius.card} ${surface(ctx.isDark)}`}>
-      <div className="flex items-center justify-between">
-        <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: ctx.accent }}>6.1 Request Money</p>
-        <GripVertical className="h-3.5 w-3.5 text-slate-300" aria-hidden />
-      </div>
-      <p className="text-[14px] font-bold">Peer Invoicing</p>
+      <ModuleHeader ctx={ctx} code="6.1 Request Money" title="Peer Invoicing" />
       <div>
         <p className="text-[9px] text-slate-400 mb-1">Requested Amount</p>
         <div className={`flex items-baseline gap-2 px-3 py-2 ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800' : 'bg-slate-100'}`}>
-          <span className="text-[14px] text-slate-400">$</span>
-          <span className="text-[18px] font-bold">75.00</span>
+          <span className="text-[14px] text-slate-400">$</span><span className="text-[18px] font-bold">75.00</span>
         </div>
       </div>
       <div>
         <p className="text-[9px] text-slate-400 mb-1">Purpose Note</p>
-        <div className={`px-3 py-2 ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800' : 'bg-slate-100'}`}>
-          <span className="text-[11px]">Concert tickets 🎫</span>
-        </div>
+        <div className={`px-3 py-2 ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800' : 'bg-slate-100'}`}><span className="text-[11px]">Concert tickets 🎫</span></div>
       </div>
       <button type="button" className={`w-full py-2.5 text-[11px] font-bold text-white ${ctx.radius.icon}`} style={{ background: NAVY }}>Send Request</button>
     </div>
   );
 }
 
-/* ---------- 6.2 Payment QR ---------- */
 function PaymentQR({ ctx }: { ctx: ViewCtx }) {
   return (
-    <div className={`space-y-3 p-3.5 ${ctx.radius.card} ${surface(ctx.isDark)} text-center`}>
-      <div className="flex items-center justify-between">
-        <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: ctx.accent }}>6.2 Payment QR</p>
-        <GripVertical className="h-3.5 w-3.5 text-slate-300" aria-hidden />
-      </div>
-      <div className={`grid h-32 w-32 mx-auto place-items-center ${ctx.radius.icon} bg-white ring-2`} style={{ '--tw-ring-color': ctx.accent } as React.CSSProperties}>
-        <QrCode className="h-24 w-24 text-slate-900" />
-      </div>
+    <div className={`space-y-3 p-3.5 text-center ${ctx.radius.card} ${surface(ctx.isDark)}`}>
+      <ModuleHeader ctx={ctx} code="6.2 Payment QR" title="" />
+      <div className={`mx-auto grid h-32 w-32 place-items-center bg-white ring-2 ${ctx.radius.icon}`} style={{ '--tw-ring-color': ctx.accent } as React.CSSProperties}><QrCode className="h-24 w-24 text-slate-900" /></div>
       <p className="text-[11px] font-semibold">Scan to pay Alex Rivera</p>
       <p className="text-[9px] text-slate-400">Custom fixed amount: $75.00</p>
       <div className="grid grid-cols-2 gap-2">
@@ -1143,7 +1581,6 @@ function PaymentQR({ ctx }: { ctx: ViewCtx }) {
   );
 }
 
-/* ---------- 6.3 Split Payment ---------- */
 function SplitPayment({ ctx }: { ctx: ViewCtx }) {
   const rows = [
     { name: 'You (Alex)', label: 'Paid ($60)', paid: true },
@@ -1152,19 +1589,10 @@ function SplitPayment({ ctx }: { ctx: ViewCtx }) {
   ];
   return (
     <div className={`space-y-3 p-3.5 ${ctx.radius.card} ${surface(ctx.isDark)}`}>
-      <div className="flex items-center justify-between">
-        <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: ctx.accent }}>6.3 Split Payment</p>
-        <GripVertical className="h-3.5 w-3.5 text-slate-300" aria-hidden />
-      </div>
-      <div className="flex justify-between items-end">
-        <div>
-          <p className="text-[9px] text-slate-400">Total Bill</p>
-          <p className="text-[20px] font-bold">$180.00</p>
-        </div>
-        <div className="text-right">
-          <p className="text-[9px] text-slate-400">Split 3 ways</p>
-          <p className="text-[16px] font-bold" style={{ color: ctx.accent }}>$60.00 each</p>
-        </div>
+      <ModuleHeader ctx={ctx} code="6.3 Split Payment" title="" />
+      <div className="flex items-end justify-between">
+        <div><p className="text-[9px] text-slate-400">Total Bill</p><p className="text-[20px] font-bold">$180.00</p></div>
+        <div className="text-right"><p className="text-[9px] text-slate-400">Split 3 ways</p><p className="text-[16px] font-bold" style={{ color: ctx.accent }}>$60.00 each</p></div>
       </div>
       <div className="space-y-1.5">
         {rows.map((p) => (
@@ -1182,36 +1610,23 @@ function SplitPayment({ ctx }: { ctx: ViewCtx }) {
   );
 }
 
-/* ---------- 6.4 Outstanding Receivables ---------- */
 function OutstandingReceivables({ ctx }: { ctx: ViewCtx }) {
   return (
     <div className={`space-y-3 p-3.5 ${ctx.radius.card} ${surface(ctx.isDark)}`}>
-      <div className="flex items-center justify-between">
-        <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: ctx.accent }}>6.4 Pending Tracker</p>
-        <GripVertical className="h-3.5 w-3.5 text-slate-300" aria-hidden />
-      </div>
-      <p className="text-[14px] font-bold">Outstanding Receivables</p>
+      <ModuleHeader ctx={ctx} code="6.4 Pending Tracker" title="Outstanding Receivables" />
       <div className={`p-3 ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800' : 'bg-slate-100'}`}>
         <div className="flex items-center justify-between">
-          <div>
-            <p className="text-[11px] font-semibold">Mike Henderson</p>
-            <p className="text-[9px] text-slate-500">Pending 2 days · $45.00</p>
-          </div>
-          <button className={`px-3 py-1 text-[9px] font-bold rounded-md bg-white shadow-sm`} style={{ color: ctx.accent }}>Remind</button>
+          <div><p className="text-[11px] font-semibold">Mike Henderson</p><p className="text-[9px] text-slate-500">Pending 2 days · $45.00</p></div>
+          <button className={`rounded-md bg-white px-3 py-1 text-[9px] font-bold shadow-sm`} style={{ color: ctx.accent }}>Remind</button>
         </div>
       </div>
       <div className={`p-3 ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800' : 'bg-slate-100'}`}>
         <div className="flex items-center justify-between">
-          <div>
-            <p className="text-[11px] font-semibold">Jessica Taylor</p>
-            <p className="text-[9px] text-emerald-600">Paid today · $120.00</p>
-          </div>
-          <div className="grid h-6 w-6 place-items-center rounded-full border-2 border-emerald-500">
-            <Check className="h-3 w-3 text-emerald-500" />
-          </div>
+          <div><p className="text-[11px] font-semibold">Jessica Taylor</p><p className="text-[9px] text-emerald-600">Paid today · $120.00</p></div>
+          <div className="grid h-6 w-6 place-items-center rounded-full border-2 border-emerald-500"><Check className="h-3 w-3 text-emerald-500" /></div>
         </div>
       </div>
-      <div className="flex justify-between pt-2 border-t border-slate-200 dark:border-slate-700">
+      <div className="flex justify-between border-t border-slate-200 pt-2 dark:border-slate-700">
         <span className="text-[9px] text-slate-500">Total outstanding: $45.00</span>
         <span className="text-[9px] font-semibold" style={{ color: ctx.accent }}>Clear Settled</span>
       </div>
@@ -1268,7 +1683,6 @@ function ModuleView({ id, ctx }: { id: ModuleId; ctx: ViewCtx }) {
     case 'security': return <SecurityRow ctx={ctx} />;
     case 'notifications': return <AlertsRow ctx={ctx} />;
     case 'signin': return <SignInCard ctx={ctx} />;
-    case 'signInWithGoogle': return <GoogleSignInCard ctx={ctx} />;
     case 'accountsPage': return <AccountsOverview ctx={ctx} />;
     case 'directTransferEngine': return <DirectTransferEngine ctx={ctx} />;
     case 'multiMarketFX': return <MultiMarketFX ctx={ctx} />;
@@ -1286,6 +1700,17 @@ function ModuleView({ id, ctx }: { id: ModuleId; ctx: ViewCtx }) {
     case 'splash': return <SplashCard ctx={ctx} />;
     case 'profile': return <ProfileCard ctx={ctx} />;
     case 'freezeCard': return <FreezeCard ctx={ctx} />;
+    case 'accountPortfolio': return <AccountPortfolio ctx={ctx} />;
+    case 'routingWireData': return <RoutingWireData ctx={ctx} />;
+    case 'statementsExport': return <StatementsExport ctx={ctx} />;
+    case 'cardPreview': return <CardPreview ctx={ctx} />;
+    case 'cardControls': return <CardControls ctx={ctx} />;
+    case 'pinVault': return <PinVault ctx={ctx} />;
+    case 'alertCenter': return <AlertCenter ctx={ctx} />;
+    case 'deliveryChannels': return <DeliveryChannels ctx={ctx} />;
+    case 'identityCard': return <IdentityCard ctx={ctx} />;
+    case 'securityBaseline': return <SecurityBaseline ctx={ctx} />;
+    case 'connectedDevices': return <ConnectedDevices ctx={ctx} />;
     default: return null;
   }
 }
@@ -1302,10 +1727,6 @@ function HistoryFilters({ ctx }: { ctx: ViewCtx }) {
     </div>
   );
 }
-
-/* -------------------------------------------------------------------------- */
-/*  Small UI pieces                                                           */
-/* -------------------------------------------------------------------------- */
 
 function DropLine({ side, accent }: { side: 'top' | 'bottom'; accent: string }) {
   return (
@@ -1324,18 +1745,12 @@ function ToolbarButton({
     <button
       type="button" aria-label={label} title={label} disabled={disabled}
       onClick={(e) => { e.stopPropagation(); onClick(); }}
-      className={`grid h-6 w-6 cursor-pointer place-items-center rounded-full outline-none transition hover:bg-slate-100 focus-visible:ring-2 focus-visible:ring-slate-400 disabled:cursor-not-allowed disabled:opacity-30 ${
-        danger ? 'text-rose-500' : 'text-slate-600'
-      }`}
+      className={`grid h-6 w-6 cursor-pointer place-items-center rounded-full outline-none transition hover:bg-slate-100 focus-visible:ring-2 focus-visible:ring-slate-400 disabled:cursor-not-allowed disabled:opacity-30 ${danger ? 'text-rose-500' : 'text-slate-600'}`}
     >
       {children}
     </button>
   );
 }
-
-/* -------------------------------------------------------------------------- */
-/*  Brand tokens for the style guide                                          */
-/* -------------------------------------------------------------------------- */
 
 type Density = 'compact' | 'spacious';
 
@@ -1348,16 +1763,16 @@ const ACCENTS: { hex: string; name: string }[] = [
 ];
 
 const PAGE_BLURBS: Record<string, string> = {
-  signin: 'Secure entry with email and biometrics',
+  signin: 'Secure entry with email, captcha and quick sign-in options',
   home: 'Quick access to all the functionality and an overview of your account',
-  accounts: 'All of your accounts and available funds in one view',
-  transfers: 'Direct transfer, FX swap, schedule and authorization',
+  accounts: 'Portfolio, routing details and audited statements',
+  transfers: 'One transfer flow at a time — replace by dragging a new component',
   send: 'Contacts dock, beneficiary validation, amount, and success',
   payments: 'Peer invoicing, QR, splits and outstanding receivables',
-  cards: 'Manage your cards, limits and freeze controls',
+  cards: 'Metal card preview, security switches and PIN vault',
   history: 'Search and filter every transaction',
-  notifications: 'Alerts and activity updates in real time',
-  profile: 'Identity, security and preferences',
+  notifications: 'Alert feed and delivery channel preferences',
+  profile: 'Identity, security baseline and connected devices',
   splash: 'Brand launch and loading experience',
 };
 
@@ -1371,10 +1786,6 @@ const luminance = (hex: string) => {
 };
 const contrastWithWhite = (hex: string) => 1.05 / (luminance(hex) + 0.05);
 
-/* -------------------------------------------------------------------------- */
-/*  Page row (sidebar) with inline component dropdown                         */
-/* -------------------------------------------------------------------------- */
-
 interface PageMenuItemProps {
   page: string;
   label: string;
@@ -1383,6 +1794,7 @@ interface PageMenuItemProps {
   expanded: boolean;
   accent: string;
   isCustom: boolean;
+  singleSlot: boolean;
   dropSide: 'top' | 'bottom' | null;
   canvasModules: ModuleId[];
   thumbCtx: ViewCtx;
@@ -1402,12 +1814,10 @@ interface PageMenuItemProps {
 }
 
 function PageMenuItem({
-  page, label, count, active, expanded, accent, isCustom, dropSide, canvasModules, thumbCtx,
+  page, label, count, active, expanded, accent, isCustom, singleSlot, dropSide, canvasModules, thumbCtx,
   onSelect, onToggleExpand, onAddModule, onRemoveModule, onStartDrag, onEndDrag, drag,
   onPageDragStart, onPageDragEnd, onPageDragOver, onPageDrop, onMovePage, onRename,
 }: PageMenuItemProps) {
-  // Custom pages expose every available module so anything from any screen
-  // can be dragged in. Kit-based pages only show their own kit.
   const pageComponents = isCustom ? availableModules : availableModules.filter((m) => pageModulesFor(page as PageId).includes(m.id));
 
   const [isRenaming, setIsRenaming] = useState(false);
@@ -1427,11 +1837,7 @@ function PageMenuItem({
   return (
     <li className="relative list-none" onDragOver={onPageDragOver} onDrop={onPageDrop}>
       {dropSide && (
-        <span
-          aria-hidden
-          className={`pointer-events-none absolute inset-x-1 z-10 h-0.5 rounded-full ${dropSide === 'top' ? '-top-[3px]' : '-bottom-[3px]'}`}
-          style={{ background: accent }}
-        />
+        <span aria-hidden className={`pointer-events-none absolute inset-x-1 z-10 h-0.5 rounded-full ${dropSide === 'top' ? '-top-[3px]' : '-bottom-[3px]'}`} style={{ background: accent }} />
       )}
 
       <div
@@ -1439,9 +1845,7 @@ function PageMenuItem({
         onDragStart={onPageDragStart}
         onDragEnd={onPageDragEnd}
         style={active ? { background: `${accent}12`, borderColor: `${accent}38` } : undefined}
-        className={`flex items-center gap-2 rounded-lg border px-2.5 py-2 transition-colors ${
-          active ? '' : 'border-transparent hover:bg-white/60'
-        }`}
+        className={`flex items-center gap-2 rounded-lg border px-2.5 py-2 transition-colors ${active ? '' : 'border-transparent hover:bg-white/60'}`}
       >
         <GripVertical className="h-3.5 w-3.5 shrink-0 cursor-grab text-slate-300 active:cursor-grabbing" aria-hidden />
         <div className="flex min-w-0 flex-1 items-center gap-1">
@@ -1467,9 +1871,7 @@ function PageMenuItem({
               aria-current={active ? 'page' : undefined}
               title="Alt + Arrow keys to reorder"
               style={active ? { color: accent } : undefined}
-              className={`min-w-0 flex-1 cursor-pointer truncate text-left text-[12px] outline-none focus-visible:underline ${
-                active ? 'font-semibold' : 'font-medium text-slate-700'
-              }`}
+              className={`min-w-0 flex-1 cursor-pointer truncate text-left text-[12px] outline-none focus-visible:underline ${active ? 'font-semibold' : 'font-medium text-slate-700'}`}
             >
               {label}
             </button>
@@ -1511,6 +1913,11 @@ function PageMenuItem({
               Drag any component from the full library below into this custom page.
             </p>
           )}
+          {singleSlot && (
+            <p className="rounded-md bg-blue-50 px-2 py-1 text-[9px] font-medium leading-snug text-blue-700">
+              This page holds one component at a time — adding a new one replaces the current.
+            </p>
+          )}
           {pageComponents.map((mod) => {
             const isAdded = canvasModules.includes(mod.id);
             const isDragging = drag?.id === mod.id && drag.from === 'library';
@@ -1521,9 +1928,7 @@ function PageMenuItem({
                 onDragStart={(e) => onStartDrag(e, mod.id, 'library')}
                 onDragEnd={onEndDrag}
                 style={isAdded ? ringVar(accent) : undefined}
-                className={`flex cursor-grab flex-col gap-2 rounded-lg bg-white p-2.5 ring-1 transition active:cursor-grabbing ${
-                  isAdded ? 'ring-2' : 'ring-slate-100 hover:ring-slate-200'
-                } ${isDragging ? 'opacity-50' : ''}`}
+                className={`flex cursor-grab flex-col gap-2 rounded-lg bg-white p-2.5 ring-1 transition active:cursor-grabbing ${isAdded ? 'ring-2' : 'ring-slate-100 hover:ring-slate-200'} ${isDragging ? 'opacity-50' : ''}`}
               >
                 <div className="flex items-start justify-between gap-1.5">
                   <div className="min-w-0">
@@ -1545,11 +1950,9 @@ function PageMenuItem({
                   onClick={() => (isAdded ? onRemoveModule(mod.id) : onAddModule(mod.id))}
                   aria-label={isAdded ? `Remove ${mod.title}` : `Add ${mod.title}`}
                   style={isAdded ? { color: accent, background: `${accent}14` } : undefined}
-                  className={`flex w-full cursor-pointer items-center justify-center gap-1 rounded-md py-1.5 text-[10px] font-bold transition ${
-                    isAdded ? '' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                  }`}
+                  className={`flex w-full cursor-pointer items-center justify-center gap-1 rounded-md py-1.5 text-[10px] font-bold transition ${isAdded ? '' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}
                 >
-                  {isAdded ? (<><Check className="h-3 w-3 stroke-[3]" /> Added</>) : (<><Plus className="h-3 w-3" /> Add</>)}
+                  {isAdded ? (<><Check className="h-3 w-3 stroke-[3]" /> Added</>) : (<><Plus className="h-3 w-3" /> {singleSlot ? 'Use this' : 'Add'}</>)}
                 </button>
               </div>
             );
@@ -1559,10 +1962,6 @@ function PageMenuItem({
     </li>
   );
 }
-
-/* -------------------------------------------------------------------------- */
-/*  Editable page canvas                                                      */
-/* -------------------------------------------------------------------------- */
 
 interface PageCanvasProps {
   page: PageId;
@@ -1607,9 +2006,7 @@ function PageCanvas({
       {modules.length === 0 ? (
         <div
           style={drag ? { borderColor: accent, background: `${accent}14` } : undefined}
-          className={`my-auto flex flex-col items-center justify-center space-y-3 border-2 border-dashed p-6 text-center transition-colors ${radius.card} ${
-            drag ? '' : isDark ? 'border-slate-700 bg-slate-900/50' : 'border-blue-300/60 bg-blue-50/20'
-          }`}
+          className={`my-auto flex flex-col items-center justify-center space-y-3 border-2 border-dashed p-6 text-center transition-colors ${radius.card} ${drag ? '' : isDark ? 'border-slate-700 bg-slate-900/50' : 'border-blue-300/60 bg-blue-50/20'}`}
         >
           <div className={`grid h-12 w-12 place-items-center text-white shadow-sm ${radius.icon}`} style={{ background: accent }}><Plus className="h-6 w-6" /></div>
           <div className="space-y-1">
@@ -1645,9 +2042,7 @@ function PageCanvas({
                 onDragOver={(e) => onItemDragOver(e, i)}
                 onDrop={onDrop}
                 style={{ ['--tw-ring-color' as string]: accent } as React.CSSProperties}
-                className={`group relative ${radius.card} ${
-                  editMode ? 'cursor-grab ring-offset-2 focus-within:ring-2 hover:ring-2 active:cursor-grabbing' : ''
-                } ${isDark ? 'ring-offset-slate-950' : 'ring-offset-[#F7F8FF]'} ${isSource ? 'opacity-40' : ''}`}
+                className={`group relative ${radius.card} ${editMode ? 'cursor-grab ring-offset-2 focus-within:ring-2 hover:ring-2 active:cursor-grabbing' : ''} ${isDark ? 'ring-offset-slate-950' : 'ring-offset-[#F7F8FF]'} ${isSource ? 'opacity-40' : ''}`}
               >
                 {drag && dropIndex === i && <DropLine side="top" accent={accent} />}
                 {drag && dropIndex === modules.length && i === modules.length - 1 && <DropLine side="bottom" accent={accent} />}
@@ -1671,10 +2066,6 @@ function PageCanvas({
     </>
   );
 }
-
-/* -------------------------------------------------------------------------- */
-/*  Live code panel                                                           */
-/* -------------------------------------------------------------------------- */
 
 const CODE_TABS: { id: CodeLang; label: string }[] = [
   { id: 'swiftui', label: 'SwiftUI' },
@@ -1787,9 +2178,7 @@ function CodePanel({
               <button
                 key={t.id} type="button" role="tab" aria-selected={active} onClick={() => onLang(t.id)}
                 style={active ? { borderBottomColor: accent } : undefined}
-                className={`-mb-px cursor-pointer border-b-2 px-3.5 py-2.5 text-[11px] font-semibold outline-none transition focus-visible:underline ${
-                  active ? 'bg-white text-slate-900' : 'border-transparent text-slate-500 hover:text-slate-800'
-                }`}
+                className={`-mb-px cursor-pointer border-b-2 px-3.5 py-2.5 text-[11px] font-semibold outline-none transition focus-visible:underline ${active ? 'bg-white text-slate-900' : 'border-transparent text-slate-500 hover:text-slate-800'}`}
               >
                 {t.label}
               </button>
@@ -1813,10 +2202,6 @@ function CodePanel({
   );
 }
 
-/* -------------------------------------------------------------------------- */
-/*  Style guide popout                                                        */
-/* -------------------------------------------------------------------------- */
-
 function Segmented<T extends string>({
   label, value, options, onChange, variant,
 }: {
@@ -1827,24 +2212,15 @@ function Segmented<T extends string>({
   variant: 'track' | 'buttons';
 }) {
   return (
-    <div
-      role="radiogroup" aria-label={label}
-      className={variant === 'track' ? 'grid gap-1 rounded-xl bg-[#EEF0FB] p-1' : 'grid gap-2'}
-      style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}
-    >
+    <div role="radiogroup" aria-label={label} className={variant === 'track' ? 'grid gap-1 rounded-xl bg-[#EEF0FB] p-1' : 'grid gap-2'} style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}>
       {options.map(({ id, label: l, Icon }) => {
         const on = value === id;
         return (
           <button
             key={id} type="button" role="radio" aria-checked={on} onClick={() => onChange(id)}
-            className={`flex cursor-pointer items-center justify-center gap-1.5 text-[12px] font-medium outline-none transition focus-visible:ring-2 focus-visible:ring-[#0040DF] ${
-              variant === 'track'
-                ? `rounded-lg py-2 ${on ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`
-                : `rounded-md py-2.5 ${on ? 'bg-[#0040DF] text-white' : 'bg-[#EEF0FB] text-slate-700 hover:bg-[#E3E6F7]'}`
-            }`}
+            className={`flex cursor-pointer items-center justify-center gap-1.5 text-[12px] font-medium outline-none transition focus-visible:ring-2 focus-visible:ring-[#0040DF] ${variant === 'track' ? `rounded-lg py-2 ${on ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}` : `rounded-md py-2.5 ${on ? 'bg-[#0040DF] text-white' : 'bg-[#EEF0FB] text-slate-700 hover:bg-[#E3E6F7]'}`}`}
           >
-            {Icon && <Icon className="h-3.5 w-3.5" />}
-            {l}
+            {Icon && <Icon className="h-3.5 w-3.5" />}{l}
           </button>
         );
       })}
@@ -1896,15 +2272,10 @@ function StylePopout({ brandName, onBrandName, accent, onAccent, mode, onMode, s
   const assetMeta = logo?.meta ?? 'Vector • 48 × 48 dp • Scalable';
 
   return (
-    <div
-      role="dialog" aria-label="Brand and style"
-      className="absolute left-3 top-3 z-30 max-h-[calc(100%-24px)] w-[min(300px,calc(100%-24px))] overflow-y-auto rounded-2xl bg-white p-5 shadow-[0_24px_60px_rgba(30,41,90,0.28)] ring-1 ring-slate-200/80 scrollbar-none"
-    >
+    <div role="dialog" aria-label="Brand and style" className="absolute left-3 top-3 z-30 max-h-[calc(100%-24px)] w-[min(300px,calc(100%-24px))] overflow-y-auto rounded-2xl bg-white p-5 shadow-[0_24px_60px_rgba(30,41,90,0.28)] ring-1 ring-slate-200/80 scrollbar-none">
       <div className="mb-5 flex items-center justify-between">
         <h3 className="flex items-center gap-2 text-[17px] font-semibold text-slate-900"><Palette className="h-[18px] w-[18px] text-slate-600" /> Brand &amp; Style</h3>
-        <button type="button" onClick={onClose} aria-label="Close style guide" className="grid h-7 w-7 cursor-pointer place-items-center rounded-full text-slate-500 transition hover:bg-slate-100 hover:text-slate-900">
-          <X className="h-4 w-4" />
-        </button>
+        <button type="button" onClick={onClose} aria-label="Close style guide" className="grid h-7 w-7 cursor-pointer place-items-center rounded-full text-slate-500 transition hover:bg-slate-100 hover:text-slate-900"><X className="h-4 w-4" /></button>
       </div>
 
       <div className="space-y-5">
@@ -1912,10 +2283,7 @@ function StylePopout({ brandName, onBrandName, accent, onAccent, mode, onMode, s
           <StyleLabel id="sg-brand">Institution / Brand name</StyleLabel>
           <label className="flex items-center gap-2 rounded-lg bg-[#EEF0FB] px-3 py-2.5 focus-within:ring-2 focus-within:ring-[#0040DF]">
             <Landmark className="h-4 w-4 shrink-0 text-slate-600" aria-hidden />
-            <input
-              ref={nameRef} type="text" value={brandName} onChange={(e) => onBrandName(e.target.value)} aria-labelledby="sg-brand"
-              className="w-full min-w-0 bg-transparent text-[13px] font-medium text-slate-900 outline-none"
-            />
+            <input ref={nameRef} type="text" value={brandName} onChange={(e) => onBrandName(e.target.value)} aria-labelledby="sg-brand" className="w-full min-w-0 bg-transparent text-[13px] font-medium text-slate-900 outline-none" />
           </label>
         </div>
 
@@ -1946,10 +2314,7 @@ function StylePopout({ brandName, onBrandName, accent, onAccent, mode, onMode, s
               />
             ))}
           </div>
-          <p
-            title={`Contrast with white labels: ${ratio.toFixed(1)}:1`}
-            className={`mt-2 flex items-center gap-2 rounded-lg px-3 py-2 text-[10px] ${ratio >= 4.5 ? 'bg-[#EEF0FB] text-slate-600' : 'bg-amber-50 text-amber-700'}`}
-          >
+          <p title={`Contrast with white labels: ${ratio.toFixed(1)}:1`} className={`mt-2 flex items-center gap-2 rounded-lg px-3 py-2 text-[10px] ${ratio >= 4.5 ? 'bg-[#EEF0FB] text-slate-600' : 'bg-amber-50 text-amber-700'}`}>
             <Contrast className="h-3.5 w-3.5 shrink-0" aria-hidden />
             {ratio >= 4.5 ? 'Label adjusted for readability, contrast (WCAG AA)' : `Low contrast with white labels (${ratio.toFixed(1)}:1)`}
           </p>
@@ -1976,10 +2341,6 @@ function StylePopout({ brandName, onBrandName, accent, onAccent, mode, onMode, s
     </div>
   );
 }
-
-/* -------------------------------------------------------------------------- */
-/*  Main section                                                              */
-/* -------------------------------------------------------------------------- */
 
 export default function BuildSection() {
   const [appKind, setAppKind] = useState<AppKind>('banking');
@@ -2014,10 +2375,17 @@ export default function BuildSection() {
   const labelFor = (id: string) =>
     customPages.find((p) => p.id === id)?.label ?? PAGES.find((p) => p.id === id)?.label ?? 'Page';
 
+  // Page menu count: kit size for built-in pages, current canvas count for custom pages.
+  const countFor = (id: string) => {
+    if (id.startsWith('custom-')) return (pageModules[id as PageId] ?? []).length;
+    return PAGES.find((p) => p.id === id)?.modules.length ?? 0;
+  };
+
   const canvasModules = pageModules[activePage] ?? [];
   const history = histories[activePage] ?? [];
   const currentPageLabel = labelFor(activePage);
   const currentBlurb = PAGE_BLURBS[activePage] ?? 'A custom page built from your own components';
+  const isSingleSlot = !!SINGLE_SLOT[activePage];
 
   const [drag, setDrag] = useState<{ id: ModuleId; from: 'library' | 'canvas' } | null>(null);
   const [dropIndex, setDropIndex] = useState<number | null>(null);
@@ -2090,6 +2458,10 @@ export default function BuildSection() {
   };
 
   const placeModule = (id: ModuleId, index: number) => {
+    if (isSingleSlot) {
+      commit([id]);
+      return;
+    }
     const from = canvasModules.indexOf(id);
     const next = canvasModules.filter((m) => m !== id);
     let at = index;
@@ -2103,6 +2475,12 @@ export default function BuildSection() {
   };
 
   const addModule = (id: ModuleId) => {
+    if (isSingleSlot) {
+      commit([id]);
+      setActiveTab(PAGE_TO_TAB[activePage] ?? 'home');
+      scrollModuleIntoView(id);
+      return;
+    }
     if (canvasModules.includes(id)) return;
     commit([...canvasModules, id]);
     setActiveTab(PAGE_TO_TAB[activePage] ?? 'home');
@@ -2121,7 +2499,8 @@ export default function BuildSection() {
   };
 
   const loadStarter = () => {
-    commit(pageModulesFor(activePage));
+    const kit = pageModulesFor(activePage);
+    commit(isSingleSlot ? kit.slice(0, 1) : kit);
     setActiveTab(PAGE_TO_TAB[activePage] ?? 'home');
   };
 
@@ -2277,7 +2656,14 @@ export default function BuildSection() {
     toggleFaceId: () => setFaceId((v) => !v),
     openAlerts: () => goToPage('notifications'),
     signIn: () => goToPage('home'),
-    signInWithGoogle: () => showToast('Google sign-in successful'),
+    skipSignIn: () => goToPage('home'),
+    quickSignIn: (provider) => {
+      const names: Record<'google' | 'facebook' | 'apple' | 'phone', string> = {
+        google: 'Google', facebook: 'Facebook', apple: 'Apple', phone: 'phone number',
+      };
+      showToast(`Continue with ${names[provider]}`);
+      goToPage('home');
+    },
     toggleFreeze: () => setIsCardFrozen((v) => !v),
   };
 
@@ -2394,9 +2780,8 @@ export default function BuildSection() {
                   return (
                     <PageMenuItem
                       key={id} page={id} label={labelFor(id)}
-                      // Custom pages show the live count; kit pages show the kit size
-                      count={isCustom ? (pageModules[id as PageId] ?? []).length : (pageModules[id as PageId] ?? []).length}
-                      active={activePage === id} expanded={expandedPage === id} accent={accentColor} isCustom={isCustom} dropSide={dropSide}
+                      count={countFor(id)}
+                      active={activePage === id} expanded={expandedPage === id} accent={accentColor} isCustom={isCustom} singleSlot={!!SINGLE_SLOT[id as PageId]} dropSide={dropSide}
                       canvasModules={canvasModules} thumbCtx={thumbCtx}
                       onSelect={() => selectPage(id as PageId)}
                       onToggleExpand={() => { if (expandedPage === id) setExpandedPage(null); else selectPage(id as PageId); }}

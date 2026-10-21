@@ -40,6 +40,7 @@ interface ModuleAsset {
   code: { swiftui: string; typescript: string; reactnative: string; kotlin: string };
 }
 interface SizeSpec { span: number; h: number | null }
+interface BrandLogo { name: string; url: string }
 
 const RADII: Record<RadiusMode, { card: string; tile: string; icon: string }> = {
   rounded: { card: 'rounded-[18px]', tile: 'rounded-xl', icon: 'rounded-lg' },
@@ -283,22 +284,30 @@ function ActiveCardWidget({ ctx }: { ctx: ViewCtx }) {
     <div className={`${ctx.radius.card} ${surface(ctx.isDark)} p-4`}>
       <div className="flex items-center justify-between">
         <p className="text-[12px] font-bold">My Active Card</p>
-        <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-[9px] font-bold text-indigo-600">Platinum</span>
+        <span className="rounded-full bg-indigo-50 px-0 py-0.5 text-[9px] font-bold text-indigo-600">Platinum</span>
       </div>
-      <div className={`mt-3 relative overflow-hidden p-4 text-white ${ctx.radius.tile}`} style={{ background: cardGradient }}>
+
+      <div
+        className={`mt-3 relative flex min-h-[180px] flex-col justify-between overflow-hidden p-5 text-white ${ctx.radius.tile}`}
+        style={{ background: cardGradient }}
+      >
+        {/* Top row: brand + contactless */}
         <div className="flex items-start justify-between">
           <span className="text-[10px] font-extrabold tracking-wider">OK PRIVATE</span>
           <Wifi className="h-4 w-4 rotate-90 opacity-70" />
         </div>
-        <div className="mt-4 h-6 w-8 rounded-md bg-gradient-to-br from-amber-300 to-amber-500" />
-        <p className="mt-3 font-mono text-[13px] tracking-[0.2em]">•••• 8824</p>
-        <div className="mt-3 flex items-end justify-between text-[8px] opacity-80">
-          <span>KRISHNAN A.</span><span>EXP 08/29</span>
+
+        {/* Middle: chip + number */}
+        <div>
+          <div className="h-6 w-8 rounded-md bg-gradient-to-br from-amber-300 to-amber-500" />
+          <p className="mt-3 font-mono text-[13px] tracking-[0.2em]">•••• 8824</p>
         </div>
-      </div>
-      <div className="mt-3 flex items-center justify-between text-[10px] font-semibold text-slate-500">
-        <button type="button" className="flex cursor-pointer items-center gap-1 hover:text-slate-800"><Lock className="h-3 w-3" /> Freeze Card</button>
-        <button type="button" className="flex cursor-pointer items-center gap-1 hover:text-slate-800"><Eye className="h-3 w-3" /> View Details</button>
+
+        {/* Bottom: holder + expiry */}
+        <div className="flex items-end justify-between text-[8px] opacity-80">
+          <span>KRISHNAN A.</span>
+          <span>EXP 08/29</span>
+        </div>
       </div>
     </div>
   );
@@ -383,7 +392,7 @@ function EarningsChannelsCard({ ctx }: { ctx: ViewCtx }) {
   ];
   return (
     <div className="flex h-full flex-col">
-      <div className="mb-2.5 flex items-center justify-between px-2.5">
+      <div className="mb-2.5 mt-3 flex items-center justify-between px-2.5">
         <p className="text-[12px] font-bold">Earnings Channels</p>
         <button type="button" className="text-[10px] font-semibold" style={{ color: ctx.accent }}>Manage Streams</button>
       </div>
@@ -1133,15 +1142,34 @@ function Segmented<T extends string>({ label, value, options, onChange, variant 
 function StyleLabel({ children, right }: { children: React.ReactNode; right?: React.ReactNode }) {
   return <div className="mb-2 flex items-center justify-between"><span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{children}</span>{right}</div>;
 }
-function StylePopout({ brandName, onBrandName, accent, onAccent, mode, onMode, shape, onShape, density, onDensity, onClose, shown }: {
+function StylePopout({ brandName, onBrandName, accent, onAccent, mode, onMode, shape, onShape, density, onDensity, onClose, shown, logo, onLogoFile, onRemoveLogo }: {
   brandName: string; onBrandName: (v: string) => void; accent: string; onAccent: (v: string) => void;
   mode: 'light' | 'dark' | 'auto'; onMode: (v: 'light' | 'dark' | 'auto') => void;
   shape: RadiusMode; onShape: (v: RadiusMode) => void; density: Density; onDensity: (v: Density) => void; onClose: () => void; shown: boolean;
+  logo: BrandLogo | null; onLogoFile: (f: File) => void; onRemoveLogo: () => void;
 }) {
   const nameRef = useRef<HTMLInputElement>(null);
+  const logoInputRef = useRef<HTMLInputElement>(null);
   useEffect(() => { nameRef.current?.focus(); }, []);
+
+  const handleLogoPick = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    if (f) {
+      if (f.size > 2 * 1024 * 1024) {
+        // eslint-disable-next-line no-alert
+        alert('Please choose a logo smaller than 2 MB.');
+      } else {
+        onLogoFile(f);
+      }
+    }
+    e.target.value = '';
+  };
+
+  const fallbackName = `${(brandName || 'Brand').trim().replace(/\s+/g, '_')}_Emblem.svg`;
+  const initial = (brandName.trim().charAt(0) || 'A').toUpperCase();
+
   return (
-    <div role="dialog" aria-label="Brand and style" className={`absolute left-3 top-3 z-30 max-h-[calc(100%-24px)] w-[min(280px,calc(100%-24px))] overflow-y-auto rounded-2xl bg-white p-4 shadow-[0_24px_60px_rgba(30,41,90,0.28)] ring-1 ring-slate-200/80 scrollbar-none transition-all duration-200 ease-out ${shown ? 'translate-y-0 opacity-100' : '-translate-y-2 opacity-0'}`}>
+    <div role="dialog" aria-label="Brand and style" className={`absolute left-3 top-3 z-30 max-h-[calc(100%-24px)] w-[min(300px,calc(100%-24px))] overflow-y-auto rounded-2xl bg-white p-4 shadow-[0_24px_60px_rgba(30,41,90,0.28)] ring-1 ring-slate-200/80 scrollbar-none transition-all duration-200 ease-out ${shown ? 'translate-y-0 opacity-100' : '-translate-y-2 opacity-0'}`}>
       <div className="mb-4 flex items-center justify-between">
         <h3 className="flex items-center gap-2 text-[14px] font-semibold text-slate-900"><Palette className="h-4 w-4 text-slate-600" /> Brand & Style</h3>
         <button type="button" onClick={onClose} aria-label="Close" className="grid h-6 w-6 cursor-pointer place-items-center rounded-full text-slate-500 transition hover:bg-slate-100 hover:text-slate-900"><X className="h-3.5 w-3.5" /></button>
@@ -1154,6 +1182,44 @@ function StylePopout({ brandName, onBrandName, accent, onAccent, mode, onMode, s
             <input ref={nameRef} type="text" value={brandName} onChange={(e) => onBrandName(e.target.value)} className="w-full min-w-0 bg-transparent text-[12px] font-medium text-slate-900 outline-none" />
           </label>
         </div>
+
+        {/* Brand logo asset */}
+        <div>
+          <StyleLabel right={<span className="text-[10px] font-medium text-slate-400">SVG/PNG max 2MB</span>}>Brand logo asset</StyleLabel>
+          <div className="flex items-center gap-2.5 rounded-xl bg-[#EEF0FB] p-2.5">
+            <span className="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-lg text-[15px] font-bold text-white" style={{ background: accent }}>
+              {logo ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={logo.url} alt="Brand logo" className="h-full w-full object-cover" />
+              ) : (
+                initial
+              )}
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-[11px] font-semibold text-slate-900">{logo ? logo.name : fallbackName}</p>
+              <p className="truncate text-[9px] text-slate-500">Vector • 48 × 48 dp • Scalable</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => logoInputRef.current?.click()}
+              className="shrink-0 cursor-pointer rounded text-[11px] font-bold outline-none focus-visible:ring-2 focus-visible:ring-[#0040DF] focus-visible:ring-offset-1"
+              style={{ color: accent }}
+            >
+              {logo ? 'Change' : 'Upload'}
+            </button>
+          </div>
+          {logo && (
+            <button type="button" onClick={onRemoveLogo} className="mt-1.5 cursor-pointer text-[10px] font-semibold text-rose-500 transition hover:text-rose-600">Remove logo</button>
+          )}
+          <input
+            ref={logoInputRef}
+            type="file"
+            accept="image/png,image/jpeg,image/svg+xml,image/webp"
+            className="hidden"
+            onChange={handleLogoPick}
+          />
+        </div>
+
         <div>
           <StyleLabel right={<span className="text-[11px] font-bold uppercase" style={{ color: accent }}>{accent}</span>}>Primary brand accent</StyleLabel>
           <div className="flex items-center gap-2 px-0.5 py-1" role="radiogroup" aria-label="Accent">
@@ -1186,6 +1252,7 @@ export default function DesktopBuildSection() {
   const [styleOpen, setStyleOpen] = useState(false);
   const styleBtnRef = useRef<HTMLButtonElement>(null);
   const [brandName, setBrandName] = useState('Apex Bank');
+  const [brandLogo, setBrandLogo] = useState<BrandLogo | null>(null);
   const [accentColor, setAccentColor] = useState('#0040DF');
   const [interfaceMode, setInterfaceMode] = useState<'light' | 'dark' | 'auto'>('light');
   const [buttonRadius, setButtonRadius] = useState<RadiusMode>('rounded');
@@ -1256,6 +1323,21 @@ export default function DesktopBuildSection() {
   }, [styleOpen]);
 
   const closeStyle = () => { setStyleOpen(false); styleBtnRef.current?.focus(); };
+
+  /* ---------------------------- brand logo handlers ---------------------------- */
+  const handleLogoFile = (file: File) => {
+    const url = URL.createObjectURL(file);
+    setBrandLogo((prev) => {
+      if (prev?.url) URL.revokeObjectURL(prev.url);
+      return { name: file.name, url };
+    });
+  };
+  const clearLogo = () => {
+    setBrandLogo((prev) => {
+      if (prev?.url) URL.revokeObjectURL(prev.url);
+      return null;
+    });
+  };
 
   const commit = (next: ModuleId[]) => {
     if (next.length === canvasModules.length && next.every((m, i) => m === canvasModules[i])) return;
@@ -1418,11 +1500,11 @@ export default function DesktopBuildSection() {
         }}
         onDragStart={(e) => startDrag(e, id)} onDragEnd={onEndDragSafe}
         style={{ ['--tw-ring-color' as string]: accentColor, gridColumn: isSignIn ? undefined : `span ${size.span} / span ${size.span}`, height: size.h ?? undefined } as React.CSSProperties}
-        className={`group relative ${radius.card} transition-shadow duration-150 ${editMode ? 'cursor-grab ring-offset-2 focus-within:ring-2 hover:ring-2 active:cursor-grabbing' : ''} ${isDark ? 'ring-offset-slate-950' : 'ring-offset-white'} ${isSource ? 'opacity-40' : ''} ${size.h ? 'overflow-hidden' : ''} ${resizingId === id ? 'ring-2 shadow-lg' : ''}`}>
+        className={`group relative ${radius.card} transition-shadow duration-150 ${editMode ? 'cursor-grab ring-offset-2 focus-within:ring-2 hover:ring-2 active:cursor-grabbing' : ''} ${isDark ? 'ring-offset-slate-950' : 'ring-offset-white'} ${isSource ? 'opacity-40' : ''} ${resizingId === id ? 'ring-2 shadow-lg' : ''}`}>
         {drag && dropIndex === i && <DropLine side="top" accent={accentColor} />}
         {drag && dropIndex === canvasModules.length && i === canvasModules.length - 1 && <DropLine side="bottom" accent={accentColor} />}
         {editMode && (
-          <div className="absolute -top-9 right-2 z-20 flex items-center gap-0.5 rounded-full bg-white px-1 py-0.5 opacity-0 shadow-md ring-1 ring-slate-200 transition group-focus-within:opacity-100 group-hover:opacity-100">
+          <div className="absolute -top-9 right-2 z-30 flex items-center gap-0.5 rounded-full bg-white px-1 py-0.5 shadow-md ring-1 ring-slate-200 transition">
             <GripVertical className="h-3 w-3 text-slate-400" aria-hidden />
             <ToolbarButton label="Move up" disabled={i === 0} onClick={() => moveModule(id, -1)}><ChevronUpSmall /></ToolbarButton>
             <ToolbarButton label="Move down" disabled={i === canvasModules.length - 1} onClick={() => moveModule(id, 1)}><ChevronDownSmall /></ToolbarButton>
@@ -1440,7 +1522,7 @@ export default function DesktopBuildSection() {
             <div onMouseDown={(e) => startResize(e, id, 'se')} title="Drag to resize width & height" className="absolute -bottom-1.5 -right-1.5 z-20 h-3.5 w-3.5 cursor-nwse-resize rounded-sm opacity-0 transition group-hover:opacity-100" style={{ background: accentColor }} />
           </>
         )}
-        <div className={`relative h-full ${drag ? 'pointer-events-none' : ''}`}><ModuleView id={id} ctx={liveCtx} /></div>
+        <div className={`relative h-full ${size.h ? `overflow-hidden ${radius.card}` : ''} ${drag ? 'pointer-events-none' : ''}`}><ModuleView id={id} ctx={liveCtx} /></div>
       </div>
     );
   };
@@ -1472,7 +1554,14 @@ export default function DesktopBuildSection() {
                 </div>
                 <button ref={styleBtnRef} type="button" onClick={() => setStyleOpen((v) => !v)} aria-haspopup="dialog" aria-expanded={styleOpen}
                   className="flex w-full cursor-pointer items-center gap-3 rounded-xl bg-[#DDE3FA] px-3 py-2.5 text-left outline-none transition hover:bg-[#D3DBF8] focus-visible:ring-2 focus-visible:ring-[#0040DF]">
-                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-white" style={{ background: accentColor }}><Palette className="h-4 w-4" /></span>
+                  <span className="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-lg text-white" style={{ background: accentColor }}>
+                    {brandLogo ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={brandLogo.url} alt="" className="h-full w-full object-cover" />
+                    ) : (
+                      <Palette className="h-4 w-4" />
+                    )}
+                  </span>
                   <span className="min-w-0 flex-1"><span className="block text-[12px] font-semibold text-slate-900">Style Guide</span><span className="block truncate text-[10px] text-slate-500">{brandName || 'Your brand'} · {accentName}</span></span>
                   <ArrowRight className="h-4 w-4 shrink-0" style={{ color: accentColor }} aria-hidden />
                 </button>
@@ -1508,7 +1597,9 @@ export default function DesktopBuildSection() {
             <div className="relative flex min-h-0 flex-col bg-gradient-to-b from-[#EEF0FB] via-[#F6F7FE] to-[#EEF0FB] p-4">
               {styleOpen && <div className="absolute inset-0 z-20" onClick={closeStyle} aria-hidden />}
               {styleOpen && (
-                <StylePopout brandName={brandName} onBrandName={setBrandName} accent={accentColor} onAccent={setAccentColor}
+                <StylePopout brandName={brandName} onBrandName={setBrandName}
+                  logo={brandLogo} onLogoFile={handleLogoFile} onRemoveLogo={clearLogo}
+                  accent={accentColor} onAccent={setAccentColor}
                   mode={interfaceMode} onMode={setInterfaceMode} shape={buttonRadius} onShape={setButtonRadius}
                   density={density} onDensity={setDensity} onClose={closeStyle} shown={styleShown} />
               )}
@@ -1549,15 +1640,23 @@ export default function DesktopBuildSection() {
                   <div ref={bodyRef} onDragOver={handleContainerDragOver} onDragLeave={handleContainerDragLeave} onDrop={handleDrop}
                     className={`flex-1 overflow-y-auto scrollbar-none ${density === 'compact' ? 'px-4 pb-4 pt-10' : 'px-6 pb-6 pt-12'} ${resizingId ? 'select-none' : ''}`}>
                     {activePage === 'home' ? (
-                      <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <h2 className="text-[22px] font-extrabold tracking-tight">Good Morning, User</h2>
-                            <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-[8px] font-bold text-indigo-600">PRO HUB</span>
+                      <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
+                        <div className="flex items-start gap-3">
+                          {brandLogo && (
+                            <span className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-2xl bg-white ring-1 ring-slate-200">
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img src={brandLogo.url} alt={`${brandName} logo`} className="h-full w-full object-contain p-1.5" />
+                            </span>
+                          )}
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <h2 className="text-[22px] font-extrabold tracking-tight">Good Morning, User</h2>
+                              <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-[8px] font-bold text-indigo-600">PRO HUB</span>
+                            </div>
+                            <p className={`mt-1 max-w-sm text-[10px] leading-relaxed ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                              Here is an integrated breakdown of your cash velocity and liquid capital for today.
+                            </p>
                           </div>
-                          <p className={`mt-1 max-w-sm text-[10px] leading-relaxed ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                            Here is an integrated breakdown of your cash velocity and liquid capital for today.
-                          </p>
                         </div>
                         <div className="flex flex-wrap items-center gap-1.5">
                           <button type="button" className="flex cursor-pointer items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-1.5 text-[9px] font-bold text-white"><Send className="h-2.5 w-2.5" /> Send Money</button>
