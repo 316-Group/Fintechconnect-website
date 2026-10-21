@@ -1,32 +1,24 @@
 'use client';
-
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Outfit } from 'next/font/google';
 import {
-  ArrowDown, ArrowDownLeft, ArrowRight, ArrowUp, ArrowUpRight, ArrowLeftRight,
-  Bell, Calendar, Check, ChevronDown, ChevronRight, ChevronUp, ChevronsUpDown,
-  Clock, Contrast, Copy, CreditCard, Eye, EyeOff, FileText, Fingerprint, GripVertical,
-  Home, Landmark, LayoutGrid, Lock, LogIn, Mail, Monitor, Moon, MoreHorizontal,
-  Palette, Pencil, Phone, PieChart, PiggyBank, Plus, PlusCircle, QrCode, RefreshCw,
-  Search, Send, Settings, ShieldCheck, Sliders, Smartphone, Snowflake, Sparkles,
-  Sun, SunMoon, Trash2, TrendingUp, Undo2, User, Users, Wallet, X, Zap,
+  ArrowDownLeft, ArrowRight, ArrowUpRight, Bell, Calendar, Check, ChevronsUpDown, Clock, Code2,
+  Copy, CreditCard, Eye, EyeOff, FileText, Fingerprint, GripVertical, Landmark, Lock, Mail,
+  Monitor, Moon, Palette, Pencil, Phone, Plus, QrCode, Receipt, RefreshCw, Send, ShieldCheck,
+  Sliders, Smartphone, Sparkles, Sun, SunMoon, Trash2, Undo2, User, Users, Wifi, X, Zap,
+  PenTool, Coffee, ArrowLeftRight,
 } from 'lucide-react';
 
 const outfit = Outfit({ subsets: ['latin'], weight: ['400', '500', '600', '700'], display: 'swap' });
-
 const INK = '#0F1729';
 const NAVY = '#0B2E8F';
-const YELLOW = '#F5B921';
-const GREEN = '#16A36B';
-const PINK = '#EF4F6B';
 
 type Category =
   | 'signin' | 'dashboard' | 'accounts' | 'transfers' | 'send'
   | 'request' | 'cards' | 'ledger' | 'alerts' | 'profile' | 'onboarding';
-
 type ModuleId =
-  | 'loginScreen' | 'otpVerification' | 'biometricUnlock'
-  | 'netBalance' | 'quickActionRadial' | 'recentActivity'
+  | 'loginScreen' | 'signInWithGoogle' | 'otpVerification' | 'biometricUnlock'
+  | 'heroBalance' | 'activeCard' | 'quickTransfer' | 'savingsTargets' | 'earningsChannels' | 'activityFeed'
   | 'accountsPortfolio' | 'routingWire' | 'monthlyAuditFile'
   | 'directTransferEngine' | 'multiMarketFX' | 'recurringStanding' | 'authorizationModal'
   | 'recentRecipients' | 'beneficiaryValidation' | 'sendMoneyInvoice' | 'transferDispatched'
@@ -36,25 +28,18 @@ type ModuleId =
   | 'alertCenter' | 'preferencesDeliveryChannels'
   | 'identityCard' | 'securityBaseline' | 'activeSessions'
   | 'brandOnboarding' | 'welcomeHero' | 'stepCarousel';
-
 type RadiusMode = 'rounded' | 'sharp' | 'pill';
-type PageId =
-  | 'signin' | 'home' | 'accounts' | 'transfers' | 'send' | 'request'
-  | 'cards' | 'history' | 'notifications' | 'profile' | 'splash';
 type CodeLang = 'swiftui' | 'typescript' | 'reactnative' | 'kotlin';
 type Density = 'compact' | 'spacious';
 type AppKind = 'banking' | 'fintech' | 'psp' | 'wallet' | 'crypto';
 
+interface PageDef { id: string; label: string; blurb: string; kit: ModuleId[] }
 interface ModuleAsset {
-  id: ModuleId;
-  title: string;
-  subtitle: string;
-  category: Category;
-  badge: string;
-  badgeColor: string;
-  wide?: boolean;
+  id: ModuleId; title: string; subtitle: string; category: Category;
+  badge: string; badgeColor: string; wide?: boolean;
   code: { swiftui: string; typescript: string; reactnative: string; kotlin: string };
 }
+interface SizeSpec { span: number; h: number | null }
 
 const RADII: Record<RadiusMode, { card: string; tile: string; icon: string }> = {
   rounded: { card: 'rounded-[18px]', tile: 'rounded-xl', icon: 'rounded-lg' },
@@ -63,208 +48,109 @@ const RADII: Record<RadiusMode, { card: string; tile: string; icon: string }> = 
 };
 type Radius = (typeof RADII)[RadiusMode];
 
-/* -------------------------------------------------------------------------- */
-/*  Desktop component catalog                                                  */
-/* -------------------------------------------------------------------------- */
+const C = (swiftui: string, typescript: string, reactnative: string, kotlin: string) => ({ swiftui, typescript, reactnative, kotlin });
 
 const availableModules: ModuleAsset[] = [
-  // Sign In Journeys
-  { id: 'loginScreen', title: 'Login Screen', subtitle: 'Email, password & sign-in CTA', category: 'signin', badge: 'Auth',
-    badgeColor: 'bg-slate-100 text-slate-600 border border-slate-200',
-    code: { swiftui: `LoginScreen(email: $email, password: $pw, onSignIn: auth.signIn)`, typescript: `<LoginScreen onSubmit={signIn} />`, reactnative: `<LoginScreen onSignIn={auth.signIn} />`, kotlin: `LoginScreen(onSubmit = auth::signIn)` } },
-  { id: 'otpVerification', title: 'OTP Verification', subtitle: '6-digit code entry & verify', category: 'signin', badge: 'Auth',
-    badgeColor: 'bg-slate-100 text-slate-600 border border-slate-200',
-    code: { swiftui: `OTPVerification(length: 6, onVerify: auth.verifyOTP)`, typescript: `<OtpVerification onVerify={verify} />`, reactnative: `<OtpVerification onVerify={verify} />`, kotlin: `OtpVerification(onVerify = auth::verifyOTP)` } },
-  { id: 'biometricUnlock', title: 'Biometric Unlock', subtitle: 'Face ID / fingerprint prompt', category: 'signin', badge: 'Auth',
-    badgeColor: 'bg-slate-100 text-slate-600 border border-slate-200',
-    code: { swiftui: `BiometricUnlock(reason: "Unlock to proceed")`, typescript: `<BiometricUnlock onSuccess={unlock} />`, reactnative: `<BiometricUnlock onSuccess={unlock} />`, kotlin: `BiometricUnlock(onSuccess = ::unlock)` } },
-
-  // Home Dashboard
-  { id: 'netBalance', title: 'Total Net Balance', subtitle: 'Consolidated liquidity across accounts', category: 'dashboard', badge: 'Core',
-    badgeColor: 'bg-blue-50 text-blue-600 border border-blue-100', wide: true,
-    code: { swiftui: `NetBalanceCard(total: 28650.00, reserved: 4850.00)`, typescript: `<NetBalanceCard total={28650} reserved={4850} />`, reactnative: `<NetBalanceCard total={28650} reserved={4850} />`, kotlin: `NetBalanceCard(total = 28650.0, reserved = 4850.0)` } },
-  { id: 'quickActionRadial', title: 'Quick Action Menu', subtitle: 'Send, Receive, Pay, Manage, Move', category: 'dashboard', badge: 'Action',
-    badgeColor: 'bg-emerald-50 text-emerald-600 border border-emerald-100', wide: true,
-    code: { swiftui: `QuickActions(actions: [.send, .receive, .pay, .manage, .move])`, typescript: `<QuickActions actions={['send','receive','pay','manage','move']} />`, reactnative: `<QuickActions actions={actions} />`, kotlin: `QuickActions(actions = DEFAULT_ACTIONS)` } },
-  { id: 'recentActivity', title: 'Recent Activity', subtitle: 'Live feed of the last transactions', category: 'dashboard', badge: 'Live',
-    badgeColor: 'bg-amber-50 text-amber-600 border border-amber-100', wide: true,
-    code: { swiftui: `RecentActivity(transactions: store.latest(3))`, typescript: `<RecentActivity transactions={latest} />`, reactnative: `<RecentActivity transactions={latest} />`, kotlin: `RecentActivity(transactions = store.latest(3))` } },
-
-  // Accounts & Ledger
-  { id: 'accountsPortfolio', title: 'Accounts Portfolio', subtitle: 'Balance per account with actions', category: 'accounts', badge: 'Core',
-    badgeColor: 'bg-blue-50 text-blue-600 border border-blue-100',
-    code: { swiftui: `AccountsPortfolio(accounts: store.accounts)`, typescript: `<AccountsPortfolio accounts={accounts} />`, reactnative: `<AccountsPortfolio accounts={accounts} />`, kotlin: `AccountsPortfolio(accounts = store.accounts)` } },
-  { id: 'routingWire', title: 'Routing & Wire Data', subtitle: 'SWIFT, IBAN & routing numbers', category: 'accounts', badge: 'Data',
-    badgeColor: 'bg-amber-50 text-amber-600 border border-amber-100',
-    code: { swiftui: `RoutingWireCard(account: primary)`, typescript: `<RoutingWireCard account={primary} />`, reactnative: `<RoutingWireCard account={primary} />`, kotlin: `RoutingWireCard(account = primary)` } },
-  { id: 'monthlyAuditFile', title: 'Monthly Audit File', subtitle: 'Downloadable statements', category: 'accounts', badge: 'Data',
-    badgeColor: 'bg-amber-50 text-amber-600 border border-amber-100',
-    code: { swiftui: `MonthlyAuditFile(month: .oct2024, format: .csv)`, typescript: `<MonthlyAuditFile month="2024-10" />`, reactnative: `<MonthlyAuditFile month="2024-10" />`, kotlin: `MonthlyAuditFile(month = Month.OCT_2024)` } },
-
-  // Transfers & FX
-  { id: 'directTransferEngine', title: 'Direct Transfer Engine', subtitle: 'From/To, amount, continue', category: 'transfers', badge: 'Flow',
-    badgeColor: 'bg-emerald-50 text-emerald-600 border border-emerald-100',
-    code: { swiftui: `DirectTransfer(from: .checking, to: .savings, amount: 500)`, typescript: `<DirectTransfer from="checking" to="savings" amount={500} />`, reactnative: `<DirectTransfer from="checking" to="savings" amount={500} />`, kotlin: `DirectTransfer(from = CHECKING, to = SAVINGS, amount = 500.0)` } },
-  { id: 'multiMarketFX', title: 'Multi-Market FX Swap', subtitle: 'Live rate & conversion', category: 'transfers', badge: 'FX',
-    badgeColor: 'bg-amber-50 text-amber-600 border border-amber-100',
-    code: { swiftui: `MultiMarketFX(from: .usd, to: .eur, amount: 1000)`, typescript: `<MultiMarketFX from="USD" to="EUR" amount={1000} />`, reactnative: `<MultiMarketFX from="USD" to="EUR" amount={1000} />`, kotlin: `MultiMarketFX(from = USD, to = EUR, amount = 1000.0)` } },
-  { id: 'recurringStanding', title: 'Recurring Standing Order', subtitle: 'Monthly schedule & next run', category: 'transfers', badge: 'Flow',
-    badgeColor: 'bg-emerald-50 text-emerald-600 border border-emerald-100',
-    code: { swiftui: `RecurringStanding(nextRun: "Nov 1 2024", amount: 220)`, typescript: `<RecurringStanding nextRun="2024-11-01" amount={220} />`, reactnative: `<RecurringStanding nextRun="2024-11-01" amount={220} />`, kotlin: `RecurringStanding(nextRun = date(2024,11,1), amount = 220.0)` } },
-  { id: 'authorizationModal', title: 'Authorization Modal', subtitle: 'Payment review & authorize', category: 'transfers', badge: 'Flow',
-    badgeColor: 'bg-emerald-50 text-emerald-600 border border-emerald-100',
-    code: { swiftui: `AuthorizationModal(amount: 500, fee: 0)`, typescript: `<AuthorizationModal amount={500} fee={0} />`, reactnative: `<AuthorizationModal amount={500} fee={0} />`, kotlin: `AuthorizationModal(amount = 500.0, fee = 0.0)` } },
-
-  // Send Money
-  { id: 'recentRecipients', title: 'Recent Recipients', subtitle: 'Quick-pick saved contacts', category: 'send', badge: 'Flow',
-    badgeColor: 'bg-emerald-50 text-emerald-600 border border-emerald-100',
-    code: { swiftui: `RecentRecipients(contacts: contacts.recent)`, typescript: `<RecentRecipients contacts={recent} />`, reactnative: `<RecentRecipients contacts={recent} />`, kotlin: `RecentRecipients(contacts = contacts.recent)` } },
-  { id: 'beneficiaryValidation', title: 'Beneficiary Validation', subtitle: 'Auto-detected bank & branch', category: 'send', badge: 'Flow',
-    badgeColor: 'bg-emerald-50 text-emerald-600 border border-emerald-100',
-    code: { swiftui: `BeneficiaryValidation(onDetect: bank::resolve)`, typescript: `<BeneficiaryValidation onDetect={resolveBank} />`, reactnative: `<BeneficiaryValidation onDetect={resolveBank} />`, kotlin: `BeneficiaryValidation(onDetect = bank::resolve)` } },
-  { id: 'sendMoneyInvoice', title: 'Send Money Invoice', subtitle: 'Amount, note, request button', category: 'send', badge: 'Flow',
-    badgeColor: 'bg-emerald-50 text-emerald-600 border border-emerald-100',
-    code: { swiftui: `SendMoneyInvoice(amount: 20, note: "Dinner & drinks")`, typescript: `<SendMoneyInvoice amount={20} note="Dinner" />`, reactnative: `<SendMoneyInvoice amount={20} note="Dinner" />`, kotlin: `SendMoneyInvoice(amount = 20.0, note = "Dinner")` } },
-  { id: 'transferDispatched', title: 'Transfer Dispatched', subtitle: 'Confirmation with receipt ID', category: 'send', badge: 'Live',
-    badgeColor: 'bg-amber-50 text-amber-600 border border-amber-100',
-    code: { swiftui: `TransferDispatched(receiptId: "TXN-8192", amount: 20)`, typescript: `<TransferDispatched receiptId="TXN-8192" amount={20} />`, reactnative: `<TransferDispatched receiptId="TXN-8192" amount={20} />`, kotlin: `TransferDispatched(receiptId = "TXN-8192", amount = 20.0)` } },
-
-  // Payment Requests
-  { id: 'peerInvoicing', title: 'Peer Invoicing', subtitle: 'Create invoice with due date', category: 'request', badge: 'Flow',
-    badgeColor: 'bg-emerald-50 text-emerald-600 border border-emerald-100',
-    code: { swiftui: `PeerInvoicing(amount: 75, due: "Nov 7")`, typescript: `<PeerInvoicing amount={75} due="2024-11-07" />`, reactnative: `<PeerInvoicing amount={75} due="2024-11-07" />`, kotlin: `PeerInvoicing(amount = 75.0, due = date(2024,11,7))` } },
-  { id: 'qrPaymentRequest', title: 'QR Payment Request', subtitle: 'Scan-to-pay QR code', category: 'request', badge: 'Flow',
-    badgeColor: 'bg-emerald-50 text-emerald-600 border border-emerald-100',
-    code: { swiftui: `QRPaymentRequest(handle: "@alexrivers")`, typescript: `<QRPaymentRequest handle="@alexrivers" />`, reactnative: `<QRPaymentRequest handle="@alexrivers" />`, kotlin: `QRPaymentRequest(handle = "@alexrivers")` } },
-  { id: 'splitPayment', title: 'Split Payment', subtitle: 'Divide across recipients', category: 'request', badge: 'Flow',
-    badgeColor: 'bg-emerald-50 text-emerald-600 border border-emerald-100',
-    code: { swiftui: `SplitPayment(total: 120, shares: [60, 40, 20])`, typescript: `<SplitPayment total={120} shares={[60,40,20]} />`, reactnative: `<SplitPayment total={120} shares={[60,40,20]} />`, kotlin: `SplitPayment(total = 120.0, shares = listOf(60.0,40.0,20.0))` } },
-  { id: 'outstandingReceivables', title: 'Outstanding Receivables', subtitle: 'Pending invoice tracker', category: 'request', badge: 'Data',
-    badgeColor: 'bg-amber-50 text-amber-600 border border-amber-100',
-    code: { swiftui: `OutstandingReceivables(items: store.pending)`, typescript: `<OutstandingReceivables items={pending} />`, reactnative: `<OutstandingReceivables items={pending} />`, kotlin: `OutstandingReceivables(items = store.pending)` } },
-
-  // Card Management
-  { id: 'virtualDebitCard', title: 'Virtual Debit Card', subtitle: 'Frozen/active debit card', category: 'cards', badge: 'Card',
-    badgeColor: 'bg-emerald-50 text-emerald-600 border border-emerald-100', wide: true,
-    code: { swiftui: `VirtualDebitCard(last4: "7104", frozen: state.frozen)`, typescript: `<VirtualDebitCard last4="7104" frozen={frozen} />`, reactnative: `<VirtualDebitCard last4="7104" frozen={frozen} />`, kotlin: `VirtualDebitCard(last4 = "7104", frozen = state.frozen)` } },
-  { id: 'securityDashboard', title: 'Card Security Dashboard', subtitle: 'Freeze, disable, swipe', category: 'cards', badge: 'Card',
-    badgeColor: 'bg-emerald-50 text-emerald-600 border border-emerald-100',
-    code: { swiftui: `CardSecurity(frozen: $state.frozen, blocked: $state.blocked)`, typescript: `<CardSecurity state={state} onChange={setState} />`, reactnative: `<CardSecurity state={state} onChange={setState} />`, kotlin: `CardSecurity(state = state, onChange = ::updateState)` } },
-  { id: 'pinVault', title: 'PIN Vault', subtitle: 'View or change PIN', category: 'cards', badge: 'Card',
-    badgeColor: 'bg-emerald-50 text-emerald-600 border border-emerald-100',
-    code: { swiftui: `PinVault(onView: pin::reveal, onChange: pin::change)`, typescript: `<PinVault onView={revealPin} onChange={changePin} />`, reactnative: `<PinVault onView={revealPin} onChange={changePin} />`, kotlin: `PinVault(onView = pin::reveal, onChange = pin::change)` } },
-
-  // Transaction Ledger
-  { id: 'auditLedgerActivity', title: 'Audit Ledger Activity', subtitle: 'Full transaction history', category: 'ledger', badge: 'Data',
-    badgeColor: 'bg-amber-50 text-amber-600 border border-amber-100', wide: true,
-    code: { swiftui: `AuditLedger(transactions: store.all, filters: filters)`, typescript: `<AuditLedger transactions={all} filters={filters} />`, reactnative: `<AuditLedger transactions={all} filters={filters} />`, kotlin: `AuditLedger(transactions = store.all, filters = filters)` } },
-
-  // Notifications
-  { id: 'alertCenter', title: 'Alert Center', subtitle: 'Inbox of alerts', category: 'alerts', badge: 'Push',
-    badgeColor: 'bg-blue-50 text-blue-600 border border-blue-100',
-    code: { swiftui: `AlertCenter(items: store.alerts)`, typescript: `<AlertCenter items={alerts} />`, reactnative: `<AlertCenter items={alerts} />`, kotlin: `AlertCenter(items = store.alerts)` } },
-  { id: 'preferencesDeliveryChannels', title: 'Delivery Channels', subtitle: 'Notification preferences', category: 'alerts', badge: 'Push',
-    badgeColor: 'bg-blue-50 text-blue-600 border border-blue-100',
-    code: { swiftui: `DeliveryChannels(push: $prefs.push, email: $prefs.email)`, typescript: `<DeliveryChannels prefs={prefs} onChange={setPrefs} />`, reactnative: `<DeliveryChannels prefs={prefs} onChange={setPrefs} />`, kotlin: `DeliveryChannels(prefs = prefs, onChange = ::updatePrefs)` } },
-
-  // Profile & Security
-  { id: 'identityCard', title: 'Identity Card', subtitle: 'Avatar, KYC level & tier', category: 'profile', badge: 'KYC',
-    badgeColor: 'bg-blue-50 text-blue-600 border border-blue-100',
-    code: { swiftui: `IdentityCard(user: auth.current)`, typescript: `<IdentityCard user={user} />`, reactnative: `<IdentityCard user={user} />`, kotlin: `IdentityCard(user = auth.current)` } },
-  { id: 'securityBaseline', title: 'Security Baseline', subtitle: 'Password, biometric, authenticity', category: 'profile', badge: 'Shield',
-    badgeColor: 'bg-emerald-50 text-emerald-600 border border-emerald-100',
-    code: { swiftui: `SecurityBaseline(password: $state.pw, faceId: $state.faceId)`, typescript: `<SecurityBaseline state={state} onChange={setState} />`, reactnative: `<SecurityBaseline state={state} onChange={setState} />`, kotlin: `SecurityBaseline(state = state, onChange = ::updateState)` } },
-  { id: 'activeSessions', title: 'Active Sessions', subtitle: 'Devices signed in', category: 'profile', badge: 'Shield',
-    badgeColor: 'bg-emerald-50 text-emerald-600 border border-emerald-100',
-    code: { swiftui: `ActiveSessions(sessions: store.sessions)`, typescript: `<ActiveSessions sessions={sessions} />`, reactnative: `<ActiveSessions sessions={sessions} />`, kotlin: `ActiveSessions(sessions = store.sessions)` } },
-
-  // Splash & Onboarding
-  { id: 'brandOnboarding', title: 'Brand Onboarding', subtitle: 'Dark launch screen', category: 'onboarding', badge: 'Brand',
-    badgeColor: 'bg-slate-100 text-slate-600 border border-slate-200', wide: true,
-    code: { swiftui: `BrandOnboarding(brand: "FintecConnect")`, typescript: `<BrandOnboarding brand="FintecConnect" />`, reactnative: `<BrandOnboarding brand="FintecConnect" />`, kotlin: `BrandOnboarding(brand = "FintecConnect")` } },
-  { id: 'welcomeHero', title: 'Welcome Hero', subtitle: 'Zero-fee banking CTA', category: 'onboarding', badge: 'Brand',
-    badgeColor: 'bg-slate-100 text-slate-600 border border-slate-200',
-    code: { swiftui: `WelcomeHero(onGetStarted: goNext)`, typescript: `<WelcomeHero onNext={goNext} />`, reactnative: `<WelcomeHero onNext={goNext} />`, kotlin: `WelcomeHero(onNext = ::goNext)` } },
-  { id: 'stepCarousel', title: 'Step Carousel', subtitle: 'Onboarding progress', category: 'onboarding', badge: 'Brand',
-    badgeColor: 'bg-slate-100 text-slate-600 border border-slate-200',
-    code: { swiftui: `StepCarousel(current: 1, total: 3)`, typescript: `<StepCarousel current={1} total={3} />`, reactnative: `<StepCarousel current={1} total={3} />`, kotlin: `StepCarousel(current = 1, total = 3)` } },
+  { id: 'loginScreen', title: 'Login Screen', subtitle: 'Email, password & sign-in CTA', category: 'signin', badge: 'Auth', badgeColor: 'bg-slate-100 text-slate-600 border border-slate-200', code: C(`LoginScreen(email: $email, password: $pw, onSignIn: auth.signIn)`, `<LoginScreen onSubmit={signIn} />`, `<LoginScreen onSignIn={auth.signIn} />`, `LoginScreen(onSubmit = auth::signIn)`) },
+  { id: 'signInWithGoogle', title: 'Sign In with Google', subtitle: 'One-tap OAuth Google sign-in', category: 'signin', badge: 'Auth', badgeColor: 'bg-slate-100 text-slate-600 border border-slate-200', code: C(`SignInWithGoogle(onSuccess: auth.googleSignIn)`, `<SignInWithGoogle onSuccess={handleGoogle} />`, `<SignInWithGoogle onSuccess={handleGoogle} />`, `SignInWithGoogle(onSuccess = auth::googleSignIn)`) },
+  { id: 'otpVerification', title: 'OTP Verification', subtitle: '6-digit code entry & verify', category: 'signin', badge: 'Auth', badgeColor: 'bg-slate-100 text-slate-600 border border-slate-200', code: C(`OTPVerification(length: 6, onVerify: auth.verifyOTP)`, `<OtpVerification onVerify={verify} />`, `<OtpVerification onVerify={verify} />`, `OtpVerification(onVerify = auth::verifyOTP)`) },
+  { id: 'biometricUnlock', title: 'Biometric Unlock', subtitle: 'Face ID / fingerprint prompt', category: 'signin', badge: 'Auth', badgeColor: 'bg-slate-100 text-slate-600 border border-slate-200', code: C(`BiometricUnlock(reason: "Unlock to proceed")`, `<BiometricUnlock onSuccess={unlock} />`, `<BiometricUnlock onSuccess={unlock} />`, `BiometricUnlock(onSuccess = ::unlock)`) },
+  { id: 'heroBalance', title: 'Total Net Balance Hero', subtitle: 'Vault balance with inflow / outflow totals', category: 'dashboard', badge: 'Core', badgeColor: 'bg-blue-50 text-blue-600 border border-blue-100', wide: true, code: C(`NetBalanceHero(total: 25000.40, inflow: 20000, outflow: 17000)`, `<NetBalanceHero total={25000.40} />`, `<NetBalanceHero total={25000.40} />`, `NetBalanceHero(total = 25000.4)`) },
+  { id: 'activeCard', title: 'My Active Card', subtitle: 'Platinum card with freeze & details', category: 'cards', badge: 'Card', badgeColor: 'bg-emerald-50 text-emerald-600 border border-emerald-100', code: C(`ActiveCardWidget(last4: "8824", tier: .platinum)`, `<ActiveCard last4="8824" />`, `<ActiveCard last4="8824" />`, `ActiveCard(last4 = "8824")`) },
+  { id: 'quickTransfer', title: 'Quick Transfer', subtitle: 'Recipient shortcuts & send-now amount', category: 'send', badge: 'Flow', badgeColor: 'bg-emerald-50 text-emerald-600 border border-emerald-100', code: C(`QuickTransfer(contacts: contacts.recent, amount: 350)`, `<QuickTransfer amount={350} />`, `<QuickTransfer amount={350} />`, `QuickTransfer(amount = 350.0)`) },
+  { id: 'savingsTargets', title: 'Savings Targets', subtitle: 'Goal progress with cleared state', category: 'dashboard', badge: 'Savings', badgeColor: 'bg-purple-50 text-purple-600 border border-purple-100', code: C(`SavingsTargets(goals: store.goals)`, `<SavingsTargets goals={goals} />`, `<SavingsTargets goals={goals} />`, `SavingsTargets(goals = store.goals)`) },
+  { id: 'earningsChannels', title: 'Earnings Channels', subtitle: 'Income streams with live balances', category: 'dashboard', badge: 'Income', badgeColor: 'bg-rose-50 text-rose-600 border border-rose-100', wide: true, code: C(`EarningsChannels(streams: store.streams)`, `<EarningsChannels streams={streams} />`, `<EarningsChannels streams={streams} />`, `EarningsChannels(streams = store.streams)`) },
+  { id: 'activityFeed', title: 'Activity & Transactions', subtitle: 'Clearing records with income / expense filters', category: 'ledger', badge: 'Live', badgeColor: 'bg-amber-50 text-amber-600 border border-amber-100', wide: true, code: C(`ActivityFeed(transactions: store.latest(3))`, `<ActivityFeed transactions={latest} />`, `<ActivityFeed transactions={latest} />`, `ActivityFeed(transactions = store.latest(3))`) },
+  { id: 'accountsPortfolio', title: 'Accounts Portfolio', subtitle: 'Balance per account with actions', category: 'accounts', badge: 'Core', badgeColor: 'bg-blue-50 text-blue-600 border border-blue-100', code: C(`AccountsPortfolio(accounts: store.accounts)`, `<AccountsPortfolio accounts={accounts} />`, `<AccountsPortfolio accounts={accounts} />`, `AccountsPortfolio(accounts = store.accounts)`) },
+  { id: 'routingWire', title: 'Routing & Wire Data', subtitle: 'SWIFT, IBAN & routing numbers', category: 'accounts', badge: 'Data', badgeColor: 'bg-amber-50 text-amber-600 border border-amber-100', code: C(`RoutingWireCard(account: primary)`, `<RoutingWireCard account={primary} />`, `<RoutingWireCard account={primary} />`, `RoutingWireCard(account = primary)`) },
+  { id: 'monthlyAuditFile', title: 'Monthly Audit File', subtitle: 'Downloadable statements', category: 'accounts', badge: 'Data', badgeColor: 'bg-amber-50 text-amber-600 border border-amber-100', code: C(`MonthlyAuditFile(month: .oct2024, format: .csv)`, `<MonthlyAuditFile month="2024-10" />`, `<MonthlyAuditFile month="2024-10" />`, `MonthlyAuditFile(month = Month.OCT_2024)`) },
+  { id: 'directTransferEngine', title: 'Direct Transfer Engine', subtitle: 'From/To, amount, continue', category: 'transfers', badge: 'Flow', badgeColor: 'bg-emerald-50 text-emerald-600 border border-emerald-100', code: C(`DirectTransfer(from: .checking, to: .savings, amount: 500)`, `<DirectTransfer from="checking" to="savings" amount={500} />`, `<DirectTransfer from="checking" to="savings" amount={500} />`, `DirectTransfer(from = CHECKING, to = SAVINGS, amount = 500.0)`) },
+  { id: 'multiMarketFX', title: 'Multi-Market FX Swap', subtitle: 'Live rate & conversion', category: 'transfers', badge: 'FX', badgeColor: 'bg-amber-50 text-amber-600 border border-amber-100', code: C(`MultiMarketFX(from: .usd, to: .eur, amount: 1000)`, `<MultiMarketFX from="USD" to="EUR" amount={1000} />`, `<MultiMarketFX from="USD" to="EUR" amount={1000} />`, `MultiMarketFX(from = USD, to = EUR, amount = 1000.0)`) },
+  { id: 'recurringStanding', title: 'Recurring Standing Order', subtitle: 'Monthly schedule & next run', category: 'transfers', badge: 'Flow', badgeColor: 'bg-emerald-50 text-emerald-600 border border-emerald-100', code: C(`RecurringStanding(nextRun: "Nov 1 2024", amount: 220)`, `<RecurringStanding nextRun="2024-11-01" amount={220} />`, `<RecurringStanding nextRun="2024-11-01" amount={220} />`, `RecurringStanding(nextRun = date(2024,11,1), amount = 220.0)`) },
+  { id: 'authorizationModal', title: 'Authorization Modal', subtitle: 'Payment review & authorize', category: 'transfers', badge: 'Flow', badgeColor: 'bg-emerald-50 text-emerald-600 border border-emerald-100', code: C(`AuthorizationModal(amount: 500, fee: 0)`, `<AuthorizationModal amount={500} fee={0} />`, `<AuthorizationModal amount={500} fee={0} />`, `AuthorizationModal(amount = 500.0, fee = 0.0)`) },
+  { id: 'recentRecipients', title: 'Recent Recipients', subtitle: 'Quick-pick saved contacts', category: 'send', badge: 'Flow', badgeColor: 'bg-emerald-50 text-emerald-600 border border-emerald-100', code: C(`RecentRecipients(contacts: contacts.recent)`, `<RecentRecipients contacts={recent} />`, `<RecentRecipients contacts={recent} />`, `RecentRecipients(contacts = contacts.recent)`) },
+  { id: 'beneficiaryValidation', title: 'Beneficiary Validation', subtitle: 'Auto-detected bank & branch', category: 'send', badge: 'Flow', badgeColor: 'bg-emerald-50 text-emerald-600 border border-emerald-100', code: C(`BeneficiaryValidation(onDetect: bank::resolve)`, `<BeneficiaryValidation onDetect={resolveBank} />`, `<BeneficiaryValidation onDetect={resolveBank} />`, `BeneficiaryValidation(onDetect = bank::resolve)`) },
+  { id: 'sendMoneyInvoice', title: 'Send Money Invoice', subtitle: 'Amount, note, request button', category: 'send', badge: 'Flow', badgeColor: 'bg-emerald-50 text-emerald-600 border border-emerald-100', code: C(`SendMoneyInvoice(amount: 20, note: "Dinner & drinks")`, `<SendMoneyInvoice amount={20} note="Dinner" />`, `<SendMoneyInvoice amount={20} note="Dinner" />`, `SendMoneyInvoice(amount = 20.0, note = "Dinner")`) },
+  { id: 'transferDispatched', title: 'Transfer Dispatched', subtitle: 'Confirmation with receipt ID', category: 'send', badge: 'Live', badgeColor: 'bg-amber-50 text-amber-600 border border-amber-100', code: C(`TransferDispatched(receiptId: "TXN-8192", amount: 20)`, `<TransferDispatched receiptId="TXN-8192" amount={20} />`, `<TransferDispatched receiptId="TXN-8192" amount={20} />`, `TransferDispatched(receiptId = "TXN-8192", amount = 20.0)`) },
+  { id: 'peerInvoicing', title: 'Peer Invoicing', subtitle: 'Create invoice with due date', category: 'request', badge: 'Flow', badgeColor: 'bg-emerald-50 text-emerald-600 border border-emerald-100', code: C(`PeerInvoicing(amount: 75, due: "Nov 7")`, `<PeerInvoicing amount={75} due="2024-11-07" />`, `<PeerInvoicing amount={75} due="2024-11-07" />`, `PeerInvoicing(amount = 75.0, due = date(2024,11,7))`) },
+  { id: 'qrPaymentRequest', title: 'QR Payment Request', subtitle: 'Scan-to-pay QR code', category: 'request', badge: 'Flow', badgeColor: 'bg-emerald-50 text-emerald-600 border border-emerald-100', code: C(`QRPaymentRequest(handle: "@alexrivers")`, `<QRPaymentRequest handle="@alexrivers" />`, `<QRPaymentRequest handle="@alexrivers" />`, `QRPaymentRequest(handle = "@alexrivers")`) },
+  { id: 'splitPayment', title: 'Split Payment', subtitle: 'Divide across recipients', category: 'request', badge: 'Flow', badgeColor: 'bg-emerald-50 text-emerald-600 border border-emerald-100', code: C(`SplitPayment(total: 120, shares: [60, 40, 20])`, `<SplitPayment total={120} shares={[60,40,20]} />`, `<SplitPayment total={120} shares={[60,40,20]} />`, `SplitPayment(total = 120.0, shares = listOf(60.0,40.0,20.0))`) },
+  { id: 'outstandingReceivables', title: 'Outstanding Receivables', subtitle: 'Pending invoice tracker', category: 'request', badge: 'Data', badgeColor: 'bg-amber-50 text-amber-600 border border-amber-100', code: C(`OutstandingReceivables(items: store.pending)`, `<OutstandingReceivables items={pending} />`, `<OutstandingReceivables items={pending} />`, `OutstandingReceivables(items = store.pending)`) },
+  { id: 'virtualDebitCard', title: 'Virtual Debit Card', subtitle: 'Frozen/active debit card', category: 'cards', badge: 'Card', badgeColor: 'bg-emerald-50 text-emerald-600 border border-emerald-100', wide: true, code: C(`VirtualDebitCard(last4: "7104", frozen: state.frozen)`, `<VirtualDebitCard last4="7104" frozen={frozen} />`, `<VirtualDebitCard last4="7104" frozen={frozen} />`, `VirtualDebitCard(last4 = "7104", frozen = state.frozen)`) },
+  { id: 'securityDashboard', title: 'Card Security Dashboard', subtitle: 'Freeze, disable, swipe', category: 'cards', badge: 'Card', badgeColor: 'bg-emerald-50 text-emerald-600 border border-emerald-100', code: C(`CardSecurity(frozen: $state.frozen, blocked: $state.blocked)`, `<CardSecurity state={state} onChange={setState} />`, `<CardSecurity state={state} onChange={setState} />`, `CardSecurity(state = state, onChange = ::updateState)`) },
+  { id: 'pinVault', title: 'PIN Vault', subtitle: 'View or change PIN', category: 'cards', badge: 'Card', badgeColor: 'bg-emerald-50 text-emerald-600 border border-emerald-100', code: C(`PinVault(onView: pin::reveal, onChange: pin::change)`, `<PinVault onView={revealPin} onChange={changePin} />`, `<PinVault onView={revealPin} onChange={changePin} />`, `PinVault(onView = pin::reveal, onChange = pin::change)`) },
+  { id: 'auditLedgerActivity', title: 'Audit Ledger Activity', subtitle: 'Full transaction history', category: 'ledger', badge: 'Data', badgeColor: 'bg-amber-50 text-amber-600 border border-amber-100', wide: true, code: C(`AuditLedger(transactions: store.all, filters: filters)`, `<AuditLedger transactions={all} filters={filters} />`, `<AuditLedger transactions={all} filters={filters} />`, `AuditLedger(transactions = store.all, filters = filters)`) },
+  { id: 'alertCenter', title: 'Alert Center', subtitle: 'Inbox of alerts', category: 'alerts', badge: 'Push', badgeColor: 'bg-blue-50 text-blue-600 border border-blue-100', code: C(`AlertCenter(items: store.alerts)`, `<AlertCenter items={alerts} />`, `<AlertCenter items={alerts} />`, `AlertCenter(items = store.alerts)`) },
+  { id: 'preferencesDeliveryChannels', title: 'Delivery Channels', subtitle: 'Notification preferences', category: 'alerts', badge: 'Push', badgeColor: 'bg-blue-50 text-blue-600 border border-blue-100', code: C(`DeliveryChannels(push: $prefs.push, email: $prefs.email)`, `<DeliveryChannels prefs={prefs} onChange={setPrefs} />`, `<DeliveryChannels prefs={prefs} onChange={setPrefs} />`, `DeliveryChannels(prefs = prefs, onChange = ::updatePrefs)`) },
+  { id: 'identityCard', title: 'Identity Card', subtitle: 'Avatar, KYC level & tier', category: 'profile', badge: 'KYC', badgeColor: 'bg-blue-50 text-blue-600 border border-blue-100', code: C(`IdentityCard(user: auth.current)`, `<IdentityCard user={user} />`, `<IdentityCard user={user} />`, `IdentityCard(user = auth.current)`) },
+  { id: 'securityBaseline', title: 'Security Baseline', subtitle: 'Password, biometric, authenticity', category: 'profile', badge: 'Shield', badgeColor: 'bg-emerald-50 text-emerald-600 border border-emerald-100', code: C(`SecurityBaseline(password: $state.pw, faceId: $state.faceId)`, `<SecurityBaseline state={state} onChange={setState} />`, `<SecurityBaseline state={state} onChange={setState} />`, `SecurityBaseline(state = state, onChange = ::updateState)`) },
+  { id: 'activeSessions', title: 'Active Sessions', subtitle: 'Devices signed in', category: 'profile', badge: 'Shield', badgeColor: 'bg-emerald-50 text-emerald-600 border border-emerald-100', code: C(`ActiveSessions(sessions: store.sessions)`, `<ActiveSessions sessions={sessions} />`, `<ActiveSessions sessions={sessions} />`, `ActiveSessions(sessions = store.sessions)`) },
+  { id: 'brandOnboarding', title: 'Brand Onboarding', subtitle: 'Dark launch screen', category: 'onboarding', badge: 'Brand', badgeColor: 'bg-slate-100 text-slate-600 border border-slate-200', wide: true, code: C(`BrandOnboarding(brand: "Apex Bank")`, `<BrandOnboarding brand="Apex Bank" />`, `<BrandOnboarding brand="Apex Bank" />`, `BrandOnboarding(brand = "Apex Bank")`) },
+  { id: 'welcomeHero', title: 'Welcome Hero', subtitle: 'Zero-fee banking CTA', category: 'onboarding', badge: 'Brand', badgeColor: 'bg-slate-100 text-slate-600 border border-slate-200', code: C(`WelcomeHero(onGetStarted: goNext)`, `<WelcomeHero onNext={goNext} />`, `<WelcomeHero onNext={goNext} />`, `WelcomeHero(onNext = ::goNext)`) },
+  { id: 'stepCarousel', title: 'Step Carousel', subtitle: 'Onboarding progress', category: 'onboarding', badge: 'Brand', badgeColor: 'bg-slate-100 text-slate-600 border border-slate-200', code: C(`StepCarousel(current: 1, total: 3)`, `<StepCarousel current={1} total={3} />`, `<StepCarousel current={1} total={3} />`, `StepCarousel(current = 1, total = 3)`) },
 ];
 
-const APP_KINDS: { id: AppKind; label: string; blurb: string }[] = [
-  { id: 'banking', label: 'Banking app', blurb: 'Retail bank with accounts, cards and transfers' },
-  { id: 'fintech', label: 'Fintech app', blurb: 'Investing, budgeting and analytics-first' },
-  { id: 'psp', label: 'Payment service provider', blurb: 'Merchant payments, payouts and invoicing' },
-  { id: 'wallet', label: 'Digital wallet', blurb: 'P2P wallet with virtual cards and top-ups' },
-  { id: 'crypto', label: 'Crypto exchange', blurb: 'Spot swaps, multi-chain balances and custody' },
+const APP_KINDS: { id: AppKind; label: string }[] = [
+  { id: 'banking', label: 'Banking app' },
+  { id: 'fintech', label: 'Fintech app' },
+  { id: 'psp', label: 'Payment service provider' },
+  { id: 'wallet', label: 'Digital wallet' },
+  { id: 'crypto', label: 'Crypto exchange' },
 ];
 
-const PAGES: { id: PageId; label: string; blurb: string; modules: ModuleId[] }[] = [
-  { id: 'signin', label: 'Sign In Journeys', blurb: 'Auth, OTP verification and biometric unlock', modules: ['loginScreen', 'otpVerification', 'biometricUnlock'] },
-  { id: 'home', label: 'Home Dashboard Elements', blurb: 'High-visibility balance, actions and recent activity', modules: ['netBalance', 'quickActionRadial', 'recentActivity'] },
-  { id: 'accounts', label: 'Accounts & Ledger Setup', blurb: 'Accounts, routing and statement files', modules: ['accountsPortfolio', 'routingWire', 'monthlyAuditFile'] },
-  { id: 'transfers', label: 'Transfers & FX Routing', blurb: 'Direct transfers, FX swaps, standing orders', modules: ['directTransferEngine', 'multiMarketFX', 'recurringStanding', 'authorizationModal'] },
-  { id: 'send', label: 'Send Money Workflows', blurb: 'Recipients, validation, invoice and receipt', modules: ['recentRecipients', 'beneficiaryValidation', 'sendMoneyInvoice', 'transferDispatched'] },
-  { id: 'request', label: 'Payment Requests & Splitting', blurb: 'Invoicing, QR, splitting and receivables', modules: ['peerInvoicing', 'qrPaymentRequest', 'splitPayment', 'outstandingReceivables'] },
-  { id: 'cards', label: 'Card Management Hub', blurb: 'Virtual debit, security controls and PIN vault', modules: ['virtualDebitCard', 'securityDashboard', 'pinVault'] },
-  { id: 'history', label: 'Transaction Ledger & History', blurb: 'Full-filterable ledger of all activity', modules: ['auditLedgerActivity'] },
-  { id: 'notifications', label: 'Notifications & Alerts', blurb: 'Alert center and channel preferences', modules: ['alertCenter', 'preferencesDeliveryChannels'] },
-  { id: 'profile', label: 'Profile & Security Infrastructure', blurb: 'Identity, security baseline and sessions', modules: ['identityCard', 'securityBaseline', 'activeSessions'] },
-  { id: 'splash', label: 'Splash & Onboarding Screens', blurb: 'Launch, hero and progress carousel', modules: ['brandOnboarding', 'welcomeHero', 'stepCarousel'] },
+const INITIAL_PAGES: PageDef[] = [
+  { id: 'signin', label: 'Sign In', blurb: 'Auth, OTP verification and biometric unlock', kit: ['loginScreen', 'signInWithGoogle', 'otpVerification', 'biometricUnlock'] },
+  { id: 'home', label: 'Home', blurb: 'Quick access to all the functionality and an overview of your account', kit: ['heroBalance', 'activeCard', 'earningsChannels', 'quickTransfer', 'activityFeed', 'savingsTargets'] },
+  { id: 'accounts', label: 'Accounts', blurb: 'Accounts, routing and statement files', kit: ['accountsPortfolio', 'routingWire', 'monthlyAuditFile'] },
+  { id: 'transfers', label: 'Transfers', blurb: 'Direct transfers, FX swaps, standing orders', kit: ['directTransferEngine', 'multiMarketFX', 'recurringStanding', 'authorizationModal'] },
+  { id: 'send', label: 'Send', blurb: 'Recipients, validation, invoice and receipt', kit: ['recentRecipients', 'beneficiaryValidation', 'sendMoneyInvoice', 'transferDispatched'] },
+  { id: 'request', label: 'Request', blurb: 'Invoicing, QR, splitting and receivables', kit: ['peerInvoicing', 'qrPaymentRequest', 'splitPayment', 'outstandingReceivables'] },
+  { id: 'cards', label: 'Cards', blurb: 'Virtual debit, security controls and PIN vault', kit: ['virtualDebitCard', 'securityDashboard', 'pinVault'] },
+  { id: 'history', label: 'Transaction history', blurb: 'Full-filterable ledger of all activity', kit: ['auditLedgerActivity', 'monthlyAuditFile'] },
+  { id: 'notifications', label: 'Notifications', blurb: 'Alert center and channel preferences', kit: ['alertCenter', 'preferencesDeliveryChannels'] },
+  { id: 'profile', label: 'Profile and security', blurb: 'Identity, security baseline and sessions', kit: ['identityCard', 'securityBaseline', 'activeSessions'] },
+  { id: 'splash', label: 'Splash Screens', blurb: 'Launch, hero and progress carousel', kit: ['brandOnboarding', 'welcomeHero', 'stepCarousel'] },
 ];
 
 const HISTORY_LIMIT = 20;
-
-/* -------------------------------------------------------------------------- */
-/*  Helpers                                                                   */
-/* -------------------------------------------------------------------------- */
-
+const clamp = (n: number, min: number, max: number) => Math.max(min, Math.min(max, n));
 const usd = (n: number) => n.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
 const moduleFor = (id: ModuleId) => availableModules.find((m) => m.id === id);
 const surface = (dark: boolean) =>
   dark ? 'bg-slate-900 text-slate-100 ring-1 ring-white/5' : 'bg-white text-slate-900 shadow-[0_4px_18px_rgba(37,52,120,0.06)]';
 const ringVar = (color: string) => ({ ['--tw-ring-color' as string]: color } as React.CSSProperties);
 
-const buildInitialPages = (): Record<PageId, ModuleId[]> => {
-  const out = {} as Record<PageId, ModuleId[]>;
-  for (const p of PAGES) out[p.id] = p.id === 'home' ? [] : p.modules;
-  return out;
-};
-const pageModulesFor = (page: PageId): ModuleId[] => PAGES.find((p) => p.id === page)?.modules ?? [];
-
-/* -------------------------------------------------------------------------- */
-/*  Shared components                                                         */
-/* -------------------------------------------------------------------------- */
-
-interface ViewCtx {
-  radius: Radius;
-  accent: string;
-  isDark: boolean;
-  brand: string;
-  interactive: boolean;
+/* ------------------------ accent color math helpers ----------------------- */
+function hexToRgb(hex: string) {
+  const clean = hex.replace('#', '');
+  const n = parseInt(clean.length === 3 ? clean.split('').map(c => c + c).join('') : clean, 16);
+  return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
 }
+// t = 0 → a, t = 1 → b
+function mixColor(a: string, b: string, t: number) {
+  const ca = hexToRgb(a); const cb = hexToRgb(b);
+  const r = Math.round(ca.r + (cb.r - ca.r) * t);
+  const g = Math.round(ca.g + (cb.g - ca.g) * t);
+  const bl = Math.round(ca.b + (cb.b - ca.b) * t);
+  return `#${((1 << 24) + (r << 16) + (g << 8) + bl).toString(16).slice(1)}`;
+}
+const darken = (hex: string, t: number) => mixColor(hex, '#000000', t);
 
-function Switch({
-  checked, onChange, label, accent, interactive = true,
-}: { checked: boolean; onChange: () => void; label: string; accent: string; interactive?: boolean }) {
+interface ViewCtx { radius: Radius; accent: string; isDark: boolean; brand: string; interactive: boolean }
+
+function Switch({ checked, onChange, label, accent, interactive = true }: { checked: boolean; onChange: () => void; label: string; accent: string; interactive?: boolean }) {
   const track = (
-    <span
-      className={`relative inline-block h-5 w-9 shrink-0 rounded-full p-0.5 transition-colors ${checked ? '' : 'bg-slate-300'}`}
-      style={checked ? { background: accent } : undefined}
-    >
+    <span className={`relative inline-block h-5 w-9 shrink-0 rounded-full p-0.5 transition-colors ${checked ? '' : 'bg-slate-300'}`} style={checked ? { background: accent } : undefined}>
       <span className={`block h-4 w-4 rounded-full bg-white shadow transition-transform ${checked ? 'translate-x-4' : 'translate-x-0'}`} />
     </span>
   );
   if (!interactive) return track;
   return (
-    <button type="button" role="switch" aria-checked={checked} aria-label={label} onClick={onChange} style={ringVar(accent)}
-      className="cursor-pointer rounded-full outline-none focus-visible:ring-2 focus-visible:ring-offset-2">{track}</button>
+    <button type="button" role="switch" aria-checked={checked} aria-label={label} onClick={onChange} style={ringVar(accent)} className="cursor-pointer rounded-full outline-none focus-visible:ring-2 focus-visible:ring-offset-2">{track}</button>
   );
 }
 
-/* -------------------------------------------------------------------------- */
-/*  Individual desktop components                                             */
-/* -------------------------------------------------------------------------- */
-
+/* ------------------------------ catalog cards ------------------------------ */
 function LoginScreenCard({ ctx }: { ctx: ViewCtx }) {
   return (
     <div className={`${ctx.radius.card} ${surface(ctx.isDark)} p-6`}>
@@ -283,8 +169,39 @@ function LoginScreenCard({ ctx }: { ctx: ViewCtx }) {
           <Eye className="h-3.5 w-3.5 text-slate-400" />
         </div>
         <button type="button" className={`w-full py-2.5 text-[11px] font-bold text-white ${ctx.radius.icon}`} style={{ background: ctx.accent }}>Sign in</button>
-        <button type="button" className="w-full py-2 text-[10px] font-semibold text-slate-500 flex items-center justify-center gap-1"><Fingerprint className="h-3 w-3" /> Quick sign-in with Face ID</button>
+        <button type="button" className="flex w-full items-center justify-center gap-1 py-2 text-[10px] font-semibold text-slate-500"><Fingerprint className="h-3 w-3" /> Quick sign-in with Face ID</button>
       </div>
+    </div>
+  );
+}
+
+function SignInWithGoogleCard({ ctx }: { ctx: ViewCtx }) {
+  return (
+    <div className={`${ctx.radius.card} ${surface(ctx.isDark)} p-6`}>
+      <div className="flex items-center gap-2.5">
+        <span className={`grid h-10 w-10 place-items-center bg-white ring-1 ring-slate-200 ${ctx.radius.icon}`}>
+          <svg viewBox="0 0 48 48" className="h-5 w-5" aria-hidden>
+            <path fill="#FFC107" d="M43.6 20.1H42V20H24v8h11.3c-1.6 4.7-6.1 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 8 3l5.7-5.7C34 5.5 29.3 3.5 24 3.5 12.7 3.5 3.5 12.7 3.5 24S12.7 44.5 24 44.5c11.3 0 20.5-9.2 20.5-20.5 0-1.3-.1-2.6-.4-3.9z" />
+            <path fill="#FF3D00" d="M5.3 14.7l6.6 4.8C13.6 15.1 18.4 12 24 12c3.1 0 5.8 1.2 8 3l5.7-5.7C34 5.5 29.3 3.5 24 3.5c-7.4 0-13.8 4.1-17.1 10.2z" />
+            <path fill="#4CAF50" d="M24 44.5c5.2 0 9.9-2 13.5-5.2l-6.2-5.2c-2 1.5-4.6 2.4-7.3 2.4-5.2 0-9.6-3.3-11.2-7.9l-6.5 5C9.8 40.1 16.3 44.5 24 44.5z" />
+            <path fill="#1976D2" d="M43.6 20.1H42V20H24v8h11.3c-.8 2.3-2.2 4.3-4.1 5.7l6.2 5.2C42.2 35.6 44.5 30.2 44.5 24c0-1.3-.1-2.6-.9-3.9z" />
+          </svg>
+        </span>
+        <div><p className="text-[13px] font-bold">Sign in with Google</p><p className="text-[10px] text-slate-400">Use your Google account to continue</p></div>
+      </div>
+      <button
+        type="button"
+        className={`mt-4 flex w-full items-center justify-center gap-2 border py-2.5 text-[11px] font-semibold transition ${ctx.radius.icon} ${ctx.isDark ? 'border-slate-700 bg-slate-800 text-slate-100 hover:bg-slate-700' : 'border-slate-200 bg-white text-slate-900 hover:bg-slate-50'}`}
+      >
+        <svg viewBox="0 0 48 48" className="h-4 w-4" aria-hidden>
+          <path fill="#FFC107" d="M43.6 20.1H42V20H24v8h11.3c-1.6 4.7-6.1 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 8 3l5.7-5.7C34 5.5 29.3 3.5 24 3.5 12.7 3.5 3.5 12.7 3.5 24S12.7 44.5 24 44.5c11.3 0 20.5-9.2 20.5-20.5 0-1.3-.1-2.6-.4-3.9z" />
+          <path fill="#FF3D00" d="M5.3 14.7l6.6 4.8C13.6 15.1 18.4 12 24 12c3.1 0 5.8 1.2 8 3l5.7-5.7C34 5.5 29.3 3.5 24 3.5c-7.4 0-13.8 4.1-17.1 10.2z" />
+          <path fill="#4CAF50" d="M24 44.5c5.2 0 9.9-2 13.5-5.2l-6.2-5.2c-2 1.5-4.6 2.4-7.3 2.4-5.2 0-9.6-3.3-11.2-7.9l-6.5 5C9.8 40.1 16.3 44.5 24 44.5z" />
+          <path fill="#1976D2" d="M43.6 20.1H42V20H24v8h11.3c-.8 2.3-2.2 4.3-4.1 5.7l6.2 5.2C42.2 35.6 44.5 30.2 44.5 24c0-1.3-.1-2.6-.9-3.9z" />
+        </svg>
+        Continue with Google
+      </button>
+      <p className="mt-3 text-center text-[9px] leading-snug text-slate-400">Google will share your name and email address. By continuing you agree to the terms of service.</p>
     </div>
   );
 }
@@ -298,24 +215,23 @@ function OtpVerificationCard({ ctx }: { ctx: ViewCtx }) {
       </div>
       <div className="mt-5 flex items-center justify-between gap-1.5">
         {[1, 2, 3, 4, 5, 6].map((i) => (
-          <div key={i} className={`grid h-10 w-9 place-items-center text-[15px] font-bold border ${ctx.radius.icon} ${ctx.isDark ? 'border-slate-700 bg-slate-800' : 'border-slate-200 bg-slate-50'} ${i <= 3 ? '' : 'text-slate-300'}`} style={i <= 3 ? { borderColor: ctx.accent } : undefined}>
+          <div key={i} className={`grid h-10 w-9 place-items-center border text-[15px] font-bold ${ctx.radius.icon} ${ctx.isDark ? 'border-slate-700 bg-slate-800' : 'border-slate-200 bg-slate-50'} ${i <= 3 ? '' : 'text-slate-300'}`} style={i <= 3 ? { borderColor: ctx.accent } : undefined}>
             {i <= 3 ? '•' : ''}
           </div>
         ))}
       </div>
-      <button type="button" className={`mt-4 w-full py-2.5 text-[11px] font-bold text-white ${ctx.radius.icon}`} style={{ background: ctx.accent }}>Verify &amp; continue</button>
+      <button type="button" className={`mt-4 w-full py-2.5 text-[11px] font-bold text-white ${ctx.radius.icon}`} style={{ background: ctx.accent }}>Verify & continue</button>
       <p className="mt-2 text-center text-[10px] text-slate-400">Resend in 02:45</p>
     </div>
   );
 }
-
 function BiometricUnlockCard({ ctx }: { ctx: ViewCtx }) {
   return (
     <div className={`${ctx.radius.card} ${surface(ctx.isDark)} flex flex-col items-center p-6 text-center`}>
-      <div className={`grid h-16 w-16 place-items-center ${ctx.radius.icon} bg-slate-900 text-white`}><Fingerprint className="h-7 w-7" /></div>
+      <div className={`grid h-16 w-16 place-items-center text-white ${ctx.radius.icon}`} style={{ background: darken(ctx.accent, 0.55) }}><Fingerprint className="h-7 w-7" /></div>
       <p className="mt-3 text-[13px] font-bold">Unlock with Face ID</p>
       <p className="mt-1 text-[10px] leading-relaxed text-slate-400">Hold up your device to securely access your savings and investments.</p>
-      <div className="mt-4 flex flex-col gap-1.5">
+      <div className="mt-4 flex w-full flex-col gap-1.5">
         <button type="button" className={`w-full px-6 py-2 text-[11px] font-bold text-white ${ctx.radius.icon}`} style={{ background: ctx.accent }}>Use PIN / passcode instead</button>
         <button type="button" className="w-full py-1 text-[10px] font-semibold text-slate-500">Sign out of all accounts</button>
       </div>
@@ -323,63 +239,134 @@ function BiometricUnlockCard({ ctx }: { ctx: ViewCtx }) {
   );
 }
 
-function NetBalanceCard({ ctx }: { ctx: ViewCtx }) {
+/* Total Net Balance Hero — accent-driven gradient */
+function HeroBalanceCard({ ctx }: { ctx: ViewCtx }) {
+  const gradient = `linear-gradient(120deg, ${darken(ctx.accent, 0.72)} 0%, ${darken(ctx.accent, 0.12)} 55%, ${ctx.accent} 100%)`;
   return (
-    <div className={`relative overflow-hidden ${ctx.radius.card} p-5 text-white`} style={{ background: `linear-gradient(135deg, ${ctx.accent} 0%, #0B2E8F 55%, #0F1729 100%)` }}>
-      <span aria-hidden className="absolute -right-12 -top-12 h-40 w-40 rounded-full" style={{ background: `${ctx.accent}55` }} />
-      <span aria-hidden className="absolute -right-4 top-16 h-24 w-24 rounded-full" style={{ background: `${YELLOW}66` }} />
-      <div className="relative">
-        <p className="text-[10px] uppercase tracking-wider text-white/60">Total net balance</p>
-        <p className="mt-1 text-[28px] font-bold leading-none tracking-tight">$28,650.40</p>
-        <p className="mt-1 text-[10px] text-white/60">Reserved · $4,850.00</p>
-        <div className="mt-4 flex items-center justify-between border-t border-white/15 pt-3 text-[10px]">
-          <span className="text-white/70">Consolidated liquidity</span>
-          <span className="rounded-full bg-white/15 px-2.5 py-0.5 font-bold">USD · SWIFT</span>
+    <div className={`relative flex h-full min-h-[240px] flex-col overflow-hidden p-6 text-white ${ctx.radius.card}`} style={{ background: gradient }}>
+      <svg aria-hidden viewBox="0 0 600 240" preserveAspectRatio="none" className="absolute inset-0 h-full w-full">
+        <path d="M0,168 C130,110 250,208 380,148 C470,106 540,150 600,118" fill="none" stroke="#F5B921" strokeOpacity="0.75" strokeWidth="26" strokeLinecap="round" />
+        <path d="M0,196 C150,140 260,232 400,170 C490,130 550,176 600,150" fill="none" stroke="#3B82F6" strokeOpacity="0.9" strokeWidth="34" strokeLinecap="round" />
+        <path d="M0,150 C120,96 260,190 390,132 C480,92 545,136 600,104" fill="none" stroke="#93C5FD" strokeOpacity="0.5" strokeWidth="10" strokeLinecap="round" />
+      </svg>
+      <div className="relative flex items-center justify-between">
+        <span className="flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-[0.18em] text-white/60"><span className="h-1.5 w-1.5 rounded-full bg-white/60" /> Total Net Balance</span>
+        <span className="rounded-full bg-white/10 px-2 py-0.5 text-[9px] font-semibold text-emerald-300">+4.4% vs last month</span>
+      </div>
+      <div className="relative mt-3">
+        <p className="text-[34px] font-bold leading-none tracking-tight">$25,000<span className="text-[18px] text-white/70">.40</span></p>
+        <p className="mt-1.5 text-[10px] text-white/50">Active Vault • Obsidian Tier Account</p>
+      </div>
+      <div className="relative mt-auto flex items-end justify-between">
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <span className="grid h-7 w-7 place-items-center rounded-full bg-white/10"><ArrowDownLeft className="h-3.5 w-3.5 text-emerald-300" /></span>
+            <div><p className="text-[8px] uppercase tracking-wider text-white/50">Inflow Total</p><p className="text-[12px] font-bold">+$20,000.00</p></div>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="grid h-7 w-7 place-items-center rounded-full bg-white/10"><ArrowUpRight className="h-3.5 w-3.5 text-rose-300" /></span>
+            <div><p className="text-[8px] uppercase tracking-wider text-white/50">Outflow Total</p><p className="text-[12px] font-bold">-$17,000.00</p></div>
+          </div>
+        </div>
+        <button type="button" className="flex items-center gap-2 rounded-full bg-white px-4 py-2 text-[10px] font-bold text-slate-900 shadow-lg">
+          My Wallet <span className="grid h-4 w-4 place-items-center rounded-full text-white" style={{ background: darken(ctx.accent, 0.4) }}><ArrowRight className="h-2.5 w-2.5" /></span>
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* My Active Card — "OK PRIVATE" card follows the accent */
+function ActiveCardWidget({ ctx }: { ctx: ViewCtx }) {
+  const cardGradient = `linear-gradient(135deg, ${darken(ctx.accent, 0.55)} 0%, ${darken(ctx.accent, 0.78)} 55%, ${darken(ctx.accent, 0.45)} 100%)`;
+  return (
+    <div className={`${ctx.radius.card} ${surface(ctx.isDark)} p-4`}>
+      <div className="flex items-center justify-between">
+        <p className="text-[12px] font-bold">My Active Card</p>
+        <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-[9px] font-bold text-indigo-600">Platinum</span>
+      </div>
+      <div className={`mt-3 relative overflow-hidden p-4 text-white ${ctx.radius.tile}`} style={{ background: cardGradient }}>
+        <div className="flex items-start justify-between">
+          <span className="text-[10px] font-extrabold tracking-wider">OK PRIVATE</span>
+          <Wifi className="h-4 w-4 rotate-90 opacity-70" />
+        </div>
+        <div className="mt-4 h-6 w-8 rounded-md bg-gradient-to-br from-amber-300 to-amber-500" />
+        <p className="mt-3 font-mono text-[13px] tracking-[0.2em]">•••• 8824</p>
+        <div className="mt-3 flex items-end justify-between text-[8px] opacity-80">
+          <span>KRISHNAN A.</span><span>EXP 08/29</span>
         </div>
       </div>
-    </div>
-  );
-}
-
-function QuickActionRadialCard({ ctx }: { ctx: ViewCtx }) {
-  const items = [
-    { label: 'Send', Icon: Send }, { label: 'Receive', Icon: ArrowDownLeft },
-    { label: 'Pay', Icon: CreditCard }, { label: 'Manage', Icon: Sliders },
-    { label: 'Move', Icon: ArrowLeftRight },
-  ];
-  return (
-    <div className={`${ctx.radius.card} ${surface(ctx.isDark)} p-5`}>
-      <div className="flex items-center justify-between"><p className="text-[12px] font-bold">Quick actions</p><span className="text-[10px] text-slate-400">Everything you need</span></div>
-      <div className="mt-3 grid grid-cols-5 gap-2">
-        {items.map(({ label, Icon }) => (
-          <button key={label} type="button" className={`flex flex-col items-center gap-1.5 py-3 text-[10px] font-semibold ${ctx.radius.tile} ${ctx.isDark ? 'bg-slate-800 text-slate-200' : 'bg-slate-50 text-slate-700'}`}>
-            <Icon className="h-4 w-4" style={{ color: ctx.accent }} />{label}
-          </button>
-        ))}
+      <div className="mt-3 flex items-center justify-between text-[10px] font-semibold text-slate-500">
+        <button type="button" className="flex cursor-pointer items-center gap-1 hover:text-slate-800"><Lock className="h-3 w-3" /> Freeze Card</button>
+        <button type="button" className="flex cursor-pointer items-center gap-1 hover:text-slate-800"><Eye className="h-3 w-3" /> View Details</button>
       </div>
     </div>
   );
 }
 
-function RecentActivityCard({ ctx }: { ctx: ViewCtx }) {
-  const rows = [
-    { name: 'Apple Store · #2214', sub: 'Today, 12:45 PM', amount: -149.0 },
-    { name: 'Salary Deposit', sub: 'Today, 09:15 AM', amount: 4200.0 },
-    { name: 'Blue Bottle Coffee', sub: 'Yesterday, 08:32 AM', amount: -6.8 },
+function QuickTransferCard({ ctx }: { ctx: ViewCtx }) {
+  const people = [
+    { init: 'SJ', name: 'Sarah J.', active: true },
+    { init: 'AR', name: 'Alex R.', active: false },
+    { init: 'DC', name: 'David C.', active: false },
+    { init: 'MP', name: 'Maya P.', active: false },
   ];
   return (
-    <div className={`${ctx.radius.card} ${surface(ctx.isDark)} p-5`}>
-      <div className="flex items-center justify-between"><p className="text-[12px] font-bold">Recent activity</p><button className="text-[10px] font-semibold" style={{ color: ctx.accent }}>View all</button></div>
-      <div className="mt-3 divide-y divide-slate-200/70 dark:divide-white/5">
-        {rows.map((r) => (
-          <div key={r.name} className="flex items-center justify-between py-2">
-            <div className="flex items-center gap-2.5">
-              <span className={`grid h-8 w-8 place-items-center ${ctx.radius.icon} ${r.amount > 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-500'}`}>
-                {r.amount > 0 ? <ArrowDownLeft className="h-3.5 w-3.5" /> : <ArrowUpRight className="h-3.5 w-3.5" />}
-              </span>
-              <div><p className="text-[11px] font-semibold">{r.name}</p><p className="text-[9px] text-slate-400">{r.sub}</p></div>
+    <div className={`${ctx.radius.card} ${surface(ctx.isDark)} p-4`}>
+      <div className="flex items-center justify-between">
+        <p className="text-[12px] font-bold">Quick Transfer</p>
+        <Users className="h-3.5 w-3.5 text-slate-400" />
+      </div>
+      <div className="mt-3 flex items-center gap-2">
+        <button type="button" className={`flex flex-col items-center gap-1 ${ctx.radius.icon}`}>
+          <span className={`grid h-9 w-9 place-items-center border border-dashed border-slate-300 text-slate-400 ${ctx.radius.icon}`}><Plus className="h-3.5 w-3.5" /></span>
+          <span className="text-[8px] font-medium text-slate-400">Add</span>
+        </button>
+        {people.map((p) => (
+          <div key={p.init} className="flex flex-col items-center gap-1">
+            <span className={`grid h-9 w-9 place-items-center text-[10px] font-bold ${ctx.radius.icon}`} style={{ background: p.active ? ctx.accent : `${ctx.accent}22`, color: p.active ? '#fff' : ctx.accent }}>{p.init}</span>
+            <span className="text-[8px] font-medium text-slate-500">{p.name.split(' ')[0]} {p.name.charAt(p.name.length - 1)}.</span>
+          </div>
+        ))}
+      </div>
+      <div className="mt-3 flex items-center gap-2">
+        <div className={`flex-1 px-3 py-2 text-[12px] font-bold ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800' : 'bg-slate-50'}`}>$ 350.00</div>
+        <button type="button" className={`flex items-center gap-1 px-3 py-2 text-[10px] font-bold text-white ${ctx.radius.icon}`} style={{ background: ctx.accent }}>
+          Send Now <ArrowRight className="h-3 w-3" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function SavingsTargetsCard({ ctx }: { ctx: ViewCtx }) {
+  const goals = [
+    { name: 'iPhone 13 Mini', pct: 100, amt: '$699', left: 'Saved $699 of $699', right: 'Target Cleared', Icon: Smartphone },
+    { name: 'MacBook Pro M1', pct: 75, amt: '$1,499', left: 'Saved $1,499 of $2,000', right: '$501 remaining', Icon: Monitor },
+  ];
+  return (
+    <div className={`${ctx.radius.card} ${surface(ctx.isDark)} p-4`}>
+      <div className="flex items-center justify-between">
+        <p className="text-[12px] font-bold">Savings Targets</p>
+        <button type="button" className="grid h-5 w-5 cursor-pointer place-items-center rounded-full bg-slate-100 text-slate-500"><Plus className="h-3 w-3" /></button>
+      </div>
+      <div className="mt-3 space-y-2.5">
+        {goals.map((g) => (
+          <div key={g.name} className={`p-3 ${ctx.radius.tile} ${ctx.isDark ? 'bg-slate-800' : 'bg-slate-50'}`}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className={`grid h-7 w-7 place-items-center bg-white text-slate-500 ${ctx.radius.icon}`}><g.Icon className="h-3.5 w-3.5" /></span>
+                <div><p className="text-[10px] font-bold">{g.name}</p><p className="text-[8px] text-slate-400">{g.pct}% {g.pct === 100 ? 'Reached' : 'of Target'}</p></div>
+              </div>
+              <span className="text-[11px] font-bold">{g.amt}</span>
             </div>
-            <span className={`text-[11px] font-bold ${r.amount > 0 ? 'text-emerald-600' : ''}`}>{r.amount > 0 ? '+' : '-'}{usd(Math.abs(r.amount))}</span>
+            <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-200">
+              <div className="h-full rounded-full" style={{ width: `${g.pct}%`, background: ctx.accent }} />
+            </div>
+            <div className="mt-1.5 flex items-center justify-between text-[8px] font-semibold">
+              <span className="text-slate-400">{g.left}</span>
+              <span style={{ color: ctx.accent }}>{g.right}</span>
+            </div>
           </div>
         ))}
       </div>
@@ -387,10 +374,84 @@ function RecentActivityCard({ ctx }: { ctx: ViewCtx }) {
   );
 }
 
+/* Earnings Channels — three income streams derived from the accent */
+function EarningsChannelsCard({ ctx }: { ctx: ViewCtx }) {
+  const streams = [
+    { init: 'U', name: 'Upwork Escrow', amt: '$3,000.00', tag: '8 Contracts', from: darken(ctx.accent, 0.35), to: darken(ctx.accent, 0.05) },
+    { init: 'F', name: 'Freepik Contributor', amt: '$3,000.00', tag: 'Monthly Fee', from: darken(ctx.accent, 0.18), to: ctx.accent },
+    { init: 'E', name: 'Envato Market', amt: '$2,000.00', tag: 'Royalties', from: ctx.accent, to: darken(ctx.accent, 0.25) },
+  ];
+  return (
+    <div className="flex h-full flex-col">
+      <div className="mb-2.5 flex items-center justify-between px-2.5">
+        <p className="text-[12px] font-bold">Earnings Channels</p>
+        <button type="button" className="text-[10px] font-semibold" style={{ color: ctx.accent }}>Manage Streams</button>
+      </div>
+      <div className="grid flex-1 grid-cols-3 gap-3">
+        {streams.map((s) => (
+          <div key={s.name} className={`relative flex flex-col justify-between overflow-hidden p-4 text-white ${ctx.radius.card}`} style={{ background: `linear-gradient(135deg, ${s.from} 0%, ${s.to} 100%)` }}>
+            <div className="flex items-start justify-between">
+              <span className="grid h-8 w-8 place-items-center rounded-lg bg-white/20 text-[11px] font-bold">{s.init}</span>
+              <span className="rounded-full bg-white/20 px-2 py-0.5 text-[8px] font-bold">{s.tag}</span>
+            </div>
+            <div className="mt-6">
+              <p className="text-[9px] text-white/70">{s.name}</p>
+              <p className="mt-0.5 text-[18px] font-bold tracking-tight">{s.amt}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ActivityFeedCard({ ctx }: { ctx: ViewCtx }) {
+  const [tab, setTab] = useState<'all' | 'in' | 'out'>('all');
+  const rows = [
+    { name: 'Apple Flagship Store', sub: 'Card • 8824 • Today, 10:42 AM', tag: 'Electronics', amt: -149.0, Icon: CreditCard, tone: 'bg-slate-100 text-slate-600' },
+    { name: 'Figma Design Payout', sub: 'Direct Deposit • Yesterday', tag: 'Settled', amt: 1250.0, Icon: PenTool, tone: 'bg-indigo-50 text-indigo-600' },
+    { name: 'Blue Bottle Coffee', sub: 'Contactless Pay • Oct 22, 09:15 AM', tag: 'Dining', amt: -8.4, Icon: Coffee, tone: 'bg-amber-50 text-amber-600' },
+  ];
+  const shown = rows.filter((r) => tab === 'all' || (tab === 'in' ? r.amt > 0 : r.amt < 0));
+  return (
+    <div className={`${ctx.radius.card} ${surface(ctx.isDark)} p-5`}>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-[12px] font-bold">Activity & Transactions</p>
+          <p className="mt-0.5 text-[9px] text-slate-400">Live clearing records for all connected cards and payouts</p>
+        </div>
+        <div className={`flex items-center gap-0.5 rounded-lg p-0.5 ${ctx.isDark ? 'bg-slate-800' : 'bg-slate-100'}`}>
+          {([['all', 'All'], ['in', 'Income'], ['out', 'Expenses']] as const).map(([id, label]) => (
+            <button key={id} type="button" onClick={() => setTab(id)} className={`cursor-pointer rounded-md px-2.5 py-1 text-[9px] font-bold transition ${tab === id ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'}`}>{label}</button>
+          ))}
+        </div>
+      </div>
+      <div className="mt-3 space-y-2">
+        {shown.map((r) => (
+          <div key={r.name} className={`flex items-center justify-between gap-3 p-2.5 ${ctx.radius.tile} ${ctx.isDark ? 'bg-slate-800' : 'bg-slate-50/60'}`}>
+            <div className="flex min-w-0 items-center gap-2.5">
+              <span className={`grid h-9 w-9 shrink-0 place-items-center ${ctx.radius.icon} ${r.tone}`}><r.Icon className="h-4 w-4" /></span>
+              <div className="min-w-0">
+                <p className="truncate text-[11px] font-bold">{r.name}</p>
+                <p className="truncate text-[9px] text-slate-400">{r.sub}{r.tag === 'Settled' && <span className="ml-1 rounded-full bg-blue-50 px-1.5 py-0.5 text-[8px] font-bold text-blue-600">Settled</span>}</p>
+              </div>
+            </div>
+            <div className="shrink-0 text-right">
+              <p className={`text-[11px] font-bold ${r.amt > 0 ? 'text-emerald-600' : 'text-rose-500'}`}>{r.amt > 0 ? '+' : '-'}{usd(Math.abs(r.amt))}</p>
+              <p className="text-[8px] text-slate-400">{r.tag}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+      <p className="mt-3 text-center text-[10px] font-semibold" style={{ color: ctx.accent }}>View All 42 Transactions</p>
+    </div>
+  );
+}
+
 function AccountsPortfolioCard({ ctx }: { ctx: ViewCtx }) {
   const rows = [
-    { name: 'Everyday Checking', code: 'USD', amt: 12480.20 },
-    { name: 'High-Yield Savings', code: 'USD', amt: 8920.00 },
+    { name: 'Everyday Checking', code: 'USD', amt: 12480.2 },
+    { name: 'High-Yield Savings', code: 'USD', amt: 8920.0 },
     { name: 'Euro Travel', code: 'EUR', amt: 3410.55 },
   ];
   return (
@@ -407,24 +468,19 @@ function AccountsPortfolioCard({ ctx }: { ctx: ViewCtx }) {
     </div>
   );
 }
-
 function RoutingWireCard({ ctx }: { ctx: ViewCtx }) {
   return (
     <div className={`${ctx.radius.card} ${surface(ctx.isDark)} p-5`}>
-      <p className="text-[12px] font-bold">Routing &amp; wire data</p>
+      <p className="text-[12px] font-bold">Routing & wire data</p>
       <div className="mt-3 space-y-2 text-[11px]">
         {[['Account holder', 'Alex Rivers Holdings LLC'], ['Account number', '••••••1027'], ['SWIFT / BIC', 'APX BUS 33 884'], ['IBAN', 'GB29 APX 8842 1027 3398 22']].map(([k, v]) => (
-          <div key={k} className="flex items-center justify-between gap-3">
-            <span className="text-slate-400">{k}</span>
-            <span className="truncate font-medium">{v}</span>
-          </div>
+          <div key={k} className="flex items-center justify-between gap-3"><span className="text-slate-400">{k}</span><span className="truncate font-medium">{v}</span></div>
         ))}
       </div>
       <button type="button" className={`mt-3 w-full py-2 text-[10px] font-bold text-white ${ctx.radius.icon}`} style={{ background: ctx.accent }}>Share bank details</button>
     </div>
   );
 }
-
 function MonthlyAuditFileCard({ ctx }: { ctx: ViewCtx }) {
   return (
     <div className={`${ctx.radius.card} ${surface(ctx.isDark)} p-5`}>
@@ -433,11 +489,10 @@ function MonthlyAuditFileCard({ ctx }: { ctx: ViewCtx }) {
         <div><p className="text-[10px] text-slate-400">October 2024 · CSV</p><p className="mt-1 text-[10px] text-slate-400">Cryptographically sealed with SHA-256</p></div>
         <FileText className="h-6 w-6" style={{ color: ctx.accent }} />
       </div>
-      <button type="button" className={`mt-3 w-full py-2 text-[10px] font-bold text-white ${ctx.radius.icon}`} style={{ background: ctx.accent }}>Download PDF &amp; CSV</button>
+      <button type="button" className={`mt-3 w-full py-2 text-[10px] font-bold text-white ${ctx.radius.icon}`} style={{ background: ctx.accent }}>Download PDF & CSV</button>
     </div>
   );
 }
-
 function DirectTransferEngineCard({ ctx }: { ctx: ViewCtx }) {
   return (
     <div className={`${ctx.radius.card} ${surface(ctx.isDark)} p-5`}>
@@ -453,27 +508,25 @@ function DirectTransferEngineCard({ ctx }: { ctx: ViewCtx }) {
     </div>
   );
 }
-
 function MultiMarketFXCard({ ctx }: { ctx: ViewCtx }) {
   return (
     <div className={`${ctx.radius.card} ${surface(ctx.isDark)} p-5`}>
       <div className="flex items-center justify-between"><p className="text-[12px] font-bold">Multi-market FX swap</p><span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[9px] font-bold text-emerald-600">Rate 1 USD = 0.9214 EUR</span></div>
       <div className="mt-3 space-y-2">
         <div className={`flex items-center justify-between px-3 py-2 ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800' : 'bg-slate-50'}`}><span className="text-[11px] font-semibold">1,000.00</span><span className="rounded-md bg-blue-50 px-2 py-0.5 text-[9px] font-bold text-blue-600">USD</span></div>
-        <div className="flex justify-center"><div className={`grid h-6 w-6 place-items-center ${ctx.radius.icon} border border-blue-100 bg-blue-50 text-blue-600`}><RefreshCw className="h-3 w-3" /></div></div>
+        <div className="flex justify-center"><div className={`grid h-6 w-6 place-items-center border border-blue-100 bg-blue-50 text-blue-600 ${ctx.radius.icon}`}><RefreshCw className="h-3 w-3" /></div></div>
         <div className={`flex items-center justify-between px-3 py-2 ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800' : 'bg-slate-50'}`}><span className="text-[11px] font-semibold">921.40</span><span className="rounded-md bg-purple-50 px-2 py-0.5 text-[9px] font-bold text-purple-600">EUR</span></div>
       </div>
-      <button type="button" className={`mt-3 w-full py-2 text-[11px] font-bold text-white ${ctx.radius.icon}`} style={{ background: ctx.accent }}>Lock rate &amp; exchange</button>
+      <button type="button" className={`mt-3 w-full py-2 text-[11px] font-bold text-white ${ctx.radius.icon}`} style={{ background: ctx.accent }}>Lock rate & exchange</button>
     </div>
   );
 }
-
 function RecurringStandingCard({ ctx }: { ctx: ViewCtx }) {
   return (
     <div className={`${ctx.radius.card} ${surface(ctx.isDark)} p-5`}>
       <div className="flex items-center justify-between"><p className="text-[12px] font-bold">Recurring standing order</p><span className="rounded-full bg-slate-100 px-2 py-0.5 text-[9px] font-bold text-slate-500">Active</span></div>
       <div className="mt-3 flex items-center gap-2.5">
-        <span className={`grid h-9 w-9 place-items-center ${ctx.radius.icon} bg-slate-900 text-white`}><Calendar className="h-4 w-4" /></span>
+        <span className={`grid h-9 w-9 place-items-center text-white ${ctx.radius.icon}`} style={{ background: darken(ctx.accent, 0.4) }}><Calendar className="h-4 w-4" /></span>
         <div><p className="text-[11px] font-semibold">Prime Manhattan Realty</p><p className="text-[9px] text-slate-400">Next run · Nov 1, 2024</p></div>
       </div>
       <div className={`mt-3 flex items-center justify-between px-3 py-2 text-[11px] ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800' : 'bg-slate-50'}`}><span className="text-slate-400">Monthly amount</span><span className="font-bold">$2,200.00</span></div>
@@ -481,7 +534,6 @@ function RecurringStandingCard({ ctx }: { ctx: ViewCtx }) {
     </div>
   );
 }
-
 function AuthorizationModalCard({ ctx }: { ctx: ViewCtx }) {
   return (
     <div className={`${ctx.radius.card} ${surface(ctx.isDark)} p-5`}>
@@ -497,7 +549,6 @@ function AuthorizationModalCard({ ctx }: { ctx: ViewCtx }) {
     </div>
   );
 }
-
 function RecentRecipientsCard({ ctx }: { ctx: ViewCtx }) {
   const contacts = ['Sarah Jenkins', 'David Brown', 'Emma Wilson', 'Michael Chang', 'Priya Patel', 'Tom Lee'];
   return (
@@ -514,7 +565,6 @@ function RecentRecipientsCard({ ctx }: { ctx: ViewCtx }) {
     </div>
   );
 }
-
 function BeneficiaryValidationCard({ ctx }: { ctx: ViewCtx }) {
   return (
     <div className={`${ctx.radius.card} ${surface(ctx.isDark)} p-5`}>
@@ -528,13 +578,12 @@ function BeneficiaryValidationCard({ ctx }: { ctx: ViewCtx }) {
     </div>
   );
 }
-
 function SendMoneyInvoiceCard({ ctx }: { ctx: ViewCtx }) {
   return (
     <div className={`${ctx.radius.card} ${surface(ctx.isDark)} p-5`}>
       <p className="text-[10px] uppercase tracking-wider text-slate-400">Send money</p>
       <div className="mt-2 flex items-baseline gap-1"><span className="text-[14px] font-semibold text-slate-400">$</span><span className="text-[28px] font-bold tracking-tight">20.00</span><span className="ml-auto text-[10px] text-slate-400">USD</span></div>
-      <div className={`mt-3 px-3 py-2 text-[10px] ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800' : 'bg-slate-50'}`}>🍽️ Dinner &amp; drinks</div>
+      <div className={`mt-3 px-3 py-2 text-[10px] ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800' : 'bg-slate-50'}`}>Dinner & drinks</div>
       <div className="mt-3 grid grid-cols-2 gap-2">
         <button type="button" className={`py-2 text-[10px] font-bold text-white ${ctx.radius.icon}`} style={{ background: ctx.accent }}>Request $20.00</button>
         <button type="button" className={`py-2 text-[10px] font-bold ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800 text-slate-200' : 'bg-slate-100 text-slate-700'}`}>Send now</button>
@@ -542,11 +591,10 @@ function SendMoneyInvoiceCard({ ctx }: { ctx: ViewCtx }) {
     </div>
   );
 }
-
 function TransferDispatchedCard({ ctx }: { ctx: ViewCtx }) {
   return (
     <div className={`${ctx.radius.card} ${surface(ctx.isDark)} p-5 text-center`}>
-      <div className={`mx-auto grid h-12 w-12 place-items-center ${ctx.radius.icon} bg-emerald-50 text-emerald-600`}><Check className="h-5 w-5" /></div>
+      <div className={`mx-auto grid h-12 w-12 place-items-center bg-emerald-50 text-emerald-600 ${ctx.radius.icon}`}><Check className="h-5 w-5" /></div>
       <p className="mt-3 text-[12px] font-bold">Transfer dispatched!</p>
       <p className="mt-1 text-[10px] text-slate-400">Transaction ID · TXN-81P2-9J6B</p>
       <div className="mt-3 flex gap-2">
@@ -556,7 +604,6 @@ function TransferDispatchedCard({ ctx }: { ctx: ViewCtx }) {
     </div>
   );
 }
-
 function PeerInvoicingCard({ ctx }: { ctx: ViewCtx }) {
   return (
     <div className={`${ctx.radius.card} ${surface(ctx.isDark)} p-5`}>
@@ -568,12 +615,11 @@ function PeerInvoicingCard({ ctx }: { ctx: ViewCtx }) {
     </div>
   );
 }
-
 function QRPaymentRequestCard({ ctx }: { ctx: ViewCtx }) {
   return (
     <div className={`${ctx.radius.card} ${surface(ctx.isDark)} flex flex-col items-center p-5`}>
       <p className="text-[12px] font-bold">QR payment request</p>
-      <div className={`mt-3 grid h-28 w-28 place-items-center ${ctx.radius.icon} bg-white ring-2`} style={{ '--tw-ring-color': ctx.accent } as React.CSSProperties}>
+      <div className={`mt-3 grid h-28 w-28 place-items-center bg-white ring-2 ${ctx.radius.icon}`} style={{ '--tw-ring-color': ctx.accent } as React.CSSProperties}>
         <QrCode className="h-20 w-20" style={{ color: ctx.accent }} />
       </div>
       <p className="mt-2 text-[10px] text-slate-400">Scan to pay @alexrivers</p>
@@ -584,16 +630,15 @@ function QRPaymentRequestCard({ ctx }: { ctx: ViewCtx }) {
     </div>
   );
 }
-
 function SplitPaymentCard({ ctx }: { ctx: ViewCtx }) {
   return (
     <div className={`${ctx.radius.card} ${surface(ctx.isDark)} p-5`}>
       <div className="flex items-center justify-between"><p className="text-[12px] font-bold">Split payment</p><span className="text-[10px] text-slate-400">Total $120.00</span></div>
       <div className="mt-3 space-y-1.5 text-[11px]">
-        {[['You (paid)', 60.00], ['Michael Henderson', 40.00], ['Jessica Taylor', 20.00]].map(([n, v]) => (
-          <div key={n as string} className={`flex items-center justify-between px-3 py-1.5 ${ctx.radius.tile} ${ctx.isDark ? 'bg-slate-800' : 'bg-slate-50'}`}>
+        {([['You (paid)', 60.0], ['Michael Henderson', 40.0], ['Jessica Taylor', 20.0]] as const).map(([n, v]) => (
+          <div key={n} className={`flex items-center justify-between px-3 py-1.5 ${ctx.radius.tile} ${ctx.isDark ? 'bg-slate-800' : 'bg-slate-50'}`}>
             <span className="font-medium">{n}</span>
-            <span className={`font-bold ${(v as number) > 0 && n !== 'You (paid)' ? 'text-emerald-600' : ''}`}>{usd(v as number)}</span>
+            <span className={`font-bold ${v > 0 && n !== 'You (paid)' ? 'text-emerald-600' : ''}`}>{usd(v)}</span>
           </div>
         ))}
       </div>
@@ -601,7 +646,6 @@ function SplitPaymentCard({ ctx }: { ctx: ViewCtx }) {
     </div>
   );
 }
-
 function OutstandingReceivablesCard({ ctx }: { ctx: ViewCtx }) {
   return (
     <div className={`${ctx.radius.card} ${surface(ctx.isDark)} p-5`}>
@@ -619,19 +663,15 @@ function OutstandingReceivablesCard({ ctx }: { ctx: ViewCtx }) {
   );
 }
 
+/* Virtual Debit Card — already follows the accent */
 function VirtualDebitCardCard({ ctx }: { ctx: ViewCtx }) {
   return (
-    <div className={`${ctx.radius.card} p-5 text-white`} style={{ background: `linear-gradient(135deg, ${ctx.accent} 0%, #0B2E8F 60%, #0F1729 100%)` }}>
-      <div className="flex items-center justify-between">
-        <span className="text-[10px] font-extrabold tracking-wider">VIRTUAL DEBIT</span>
-        <CreditCard className="h-5 w-5 opacity-80" />
-      </div>
+    <div className={`${ctx.radius.card} p-5 text-white`} style={{ background: `linear-gradient(135deg, ${ctx.accent} 0%, ${darken(ctx.accent, 0.45)} 60%, ${darken(ctx.accent, 0.7)} 100%)` }}>
+      <div className="flex items-center justify-between"><span className="text-[10px] font-extrabold tracking-wider">VIRTUAL DEBIT</span><CreditCard className="h-5 w-5 opacity-80" /></div>
       <p className="mt-6 text-[10px] text-white/60">Frozen Block</p>
       <p className="mt-1 font-mono text-[14px] tracking-widest">4892 •••• •••• 7104</p>
       <div className="mt-3 flex items-end justify-between text-[9px] opacity-90"><span>ALEX RIVERS</span><span>09/28</span></div>
-      <div className="mt-4 flex gap-2">
-        <button type="button" className="flex-1 rounded-lg bg-white/15 py-1.5 text-[10px] font-bold">Add to Apple Wallet</button>
-      </div>
+      <div className="mt-4 flex gap-2"><button type="button" className="flex-1 rounded-lg bg-white/15 py-1.5 text-[10px] font-bold">Add to Apple Wallet</button></div>
     </div>
   );
 }
@@ -644,14 +684,10 @@ function SecurityDashboardCard({ ctx }: { ctx: ViewCtx }) {
     <div className={`${ctx.radius.card} ${surface(ctx.isDark)} p-5`}>
       <p className="text-[12px] font-bold">Card security</p>
       <div className="mt-3 space-y-2 text-[11px]">
-        {([
-          ['Freeze card', frozen, setFrozen],
-          ['Online payments', online, setOnline],
-          ['Contactless NFC', nfc, setNfc],
-        ] as const).map(([label, on, set]) => (
+        {([['Freeze card', frozen, setFrozen], ['Online payments', online, setOnline], ['Contactless NFC', nfc, setNfc]] as const).map(([label, on, set]) => (
           <div key={label} className="flex items-center justify-between">
             <span>{label}</span>
-            <Switch checked={on as boolean} onChange={() => (set as (v: boolean) => void)(!(on as boolean))} label={label} accent={ctx.accent} />
+            <Switch checked={on} onChange={() => set(!on)} label={label} accent={ctx.accent} />
           </div>
         ))}
       </div>
@@ -661,7 +697,6 @@ function SecurityDashboardCard({ ctx }: { ctx: ViewCtx }) {
     </div>
   );
 }
-
 function PinVaultCard({ ctx }: { ctx: ViewCtx }) {
   const [revealed, setRevealed] = useState(false);
   return (
@@ -682,7 +717,6 @@ function PinVaultCard({ ctx }: { ctx: ViewCtx }) {
     </div>
   );
 }
-
 function AuditLedgerActivityCard({ ctx }: { ctx: ViewCtx }) {
   const rows = [
     { d: 'Oct 28', n: 'Apple Store #2214', t: 'Gadgets · Card', a: -149.0 },
@@ -698,7 +732,7 @@ function AuditLedgerActivityCard({ ctx }: { ctx: ViewCtx }) {
         {rows.map((r) => (
           <div key={`${r.d}-${r.n}`} className="flex items-center justify-between py-2">
             <div className="flex items-center gap-2.5">
-              <span className={`w-12 text-center text-[9px] font-semibold uppercase text-slate-400`}>{r.d}</span>
+              <span className="w-12 text-center text-[9px] font-semibold uppercase text-slate-400">{r.d}</span>
               <div><p className="text-[11px] font-semibold">{r.n}</p><p className="text-[9px] text-slate-400">{r.t}</p></div>
             </div>
             <span className={`text-[11px] font-bold ${r.a > 0 ? 'text-emerald-600' : ''}`}>{r.a > 0 ? '+' : '-'}{usd(Math.abs(r.a))}</span>
@@ -708,7 +742,6 @@ function AuditLedgerActivityCard({ ctx }: { ctx: ViewCtx }) {
     </div>
   );
 }
-
 function AlertCenterCard({ ctx }: { ctx: ViewCtx }) {
   const alerts = [
     { title: 'Payment Received', sub: '$4,200.00 · ACH · 10 mins ago', tone: 'emerald' },
@@ -730,7 +763,6 @@ function AlertCenterCard({ ctx }: { ctx: ViewCtx }) {
     </div>
   );
 }
-
 function PreferencesDeliveryChannelsCard({ ctx }: { ctx: ViewCtx }) {
   const [push, setPush] = useState(true);
   const [sms, setSms] = useState(false);
@@ -742,14 +774,13 @@ function PreferencesDeliveryChannelsCard({ ctx }: { ctx: ViewCtx }) {
         {([['Push alerts', push, setPush], ['SMS alerts', sms, setSms], ['Email alerts', email, setEmail]] as const).map(([label, on, set]) => (
           <div key={label} className="flex items-center justify-between">
             <div className="flex items-center gap-2"><Smartphone className="h-3.5 w-3.5 text-slate-400" /><span>{label}</span></div>
-            <Switch checked={on as boolean} onChange={() => (set as (v: boolean) => void)(!(on as boolean))} label={label} accent={ctx.accent} />
+            <Switch checked={on} onChange={() => set(!on)} label={label} accent={ctx.accent} />
           </div>
         ))}
       </div>
     </div>
   );
 }
-
 function IdentityCardCard({ ctx }: { ctx: ViewCtx }) {
   return (
     <div className={`${ctx.radius.card} ${surface(ctx.isDark)} p-5`}>
@@ -761,7 +792,6 @@ function IdentityCardCard({ ctx }: { ctx: ViewCtx }) {
     </div>
   );
 }
-
 function SecurityBaselineCard({ ctx }: { ctx: ViewCtx }) {
   const [faceId, setFaceId] = useState(true);
   const [hwKey, setHwKey] = useState(false);
@@ -776,12 +806,11 @@ function SecurityBaselineCard({ ctx }: { ctx: ViewCtx }) {
     </div>
   );
 }
-
 function ActiveSessionsCard({ ctx }: { ctx: ViewCtx }) {
   const sessions = [
-    { name: 'iPhone 14 Pro', sub: 'Mexico City, MX · Current', icon: Smartphone },
-    { name: 'MacBook Pro 16"', sub: 'Mexico City, MX · 2 hrs ago', icon: Monitor },
-    { name: 'iPad Air', sub: 'Cancún, MX · 3 days ago', icon: Smartphone },
+    { name: 'iPhone 14 Pro', sub: 'Mexico City, MX · Current', Icon: Smartphone },
+    { name: 'MacBook Pro 16"', sub: 'Mexico City, MX · 2 hrs ago', Icon: Monitor },
+    { name: 'iPad Air', sub: 'Cancún, MX · 3 days ago', Icon: Smartphone },
   ];
   return (
     <div className={`${ctx.radius.card} ${surface(ctx.isDark)} p-5`}>
@@ -789,7 +818,7 @@ function ActiveSessionsCard({ ctx }: { ctx: ViewCtx }) {
       <div className="mt-3 space-y-1.5 text-[11px]">
         {sessions.map((s) => (
           <div key={s.name} className={`flex items-center justify-between px-3 py-2 ${ctx.radius.tile} ${ctx.isDark ? 'bg-slate-800' : 'bg-slate-50'}`}>
-            <div className="flex items-center gap-2"><s.icon className="h-3.5 w-3.5 text-slate-400" /><div><p className="font-semibold">{s.name}</p><p className="text-[9px] text-slate-400">{s.sub}</p></div></div>
+            <div className="flex items-center gap-2"><s.Icon className="h-3.5 w-3.5 text-slate-400" /><div><p className="font-semibold">{s.name}</p><p className="text-[9px] text-slate-400">{s.sub}</p></div></div>
             <button className="text-[10px] font-semibold text-rose-500">Revoke</button>
           </div>
         ))}
@@ -798,14 +827,14 @@ function ActiveSessionsCard({ ctx }: { ctx: ViewCtx }) {
   );
 }
 
+/* Brand Onboarding — accent-driven launch gradient */
 function BrandOnboardingCard({ ctx }: { ctx: ViewCtx }) {
   return (
-    <div className={`${ctx.radius.card} relative flex h-[220px] flex-col items-center justify-center overflow-hidden p-6 text-center`}
-      style={{ background: `linear-gradient(135deg, #0F1729 0%, #0B2E8F 100%)` }}>
+    <div className={`${ctx.radius.card} relative flex h-[220px] flex-col items-center justify-center overflow-hidden p-6 text-center`} style={{ background: `linear-gradient(135deg, ${darken(ctx.accent, 0.85)} 0%, ${ctx.accent} 100%)` }}>
       <span aria-hidden className="absolute inset-x-0 top-0 h-1/2 opacity-40" style={{ background: `radial-gradient(circle at 50% 100%, ${ctx.accent} 0%, transparent 70%)` }} />
       <div className="relative">
-        <div className={`mx-auto grid h-16 w-16 place-items-center rounded-2xl text-white`} style={{ background: ctx.accent }}><Landmark className="h-7 w-7" /></div>
-        <p className="mt-4 text-[15px] font-black tracking-wide text-white">{ctx.brand || 'FintecConnect'}</p>
+        <div className="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-white/15 text-white ring-1 ring-white/20"><Landmark className="h-7 w-7" /></div>
+        <p className="mt-4 text-[15px] font-black tracking-wide text-white">{ctx.brand || 'Apex Bank'}</p>
         <p className="mt-1 text-[10px] text-white/60">Elevate · Connect · Grow</p>
       </div>
     </div>
@@ -815,7 +844,7 @@ function BrandOnboardingCard({ ctx }: { ctx: ViewCtx }) {
 function WelcomeHeroCard({ ctx }: { ctx: ViewCtx }) {
   return (
     <div className={`${ctx.radius.card} ${surface(ctx.isDark)} p-5`}>
-      <div className={`grid h-10 w-10 place-items-center ${ctx.radius.icon} bg-emerald-50 text-emerald-600`}><Zap className="h-4 w-4" /></div>
+      <div className={`grid h-10 w-10 place-items-center bg-emerald-50 text-emerald-600 ${ctx.radius.icon}`}><Zap className="h-4 w-4" /></div>
       <p className="mt-3 text-[14px] font-bold">Zero margin, full control</p>
       <p className="mt-1 text-[10px] leading-relaxed text-slate-400">Open multi-currency accounts and move capital at real rates — no surprises.</p>
       <button type="button" className={`mt-3 w-full py-2 text-[11px] font-bold text-white ${ctx.radius.icon}`} style={{ background: ctx.accent }}>Get started</button>
@@ -823,11 +852,10 @@ function WelcomeHeroCard({ ctx }: { ctx: ViewCtx }) {
     </div>
   );
 }
-
 function StepCarouselCard({ ctx }: { ctx: ViewCtx }) {
   return (
     <div className={`${ctx.radius.card} ${surface(ctx.isDark)} flex flex-col items-center p-5 text-center`}>
-      <div className={`grid h-12 w-12 place-items-center ${ctx.radius.icon} bg-slate-900 text-white`}><Landmark className="h-5 w-5" /></div>
+      <div className={`grid h-12 w-12 place-items-center text-white ${ctx.radius.icon}`} style={{ background: darken(ctx.accent, 0.45) }}><Landmark className="h-5 w-5" /></div>
       <p className="mt-3 text-[13px] font-bold">Borderless global FX</p>
       <p className="mt-1 text-[10px] text-slate-400">A single wallet for every currency, with guaranteed mid-market rates.</p>
       <div className="mt-4 flex items-center gap-1.5">
@@ -844,11 +872,15 @@ function StepCarouselCard({ ctx }: { ctx: ViewCtx }) {
 function ModuleView({ id, ctx }: { id: ModuleId; ctx: ViewCtx }) {
   switch (id) {
     case 'loginScreen': return <LoginScreenCard ctx={ctx} />;
+    case 'signInWithGoogle': return <SignInWithGoogleCard ctx={ctx} />;
     case 'otpVerification': return <OtpVerificationCard ctx={ctx} />;
     case 'biometricUnlock': return <BiometricUnlockCard ctx={ctx} />;
-    case 'netBalance': return <NetBalanceCard ctx={ctx} />;
-    case 'quickActionRadial': return <QuickActionRadialCard ctx={ctx} />;
-    case 'recentActivity': return <RecentActivityCard ctx={ctx} />;
+    case 'heroBalance': return <HeroBalanceCard ctx={ctx} />;
+    case 'activeCard': return <ActiveCardWidget ctx={ctx} />;
+    case 'quickTransfer': return <QuickTransferCard ctx={ctx} />;
+    case 'savingsTargets': return <SavingsTargetsCard ctx={ctx} />;
+    case 'earningsChannels': return <EarningsChannelsCard ctx={ctx} />;
+    case 'activityFeed': return <ActivityFeedCard ctx={ctx} />;
     case 'accountsPortfolio': return <AccountsPortfolioCard ctx={ctx} />;
     case 'routingWire': return <RoutingWireCard ctx={ctx} />;
     case 'monthlyAuditFile': return <MonthlyAuditFileCard ctx={ctx} />;
@@ -880,10 +912,7 @@ function ModuleView({ id, ctx }: { id: ModuleId; ctx: ViewCtx }) {
   }
 }
 
-/* -------------------------------------------------------------------------- */
-/*  Small UI                                                                  */
-/* -------------------------------------------------------------------------- */
-
+/* --------------------------------- small UI -------------------------------- */
 function DropLine({ side, accent }: { side: 'top' | 'bottom'; accent: string }) {
   return (
     <span aria-hidden className={`pointer-events-none absolute inset-x-0 z-30 flex items-center ${side === 'top' ? '-top-3' : '-bottom-3'}`}>
@@ -893,7 +922,6 @@ function DropLine({ side, accent }: { side: 'top' | 'bottom'; accent: string }) 
     </span>
   );
 }
-
 function ToolbarButton({ label, onClick, disabled, danger, children }: { label: string; onClick: () => void; disabled?: boolean; danger?: boolean; children: React.ReactNode }) {
   return (
     <button type="button" aria-label={label} title={label} disabled={disabled} onClick={(e) => { e.stopPropagation(); onClick(); }}
@@ -901,52 +929,84 @@ function ToolbarButton({ label, onClick, disabled, danger, children }: { label: 
   );
 }
 
-/* -------------------------------------------------------------------------- */
-/*  Page menu row with inline expansion                                       */
-/* -------------------------------------------------------------------------- */
+/* ------------------------------- page menu row ------------------------------ */
+function PageMenuItem(props: {
+  page: PageDef; count: number; active: boolean; expanded: boolean; accent: string;
+  canvasModules: ModuleId[]; thumbCtx: ViewCtx; drag: ModuleId | null;
+  onSelect: () => void; onToggleExpand: () => void;
+  onAddModule: (id: ModuleId) => void; onRemoveModule: (id: ModuleId) => void;
+  onStartDrag: (e: React.DragEvent, id: ModuleId) => void; onEndDrag: () => void;
+  onRename?: (id: string, label: string) => void;
+}) {
+  const { page, count, active, expanded, accent, canvasModules, thumbCtx, drag, onSelect, onToggleExpand, onAddModule, onRemoveModule, onStartDrag, onEndDrag, onRename } = props;
+  const isCustom = page.id.startsWith('custom-');
+  // Custom pages expose every available module so anything from any other
+  // screen can be dragged in. Kit-based pages only list their own kit.
+  const components = isCustom ? availableModules : availableModules.filter(m => page.kit.includes(m.id));
 
-interface PageMenuItemProps {
-  page: PageId;
-  label: string;
-  count: number;
-  active: boolean;
-  expanded: boolean;
-  accent: string;
-  canvasModules: ModuleId[];
-  thumbCtx: ViewCtx;
-  onSelect: () => void;
-  onToggleExpand: () => void;
-  onAddModule: (id: ModuleId) => void;
-  onRemoveModule: (id: ModuleId) => void;
-  onStartDrag: (e: React.DragEvent, id: ModuleId) => void;
-  onEndDrag: () => void;
-  drag: ModuleId | null;
-}
+  const [isRenaming, setIsRenaming] = useState(false);
+  const [renameValue, setRenameValue] = useState(page.label);
 
-function PageMenuItem(props: PageMenuItemProps) {
-  const { page, label, count, active, expanded, accent, canvasModules, thumbCtx, onSelect, onToggleExpand, onAddModule, onRemoveModule, onStartDrag, onEndDrag, drag } = props;
-  const components = availableModules.filter((m) => pageModulesFor(page).includes(m.id));
+  const startRename = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setRenameValue(page.label);
+    setIsRenaming(true);
+  };
+  const finishRename = () => {
+    const v = renameValue.trim();
+    if (v && v !== page.label && onRename) onRename(page.id, v);
+    setIsRenaming(false);
+  };
+
   return (
-    <li className={`list-none rounded-lg ${active ? 'bg-blue-50/60 ring-1 ring-blue-100' : ''}`}>
-      <div className={`flex items-center justify-between rounded-lg px-2 py-1.5 ${active ? '' : 'hover:bg-slate-50'}`}>
-        <button type="button" onClick={onSelect} className="flex min-w-0 flex-1 cursor-pointer items-center gap-1.5 text-left">
+    <li className={`list-none rounded-lg ${active ? 'bg-blue-100/70 ring-1 ring-blue-200' : ''}`}>
+      <div className={`flex items-center justify-between rounded-lg px-2 py-2 ${active ? '' : 'hover:bg-white/70'}`}>
+        <div className="flex min-w-0 flex-1 items-center gap-1.5">
           <GripVertical className="h-3 w-3 shrink-0 text-slate-300" aria-hidden />
-          <span className={`truncate text-[11px] font-semibold ${active ? 'text-blue-700' : 'text-slate-700'}`}>{label}</span>
-        </button>
-        <span className={`ml-1.5 shrink-0 rounded-full px-1.5 py-0.5 text-[9px] font-bold ${active ? 'bg-white text-blue-600' : 'bg-slate-100 text-slate-500'}`}>{count}</span>
-        <button type="button" onClick={onToggleExpand} aria-label={expanded ? `Hide ${label}` : `Show ${label}`} aria-expanded={expanded}
+          {isRenaming ? (
+            <input
+              value={renameValue}
+              onChange={(e) => setRenameValue(e.target.value)}
+              onBlur={finishRename}
+              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); finishRename(); } if (e.key === 'Escape') setIsRenaming(false); }}
+              autoFocus
+              onClick={(e) => e.stopPropagation()}
+              onMouseDown={(e) => e.stopPropagation()}
+              className="min-w-0 flex-1 rounded border border-blue-400 bg-white px-1 py-0.5 text-[11px] font-semibold text-slate-900 outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          ) : (
+            <button type="button" onClick={onSelect} className={`min-w-0 flex-1 cursor-pointer truncate text-left text-[11px] font-semibold ${active ? 'text-blue-700' : 'text-slate-700'}`}>
+              {page.label}
+            </button>
+          )}
+          {isCustom && !isRenaming && (
+            <button type="button" onClick={startRename} aria-label="Rename page" title="Rename page"
+              className="grid h-4 w-4 shrink-0 cursor-pointer place-items-center rounded text-slate-400 transition hover:bg-white hover:text-slate-700">
+              <Pencil className="h-2.5 w-2.5" />
+            </button>
+          )}
+        </div>
+        <span className={`ml-1.5 shrink-0 rounded-full px-2 py-0.5 text-[9px] font-bold ${active ? 'bg-blue-600 text-white' : 'bg-slate-200/80 text-slate-500'}`}>{count} comps</span>
+        <button type="button" onClick={onToggleExpand} aria-label={`Components for ${page.label}`} aria-expanded={expanded}
           style={expanded ? { color: accent, background: `${accent}14` } : undefined}
           className="ml-1 grid h-4 w-4 shrink-0 cursor-pointer place-items-center rounded-full text-slate-400 transition hover:bg-white hover:text-blue-600">
           {expanded ? <X className="h-2.5 w-2.5" /> : <Plus className="h-2.5 w-2.5" />}
         </button>
       </div>
       {expanded && (
-        <div className="mx-1.5 mb-1.5 space-y-1.5 rounded-lg border border-slate-100 bg-white p-1.5 shadow-inner">
+        <div className="mx-1.5 mb-1.5 max-h-[360px] space-y-1.5 overflow-y-auto rounded-lg border border-slate-100 bg-white p-1.5 shadow-inner scrollbar-none">
+          {isCustom && (
+            <p className="px-1 pb-1 text-[9px] italic leading-snug text-slate-400">
+              Drag any component from the full library below into this custom page.
+            </p>
+          )}
+          {components.length === 0 && <p className="px-1 py-2 text-center text-[9px] text-slate-400">No components yet.</p>}
           {components.map((mod) => {
-            const isAdded = canvasModules.includes(mod.id);
-            const isDragging = drag === mod.id;
+            const mid = mod.id;
+            const isAdded = canvasModules.includes(mid);
+            const isDragging = drag === mid;
             return (
-              <div key={mod.id} draggable onDragStart={(e) => onStartDrag(e, mod.id)} onDragEnd={onEndDrag}
+              <div key={mid} draggable onDragStart={(e) => onStartDrag(e, mid)} onDragEnd={onEndDrag}
                 style={isAdded ? ringVar(accent) : undefined}
                 className={`flex cursor-grab flex-col gap-1.5 rounded-lg bg-white p-2 ring-1 transition active:cursor-grabbing ${isAdded ? 'ring-2' : 'ring-slate-100 hover:ring-slate-200'} ${isDragging ? 'opacity-50' : ''}`}>
                 <div className="flex items-start justify-between gap-1.5">
@@ -960,9 +1020,9 @@ function PageMenuItem(props: PageMenuItemProps) {
                   <GripVertical className="h-3 w-3 shrink-0 text-slate-300" aria-hidden />
                 </div>
                 <div aria-hidden className="pointer-events-none select-none overflow-hidden rounded-md bg-[#F4F5FD] p-1.5">
-                  <div className={outfit.className}><ModuleView id={mod.id} ctx={thumbCtx} /></div>
+                  <div className={outfit.className}><ModuleView id={mid} ctx={thumbCtx} /></div>
                 </div>
-                <button type="button" onClick={() => (isAdded ? onRemoveModule(mod.id) : onAddModule(mod.id))}
+                <button type="button" onClick={() => (isAdded ? onRemoveModule(mid) : onAddModule(mid))}
                   aria-label={isAdded ? `Remove ${mod.title}` : `Add ${mod.title}`}
                   style={isAdded ? { color: accent, background: `${accent}14` } : undefined}
                   className={`flex w-full cursor-pointer items-center justify-center gap-1 rounded-md py-1 text-[9px] font-bold transition ${isAdded ? '' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}>
@@ -977,133 +1037,23 @@ function PageMenuItem(props: PageMenuItemProps) {
   );
 }
 
-/* -------------------------------------------------------------------------- */
-/*  Page canvas                                                               */
-/* -------------------------------------------------------------------------- */
-
-interface PageCanvasProps {
-  page: PageId;
-  modules: ModuleId[];
-  ctx: ViewCtx;
-  editMode: boolean;
-  density: Density;
-  drag: ModuleId | null;
-  dropIndex: number | null;
-  bodyRef: React.RefObject<HTMLDivElement | null>;
-  onStartDrag: (e: React.DragEvent, id: ModuleId) => void;
-  onEndDrag: () => void;
-  onItemDragOver: (e: React.DragEvent, index: number) => void;
-  onDrop: (e: React.DragEvent) => void;
-  onMove: (id: ModuleId, dir: -1 | 1) => void;
-  onRemove: (id: ModuleId) => void;
-  onQuickAdd: (id: ModuleId) => void;
-  isDark: boolean;
-  accent: string;
-  radius: Radius;
-}
-
-function PageCanvas({
-  page, modules, ctx, editMode, density, drag, dropIndex, bodyRef,
-  onStartDrag, onEndDrag, onItemDragOver, onDrop, onMove, onRemove, onQuickAdd, isDark, accent, radius,
-}: PageCanvasProps) {
-  const suggestions = pageModulesFor(page).length ? pageModulesFor(page) : ['netBalance', 'quickActionRadial', 'recentActivity'] as ModuleId[];
-
-  return (
-    <>
-      {modules.length === 0 ? (
-        <div
-          style={drag ? { borderColor: accent, background: `${accent}10` } : undefined}
-          className={`flex flex-col items-center justify-center space-y-3 border-2 border-dashed py-10 text-center transition-colors ${radius.card} ${drag ? '' : isDark ? 'border-slate-700 bg-slate-900/50' : 'border-blue-300/60 bg-blue-50/20'}`}>
-          <div className={`grid h-12 w-12 place-items-center text-white shadow-sm ${radius.icon}`} style={{ background: accent }}><Plus className="h-6 w-6" /></div>
-          <div className="space-y-1"><h4 className="text-xs font-bold">{drag ? 'Drop to add it here' : 'Build this page'}</h4><p className="text-[11px] text-slate-500">Drag tiles from the page menu or tap a suggestion.</p></div>
-          <div className="flex flex-wrap justify-center gap-1.5 pt-1">
-            {suggestions.slice(0, 3).map((id) => (
-              <button key={id} type="button" onClick={() => onQuickAdd(id)} className={`cursor-pointer rounded-full px-2.5 py-1 text-[10px] font-semibold shadow-sm ${isDark ? 'bg-slate-800 text-slate-200' : 'bg-white text-slate-600 ring-1 ring-slate-200'}`}>+ {moduleFor(id)?.title ?? id}</button>
-            ))}
-          </div>
-        </div>
-      ) : (
-        <div className={`grid grid-cols-1 ${density === 'compact' ? 'gap-3' : 'gap-4'} xl:grid-cols-2`}>
-          {modules.map((id, i) => {
-            const mod = moduleFor(id);
-            const isSource = drag === id;
-            return (
-              <div key={id} data-module-id={id} draggable={editMode}
-                onMouseDown={(e) => {
-                  const isField = (e.target as HTMLElement).closest('input,textarea,select,button');
-                  e.currentTarget.draggable = editMode && !isField;
-                }}
-                onDragStart={(e) => onStartDrag(e, id)} onDragEnd={onEndDrag}
-                onDragOver={(e) => onItemDragOver(e, i)} onDrop={onDrop}
-                style={{ ['--tw-ring-color' as string]: accent } as React.CSSProperties}
-                className={`group relative ${radius.card} ${mod?.wide ? 'xl:col-span-2' : ''} ${editMode ? 'cursor-grab ring-offset-2 focus-within:ring-2 hover:ring-2 active:cursor-grabbing' : ''} ${isDark ? 'ring-offset-slate-950' : 'ring-offset-[#F7F8FF]'} ${isSource ? 'opacity-40' : ''}`}>
-                {drag && dropIndex === i && <DropLine side="top" accent={accent} />}
-                {drag && dropIndex === modules.length && i === modules.length - 1 && <DropLine side="bottom" accent={accent} />}
-                {editMode && (
-                  <div className="absolute -top-3 right-2 z-20 flex items-center gap-0.5 rounded-full bg-white p-0.5 opacity-0 shadow-md ring-1 ring-slate-200 transition group-focus-within:opacity-100 group-hover:opacity-100">
-                    <GripVertical className="h-3 w-3 text-slate-400" aria-hidden />
-                    <ToolbarButton label={`Move up`} disabled={i === 0} onClick={() => onMove(id, -1)}><ChevronUp className="h-3 w-3" /></ToolbarButton>
-                    <ToolbarButton label={`Move down`} disabled={i === modules.length - 1} onClick={() => onMove(id, 1)}><ChevronDown className="h-3 w-3" /></ToolbarButton>
-                    <ToolbarButton label={`Remove`} danger onClick={() => onRemove(id)}><Trash2 className="h-3 w-3" /></ToolbarButton>
-                  </div>
-                )}
-                <div className={drag ? 'pointer-events-none' : ''}><ModuleView id={id} ctx={ctx} /></div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-      <div ref={bodyRef} className="hidden" aria-hidden />
-    </>
-  );
-}
-
-/* -------------------------------------------------------------------------- */
-/*  Code panel                                                                */
-/* -------------------------------------------------------------------------- */
-
+/* -------------------------------- code panel ------------------------------- */
 const CODE_TABS: { id: CodeLang; label: string }[] = [
-  { id: 'swiftui', label: 'SwiftUI' },
-  { id: 'typescript', label: 'Typescript' },
-  { id: 'reactnative', label: 'React Native' },
-  { id: 'kotlin', label: 'Kotlin' },
+  { id: 'swiftui', label: 'SwiftUI' }, { id: 'typescript', label: 'Typescript' },
+  { id: 'reactnative', label: 'React Native' }, { id: 'kotlin', label: 'Kotlin' },
 ];
-
 const indentLines = (s: string, n: number) => s.split('\n').map((l) => ' '.repeat(n) + l);
-
 function buildCode(lang: CodeLang, pageLabel: string, modules: ModuleId[], brand: string, accent: string, density: Density): string[] {
   const ident = pageLabel.replace(/[^A-Za-z0-9]+/g, '') || 'Page';
   const sp = density === 'compact' ? 10 : 16;
   const theme = `// Theme: ${brand || 'Brand'} (${accent.toUpperCase()})`;
   const snippets = modules.map((id) => moduleFor(id)?.code[lang] ?? `// ${id}`);
-  const place = (n: number, empty: string) => snippets.length ? snippets.flatMap((s) => indentLines(s, n)) : [' '.repeat(n) + empty];
-
-  if (lang === 'swiftui') return [
-    '// Standard SwiftUI Whitelabel Screen', theme, '', 'import SwiftUI', '',
-    `struct ${ident}Screen: View {`, '  var body: some View {', `    ScrollView { VStack(spacing: ${sp}) {`,
-    ...place(8, '// No components yet'), '    } .padding(.horizontal, 24) }', '    .background(Color("AppSurface"))', `    .navigationTitle("${pageLabel}")`, '  }', '}',
-  ];
-  if (lang === 'typescript') return [
-    '// Standard Typescript Whitelabel Screen', theme, '',
-    'import React from "react";', 'import { Grid, Stack } from "@studio/ui";', '',
-    `export const ${ident}Screen = () => (`, `  <Grid title="${pageLabel}" spacing={${sp}} paddingX={24}>`,
-    ...place(4, '{/* No components yet */}'), '  </Grid>', ');',
-  ];
-  if (lang === 'reactnative') return [
-    '// Standard React Native Whitelabel Screen', theme, '',
-    'import React from "react";', 'import { ScrollView, View } from "react-native";', '',
-    `export const ${ident}Screen = () => (`, '  <ScrollView style={{ backgroundColor: "AppSurface" }}>',
-    `    <View style={{ gap: ${sp}, paddingHorizontal: 24 }}>`, ...place(6, '{/* No components yet */}'), '    </View>', '  </ScrollView>', ');',
-  ];
-  return [
-    '// Standard Jetpack Compose Whitelabel Screen', theme, '',
-    'import androidx.compose.foundation.layout.*', 'import androidx.compose.runtime.*', '',
-    '@Composable', `fun ${ident}Screen() {`, '  Column(',
-    `    verticalArrangement = Arrangement.spacedBy(${sp}.dp),`, '    modifier = Modifier.padding(horizontal = 24.dp)', '  ) {',
-    ...place(4, '// No components yet'), '  }', '}',
-  ];
+  const place = (n: number, empty: string) => (snippets.length ? snippets.flatMap((s) => indentLines(s, n)) : [' '.repeat(n) + empty]);
+  if (lang === 'swiftui') return ['// Standard SwiftUI Whitelabel Screen', theme, '', 'import SwiftUI', '', `struct ${ident}Screen: View {`, '  var body: some View {', `    ScrollView { VStack(spacing: ${sp}) {`, ...place(8, '// No components yet'), '    } .padding(.horizontal, 24) }', '    .background(Color("AppSurface"))', `    .navigationTitle("${pageLabel}")`, '  }', '}'];
+  if (lang === 'typescript') return ['// Standard Typescript Whitelabel Screen', theme, '', 'import React from "react";', 'import { Grid, Stack } from "@studio/ui";', '', `export const ${ident}Screen = () => (`, `  <Grid title="${pageLabel}" spacing={${sp}} paddingX={24}>`, ...place(4, '{/* No components yet */}'), '  </Grid>', ');'];
+  if (lang === 'reactnative') return ['// Standard React Native Whitelabel Screen', theme, '', 'import React from "react";', 'import { ScrollView, View } from "react-native";', '', `export const ${ident}Screen = () => (`, '  <ScrollView style={{ backgroundColor: "AppSurface" }}>', `    <View style={{ gap: ${sp}, paddingHorizontal: 24 }}>`, ...place(6, '{/* No components yet */}'), '    </View>', '  </ScrollView>', ');'];
+  return ['// Standard Jetpack Compose Whitelabel Screen', theme, '', 'import androidx.compose.foundation.layout.*', 'import androidx.compose.runtime.*', '', '@Composable', `fun ${ident}Screen() {`, '  Column(', `    verticalArrangement = Arrangement.spacedBy(${sp}.dp),`, '    modifier = Modifier.padding(horizontal = 24.dp)', '  ) {', ...place(4, '// No components yet'), '  }', '}'];
 }
-
 const TOKEN = /(\/\/.*$|\/\*.*?\*\/)|("(?:[^"\\]|\\.)*")|(\b\d+(?:\.\d+)?\b)|(@\w+|\b(?:import|struct|var|let|some|private|func|fun|val|by|return|export|const|from|class|default)\b)|(\b[A-Z][A-Za-z0-9]*Component\b)|(\b[A-Z][A-Za-z0-9]*\b)/g;
 function highlight(line: string): React.ReactNode[] {
   const out: React.ReactNode[] = []; let last = 0; let m: RegExpExecArray | null; TOKEN.lastIndex = 0;
@@ -1115,33 +1065,34 @@ function highlight(line: string): React.ReactNode[] {
   if (last < line.length) out.push(line.slice(last));
   return out;
 }
-
-function CodePanel({ pageLabel, blurb, modules, lang, onLang, accent, brand, density }: {
+function CodePanel({ pageLabel, blurb, modules, lang, onLang, accent, brand, density, onClose }: {
   pageLabel: string; blurb: string; modules: ModuleId[]; lang: CodeLang; onLang: (l: CodeLang) => void;
-  accent: string; brand: string; density: Density;
+  accent: string; brand: string; density: Density; onClose?: () => void;
 }) {
   const [copied, setCopied] = useState(false);
   const lines = useMemo(() => buildCode(lang, pageLabel, modules, brand, accent, density), [lang, pageLabel, modules, brand, accent, density]);
   const copy = async () => { try { await navigator.clipboard.writeText(lines.join('\n')); } catch {} setCopied(true); setTimeout(() => setCopied(false), 1500); };
   return (
     <div className="flex h-full min-h-0 flex-col bg-white">
-      <div className="px-4 pb-3 pt-4">
-        <h3 className="text-[13px] font-bold text-slate-900">{pageLabel}</h3>
+      <div className="relative px-4 pb-3 pt-3">
+        {onClose && (
+          <button type="button" onClick={onClose} aria-label="Close SDK preview" title="Close SDK preview" className="absolute right-2 top-2 grid h-6 w-6 cursor-pointer place-items-center rounded-full text-slate-500 transition hover:bg-slate-100 hover:text-slate-900"><X className="h-3.5 w-3.5" /></button>
+        )}
+        <h3 className="pr-8 text-[13px] font-bold text-slate-900">{pageLabel}</h3>
         <p className="mt-0.5 text-[10px] leading-snug text-slate-500">{blurb}</p>
       </div>
       <div className="flex items-stretch justify-between border-y border-slate-200 bg-[#F4F5FC]" role="tablist">
-        <div className="flex overflow-x-auto scrollbar-none">
+        <div className="flex items-center gap-1 overflow-x-auto p-1 scrollbar-none">
           {CODE_TABS.map((t) => {
             const active = lang === t.id;
             return (
               <button key={t.id} type="button" role="tab" aria-selected={active} onClick={() => onLang(t.id)}
-                style={active ? { borderBottomColor: accent } : undefined}
-                className={`-mb-px cursor-pointer whitespace-nowrap border-b-2 px-2.5 py-2 text-[10px] font-semibold outline-none transition ${active ? 'bg-white text-slate-900' : 'border-transparent text-slate-500 hover:text-slate-800'}`}>{t.label}</button>
+                className={`cursor-pointer whitespace-nowrap rounded-md px-2.5 py-1.5 text-[10px] font-bold outline-none transition ${active ? 'text-white shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+                style={active ? { background: accent } : undefined}>{t.label}</button>
             );
           })}
         </div>
-        <button type="button" onClick={copy} aria-label={copied ? 'Copied' : 'Copy code'} title="Copy code"
-          className="mr-1 grid h-8 w-8 shrink-0 cursor-pointer place-items-center self-center rounded-md text-slate-500 transition hover:bg-white hover:text-slate-900">
+        <button type="button" onClick={copy} aria-label={copied ? 'Copied' : 'Copy code'} title="Copy code" className="mr-1 grid h-8 w-8 shrink-0 cursor-pointer place-items-center self-center rounded-md text-slate-500 transition hover:bg-white hover:text-slate-900">
           {copied ? <Check className="h-3 w-3 text-emerald-600" /> : <Copy className="h-3 w-3" />}
         </button>
       </div>
@@ -1155,16 +1106,12 @@ function CodePanel({ pageLabel, blurb, modules, lang, onLang, accent, brand, den
   );
 }
 
-/* -------------------------------------------------------------------------- */
-/*  Style popout                                                              */
-/* -------------------------------------------------------------------------- */
-
+/* ------------------------------- style popout ------------------------------ */
 const ACCENTS = [
   { hex: '#0040DF', name: 'Indigo' }, { hex: '#7C3AED', name: 'Violet' },
   { hex: '#A21CAF', name: 'Fuchsia' }, { hex: '#0284C7', name: 'Sky' },
   { hex: '#0F172A', name: 'Midnight' },
 ];
-
 function Segmented<T extends string>({ label, value, options, onChange, variant }: {
   label: string; value: T; options: { id: T; label: string; Icon?: React.ComponentType<{ className?: string }> }[];
   onChange: (v: T) => void; variant: 'track' | 'buttons';
@@ -1183,28 +1130,20 @@ function Segmented<T extends string>({ label, value, options, onChange, variant 
     </div>
   );
 }
-
 function StyleLabel({ children, right }: { children: React.ReactNode; right?: React.ReactNode }) {
   return <div className="mb-2 flex items-center justify-between"><span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{children}</span>{right}</div>;
 }
-
-function StylePopout({
-  brandName, onBrandName, accent, onAccent, mode, onMode, shape, onShape, density, onDensity, onClose,
-}: {
-  brandName: string; onBrandName: (v: string) => void;
-  accent: string; onAccent: (v: string) => void;
+function StylePopout({ brandName, onBrandName, accent, onAccent, mode, onMode, shape, onShape, density, onDensity, onClose, shown }: {
+  brandName: string; onBrandName: (v: string) => void; accent: string; onAccent: (v: string) => void;
   mode: 'light' | 'dark' | 'auto'; onMode: (v: 'light' | 'dark' | 'auto') => void;
-  shape: RadiusMode; onShape: (v: RadiusMode) => void;
-  density: Density; onDensity: (v: Density) => void;
-  onClose: () => void;
+  shape: RadiusMode; onShape: (v: RadiusMode) => void; density: Density; onDensity: (v: Density) => void; onClose: () => void; shown: boolean;
 }) {
   const nameRef = useRef<HTMLInputElement>(null);
   useEffect(() => { nameRef.current?.focus(); }, []);
   return (
-    <div role="dialog" aria-label="Brand and style"
-      className="absolute left-3 top-3 z-30 max-h-[calc(100%-24px)] w-[min(280px,calc(100%-24px))] overflow-y-auto rounded-2xl bg-white p-4 shadow-[0_24px_60px_rgba(30,41,90,0.28)] ring-1 ring-slate-200/80 scrollbar-none">
+    <div role="dialog" aria-label="Brand and style" className={`absolute left-3 top-3 z-30 max-h-[calc(100%-24px)] w-[min(280px,calc(100%-24px))] overflow-y-auto rounded-2xl bg-white p-4 shadow-[0_24px_60px_rgba(30,41,90,0.28)] ring-1 ring-slate-200/80 scrollbar-none transition-all duration-200 ease-out ${shown ? 'translate-y-0 opacity-100' : '-translate-y-2 opacity-0'}`}>
       <div className="mb-4 flex items-center justify-between">
-        <h3 className="flex items-center gap-2 text-[14px] font-semibold text-slate-900"><Palette className="h-4 w-4 text-slate-600" /> Brand &amp; Style</h3>
+        <h3 className="flex items-center gap-2 text-[14px] font-semibold text-slate-900"><Palette className="h-4 w-4 text-slate-600" /> Brand & Style</h3>
         <button type="button" onClick={onClose} aria-label="Close" className="grid h-6 w-6 cursor-pointer place-items-center rounded-full text-slate-500 transition hover:bg-slate-100 hover:text-slate-900"><X className="h-3.5 w-3.5" /></button>
       </div>
       <div className="space-y-4">
@@ -1212,8 +1151,7 @@ function StylePopout({
           <StyleLabel>Institution / Brand name</StyleLabel>
           <label className="flex items-center gap-2 rounded-lg bg-[#EEF0FB] px-3 py-2 focus-within:ring-2 focus-within:ring-[#0040DF]">
             <Landmark className="h-3.5 w-3.5 shrink-0 text-slate-600" />
-            <input ref={nameRef} type="text" value={brandName} onChange={(e) => onBrandName(e.target.value)}
-              className="w-full min-w-0 bg-transparent text-[12px] font-medium text-slate-900 outline-none" />
+            <input ref={nameRef} type="text" value={brandName} onChange={(e) => onBrandName(e.target.value)} className="w-full min-w-0 bg-transparent text-[12px] font-medium text-slate-900 outline-none" />
           </label>
         </div>
         <div>
@@ -1227,51 +1165,57 @@ function StylePopout({
         </div>
         <div>
           <StyleLabel>App interface mode</StyleLabel>
-          <Segmented variant="track" label="Mode" value={mode} onChange={onMode}
-            options={[{ id: 'light', label: 'Light', Icon: Sun }, { id: 'dark', label: 'Dark', Icon: Moon }, { id: 'auto', label: 'Auto', Icon: SunMoon }]} />
+          <Segmented variant="track" label="Mode" value={mode} onChange={onMode} options={[{ id: 'light', label: 'Light', Icon: Sun }, { id: 'dark', label: 'Dark', Icon: Moon }, { id: 'auto', label: 'Auto', Icon: SunMoon }]} />
         </div>
         <div>
           <StyleLabel>Button shape</StyleLabel>
-          <Segmented variant="buttons" label="Shape" value={shape} onChange={onShape}
-            options={[{ id: 'sharp', label: 'Sharp' }, { id: 'rounded', label: 'Rounded' }, { id: 'pill', label: 'Full Pill' }]} />
+          <Segmented variant="buttons" label="Shape" value={shape} onChange={onShape} options={[{ id: 'sharp', label: 'Sharp' }, { id: 'rounded', label: 'Rounded' }, { id: 'pill', label: 'Full Pill' }]} />
         </div>
         <div>
           <StyleLabel>Density</StyleLabel>
-          <Segmented variant="buttons" label="Density" value={density} onChange={onDensity}
-            options={[{ id: 'compact', label: 'Compact' }, { id: 'spacious', label: 'Spacious' }]} />
+          <Segmented variant="buttons" label="Density" value={density} onChange={onDensity} options={[{ id: 'compact', label: 'Compact' }, { id: 'spacious', label: 'Spacious' }]} />
         </div>
       </div>
     </div>
   );
 }
 
-/* -------------------------------------------------------------------------- */
-/*  Main                                                                      */
-/* -------------------------------------------------------------------------- */
-
+/* ---------------------------------- main ----------------------------------- */
 export default function DesktopBuildSection() {
   const [appKind, setAppKind] = useState<AppKind>('banking');
   const [styleOpen, setStyleOpen] = useState(false);
   const styleBtnRef = useRef<HTMLButtonElement>(null);
-
-  const [brandName, setBrandName] = useState('FintecConnect');
+  const [brandName, setBrandName] = useState('Apex Bank');
   const [accentColor, setAccentColor] = useState('#0040DF');
   const [interfaceMode, setInterfaceMode] = useState<'light' | 'dark' | 'auto'>('light');
   const [buttonRadius, setButtonRadius] = useState<RadiusMode>('rounded');
   const [density, setDensity] = useState<Density>('spacious');
   const [prefersDark, setPrefersDark] = useState(false);
   const [codeLang, setCodeLang] = useState<CodeLang>('swiftui');
+  const [sdkOpen, setSdkOpen] = useState(false);
+  const [sdkShown, setSdkShown] = useState(false);
+  const [styleShown, setStyleShown] = useState(false);
 
-  const [activePage, setActivePage] = useState<PageId>('home');
-  const [pageModules, setPageModules] = useState<Record<PageId, ModuleId[]>>(buildInitialPages);
-  const [histories, setHistories] = useState<Record<PageId, ModuleId[][]>>(() => {
-    const out = {} as Record<PageId, ModuleId[][]>;
-    for (const p of PAGES) out[p.id] = [];
+  const [pages, setPages] = useState<PageDef[]>(INITIAL_PAGES);
+  const [activePage, setActivePage] = useState<string>('home');
+  // Every page starts BLANK — nothing is pre-filled anymore.
+  const [pageModules, setPageModules] = useState<Record<string, ModuleId[]>>(() => {
+    const out: Record<string, ModuleId[]> = {};
+    for (const p of INITIAL_PAGES) out[p.id] = [];
     return out;
   });
-  const [editMode, setEditMode] = useState(true);
-  const [expandedPage, setExpandedPage] = useState<PageId | null>(null);
+  const [histories, setHistories] = useState<Record<string, ModuleId[][]>>(() => {
+    const out: Record<string, ModuleId[][]> = {};
+    for (const p of INITIAL_PAGES) out[p.id] = [];
+    return out;
+  });
+  // Per-page, per-module size (grid span 3–12 of 12, optional fixed height px)
+  const [sizes, setSizes] = useState<Record<string, Record<ModuleId, SizeSpec>>>({});
+  const [resizingId, setResizingId] = useState<ModuleId | null>(null);
+  const resizeRef = useRef<null | { id: ModuleId; mode: 'e' | 's' | 'se'; startX: number; startY: number; startSpan: number; startH: number; colW: number }>(null);
 
+  const [editMode, setEditMode] = useState(true);
+  const [expandedPage, setExpandedPage] = useState<string | null>(null);
   const [drag, setDrag] = useState<ModuleId | null>(null);
   const [dropIndex, setDropIndex] = useState<number | null>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
@@ -1279,9 +1223,10 @@ export default function DesktopBuildSection() {
   const radius = RADII[buttonRadius];
   const isDark = interfaceMode === 'dark' || (interfaceMode === 'auto' && prefersDark);
   const accentName = ACCENTS.find((a) => a.hex === accentColor)?.name ?? 'Custom';
-  const currentPage = PAGES.find((p) => p.id === activePage);
+  const currentPage = pages.find((p) => p.id === activePage);
   const canvasModules = pageModules[activePage] ?? [];
   const history = histories[activePage] ?? [];
+  const isSignIn = activePage === 'signin';
 
   useEffect(() => {
     const mq = window.matchMedia('(prefers-color-scheme: dark)');
@@ -1289,13 +1234,27 @@ export default function DesktopBuildSection() {
     update(); mq.addEventListener('change', update);
     return () => mq.removeEventListener('change', update);
   }, []);
-
   useEffect(() => {
     if (!styleOpen) return;
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') { setStyleOpen(false); styleBtnRef.current?.focus(); } };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [styleOpen]);
+  useEffect(() => {
+    if (!sdkOpen) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setSdkOpen(false); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [sdkOpen]);
+  useEffect(() => {
+    if (sdkOpen) { const id = requestAnimationFrame(() => setSdkShown(true)); return () => cancelAnimationFrame(id); }
+    setSdkShown(false);
+  }, [sdkOpen]);
+  useEffect(() => {
+    if (styleOpen) { const id = requestAnimationFrame(() => setStyleShown(true)); return () => cancelAnimationFrame(id); }
+    setStyleShown(false);
+  }, [styleOpen]);
+
   const closeStyle = () => { setStyleOpen(false); styleBtnRef.current?.focus(); };
 
   const commit = (next: ModuleId[]) => {
@@ -1303,27 +1262,23 @@ export default function DesktopBuildSection() {
     setHistories((h) => ({ ...h, [activePage]: [...(h[activePage] ?? []).slice(-(HISTORY_LIMIT - 1)), canvasModules] }));
     setPageModules((p) => ({ ...p, [activePage]: next }));
   };
-
   const undo = () => {
     const h = histories[activePage] ?? [];
     if (h.length === 0) return;
     setPageModules((p) => ({ ...p, [activePage]: h[h.length - 1] }));
     setHistories((prev) => ({ ...prev, [activePage]: h.slice(0, -1) }));
   };
-
   const placeModule = (id: ModuleId, index: number) => {
     const from = canvasModules.indexOf(id);
     const next = canvasModules.filter((m) => m !== id);
     let at = index;
     if (from !== -1 && from < index) at -= 1;
-    next.splice(Math.max(0, Math.min(at, next.length)), 0, id);
+    next.splice(clamp(at, 0, next.length), 0, id);
     commit(next);
   };
-
   const scrollModuleIntoView = (id: ModuleId) => {
     setTimeout(() => { bodyRef.current?.querySelector(`[data-module-id="${id}"]`)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }, 60);
   };
-
   const addModule = (id: ModuleId) => {
     if (canvasModules.includes(id)) return;
     commit([...canvasModules, id]);
@@ -1335,9 +1290,63 @@ export default function DesktopBuildSection() {
     if (i === -1 || j < 0 || j >= canvasModules.length) return;
     const next = [...canvasModules]; [next[i], next[j]] = [next[j], next[i]]; commit(next);
   };
-  const loadStarter = () => commit(pageModulesFor(activePage));
-  const selectPage = (id: PageId) => { setActivePage(id); setExpandedPage(id); };
+  const loadStarter = () => commit(currentPage?.kit ?? []);
+  const selectPage = (id: string) => { setActivePage(id); setExpandedPage(null); };
+  const addOwnPage = () => {
+    const id = `custom-${Date.now()}`;
+    const label = `Custom Page ${pages.length - INITIAL_PAGES.length + 1}`;
+    setPages((p) => [...p, { id, label, blurb: 'Custom page — drop any modules you need', kit: [] }]);
+    setPageModules((p) => ({ ...p, [id]: [] }));
+    setHistories((h) => ({ ...h, [id]: [] }));
+    setActivePage(id);
+  };
+  const renamePage = (id: string, label: string) => {
+    setPages((prev) => prev.map((p) => (p.id === id ? { ...p, label } : p)));
+  };
 
+  /* --------------------------------- resize -------------------------------- */
+  const getSize = (id: ModuleId): SizeSpec => sizes[activePage]?.[id] ?? { span: moduleFor(id)?.wide ? 8 : 4, h: null };
+  const resizeRafRef = useRef<number | null>(null);
+  const pendingSizeRef = useRef<{ id: ModuleId; span: number; h: number } | null>(null);
+  const commitPendingSize = () => {
+    const p = pendingSizeRef.current;
+    if (!p) return;
+    setSizes((prev) => ({ ...prev, [activePage]: { ...(prev[activePage] ?? {}), [p.id]: { span: p.span, h: p.h } } }));
+  };
+  const startResize = (e: React.MouseEvent, id: ModuleId, mode: 'e' | 's' | 'se') => {
+    if (!editMode) return;
+    e.preventDefault(); e.stopPropagation();
+    const card = (e.currentTarget as HTMLElement).closest('[data-module-id]') as HTMLElement | null;
+    const cont = bodyRef.current;
+    const colW = ((cont?.clientWidth ?? 720) - (density === 'compact' ? 12 * 3 : 12 * 4)) / 12 || 48;
+    const cur = getSize(id);
+    resizeRef.current = { id, mode, startX: e.clientX, startY: e.clientY, startSpan: cur.span, startH: cur.h ?? card?.offsetHeight ?? 240, colW };
+    setResizingId(id);
+    const move = (ev: MouseEvent) => {
+      const r = resizeRef.current; if (!r) return;
+      const dx = ev.clientX - r.startX; const dy = ev.clientY - r.startY;
+      let span = r.startSpan; let h = r.startH;
+      if (r.mode !== 's') span = clamp(Math.round(r.startSpan + dx / r.colW), 3, 12);
+      if (r.mode !== 'e') h = Math.max(180, Math.round(r.startH + dy));
+      pendingSizeRef.current = { id: r.id, span, h };
+      if (resizeRafRef.current == null) {
+        resizeRafRef.current = requestAnimationFrame(() => {
+          resizeRafRef.current = null;
+          commitPendingSize();
+        });
+      }
+    };
+    const up = () => {
+      resizeRef.current = null; setResizingId(null);
+      if (resizeRafRef.current != null) { cancelAnimationFrame(resizeRafRef.current); resizeRafRef.current = null; }
+      commitPendingSize();
+      pendingSizeRef.current = null;
+      window.removeEventListener('mousemove', move); window.removeEventListener('mouseup', up);
+    };
+    window.addEventListener('mousemove', move); window.addEventListener('mouseup', up);
+  };
+
+  /* ------------------------------- drag & drop ------------------------------ */
   const startDrag = (e: React.DragEvent, id: ModuleId) => {
     e.stopPropagation();
     e.dataTransfer.setData('text/plain', id);
@@ -1351,11 +1360,32 @@ export default function DesktopBuildSection() {
     if (clientY < r.top + 40) el.scrollBy({ top: -12 });
     else if (clientY > r.bottom - 40) el.scrollBy({ top: 12 });
   };
-  const handleItemDragOver = (e: React.DragEvent, index: number) => {
-    if (!drag) return; e.preventDefault(); e.stopPropagation();
-    const rect = e.currentTarget.getBoundingClientRect();
-    setDropIndex(e.clientY < rect.top + rect.height / 2 ? index : index + 1);
-    autoScroll(e.clientY);
+  const handleCanvasDragOver = (e: React.DragEvent) => {
+    if (!drag) return;
+    e.preventDefault(); e.stopPropagation();
+    const container = e.currentTarget as HTMLElement;
+    const cards = Array.from(container.querySelectorAll<HTMLElement>('[data-module-id]')).filter((el) => el.dataset.moduleId !== drag);
+    if (cards.length === 0) { setDropIndex(0); autoScroll(e.clientY); return; }
+    const x = e.clientX; const y = e.clientY;
+    let rowDist = Infinity; let rowId: ModuleId | null = null; let rowBefore = false;
+    let anyDist = Infinity; let anyId: ModuleId | null = null; let anyBefore = false;
+    for (const el of cards) {
+      const r = el.getBoundingClientRect();
+      const cx = r.left + r.width / 2; const cy = r.top + r.height / 2;
+      const id = el.dataset.moduleId as ModuleId;
+      if (y >= r.top && y <= r.bottom) {
+        const d = Math.abs(x - cx);
+        if (d < rowDist) { rowDist = d; rowId = id; rowBefore = x < cx; }
+      }
+      const d2 = Math.hypot(x - cx, y - cy);
+      if (d2 < anyDist) { anyDist = d2; anyId = id; anyBefore = y < cy || (y === cy && x < cx); }
+    }
+    const targetId = rowId ?? anyId;
+    const before = rowId ? rowBefore : anyBefore;
+    const neighborIdx = targetId ? canvasModules.indexOf(targetId) : canvasModules.length;
+    const idx = targetId ? (before ? neighborIdx : neighborIdx + 1) : canvasModules.length;
+    setDropIndex(clamp(idx, 0, canvasModules.length));
+    autoScroll(y);
   };
   const handleContainerDragOver = (e: React.DragEvent) => { if (!drag) return; e.preventDefault(); setDropIndex(canvasModules.length); autoScroll(e.clientY); };
   const handleContainerDragLeave = (e: React.DragEvent) => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setDropIndex(null); };
@@ -1370,55 +1400,64 @@ export default function DesktopBuildSection() {
   const liveCtx: ViewCtx = { radius, accent: accentColor, isDark, brand: brandName, interactive: true };
   const thumbCtx: ViewCtx = { radius, accent: accentColor, isDark: false, brand: brandName, interactive: false };
 
-  const canvasProps = {
-    page: activePage, modules: canvasModules, ctx: liveCtx, editMode, density, drag, dropIndex, bodyRef,
-    onStartDrag: startDrag, onEndDrag: endDrag, onItemDragOver: handleItemDragOver, onDrop: handleDrop,
-    onMove: moveModule, onRemove: removeModule, onQuickAdd: addModule, isDark, accent: accentColor, radius,
-  };
-
   const segBtn = (on: boolean) =>
     `flex cursor-pointer items-center gap-1 rounded-md px-2.5 py-1 text-[10px] font-semibold transition-all ${on ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`;
   const iconBtn = 'grid h-7 w-7 cursor-pointer place-items-center rounded-lg bg-white text-slate-600 ring-1 ring-slate-200 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40';
+  const brandSlug = brandName.toLowerCase().replace(/\s+/g, '') || 'apexbank';
+
+  const renderModuleCard = (id: ModuleId, i: number) => {
+    const mod = moduleFor(id);
+    const size = getSize(id);
+    const isSource = drag === id;
+    return (
+      <div key={id} data-module-id={id}
+        draggable={editMode && resizingId !== id}
+        onMouseDown={(e) => {
+          const isField = (e.target as HTMLElement).closest('input,textarea,select,button');
+          e.currentTarget.draggable = editMode && resizingId !== id && !isField;
+        }}
+        onDragStart={(e) => startDrag(e, id)} onDragEnd={onEndDragSafe}
+        style={{ ['--tw-ring-color' as string]: accentColor, gridColumn: isSignIn ? undefined : `span ${size.span} / span ${size.span}`, height: size.h ?? undefined } as React.CSSProperties}
+        className={`group relative ${radius.card} transition-shadow duration-150 ${editMode ? 'cursor-grab ring-offset-2 focus-within:ring-2 hover:ring-2 active:cursor-grabbing' : ''} ${isDark ? 'ring-offset-slate-950' : 'ring-offset-white'} ${isSource ? 'opacity-40' : ''} ${size.h ? 'overflow-hidden' : ''} ${resizingId === id ? 'ring-2 shadow-lg' : ''}`}>
+        {drag && dropIndex === i && <DropLine side="top" accent={accentColor} />}
+        {drag && dropIndex === canvasModules.length && i === canvasModules.length - 1 && <DropLine side="bottom" accent={accentColor} />}
+        {editMode && (
+          <div className="absolute -top-9 right-2 z-20 flex items-center gap-0.5 rounded-full bg-white px-1 py-0.5 opacity-0 shadow-md ring-1 ring-slate-200 transition group-focus-within:opacity-100 group-hover:opacity-100">
+            <GripVertical className="h-3 w-3 text-slate-400" aria-hidden />
+            <ToolbarButton label="Move up" disabled={i === 0} onClick={() => moveModule(id, -1)}><ChevronUpSmall /></ToolbarButton>
+            <ToolbarButton label="Move down" disabled={i === canvasModules.length - 1} onClick={() => moveModule(id, 1)}><ChevronDownSmall /></ToolbarButton>
+            <ToolbarButton label="Remove" danger onClick={() => removeModule(id)}><Trash2 className="h-3 w-3" /></ToolbarButton>
+          </div>
+        )}
+        {editMode && !isSignIn && (
+          <>
+            <div onMouseDown={(e) => startResize(e, id, 'e')} title="Drag to resize width" className="absolute inset-y-0 -right-1.5 z-20 w-3 cursor-ew-resize opacity-0 transition group-hover:opacity-100">
+              <div className="mx-auto h-full w-1 rounded-full" style={{ background: `${accentColor}66` }} />
+            </div>
+            <div onMouseDown={(e) => startResize(e, id, 's')} title="Drag to resize height" className="absolute inset-x-0 -bottom-1.5 z-20 h-3 cursor-ns-resize opacity-0 transition group-hover:opacity-100">
+              <div className="my-auto h-1 w-full rounded-full" style={{ background: `${accentColor}66` }} />
+            </div>
+            <div onMouseDown={(e) => startResize(e, id, 'se')} title="Drag to resize width & height" className="absolute -bottom-1.5 -right-1.5 z-20 h-3.5 w-3.5 cursor-nwse-resize rounded-sm opacity-0 transition group-hover:opacity-100" style={{ background: accentColor }} />
+          </>
+        )}
+        <div className={`relative h-full ${drag ? 'pointer-events-none' : ''}`}><ModuleView id={id} ctx={liveCtx} /></div>
+      </div>
+    );
+  };
+  function onEndDragSafe() { endDrag(); }
 
   return (
-    <section className="w-full overflow-hidden bg-[#f4f6fc] px-4 py-12 font-sans text-slate-900 sm:px-6 md:py-16 lg:px-10">
-      <div className="mx-auto max-w-full space-y-8">
-        <div className="flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
-          <div className="max-w-xl">
-            <span className="mb-3 block text-xs font-bold uppercase tracking-widest text-[#0040DF]">DESKTOP MODULES</span>
-            <h2 className="text-3xl font-extrabold leading-[1.15] tracking-tight text-slate-900 sm:text-4xl lg:text-[2.25rem]">
-              Build a desktop banking console, one modular card at a time
-            </h2>
+    <section className="w-full overflow-hidden bg-[#eef1fb] px-4 py-10 font-sans text-slate-900 sm:px-6 md:py-14 lg:px-8">
+      <div className="mx-auto max-w-full">
+        <div className="flex items-center gap-3 border border-[#E1E5F8] bg-white px-5 py-3 shadow-sm">
+          <div>
+            <p className="text-[13px] font-bold leading-tight">FintecConnect Whitelabel Playground</p>
+            <p className="text-[10px] text-slate-400">Desktop console builder · {APP_KINDS.find((k) => k.id === appKind)?.label}</p>
           </div>
-          <p className="max-w-md text-sm font-normal leading-relaxed text-slate-500">
-            Choose a starting page, drag the desktop cards you need, and watch the console and generated code update as you go.
-          </p>
         </div>
 
-        <div className="overflow-hidden rounded-[22px] border border-[#DDE2F6] bg-[#EEF0FB] shadow-[0_10px_40px_rgba(37,52,120,0.08)]">
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#E1E5F8] bg-[#F4F5FD] px-5 py-2.5">
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-1.5" aria-hidden>
-                
-                
-              </div>
-              <h3 className="text-[13px] font-semibold text-slate-800">FintecConnect Desktop Console Build</h3>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="flex items-center gap-0.5 rounded-lg bg-slate-200/70 p-0.5" role="group" aria-label="Canvas mode">
-                <button type="button" onClick={() => setEditMode(true)} aria-pressed={editMode} className={segBtn(editMode)}><Pencil className="h-2.5 w-2.5" /> Edit</button>
-                <button type="button" onClick={() => setEditMode(false)} aria-pressed={!editMode} className={segBtn(!editMode)}><Eye className="h-2.5 w-2.5" /> Preview</button>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <button type="button" onClick={loadStarter} aria-label="Starter layout" className={iconBtn}><Sparkles className="h-3.5 w-3.5 text-[#0040DF]" /></button>
-                <button type="button" onClick={undo} disabled={history.length === 0} aria-label="Undo" className={iconBtn}><Undo2 className="h-3.5 w-3.5" /></button>
-                <button type="button" onClick={() => commit([])} disabled={canvasModules.length === 0} aria-label="Clear" className={iconBtn}><Trash2 className="h-3.5 w-3.5 text-rose-500" /></button>
-              </div>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 lg:h-[760px] lg:grid-cols-[minmax(240px,24%)_minmax(0,1fr)_minmax(280px,28%)]">
-            {/* LEFT */}
+        <div className="overflow-hidden border border-[#DDE2F6] bg-[#EEF0FB] shadow-[0_10px_40px_rgba(37,52,120,0.08)]">
+          <div className="grid grid-cols-1 lg:h-[820px] lg:grid-cols-[minmax(230px,22%)_minmax(0,1fr)]">
             <aside className="flex min-h-0 flex-col border-r border-[#E1E5F8] bg-[#EDEFFC]">
               <div className="space-y-4 px-4 pb-2 pt-5">
                 <div>
@@ -1431,121 +1470,159 @@ export default function DesktopBuildSection() {
                     <ChevronsUpDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-600" aria-hidden />
                   </div>
                 </div>
-
                 <button ref={styleBtnRef} type="button" onClick={() => setStyleOpen((v) => !v)} aria-haspopup="dialog" aria-expanded={styleOpen}
-                  className="flex w-full cursor-pointer items-center gap-3 rounded-xl bg-[#E2E6FA] px-3 py-2.5 text-left outline-none transition hover:bg-[#DADFF8] focus-visible:ring-2 focus-visible:ring-[#0040DF]">
+                  className="flex w-full cursor-pointer items-center gap-3 rounded-xl bg-[#DDE3FA] px-3 py-2.5 text-left outline-none transition hover:bg-[#D3DBF8] focus-visible:ring-2 focus-visible:ring-[#0040DF]">
                   <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-white" style={{ background: accentColor }}><Palette className="h-4 w-4" /></span>
                   <span className="min-w-0 flex-1"><span className="block text-[12px] font-semibold text-slate-900">Style Guide</span><span className="block truncate text-[10px] text-slate-500">{brandName || 'Your brand'} · {accentName}</span></span>
                   <ArrowRight className="h-4 w-4 shrink-0" style={{ color: accentColor }} aria-hidden />
                 </button>
-
                 <div className="flex items-center justify-between pt-1">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-slate-600">Pages</span>
-                  <span className="text-[10px] text-slate-500">Tap +</span>
+                  <span className="text-[10px] text-slate-500">Reorderable</span>
                 </div>
               </div>
-
               <ul className="scrollbar-none m-0 min-h-0 flex-1 space-y-0.5 overflow-y-auto px-2 pb-3" aria-label="Pages">
-                {PAGES.map((p) => (
-                  <PageMenuItem key={p.id} page={p.id} label={p.label} count={(pageModules[p.id] ?? []).length}
-                    active={activePage === p.id} expanded={expandedPage === p.id} accent={accentColor}
-                    canvasModules={canvasModules} thumbCtx={thumbCtx}
-                    onSelect={() => selectPage(p.id)}
-                    onToggleExpand={() => { if (expandedPage === p.id) setExpandedPage(null); else selectPage(p.id); }}
-                    onAddModule={addModule} onRemoveModule={removeModule}
-                    onStartDrag={startDrag} onEndDrag={endDrag} drag={drag}
-                  />
-                ))}
+                {pages.map((p) => {
+                  const isCustom = p.id.startsWith('custom-');
+                  return (
+                    <PageMenuItem key={p.id} page={p}
+                      count={isCustom ? (pageModules[p.id] ?? []).length : p.kit.length}
+                      active={activePage === p.id} expanded={expandedPage === p.id}
+                      accent={accentColor} canvasModules={canvasModules} thumbCtx={thumbCtx} drag={drag}
+                      onSelect={() => selectPage(p.id)}
+                      onToggleExpand={() => setExpandedPage((cur) => (cur === p.id ? null : p.id))}
+                      onAddModule={addModule} onRemoveModule={removeModule}
+                      onStartDrag={startDrag} onEndDrag={endDrag}
+                      onRename={renamePage} />
+                  );
+                })}
               </ul>
+              <div className="border-t border-[#E1E5F8] p-3">
+                <button type="button" onClick={addOwnPage}
+                  className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-[#DDE3FA] py-2.5 text-[11px] font-bold text-[#0040DF] transition hover:bg-[#D3DBF8]">
+                  <Plus className="h-3.5 w-3.5" /> Add your own page
+                </button>
+              </div>
             </aside>
 
-            {/* MIDDLE: desktop console preview */}
             <div className="relative flex min-h-0 flex-col bg-gradient-to-b from-[#EEF0FB] via-[#F6F7FE] to-[#EEF0FB] p-4">
               {styleOpen && <div className="absolute inset-0 z-20" onClick={closeStyle} aria-hidden />}
               {styleOpen && (
-                <StylePopout
-                  brandName={brandName} onBrandName={setBrandName}
-                  accent={accentColor} onAccent={setAccentColor}
-                  mode={interfaceMode} onMode={setInterfaceMode}
-                  shape={buttonRadius} onShape={setButtonRadius}
-                  density={density} onDensity={setDensity} onClose={closeStyle}
-                />
+                <StylePopout brandName={brandName} onBrandName={setBrandName} accent={accentColor} onAccent={setAccentColor}
+                  mode={interfaceMode} onMode={setInterfaceMode} shape={buttonRadius} onShape={setButtonRadius}
+                  density={density} onDensity={setDensity} onClose={closeStyle} shown={styleShown} />
               )}
+              <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                <p className="flex items-center gap-1.5 text-[10px] font-medium text-slate-500">
+                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500 motion-reduce:animate-none" aria-hidden /> Live Sandbox
+                </p>
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex items-center gap-0.5 rounded-lg bg-slate-200/70 p-0.5" role="group" aria-label="Canvas mode">
+                    <button type="button" onClick={() => setEditMode(true)} aria-pressed={editMode} className={segBtn(editMode)}><Pencil className="h-2.5 w-2.5" /> Edit</button>
+                    <button type="button" onClick={() => setEditMode(false)} aria-pressed={!editMode} className={segBtn(!editMode)}><Eye className="h-2.5 w-2.5" /> Preview</button>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <button type="button" onClick={loadStarter} aria-label="Starter layout" title="Load this page's reference layout" className={iconBtn}><Sparkles className="h-3.5 w-3.5 text-[#0040DF]" /></button>
+                    <button type="button" onClick={undo} disabled={history.length === 0} aria-label="Undo" className={iconBtn}><Undo2 className="h-3.5 w-3.5" /></button>
+                    <button type="button" onClick={() => commit([])} disabled={canvasModules.length === 0} aria-label="Clear" className={iconBtn}><Trash2 className="h-3.5 w-3.5 text-rose-500" /></button>
+                  </div>
+                </div>
+              </div>
 
-              <p className="mb-2 flex items-center gap-1.5 text-[10px] font-medium text-slate-500">
-                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500 motion-reduce:animate-none" aria-hidden /> Live desktop console
-              </p>
-
-              {/* Browser chrome */}
-              <div className="flex flex-1 flex-col overflow-hidden rounded-2xl border border-slate-800 bg-slate-900 shadow-2xl ring-1 ring-white/5">
-                <div className="flex items-center gap-3 bg-slate-950 px-3 py-2">
+              <div className="flex flex-1 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl">
+                <div className="flex items-center gap-3 border-b border-slate-200 bg-[#FBFCFF] px-3 py-2">
                   <div className="flex items-center gap-1.5">
                     <div className="h-2.5 w-2.5 rounded-full bg-rose-500" />
                     <div className="h-2.5 w-2.5 rounded-full bg-amber-500" />
                     <div className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
                   </div>
-                  <div className="flex flex-1 items-center gap-1.5 rounded-md bg-slate-800 px-2.5 py-1 text-[10px] text-slate-400">
-                    <Lock className="h-2.5 w-2.5" /><span className="truncate">{brandName.toLowerCase().replace(/\s+/g, '')}.app/console</span>
+                  <div className="flex flex-1 items-center justify-center">
+                    <div className="flex w-full max-w-md items-center gap-1.5 rounded-md border border-slate-200 bg-white px-2.5 py-1 text-[10px] text-slate-500">
+                      <Lock className="h-2.5 w-2.5 text-emerald-600" />
+                      <span className="truncate font-mono">https://banking.{brandSlug}.internal/commercial/overview</span>
+                    </div>
                   </div>
-                  <div className="text-[9px] font-mono text-slate-500">v2.4.0</div>
+                  <RefreshCw className="h-3 w-3 text-slate-400" />
                 </div>
 
-                {/* App body */}
-                <div className={`flex flex-1 overflow-hidden ${isDark ? 'bg-slate-950 text-slate-100' : 'bg-slate-50 text-slate-900'}`}>
-                  {/* sidebar */}
-                  <div className={`w-40 shrink-0 border-r p-3 ${isDark ? 'border-slate-800 bg-slate-900/80' : 'border-slate-200 bg-white'}`}>
-                    <div className="mb-4 flex items-center gap-2">
-                      <div className={`grid h-7 w-7 place-items-center text-[11px] font-black text-white ${radius.icon}`} style={{ background: accentColor }}>{brandName.charAt(0) || 'F'}</div>
-                      <span className="truncate text-[11px] font-extrabold tracking-tight">{brandName || 'Bank'}</span>
-                    </div>
-                    <nav className="space-y-0.5">
-                      {PAGES.map((p) => {
-                        const active = activePage === p.id;
-                        return (
-                          <button key={p.id} type="button" onClick={() => selectPage(p.id)}
-                            className={`flex w-full items-center justify-between gap-1 px-2 py-1.5 text-left text-[10px] font-semibold transition ${radius.icon} ${active ? 'text-white' : isDark ? 'text-slate-400 hover:bg-slate-800 hover:text-slate-200' : 'text-slate-600 hover:bg-slate-100'}`}
-                            style={active ? { background: accentColor } : undefined}>
-                            <span className="truncate">{p.label.split(' ')[0]}</span>
-                            {active && <ChevronRight className="h-3 w-3 shrink-0" />}
-                          </button>
-                        );
-                      })}
-                    </nav>
-                  </div>
-
-                  {/* main content */}
-                  <div className="flex flex-1 flex-col overflow-hidden">
-                    <div className={`flex items-center justify-between gap-2 border-b px-4 py-2.5 ${isDark ? 'border-slate-800 bg-slate-900/60' : 'border-slate-200 bg-white'}`}>
-                      <div>
-                        <p className="text-[11px] font-extrabold">{currentPage?.label}</p>
-                        <p className="text-[9px] text-slate-400">{canvasModules.length} modules</p>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <div className={`flex items-center gap-1 rounded-md border px-2 py-1 text-[9px] font-semibold ${isDark ? 'border-slate-700 bg-slate-800 text-slate-300' : 'border-slate-200 bg-slate-100 text-slate-500'}`}>
-                          <Search className="h-2.5 w-2.5" /> Search
+                <div className={`flex flex-1 flex-col overflow-hidden ${isDark ? 'bg-slate-950 text-slate-100' : 'bg-white text-slate-900'}`}>
+                  <div ref={bodyRef} onDragOver={handleContainerDragOver} onDragLeave={handleContainerDragLeave} onDrop={handleDrop}
+                    className={`flex-1 overflow-y-auto scrollbar-none ${density === 'compact' ? 'px-4 pb-4 pt-10' : 'px-6 pb-6 pt-12'} ${resizingId ? 'select-none' : ''}`}>
+                    {activePage === 'home' ? (
+                      <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h2 className="text-[22px] font-extrabold tracking-tight">Good Morning, User</h2>
+                            <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-[8px] font-bold text-indigo-600">PRO HUB</span>
+                          </div>
+                          <p className={`mt-1 max-w-sm text-[10px] leading-relaxed ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                            Here is an integrated breakdown of your cash velocity and liquid capital for today.
+                          </p>
                         </div>
-                        <button className={`grid h-6 w-6 place-items-center rounded-md ${isDark ? 'bg-slate-800 text-slate-300' : 'bg-slate-100 text-slate-500'}`}><Bell className="h-3 w-3" /></button>
-                        <span className={`px-2 py-1 text-[9px] font-bold text-white ${radius.icon}`} style={{ background: accentColor }}>Admin</span>
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <button type="button" className="flex cursor-pointer items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-1.5 text-[9px] font-bold text-white"><Send className="h-2.5 w-2.5" /> Send Money</button>
+                          <button type="button" className={`flex cursor-pointer items-center gap-1.5 rounded-lg border px-3 py-1.5 text-[9px] font-bold ${isDark ? 'border-slate-700 bg-slate-900' : 'border-slate-200 bg-white'}`}><CreditCard className="h-2.5 w-2.5" /> Top Up Card</button>
+                          <button type="button" className={`flex cursor-pointer items-center gap-1.5 rounded-lg border px-3 py-1.5 text-[9px] font-bold ${isDark ? 'border-slate-700 bg-slate-900' : 'border-slate-200 bg-white'}`}><ArrowDownLeft className="h-2.5 w-2.5" /> Request</button>
+                          <button type="button" className={`flex cursor-pointer items-center gap-1.5 rounded-lg border px-3 py-1.5 text-[9px] font-bold ${isDark ? 'border-slate-700 bg-slate-900' : 'border-slate-200 bg-white'}`}><Receipt className="h-2.5 w-2.5" /> Pay Bills</button>
+                        </div>
                       </div>
-                    </div>
-                    <div ref={bodyRef} onDragOver={handleContainerDragOver} onDragLeave={handleContainerDragLeave} onDrop={handleDrop}
-                      className={`flex-1 overflow-y-auto scrollbar-none ${density === 'compact' ? 'p-3' : 'p-4'}`}>
-                      <PageCanvas {...canvasProps} />
-                    </div>
+                    ) : (
+                      <div className="mb-5">
+                        <h2 className="text-[18px] font-extrabold tracking-tight">{currentPage?.label}</h2>
+                        <p className={`mt-0.5 text-[10px] ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{currentPage?.blurb}</p>
+                      </div>
+                    )}
+
+                    {canvasModules.length === 0 ? (
+                      <div style={drag ? { borderColor: accentColor, background: `${accentColor}10` } : undefined}
+                        className={`flex flex-col items-center justify-center space-y-3 border-2 border-dashed py-16 text-center transition-colors ${radius.card} ${drag ? '' : isDark ? 'border-slate-700 bg-slate-900/50' : 'border-blue-200 bg-blue-50/20'}`}>
+                        <div className={`grid h-12 w-12 place-items-center text-white shadow-sm ${radius.icon}`} style={{ background: accentColor }}><Plus className="h-6 w-6" /></div>
+                        <div className="space-y-1">
+                          <h4 className="text-xs font-bold">{drag ? 'Drop to add it here' : `This ${currentPage?.label ?? 'page'} canvas is empty`}</h4>
+                          <p className="text-[11px] text-slate-500">Drag tiles from the page menu, tap a suggestion, or load the reference layout.</p>
+                        </div>
+                        <div className="flex flex-wrap justify-center gap-1.5 pt-1">
+                          {(currentPage?.kit ?? []).slice(0, 3).map((id) => (
+                            <button key={id} type="button" onClick={() => addModule(id)} className={`cursor-pointer rounded-full px-2.5 py-1 text-[10px] font-semibold shadow-sm ${isDark ? 'bg-slate-800 text-slate-200' : 'bg-white text-slate-600 ring-1 ring-slate-200'}`}>
+                              + {moduleFor(id)?.title ?? id}
+                            </button>
+                          ))}
+                          {(currentPage?.kit.length ?? 0) > 0 && (
+                            <button type="button" onClick={loadStarter} className="cursor-pointer rounded-full px-2.5 py-1 text-[10px] font-bold text-white shadow-sm" style={{ background: accentColor }}>
+                              Load reference layout
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ) : isSignIn ? (
+                      <div className="flex min-h-[480px] flex-col items-center justify-center">
+                        <div onDragOver={handleCanvasDragOver} onDrop={handleDrop} className={`w-full max-w-sm ${density === 'compact' ? 'space-y-3' : 'space-y-4'}`}>{canvasModules.map(renderModuleCard)}</div>
+                      </div>
+                    ) : (
+                      <div onDragOver={handleCanvasDragOver} onDrop={handleDrop} className={`grid grid-cols-12 ${density === 'compact' ? 'gap-3' : 'gap-4'}`}>{canvasModules.map(renderModuleCard)}</div>
+                    )}
                   </div>
                 </div>
               </div>
-            </div>
 
-            {/* RIGHT */}
-            <div className="min-h-[420px] min-w-0 border-l border-[#E1E5F8] lg:min-h-0">
-              <CodePanel
-                pageLabel={currentPage?.label ?? 'Page'}
-                blurb={currentPage?.blurb ?? ''}
-                modules={canvasModules}
-                lang={codeLang} onLang={setCodeLang}
-                accent={accentColor} brand={brandName} density={density}
-              />
+              {!sdkOpen && (
+                <button type="button" onClick={() => setSdkOpen(true)}
+                  className="absolute bottom-3 right-3 z-30 flex cursor-pointer items-center gap-1.5 rounded-full bg-[#DDE3FB] px-3.5 py-2 text-[11px] font-bold text-[#0040DF] shadow-lg ring-1 ring-[#C4CFF7] transition hover:bg-[#CFD8FA]">
+                  <Code2 className="h-3.5 w-3.5" /> Preview SDK
+                </button>
+              )}
+              {sdkOpen && (
+                <>
+                  <div className="absolute inset-0 z-30" onClick={() => setSdkOpen(false)} aria-hidden />
+                  <div
+                    className={`absolute bottom-3 right-3 z-40 h-1/2 min-h-[300px] w-[min(440px,calc(100%-24px))] overflow-hidden rounded-2xl shadow-[0_24px_60px_rgba(30,41,90,0.28)] ring-1 ring-slate-200 transition-all duration-200 ease-out ${sdkShown ? 'translate-y-0 opacity-100' : 'translate-y-3 opacity-0'}`}
+                  >
+                    <CodePanel pageLabel={currentPage?.label ?? 'Page'} blurb={currentPage?.blurb ?? ''} modules={canvasModules}
+                      lang={codeLang} onLang={setCodeLang} accent={accentColor} brand={brandName} density={density}
+                      onClose={() => setSdkOpen(false)} />
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -1557,5 +1634,18 @@ export default function DesktopBuildSection() {
         </div>
       </div>
     </section>
+  );
+}
+
+function ChevronUpSmall() { return <ChevronUpIcon />; }
+function ChevronDownSmall() { return <ChevronDownIcon />; }
+function ChevronUpIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m18 15-6-6-6 6" /></svg>
+  );
+}
+function ChevronDownIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6" /></svg>
   );
 }

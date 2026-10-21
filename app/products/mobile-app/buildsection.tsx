@@ -15,9 +15,11 @@ import {
   ChevronRight,
   ChevronUp,
   ChevronsUpDown,
+  Clock,
   Contrast,
   Copy,
   Eye,
+  FileText,
   GripVertical,
   Home,
   Landmark,
@@ -28,6 +30,7 @@ import {
   Pencil,
   Plus,
   PlusCircle,
+  QrCode,
   Receipt,
   RefreshCw,
   Search,
@@ -47,16 +50,13 @@ import {
   X,
 } from 'lucide-react';
 
-/* -------------------------------------------------------------------------- */
-/*  Fonts & design tokens                                                     */
-/* -------------------------------------------------------------------------- */
-
 const outfit = Outfit({ subsets: ['latin'], weight: ['400', '500', '600', '700'], display: 'swap' });
 
 const INK = '#1B1B1F';
 const YELLOW = '#F5B921';
 const GREEN = '#16A36B';
 const PINK = '#EF4F6B';
+const NAVY = '#0B1A56';
 
 type Category = 'balances' | 'actions' | 'fx' | 'ledger' | 'security' | 'onboarding';
 type ModuleId =
@@ -70,10 +70,20 @@ type ModuleId =
   | 'security'
   | 'notifications'
   | 'signin'
+  | 'signInWithGoogle'
   | 'accountsPage'
-  | 'transfersPage'
-  | 'sendPage'
-  | 'requestPage'
+  | 'directTransferEngine'
+  | 'multiMarketFX'
+  | 'recurringStanding'
+  | 'authorizationModal'
+  | 'recentRecipients'
+  | 'beneficiaryValidation'
+  | 'sendMoneyAmount'
+  | 'transferSuccess'
+  | 'peerInvoicing'
+  | 'paymentQR'
+  | 'splitPayment'
+  | 'outstandingReceivables'
   | 'historyPage'
   | 'splash'
   | 'profile'
@@ -87,7 +97,7 @@ type PageId =
   | 'accounts'
   | 'transfers'
   | 'send'
-  | 'request'
+  | 'payments'
   | 'cards'
   | 'history'
   | 'notifications'
@@ -127,7 +137,6 @@ const RADII: Record<RadiusMode, { card: string; tile: string; icon: string }> = 
 };
 type Radius = (typeof RADII)[RadiusMode];
 
-/* Each module carries a small snippet used by the right-hand code panel. */
 const availableModules: ModuleAsset[] = [
   {
     id: 'accounts', title: 'Multi-Layer Balance Card', subtitle: 'Total balance with wallet shortcut', category: 'balances', badge: 'Core',
@@ -150,13 +159,13 @@ const availableModules: ModuleAsset[] = [
     },
   },
   {
-    id: 'transfers', title: 'Quick Actions Matrix', subtitle: 'Send, Request, Pay Bill & Top Up', category: 'actions', badge: 'Action',
+    id: 'transfers', title: 'Quick Actions Matrix', subtitle: 'Send, Payments, Pay Bill & Top Up', category: 'actions', badge: 'Action',
     badgeColor: 'bg-emerald-50 text-emerald-600 border border-emerald-100',
     code: {
       swiftui: `QuickActionsComponent()`,
-      typescript: `export const QuickActions = () => (\n  <Grid columns={4}><Action id="send" /><Action id="request" /></Grid>\n);`,
-      reactnative: `<QuickActions actions={[ 'send', 'request', 'payBill', 'topUp' ]} />`,
-      kotlin: `QuickActions(actions = listOf(SEND, REQUEST, PAY_BILL, TOP_UP))`,
+      typescript: `export const QuickActions = () => (\n  <Grid columns={4}><Action id="send" /><Action id="payments" /></Grid>\n);`,
+      reactnative: `<QuickActions actions={[ 'send', 'payments', 'payBill', 'topUp' ]} />`,
+      kotlin: `QuickActions(actions = listOf(SEND, PAYMENTS, PAY_BILL, TOP_UP))`,
     },
   },
   {
@@ -230,6 +239,16 @@ const availableModules: ModuleAsset[] = [
     },
   },
   {
+    id: 'signInWithGoogle', title: 'Sign In with Google', subtitle: 'One-tap OAuth Google sign-in', category: 'onboarding', badge: 'Auth',
+    badgeColor: 'bg-slate-100 text-slate-600 border border-slate-200',
+    code: {
+      swiftui: `SignInWithGoogle(onSuccess: auth.googleSignIn)`,
+      typescript: `export const SignInWithGoogle = () => (\n  <GoogleAuthButton onSuccess={handleGoogle} />\n);`,
+      reactnative: `<SignInWithGoogle onSuccess={handleGoogle} />`,
+      kotlin: `SignInWithGoogle(onSuccess = auth::googleSignIn)`,
+    },
+  },
+  {
     id: 'accountsPage', title: 'Accounts Overview', subtitle: 'Sub-accounts list with available funds', category: 'balances', badge: 'Core',
     badgeColor: 'bg-blue-50 text-blue-600 border border-blue-100',
     code: {
@@ -239,36 +258,130 @@ const availableModules: ModuleAsset[] = [
       kotlin: `AccountsOverview(accounts = store.accounts)`,
     },
   },
+  /* ------------------- Transfers (4.1 – 4.4) ------------------- */
   {
-    id: 'transfersPage', title: 'Transfer Builder', subtitle: 'Recipient, rail selector and fee preview', category: 'actions', badge: 'Flow',
+    id: 'directTransferEngine', title: '4.1 Direct Transfer Engine', subtitle: 'From / To / Amount with rail picker', category: 'actions', badge: 'Flow',
     badgeColor: 'bg-emerald-50 text-emerald-600 border border-emerald-100',
     code: {
-      swiftui: `TransferBuilder(recipient: "US89…7364", rail: .instant)`,
-      typescript: `export const TransferBuilder = () => (\n  <Form><RailPicker /><FeePreview /></Form>\n);`,
-      reactnative: `<TransferBuilder rail="instant" />`,
-      kotlin: `TransferBuilder(recipient = "US89…7364", rail = Rail.INSTANT)`,
+      swiftui: `DirectTransferEngine(\n  from: .checking(4912),\n  to: .chaseSarah,\n  amount: 500.00\n)`,
+      typescript: `export const DirectTransferEngine = () => (\n  <Form from={checking} to={sarah} amount={500} />\n);`,
+      reactnative: `<DirectTransferEngine from="checking" to="sarah" amount={500} />`,
+      kotlin: `DirectTransferEngine(from = CHECKING, to = SARAH, amount = 500.00)`,
     },
   },
   {
-    id: 'sendPage', title: 'Send Money Form', subtitle: 'Amount pad with memo and category', category: 'actions', badge: 'Flow',
-    badgeColor: 'bg-emerald-50 text-emerald-600 border border-emerald-100',
+    id: 'multiMarketFX', title: '4.2 Mid-Market FX Swap', subtitle: 'Lock rate, guaranteed rate window', category: 'fx', badge: 'FX',
+    badgeColor: 'bg-amber-50 text-amber-600 border border-amber-100',
     code: {
-      swiftui: `SendMoneyForm(amount: 250, category: .rent)`,
-      typescript: `export const SendMoneyForm = () => (\n  <AmountPad amount={250} tags={['Rent','Food','Gift']} />\n);`,
-      reactnative: `<SendMoneyForm amount={250} category="rent" />`,
-      kotlin: `SendMoneyForm(amount = 250, category = Category.RENT)`,
+      swiftui: `MidMarketFXSwap(\n  send: 1000,\n  from: .usd,\n  to: .eur,\n  rate: 0.9214\n)`,
+      typescript: `export const MidMarketFXSwap = () => (\n  <Swap send={1000} from="USD" to="EUR" rate={0.9214} />\n);`,
+      reactnative: `<MidMarketFXSwap send={1000} from="USD" to="EUR" />`,
+      kotlin: `MidMarketFXSwap(send = 1000, from = USD, to = EUR, rate = 0.9214)`,
     },
   },
   {
-    id: 'requestPage', title: 'Request Money Sheet', subtitle: 'Invoice-style ask with share link', category: 'actions', badge: 'Flow',
+    id: 'recurringStanding', title: '4.3 Recurring Standing Order', subtitle: 'Monthly schedule, next run date', category: 'actions', badge: 'Flow',
     badgeColor: 'bg-emerald-50 text-emerald-600 border border-emerald-100',
     code: {
-      swiftui: `RequestSheet(from: "@alex.morgan", amount: 1200)`,
-      typescript: `export const RequestSheet = () => (\n  <Sheet onCopy={() => copy(link)} />\n);`,
-      reactnative: `<RequestSheet from="@alex.morgan" amount={1200} />`,
-      kotlin: `RequestSheet(payee = "@alex.morgan", amount = 1200)`,
+      swiftui: `RecurringStandingOrder(\n  payee: realty,\n  amount: 2100,\n  nextRun: "Nov 1, 2024"\n)`,
+      typescript: `export const RecurringStandingOrder = () => (\n  <Standing payee={realty} amount={2100} nextRun="2024-11-01" />\n);`,
+      reactnative: `<RecurringStandingOrder payee={realty} amount={2100} />`,
+      kotlin: `RecurringStandingOrder(payee = realty, amount = 2100.0, nextRun = Nov1)`,
     },
   },
+  {
+    id: 'authorizationModal', title: '4.4 Authorization Modal', subtitle: 'Payment review & authorize', category: 'security', badge: 'Shield',
+    badgeColor: 'bg-emerald-50 text-emerald-600 border border-emerald-100',
+    code: {
+      swiftui: `PaymentReviewAuthorization(\n  amount: 500,\n  fee: 0,\n  delivery: .instant\n)`,
+      typescript: `export const PaymentReview = () => (\n  <Review amount={500} fee={0} delivery="instant" />\n);`,
+      reactnative: `<PaymentReview amount={500} fee={0} delivery="instant" />`,
+      kotlin: `PaymentReview(amount = 500.0, fee = 0.0, delivery = INSTANT)`,
+    },
+  },
+  /* ------------------- Send (5.1 – 5.4) ------------------- */
+  {
+    id: 'recentRecipients', title: '5.1 Recent Recipients', subtitle: 'One-tap contacts dock', category: 'actions', badge: 'Action',
+    badgeColor: 'bg-emerald-50 text-emerald-600 border border-emerald-100',
+    code: {
+      swiftui: `RecentRecipients(contacts: contacts.recent)`,
+      typescript: `export const RecentRecipients = () => (\n  <ContactsDock contacts={recent} onManage={openContacts} />\n);`,
+      reactnative: `<RecentRecipients contacts={recent} onManage={openContacts} />`,
+      kotlin: `RecentRecipients(contacts = contacts.recent, onManage = ::openContacts)`,
+    },
+  },
+  {
+    id: 'beneficiaryValidation', title: '5.2 Add Recipient', subtitle: 'Beneficiary validation & save', category: 'actions', badge: 'Flow',
+    badgeColor: 'bg-emerald-50 text-emerald-600 border border-emerald-100',
+    code: {
+      swiftui: `BeneficiaryValidation(onSave: { save() })`,
+      typescript: `export const BeneficiaryValidation = () => (\n  <ValidationForm onSave={save} />\n);`,
+      reactnative: `<BeneficiaryValidation onSave={save} />`,
+      kotlin: `BeneficiaryValidation(onSave = ::save)`,
+    },
+  },
+  {
+    id: 'sendMoneyAmount', title: '5.3 Send Money Focus', subtitle: 'Amount pad with note & review', category: 'actions', badge: 'Flow',
+    badgeColor: 'bg-emerald-50 text-emerald-600 border border-emerald-100',
+    code: {
+      swiftui: `SendMoneyAmount(\n  amount: 120,\n  note: "Dinner & drinks"\n)`,
+      typescript: `export const SendMoneyAmount = () => (\n  <AmountPad amount={120} note="Dinner" />\n);`,
+      reactnative: `<SendMoneyAmount amount={120} note="Dinner" />`,
+      kotlin: `SendMoneyAmount(amount = 120.0, note = "Dinner")`,
+    },
+  },
+  {
+    id: 'transferSuccess', title: '5.4 Transfer Success', subtitle: 'Confirmation with receipt ID', category: 'ledger', badge: 'Live',
+    badgeColor: 'bg-amber-50 text-amber-600 border border-amber-100',
+    code: {
+      swiftui: `TransferSuccess(\n  receipt: "US-99214-88A",\n  amount: 120,\n  to: "Sarah Jenkins"\n)`,
+      typescript: `export const TransferSuccess = () => (\n  <Success receipt="US-99214-88A" amount={120} to="Sarah" />\n);`,
+      reactnative: `<TransferSuccess receipt="US-99214-88A" amount={120} />`,
+      kotlin: `TransferSuccess(receipt = "US-99214-88A", amount = 120.0)`,
+    },
+  },
+  /* ------------------- Payment Requests (6.1 – 6.4) ------------------- */
+  {
+    id: 'peerInvoicing', title: '6.1 Peer Invoicing', subtitle: 'Request money with a note', category: 'actions', badge: 'Flow',
+    badgeColor: 'bg-emerald-50 text-emerald-600 border border-emerald-100',
+    code: {
+      swiftui: `PeerInvoicing(amount: 75, note: "Concert tickets")`,
+      typescript: `export const PeerInvoicing = () => (\n  <Invoice amount={75} note="Concert tickets" />\n);`,
+      reactnative: `<PeerInvoicing amount={75} note="Concert tickets" />`,
+      kotlin: `PeerInvoicing(amount = 75.0, note = "Concert tickets")`,
+    },
+  },
+  {
+    id: 'paymentQR', title: '6.2 Payment QR', subtitle: 'Scan-to-pay QR request', category: 'actions', badge: 'Flow',
+    badgeColor: 'bg-emerald-50 text-emerald-600 border border-emerald-100',
+    code: {
+      swiftui: `PaymentQRRequest(handle: "alexrivera", amount: 75)`,
+      typescript: `export const PaymentQRRequest = () => (\n  <QR handle="alexrivera" amount={75} />\n);`,
+      reactnative: `<PaymentQRRequest handle="alexrivera" amount={75} />`,
+      kotlin: `PaymentQRRequest(handle = "alexrivera", amount = 75.0)`,
+    },
+  },
+  {
+    id: 'splitPayment', title: '6.3 Split Payment', subtitle: 'Divide bill across people', category: 'actions', badge: 'Flow',
+    badgeColor: 'bg-emerald-50 text-emerald-600 border border-emerald-100',
+    code: {
+      swiftui: `SplitPayment(total: 180, shares: [60, 60, 60])`,
+      typescript: `export const SplitPayment = () => (\n  <Splitter total={180} shares={[60,60,60]} />\n);`,
+      reactnative: `<SplitPayment total={180} shares={[60,60,60]} />`,
+      kotlin: `SplitPayment(total = 180.0, shares = listOf(60.0, 60.0, 60.0))`,
+    },
+  },
+  {
+    id: 'outstandingReceivables', title: '6.4 Outstanding Receivables', subtitle: 'Pending invoice tracker', category: 'ledger', badge: 'Data',
+    badgeColor: 'bg-amber-50 text-amber-600 border border-amber-100',
+    code: {
+      swiftui: `OutstandingReceivables(items: store.pending)`,
+      typescript: `export const OutstandingReceivables = () => (\n  <Tracker items={pending} onRemind={remind} />\n);`,
+      reactnative: `<OutstandingReceivables items={pending} onRemind={remind} />`,
+      kotlin: `OutstandingReceivables(items = store.pending, onRemind = ::remind)`,
+    },
+  },
+  /* ------------------- Others ------------------- */
   {
     id: 'historyPage', title: 'Ledger Filter Bar', subtitle: 'Date range, status and type chips', category: 'ledger', badge: 'Data',
     badgeColor: 'bg-amber-50 text-amber-600 border border-amber-100',
@@ -320,12 +433,12 @@ const APP_KINDS: { id: AppKind; label: string; blurb: string }[] = [
 ];
 
 const PAGES: { id: PageId; label: string; modules: ModuleId[] }[] = [
-  { id: 'signin', label: 'Sign In', modules: ['signin'] },
+  { id: 'signin', label: 'Sign In', modules: ['signin', 'signInWithGoogle'] },
   { id: 'home', label: 'Home', modules: ['accounts', 'cashflow', 'transfers', 'vaults', 'cards'] },
   { id: 'accounts', label: 'Accounts', modules: ['accountsPage', 'accounts'] },
-  { id: 'transfers', label: 'Transfers', modules: ['transfersPage', 'transfers', 'cashflow'] },
-  { id: 'send', label: 'Send', modules: ['sendPage', 'cashflow', 'transfers'] },
-  { id: 'request', label: 'Request', modules: ['requestPage', 'notifications'] },
+  { id: 'transfers', label: 'Transfers', modules: ['directTransferEngine', 'multiMarketFX', 'recurringStanding', 'authorizationModal'] },
+  { id: 'send', label: 'Send', modules: ['recentRecipients', 'beneficiaryValidation', 'sendMoneyAmount', 'transferSuccess'] },
+  { id: 'payments', label: 'Payments', modules: ['peerInvoicing', 'paymentQR', 'splitPayment', 'outstandingReceivables'] },
   { id: 'cards', label: 'Cards', modules: ['cards', 'freezeCard', 'vaults'] },
   { id: 'history', label: 'Transaction history', modules: ['historyPage', 'cards', 'analytics'] },
   { id: 'notifications', label: 'Notifications', modules: ['notifications', 'profile'] },
@@ -334,7 +447,7 @@ const PAGES: { id: PageId; label: string; modules: ModuleId[] }[] = [
 ];
 
 const PAGE_TO_TAB: Record<PageId, TabId> = {
-  signin: 'home', home: 'home', accounts: 'home', transfers: 'home', send: 'send', request: 'home',
+  signin: 'home', home: 'home', accounts: 'home', transfers: 'home', send: 'send', payments: 'home',
   cards: 'cards', history: 'activity', notifications: 'home', profile: 'settings', splash: 'home',
 };
 
@@ -388,13 +501,9 @@ const pageModulesFor = (page: PageId): ModuleId[] =>
 
 const moduleFor = (id: ModuleId) => availableModules.find((m) => m.id === id);
 
-/* -------------------------------------------------------------------------- */
-/*  Shared module renderer                                                    */
-/* -------------------------------------------------------------------------- */
-
 interface ViewActions {
   send: () => void;
-  request: () => void;
+  payments: () => void;
   payBill: () => void;
   topUp: () => void;
   openWallet: () => void;
@@ -405,6 +514,7 @@ interface ViewActions {
   toggleFaceId: () => void;
   openAlerts: () => void;
   signIn: () => void;
+  signInWithGoogle: () => void;
   toggleFreeze: () => void;
 }
 
@@ -425,9 +535,9 @@ interface ViewCtx {
 
 const noop = () => {};
 const noopActions: ViewActions = {
-  send: noop, request: noop, payBill: noop, topUp: noop, openWallet: noop, openFx: noop,
+  send: noop, payments: noop, payBill: noop, topUp: noop, openWallet: noop, openFx: noop,
   openHistory: noop, seeAllSavings: noop, deposit: noop, toggleFaceId: noop, openAlerts: noop,
-  signIn: noop, toggleFreeze: noop,
+  signIn: noop, signInWithGoogle: noop, toggleFreeze: noop,
 };
 
 function Tap({
@@ -525,7 +635,7 @@ function CashflowStrip({ ctx }: { ctx: ViewCtx }) {
 function QuickActions({ ctx }: { ctx: ViewCtx }) {
   const items = [
     { label: 'Send', Icon: Send, color: ctx.accent, run: ctx.actions.send },
-    { label: 'Request', Icon: ArrowDownLeft, color: GREEN, run: ctx.actions.request },
+    { label: 'Payments', Icon: ArrowDownLeft, color: GREEN, run: ctx.actions.payments },
     { label: 'Pay Bill', Icon: Receipt, color: YELLOW, run: ctx.actions.payBill },
     { label: 'Top Up', Icon: PlusCircle, color: PINK, run: ctx.actions.topUp },
   ];
@@ -667,6 +777,35 @@ function SignInCard({ ctx }: { ctx: ViewCtx }) {
   );
 }
 
+function GoogleSignInCard({ ctx }: { ctx: ViewCtx }) {
+  return (
+    <div className={`space-y-3 p-4 ${ctx.radius.card} ${surface(ctx.isDark)}`}>
+      <div className="flex items-center gap-2.5">
+        <span className={`grid h-9 w-9 place-items-center bg-white ring-1 ring-slate-200 ${ctx.radius.icon}`}>
+          <svg viewBox="0 0 48 48" className="h-4 w-4" aria-hidden>
+            <path fill="#FFC107" d="M43.6 20.1H42V20H24v8h11.3c-1.6 4.7-6.1 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 8 3l5.7-5.7C34 5.5 29.3 3.5 24 3.5 12.7 3.5 3.5 12.7 3.5 24S12.7 44.5 24 44.5c11.3 0 20.5-9.2 20.5-20.5 0-1.3-.1-2.6-.4-3.9z" />
+            <path fill="#FF3D00" d="M5.3 14.7l6.6 4.8C13.6 15.1 18.4 12 24 12c3.1 0 5.8 1.2 8 3l5.7-5.7C34 5.5 29.3 3.5 24 3.5c-7.4 0-13.8 4.1-17.1 10.2z" />
+            <path fill="#4CAF50" d="M24 44.5c5.2 0 9.9-2 13.5-5.2l-6.2-5.2c-2 1.5-4.6 2.4-7.3 2.4-5.2 0-9.6-3.3-11.2-7.9l-6.5 5C9.8 40.1 16.3 44.5 24 44.5z" />
+            <path fill="#1976D2" d="M43.6 20.1H42V20H24v8h11.3c-.8 2.3-2.2 4.3-4.1 5.7l6.2 5.2C42.2 35.6 44.5 30.2 44.5 24c0-1.3-.1-2.6-.9-3.9z" />
+          </svg>
+        </span>
+        <div><p className="text-[13px] font-bold">Sign in with Google</p><p className="text-[9px] text-slate-400">Use your Google account</p></div>
+      </div>
+      <Tap ctx={ctx} onClick={ctx.actions.signInWithGoogle} label="Continue with Google"
+        className={`flex w-full items-center justify-center gap-2 border py-2.5 text-[11px] font-semibold ${ctx.radius.icon} ${ctx.isDark ? 'border-slate-700 bg-slate-800 text-slate-100' : 'border-slate-200 bg-white text-slate-900'}`}>
+        <svg viewBox="0 0 48 48" className="h-3.5 w-3.5" aria-hidden>
+          <path fill="#FFC107" d="M43.6 20.1H42V20H24v8h11.3c-1.6 4.7-6.1 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 8 3l5.7-5.7C34 5.5 29.3 3.5 24 3.5 12.7 3.5 3.5 12.7 3.5 24S12.7 44.5 24 44.5c11.3 0 20.5-9.2 20.5-20.5 0-1.3-.1-2.6-.4-3.9z" />
+          <path fill="#FF3D00" d="M5.3 14.7l6.6 4.8C13.6 15.1 18.4 12 24 12c3.1 0 5.8 1.2 8 3l5.7-5.7C34 5.5 29.3 3.5 24 3.5c-7.4 0-13.8 4.1-17.1 10.2z" />
+          <path fill="#4CAF50" d="M24 44.5c5.2 0 9.9-2 13.5-5.2l-6.2-5.2c-2 1.5-4.6 2.4-7.3 2.4-5.2 0-9.6-3.3-11.2-7.9l-6.5 5C9.8 40.1 16.3 44.5 24 44.5z" />
+          <path fill="#1976D2" d="M43.6 20.1H42V20H24v8h11.3c-.8 2.3-2.2 4.3-4.1 5.7l6.2 5.2C42.2 35.6 44.5 30.2 44.5 24c0-1.3-.1-2.6-.9-3.9z" />
+        </svg>
+        Continue with Google
+      </Tap>
+      <p className="text-center text-[8px] leading-snug text-slate-400">Google will share your name and email address.</p>
+    </div>
+  );
+}
+
 function AccountsOverview({ ctx }: { ctx: ViewCtx }) {
   const rows = [['Everyday Checking', '$12,480.20', 'USD'], ['High-Yield Savings', '$8,920.00', 'USD'], ['Euro Travel Account', '€3,410.55', 'EUR']];
   return (
@@ -684,60 +823,397 @@ function AccountsOverview({ ctx }: { ctx: ViewCtx }) {
   );
 }
 
-function TransferBuilder({ ctx }: { ctx: ViewCtx }) {
+/* ---------- 4.1 Direct Transfer Engine ---------- */
+function DirectTransferEngine({ ctx }: { ctx: ViewCtx }) {
   return (
-    <div className={`space-y-2.5 p-3.5 ${ctx.radius.card} ${surface(ctx.isDark)}`}>
-      <p className="text-[11px] font-semibold">New transfer</p>
-      <div className={`flex items-center justify-between px-3 py-2 text-[10px] ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800' : 'bg-slate-50'}`}>
-        <span className="text-slate-400">Recipient</span><span className="font-mono">US89 APX ···· 7364</span>
+    <div className={`space-y-3 p-3.5 ${ctx.radius.card} ${surface(ctx.isDark)}`}>
+      <div className="flex items-center justify-between">
+        <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: ctx.accent }}>4.1 Transfer Form</p>
+        <GripVertical className="h-3.5 w-3.5 text-slate-300" aria-hidden />
       </div>
-      <div className="flex gap-1.5">
-        {['ACH', 'Wire', 'Instant'].map((rail, i) => (
-          <span key={rail} className={`flex-1 rounded-full py-1 text-center text-[9px] font-semibold ${i === 2 ? 'text-white' : 'text-slate-500'} ${i === 2 ? '' : ctx.isDark ? 'bg-slate-800' : 'bg-slate-100'}`} style={i === 2 ? { background: ctx.accent } : undefined}>{rail}</span>
-        ))}
+      <p className="text-[14px] font-bold">Direct Transfer Engine</p>
+      <div>
+        <p className="text-[9px] text-slate-400 mb-1">From Account</p>
+        <div className={`flex items-center justify-between px-3 py-2.5 ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800' : 'bg-slate-100'}`}>
+          <span className="text-[11px] font-medium">Checking (··· 4912)</span>
+          <span className="text-[11px] font-bold">$12,450.20</span>
+        </div>
       </div>
-      <p className="text-[9px] text-slate-400">Fee $0.00 · Arrives in seconds</p>
+      <div>
+        <p className="text-[9px] text-slate-400 mb-1">To Recipient</p>
+        <div className={`flex items-center justify-between px-3 py-2 ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800' : 'bg-slate-100'}`}>
+          <div className="flex items-center gap-2">
+            <span className="grid h-6 w-6 place-items-center rounded-full text-[9px] font-bold text-white" style={{ background: '#3b82f6' }}>SJ</span>
+            <span className="text-[11px] font-medium">Sarah Jenkins (Chase)</span>
+          </div>
+          <ChevronDown className="h-3 w-3 text-slate-400" />
+        </div>
+      </div>
+      <div>
+        <p className="text-[9px] text-slate-400 mb-1">Amount to Send</p>
+        <p className="text-[22px] font-bold"><span className="text-slate-400 text-[14px]">$ </span>500.00</p>
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        <div className={`p-2 ${ctx.radius.icon} border-2`} style={{ borderColor: ctx.accent, background: `${ctx.accent}10` }}>
+          <p className="text-[10px] font-bold" style={{ color: ctx.accent }}>Instant FedNow</p>
+          <p className="text-[8px] text-slate-500">Free · Arrives Now</p>
+        </div>
+        <div className={`p-2 ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800' : 'bg-slate-100'}`}>
+          <p className="text-[10px] font-bold">Standard ACH</p>
+          <p className="text-[8px] text-slate-500">1-2 Business Days</p>
+        </div>
+      </div>
+      <button type="button" className={`w-full py-2.5 text-[11px] font-bold text-white ${ctx.radius.icon}`} style={{ background: NAVY }}>Continue to Review</button>
     </div>
   );
 }
 
-function SendForm({ ctx }: { ctx: ViewCtx }) {
+/* ---------- 4.2 Mid-Market FX Swap ---------- */
+function MultiMarketFX({ ctx }: { ctx: ViewCtx }) {
   return (
-    <div className={`space-y-2.5 p-3.5 ${ctx.radius.card} ${surface(ctx.isDark)}`}>
-      <div className="flex items-center justify-between"><p className="text-[11px] font-semibold">Send money</p><span className="text-[9px] text-slate-400">Balance {usd(ctx.balance)}</span></div>
-      <p className="text-center text-[26px] font-bold tracking-tight">$ 250.00</p>
-      <div className={`px-3 py-2 text-[10px] text-slate-400 ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800' : 'bg-slate-50'}`}>Add a note…</div>
-      <div className="flex gap-1.5">
-        {['Rent', 'Food', 'Gift'].map((tag, i) => (
-          <span key={tag} className={`flex-1 rounded-full py-1 text-center text-[9px] font-semibold ${i === 0 ? 'text-white' : 'text-slate-500'} ${i === 0 ? '' : ctx.isDark ? 'bg-slate-800' : 'bg-slate-100'}`} style={i === 0 ? { background: ctx.accent } : undefined}>{tag}</span>
+    <div className={`space-y-3 p-3.5 ${ctx.radius.card} ${surface(ctx.isDark)}`}>
+      <div className="flex items-center justify-between">
+        <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: ctx.accent }}>4.2 Currency Exchange</p>
+        <GripVertical className="h-3.5 w-3.5 text-slate-300" aria-hidden />
+      </div>
+      <p className="text-[14px] font-bold">Mid-Market FX Swap</p>
+      <div className={`p-3 ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800' : 'bg-slate-100'}`}>
+        <div className="flex items-center justify-between mb-1">
+          <span className="text-[9px] text-slate-400">You send exactly</span>
+          <span className="text-[9px] text-slate-400">Fee: $0.00 USD</span>
+        </div>
+        <div className="flex items-center justify-between">
+          <p className="text-[18px] font-bold">1,000.00</p>
+          <div className="flex items-center gap-1 bg-white px-2 py-1 rounded-md ring-1 ring-slate-200">
+            <span className="text-[10px]">🇺🇸</span>
+            <span className="text-[10px] font-bold">USD</span>
+            <ChevronDown className="h-2.5 w-2.5" />
+          </div>
+        </div>
+      </div>
+      <div className="flex items-center justify-between">
+        <span className="text-[9px] text-slate-500 flex items-center gap-1">
+          <Lock className="h-2.5 w-2.5" /> 1 USD = 0.9214 EUR (Guaranteed 1m)
+        </span>
+        <button aria-label="Swap currencies" className={`grid h-6 w-6 place-items-center rounded-full`} style={{ background: ctx.accent }}>
+          <RefreshCw className="h-3 w-3 text-white" />
+        </button>
+      </div>
+      <div className={`p-3 ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800' : 'bg-slate-100'}`}>
+        <div className="flex items-center justify-between mb-1">
+          <span className="text-[9px] text-slate-400">Recipient gets</span>
+          <span className="text-[9px] text-slate-400">Live Rate</span>
+        </div>
+        <div className="flex items-center justify-between">
+          <p className="text-[18px] font-bold text-emerald-600">921.40</p>
+          <div className="flex items-center gap-1 bg-white px-2 py-1 rounded-md ring-1 ring-slate-200">
+            <span className="text-[10px]">🇪🇺</span>
+            <span className="text-[10px] font-bold">EUR</span>
+            <ChevronDown className="h-2.5 w-2.5" />
+          </div>
+        </div>
+      </div>
+      <button type="button" className={`w-full py-2.5 text-[11px] font-bold text-white ${ctx.radius.icon}`} style={{ background: '#F97316' }}>Lock Rate &amp; Exchange</button>
+    </div>
+  );
+}
+
+/* ---------- 4.3 Recurring Standing Order ---------- */
+function RecurringStanding({ ctx }: { ctx: ViewCtx }) {
+  return (
+    <div className={`space-y-3 p-3.5 ${ctx.radius.card} ${surface(ctx.isDark)}`}>
+      <div className="flex items-center justify-between">
+        <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: ctx.accent }}>4.3 Scheduled Transfer</p>
+        <GripVertical className="h-3.5 w-3.5 text-slate-300" aria-hidden />
+      </div>
+      <p className="text-[14px] font-bold">Recurring Standing Order</p>
+      <div className={`p-3 ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800' : 'bg-slate-100'}`}>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="grid h-8 w-8 place-items-center rounded-md text-white" style={{ background: NAVY }}>
+              <Landmark className="h-4 w-4" />
+            </span>
+            <div>
+              <p className="text-[11px] font-bold">Prime Manhattan Realty</p>
+              <p className="text-[8px] text-slate-500">Monthly Rent · #402</p>
+            </div>
+          </div>
+          <span className="h-3 w-3 rounded-sm" style={{ background: NAVY }} />
+        </div>
+        <div className="flex items-center justify-between mt-3 pt-2 border-t border-slate-200 dark:border-slate-700">
+          <div>
+            <p className="text-[8px] text-slate-400">Amount</p>
+            <p className="text-[11px] font-bold">$2,100.00 / mo</p>
+          </div>
+          <div className="text-right">
+            <p className="text-[8px] text-slate-400">Next Run</p>
+            <p className="text-[11px] font-bold">Nov 1, 2024</p>
+          </div>
+        </div>
+      </div>
+      <p className="flex items-center gap-1 text-[9px] text-slate-500">
+        <Clock className="h-3 w-3" /> Automatic notification 24h prior to execution
+      </p>
+      <button type="button" className={`w-full py-2.5 text-[11px] font-bold ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-700 text-slate-200' : 'bg-slate-200 text-slate-800'}`}>Modify Schedule Rules</button>
+    </div>
+  );
+}
+
+/* ---------- 4.4 Authorization Modal ---------- */
+function AuthorizationModal({ ctx }: { ctx: ViewCtx }) {
+  return (
+    <div className={`space-y-3 p-3.5 ${ctx.radius.card} ${surface(ctx.isDark)}`}>
+      <div className="flex items-center justify-between">
+        <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: ctx.accent }}>4.4 Authorization Modal</p>
+        <GripVertical className="h-3.5 w-3.5 text-slate-300" aria-hidden />
+      </div>
+      <p className="text-[10px] uppercase tracking-wider text-slate-400 text-center">Payment Review</p>
+      <p className="text-[26px] font-bold text-center">$500.00</p>
+      <p className="text-[10px] text-slate-400 text-center">to Sarah Jenkins · Chase Bank</p>
+      <div className="space-y-1.5 pt-2 border-t border-slate-200 dark:border-slate-700">
+        <div className="flex justify-between text-[10px]"><span className="text-slate-400">Network Fee</span><span className="text-emerald-600 font-semibold">Free (FedNow Rail)</span></div>
+        <div className="flex justify-between text-[10px]"><span className="text-slate-400">Estimated Delivery</span><span className="font-semibold">Within seconds</span></div>
+        <div className="flex justify-between text-[10px]"><span className="text-slate-400">Origin Account</span><span className="font-semibold">··· 4912</span></div>
+      </div>
+      <button type="button" className={`w-full py-2.5 text-[11px] font-bold text-white ${ctx.radius.icon} flex items-center justify-center gap-2`} style={{ background: '#14B8A6' }}>
+        <Lock className="h-3 w-3" /> Authorize Transfer ($500.00)
+      </button>
+      <p className="text-center text-[9px] text-slate-400">Cancel transaction</p>
+    </div>
+  );
+}
+
+/* ---------- 5.1 Recent Recipients ---------- */
+function RecentRecipients({ ctx }: { ctx: ViewCtx }) {
+  const contacts = [
+    { initials: 'SJ', name: 'Sarah J.', color: 'bg-blue-500', ring: true },
+    { initials: 'MC', name: 'Marcus', color: 'bg-indigo-400', ring: false },
+    { initials: 'ER', name: 'Elena', color: 'bg-emerald-400', ring: false },
+  ];
+  return (
+    <div className={`space-y-3 p-3.5 ${ctx.radius.card} ${surface(ctx.isDark)}`}>
+      <div className="flex items-center justify-between">
+        <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: ctx.accent }}>5.1 Recent Recipients</p>
+        <GripVertical className="h-3.5 w-3.5 text-slate-300" aria-hidden />
+      </div>
+      <p className="text-[14px] font-bold">One-Tap Contacts Dock</p>
+      <div className="grid grid-cols-4 gap-2 items-start">
+        <div className="flex flex-col items-center gap-1.5">
+          <div className="grid h-11 w-11 place-items-center rounded-full border-2 border-dashed border-slate-300">
+            <Plus className="h-4 w-4 text-slate-400" />
+          </div>
+          <span className="text-[9px] text-slate-500">Add New</span>
+        </div>
+        {contacts.map((c) => (
+          <div key={c.name} className="flex flex-col items-center gap-1.5">
+            <div className={`grid h-11 w-11 place-items-center rounded-full text-[11px] font-bold text-white ${c.color} ${c.ring ? 'ring-2 ring-offset-2 ring-blue-600' : ''}`}>{c.initials}</div>
+            <span className="text-[9px] font-medium">{c.name}</span>
+          </div>
         ))}
+      </div>
+      <div className="flex justify-between pt-2 border-t border-slate-200 dark:border-slate-700">
+        <span className="text-[9px] text-slate-500">Synced with Device Contacts</span>
+        <span className="text-[9px] font-semibold" style={{ color: ctx.accent }}>Manage (24)</span>
       </div>
     </div>
   );
 }
 
-function RequestSheet({ ctx }: { ctx: ViewCtx }) {
+/* ---------- 5.2 Beneficiary Validation ---------- */
+function BeneficiaryValidation({ ctx }: { ctx: ViewCtx }) {
   return (
-    <div className={`space-y-2.5 p-3.5 ${ctx.radius.card} ${surface(ctx.isDark)}`}>
-      <p className="text-[11px] font-semibold">Request payment</p>
-      <div className={`flex items-center justify-between px-3 py-2 text-[10px] ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800' : 'bg-slate-50'}`}><span className="text-slate-400">From</span><span>@alex.morgan</span></div>
-      <p className="text-center text-[22px] font-bold tracking-tight">$ 1,200.00</p>
-      <div className="flex gap-2">
-        <span className="flex-1 rounded-full py-1.5 text-center text-[9px] font-semibold text-white" style={{ background: ctx.accent }}>Copy link</span>
-        <span className={`flex-1 rounded-full py-1.5 text-center text-[9px] font-semibold text-slate-500 ${ctx.isDark ? 'bg-slate-800' : 'bg-slate-100'}`}>Share</span>
+    <div className={`space-y-3 p-3.5 ${ctx.radius.card} ${surface(ctx.isDark)}`}>
+      <div className="flex items-center justify-between">
+        <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: ctx.accent }}>5.2 Add Recipient</p>
+        <GripVertical className="h-3.5 w-3.5 text-slate-300" aria-hidden />
+      </div>
+      <p className="text-[14px] font-bold">Beneficiary Validation</p>
+      <div>
+        <p className="text-[9px] text-slate-400 mb-1">Legal Full Name</p>
+        <div className={`px-3 py-2 ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800' : 'bg-slate-100'}`}>
+          <span className="text-[11px] text-slate-400">e.g. Liam Gallagher</span>
+        </div>
+      </div>
+      <div>
+        <div className="flex justify-between mb-1">
+          <p className="text-[9px] text-slate-400">Routing Number or SWIFT</p>
+          <p className="text-[9px] text-emerald-600 font-semibold">Auto-detected: Chase</p>
+        </div>
+        <div className={`px-3 py-2 ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800' : 'bg-slate-100'}`}>
+          <span className="text-[11px]">021000021</span>
+        </div>
+      </div>
+      <button type="button" className={`w-full py-2.5 text-[11px] font-bold text-white ${ctx.radius.icon}`} style={{ background: NAVY }}>Save Beneficiary</button>
+    </div>
+  );
+}
+
+/* ---------- 5.3 Send Money Focus ---------- */
+function SendMoneyAmount({ ctx }: { ctx: ViewCtx }) {
+  return (
+    <div className={`space-y-3 p-3.5 ${ctx.radius.card} ${surface(ctx.isDark)}`}>
+      <div className="flex items-center justify-between">
+        <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: ctx.accent }}>5.3 Send Money Focus</p>
+        <GripVertical className="h-3.5 w-3.5 text-slate-300" aria-hidden />
+      </div>
+      <p className="text-[9px] uppercase tracking-wider text-slate-400 text-center">Amount to Dispatch</p>
+      <p className="text-[36px] font-bold text-center leading-none">$120.00</p>
+      <div className={`flex items-center gap-2 px-3 py-2.5 ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800' : 'bg-slate-100'}`}>
+        <Pencil className="h-3 w-3 text-slate-400" />
+        <span className="text-[11px]">Dinner &amp; drinks 🍕</span>
+      </div>
+      <button type="button" className={`w-full py-2.5 text-[11px] font-bold text-white ${ctx.radius.icon} flex items-center justify-center gap-2`} style={{ background: NAVY }}>
+        <ArrowRight className="h-3 w-3" /> Review Payment
+      </button>
+    </div>
+  );
+}
+
+/* ---------- 5.4 Transfer Success ---------- */
+function TransferSuccess({ ctx }: { ctx: ViewCtx }) {
+  return (
+    <div className={`space-y-3 p-3.5 ${ctx.radius.card} ${surface(ctx.isDark)} text-center`}>
+      <div className="flex items-center justify-between">
+        <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: ctx.accent }}>5.4 Transfer Success</p>
+        <GripVertical className="h-3.5 w-3.5 text-slate-300" aria-hidden />
+      </div>
+      <div className="grid h-12 w-12 mx-auto place-items-center rounded-full bg-emerald-100">
+        <div className="grid h-7 w-7 place-items-center rounded-full border-2 border-emerald-600">
+          <Check className="h-4 w-4 text-emerald-600" />
+        </div>
+      </div>
+      <p className="text-[16px] font-bold">Transfer Dispatched!</p>
+      <p className="text-[10px] text-slate-500">$120.00 sent to Sarah Jenkins</p>
+      <p className="text-[9px] text-slate-400 font-mono">TXID: #US-99214-88A</p>
+      <div className="grid grid-cols-2 gap-2 pt-2">
+        <button type="button" className={`py-2.5 text-[11px] font-semibold ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-700 text-slate-100' : 'bg-slate-100 text-slate-800'} flex items-center justify-center gap-1.5`}>
+          <Send className="h-3 w-3" /> Share
+        </button>
+        <button type="button" className={`py-2.5 text-[11px] font-bold text-white ${ctx.radius.icon}`} style={{ background: '#3B82F6' }}>Done</button>
       </div>
     </div>
   );
 }
 
-function HistoryFilters({ ctx }: { ctx: ViewCtx }) {
+/* ---------- 6.1 Peer Invoicing ---------- */
+function PeerInvoicing({ ctx }: { ctx: ViewCtx }) {
   return (
-    <div className={`space-y-2 p-3 ${ctx.radius.card} ${surface(ctx.isDark)}`}>
-      <div className="flex items-center gap-2"><Search className="h-3.5 w-3.5 text-slate-400" /><span className="text-[10px] text-slate-400">Search transactions…</span></div>
-      <div className="flex gap-1.5 overflow-hidden">
-        {['All', 'Income', 'Spending', 'Pending'].map((chip, i) => (
-          <span key={chip} className={`rounded-full px-2.5 py-1 text-[9px] font-semibold ${i === 0 ? 'text-white' : 'text-slate-500'} ${i === 0 ? '' : ctx.isDark ? 'bg-slate-800' : 'bg-slate-100'}`} style={i === 0 ? { background: ctx.accent } : undefined}>{chip}</span>
+    <div className={`space-y-3 p-3.5 ${ctx.radius.card} ${surface(ctx.isDark)}`}>
+      <div className="flex items-center justify-between">
+        <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: ctx.accent }}>6.1 Request Money</p>
+        <GripVertical className="h-3.5 w-3.5 text-slate-300" aria-hidden />
+      </div>
+      <p className="text-[14px] font-bold">Peer Invoicing</p>
+      <div>
+        <p className="text-[9px] text-slate-400 mb-1">Requested Amount</p>
+        <div className={`flex items-baseline gap-2 px-3 py-2 ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800' : 'bg-slate-100'}`}>
+          <span className="text-[14px] text-slate-400">$</span>
+          <span className="text-[18px] font-bold">75.00</span>
+        </div>
+      </div>
+      <div>
+        <p className="text-[9px] text-slate-400 mb-1">Purpose Note</p>
+        <div className={`px-3 py-2 ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800' : 'bg-slate-100'}`}>
+          <span className="text-[11px]">Concert tickets 🎫</span>
+        </div>
+      </div>
+      <button type="button" className={`w-full py-2.5 text-[11px] font-bold text-white ${ctx.radius.icon}`} style={{ background: NAVY }}>Send Request</button>
+    </div>
+  );
+}
+
+/* ---------- 6.2 Payment QR ---------- */
+function PaymentQR({ ctx }: { ctx: ViewCtx }) {
+  return (
+    <div className={`space-y-3 p-3.5 ${ctx.radius.card} ${surface(ctx.isDark)} text-center`}>
+      <div className="flex items-center justify-between">
+        <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: ctx.accent }}>6.2 Payment QR</p>
+        <GripVertical className="h-3.5 w-3.5 text-slate-300" aria-hidden />
+      </div>
+      <div className={`grid h-32 w-32 mx-auto place-items-center ${ctx.radius.icon} bg-white ring-2`} style={{ '--tw-ring-color': ctx.accent } as React.CSSProperties}>
+        <QrCode className="h-24 w-24 text-slate-900" />
+      </div>
+      <p className="text-[11px] font-semibold">Scan to pay Alex Rivera</p>
+      <p className="text-[9px] text-slate-400">Custom fixed amount: $75.00</p>
+      <div className="grid grid-cols-2 gap-2">
+        <button type="button" className={`py-2 text-[10px] font-semibold ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-700 text-slate-100' : 'bg-slate-100 text-slate-800'}`}>Download QR</button>
+        <button type="button" className={`py-2 text-[10px] font-bold text-white ${ctx.radius.icon}`} style={{ background: '#1E40AF' }}>Copy Link</button>
+      </div>
+    </div>
+  );
+}
+
+/* ---------- 6.3 Split Payment ---------- */
+function SplitPayment({ ctx }: { ctx: ViewCtx }) {
+  const rows = [
+    { name: 'You (Alex)', label: 'Paid ($60)', paid: true },
+    { name: 'Mike Henderson', label: 'Request $60', paid: false },
+    { name: 'Jessica Taylor', label: 'Request $60', paid: false },
+  ];
+  return (
+    <div className={`space-y-3 p-3.5 ${ctx.radius.card} ${surface(ctx.isDark)}`}>
+      <div className="flex items-center justify-between">
+        <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: ctx.accent }}>6.3 Split Payment</p>
+        <GripVertical className="h-3.5 w-3.5 text-slate-300" aria-hidden />
+      </div>
+      <div className="flex justify-between items-end">
+        <div>
+          <p className="text-[9px] text-slate-400">Total Bill</p>
+          <p className="text-[20px] font-bold">$180.00</p>
+        </div>
+        <div className="text-right">
+          <p className="text-[9px] text-slate-400">Split 3 ways</p>
+          <p className="text-[16px] font-bold" style={{ color: ctx.accent }}>$60.00 each</p>
+        </div>
+      </div>
+      <div className="space-y-1.5">
+        {rows.map((p) => (
+          <div key={p.name} className={`flex items-center justify-between px-3 py-2 ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800' : 'bg-slate-100'}`}>
+            <div className="flex items-center gap-2">
+              <span className={`h-2.5 w-2.5 rounded-full ${p.paid ? 'bg-emerald-500' : ''}`} style={!p.paid ? { background: ctx.accent } : undefined} />
+              <span className="text-[11px] font-medium">{p.name}</span>
+            </div>
+            <span className={`text-[9px] ${p.paid ? 'text-slate-500' : 'font-semibold'}`} style={!p.paid ? { color: ctx.accent } : undefined}>{p.label}</span>
+          </div>
         ))}
+      </div>
+      <button type="button" className={`w-full py-2.5 text-[11px] font-bold text-white ${ctx.radius.icon}`} style={{ background: NAVY }}>Send 2 Requests ($120.00)</button>
+    </div>
+  );
+}
+
+/* ---------- 6.4 Outstanding Receivables ---------- */
+function OutstandingReceivables({ ctx }: { ctx: ViewCtx }) {
+  return (
+    <div className={`space-y-3 p-3.5 ${ctx.radius.card} ${surface(ctx.isDark)}`}>
+      <div className="flex items-center justify-between">
+        <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: ctx.accent }}>6.4 Pending Tracker</p>
+        <GripVertical className="h-3.5 w-3.5 text-slate-300" aria-hidden />
+      </div>
+      <p className="text-[14px] font-bold">Outstanding Receivables</p>
+      <div className={`p-3 ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800' : 'bg-slate-100'}`}>
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-[11px] font-semibold">Mike Henderson</p>
+            <p className="text-[9px] text-slate-500">Pending 2 days · $45.00</p>
+          </div>
+          <button className={`px-3 py-1 text-[9px] font-bold rounded-md bg-white shadow-sm`} style={{ color: ctx.accent }}>Remind</button>
+        </div>
+      </div>
+      <div className={`p-3 ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800' : 'bg-slate-100'}`}>
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-[11px] font-semibold">Jessica Taylor</p>
+            <p className="text-[9px] text-emerald-600">Paid today · $120.00</p>
+          </div>
+          <div className="grid h-6 w-6 place-items-center rounded-full border-2 border-emerald-500">
+            <Check className="h-3 w-3 text-emerald-500" />
+          </div>
+        </div>
+      </div>
+      <div className="flex justify-between pt-2 border-t border-slate-200 dark:border-slate-700">
+        <span className="text-[9px] text-slate-500">Total outstanding: $45.00</span>
+        <span className="text-[9px] font-semibold" style={{ color: ctx.accent }}>Clear Settled</span>
       </div>
     </div>
   );
@@ -792,16 +1268,39 @@ function ModuleView({ id, ctx }: { id: ModuleId; ctx: ViewCtx }) {
     case 'security': return <SecurityRow ctx={ctx} />;
     case 'notifications': return <AlertsRow ctx={ctx} />;
     case 'signin': return <SignInCard ctx={ctx} />;
+    case 'signInWithGoogle': return <GoogleSignInCard ctx={ctx} />;
     case 'accountsPage': return <AccountsOverview ctx={ctx} />;
-    case 'transfersPage': return <TransferBuilder ctx={ctx} />;
-    case 'sendPage': return <SendForm ctx={ctx} />;
-    case 'requestPage': return <RequestSheet ctx={ctx} />;
+    case 'directTransferEngine': return <DirectTransferEngine ctx={ctx} />;
+    case 'multiMarketFX': return <MultiMarketFX ctx={ctx} />;
+    case 'recurringStanding': return <RecurringStanding ctx={ctx} />;
+    case 'authorizationModal': return <AuthorizationModal ctx={ctx} />;
+    case 'recentRecipients': return <RecentRecipients ctx={ctx} />;
+    case 'beneficiaryValidation': return <BeneficiaryValidation ctx={ctx} />;
+    case 'sendMoneyAmount': return <SendMoneyAmount ctx={ctx} />;
+    case 'transferSuccess': return <TransferSuccess ctx={ctx} />;
+    case 'peerInvoicing': return <PeerInvoicing ctx={ctx} />;
+    case 'paymentQR': return <PaymentQR ctx={ctx} />;
+    case 'splitPayment': return <SplitPayment ctx={ctx} />;
+    case 'outstandingReceivables': return <OutstandingReceivables ctx={ctx} />;
     case 'historyPage': return <HistoryFilters ctx={ctx} />;
     case 'splash': return <SplashCard ctx={ctx} />;
     case 'profile': return <ProfileCard ctx={ctx} />;
     case 'freezeCard': return <FreezeCard ctx={ctx} />;
     default: return null;
   }
+}
+
+function HistoryFilters({ ctx }: { ctx: ViewCtx }) {
+  return (
+    <div className={`space-y-2 p-3 ${ctx.radius.card} ${surface(ctx.isDark)}`}>
+      <div className="flex items-center gap-2"><Search className="h-3.5 w-3.5 text-slate-400" /><span className="text-[10px] text-slate-400">Search transactions…</span></div>
+      <div className="flex gap-1.5 overflow-hidden">
+        {['All', 'Income', 'Spending', 'Pending'].map((chip, i) => (
+          <span key={chip} className={`rounded-full px-2.5 py-1 text-[9px] font-semibold ${i === 0 ? 'text-white' : 'text-slate-500'} ${i === 0 ? '' : ctx.isDark ? 'bg-slate-800' : 'bg-slate-100'}`} style={i === 0 ? { background: ctx.accent } : undefined}>{chip}</span>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 /* -------------------------------------------------------------------------- */
@@ -834,7 +1333,6 @@ function ToolbarButton({
   );
 }
 
-
 /* -------------------------------------------------------------------------- */
 /*  Brand tokens for the style guide                                          */
 /* -------------------------------------------------------------------------- */
@@ -853,9 +1351,9 @@ const PAGE_BLURBS: Record<string, string> = {
   signin: 'Secure entry with email and biometrics',
   home: 'Quick access to all the functionality and an overview of your account',
   accounts: 'All of your accounts and available funds in one view',
-  transfers: 'Move money between accounts and to other people',
-  send: 'Send money with amount, recipient and category',
-  request: 'Ask for money with a shareable payment link',
+  transfers: 'Direct transfer, FX swap, schedule and authorization',
+  send: 'Contacts dock, beneficiary validation, amount, and success',
+  payments: 'Peer invoicing, QR, splits and outstanding receivables',
   cards: 'Manage your cards, limits and freeze controls',
   history: 'Search and filter every transaction',
   notifications: 'Alerts and activity updates in real time',
@@ -900,14 +1398,31 @@ interface PageMenuItemProps {
   onPageDragOver: (e: React.DragEvent) => void;
   onPageDrop: (e: React.DragEvent) => void;
   onMovePage: (dir: -1 | 1) => void;
+  onRename?: (id: string, label: string) => void;
 }
 
 function PageMenuItem({
   page, label, count, active, expanded, accent, isCustom, dropSide, canvasModules, thumbCtx,
   onSelect, onToggleExpand, onAddModule, onRemoveModule, onStartDrag, onEndDrag, drag,
-  onPageDragStart, onPageDragEnd, onPageDragOver, onPageDrop, onMovePage,
+  onPageDragStart, onPageDragEnd, onPageDragOver, onPageDrop, onMovePage, onRename,
 }: PageMenuItemProps) {
+  // Custom pages expose every available module so anything from any screen
+  // can be dragged in. Kit-based pages only show their own kit.
   const pageComponents = isCustom ? availableModules : availableModules.filter((m) => pageModulesFor(page as PageId).includes(m.id));
+
+  const [isRenaming, setIsRenaming] = useState(false);
+  const [renameValue, setRenameValue] = useState(label);
+
+  const startRename = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setRenameValue(label);
+    setIsRenaming(true);
+  };
+  const finishRename = () => {
+    const v = renameValue.trim();
+    if (v && v !== label && onRename) onRename(page, v);
+    setIsRenaming(false);
+  };
 
   return (
     <li className="relative list-none" onDragOver={onPageDragOver} onDrop={onPageDrop}>
@@ -929,22 +1444,48 @@ function PageMenuItem({
         }`}
       >
         <GripVertical className="h-3.5 w-3.5 shrink-0 cursor-grab text-slate-300 active:cursor-grabbing" aria-hidden />
-        <button
-          type="button"
-          onClick={onSelect}
-          onKeyDown={(e) => {
-            if (e.altKey && e.key === 'ArrowUp') { e.preventDefault(); onMovePage(-1); }
-            if (e.altKey && e.key === 'ArrowDown') { e.preventDefault(); onMovePage(1); }
-          }}
-          aria-current={active ? 'page' : undefined}
-          title="Alt + Arrow keys to reorder"
-          style={active ? { color: accent } : undefined}
-          className={`min-w-0 flex-1 cursor-pointer truncate text-left text-[12px] outline-none focus-visible:underline ${
-            active ? 'font-semibold' : 'font-medium text-slate-700'
-          }`}
-        >
-          {label}
-        </button>
+        <div className="flex min-w-0 flex-1 items-center gap-1">
+          {isRenaming ? (
+            <input
+              value={renameValue}
+              onChange={(e) => setRenameValue(e.target.value)}
+              onBlur={finishRename}
+              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); finishRename(); } if (e.key === 'Escape') setIsRenaming(false); }}
+              autoFocus
+              onClick={(e) => e.stopPropagation()}
+              onMouseDown={(e) => e.stopPropagation()}
+              className="min-w-0 flex-1 rounded border border-blue-400 bg-white px-1 py-0.5 text-[12px] font-semibold text-slate-900 outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          ) : (
+            <button
+              type="button"
+              onClick={onSelect}
+              onKeyDown={(e) => {
+                if (e.altKey && e.key === 'ArrowUp') { e.preventDefault(); onMovePage(-1); }
+                if (e.altKey && e.key === 'ArrowDown') { e.preventDefault(); onMovePage(1); }
+              }}
+              aria-current={active ? 'page' : undefined}
+              title="Alt + Arrow keys to reorder"
+              style={active ? { color: accent } : undefined}
+              className={`min-w-0 flex-1 cursor-pointer truncate text-left text-[12px] outline-none focus-visible:underline ${
+                active ? 'font-semibold' : 'font-medium text-slate-700'
+              }`}
+            >
+              {label}
+            </button>
+          )}
+          {isCustom && !isRenaming && (
+            <button
+              type="button"
+              onClick={startRename}
+              aria-label="Rename page"
+              title="Rename page"
+              className="grid h-4 w-4 shrink-0 cursor-pointer place-items-center rounded text-slate-400 transition hover:bg-white hover:text-slate-700"
+            >
+              <Pencil className="h-2.5 w-2.5" />
+            </button>
+          )}
+        </div>
         <span
           style={active ? { background: accent } : undefined}
           className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] ${active ? 'font-semibold text-white' : 'bg-[#E3E6F7] font-medium text-slate-500'}`}
@@ -964,7 +1505,12 @@ function PageMenuItem({
       </div>
 
       {expanded && (
-        <div className="my-1.5 space-y-2 rounded-xl border border-[#E1E5F8] bg-white p-2 shadow-inner">
+        <div className={`my-1.5 space-y-2 rounded-xl border border-[#E1E5F8] bg-white p-2 shadow-inner ${isCustom ? 'max-h-[320px] overflow-y-auto scrollbar-none' : ''}`}>
+          {isCustom && (
+            <p className="px-1 pb-1 text-[9px] italic leading-snug text-slate-400">
+              Drag any component from the full library below into this custom page.
+            </p>
+          )}
           {pageComponents.map((mod) => {
             const isAdded = canvasModules.includes(mod.id);
             const isDragging = drag?.id === mod.id && drag.from === 'library';
@@ -1091,7 +1637,6 @@ function PageCanvas({
               <div
                 key={id} data-module-id={id} draggable={editMode}
                 onMouseDown={(e) => {
-                  // Let people click into inputs without starting a drag (Firefox quirk)
                   const isField = (e.target as HTMLElement).closest('input,textarea,select');
                   e.currentTarget.draggable = editMode && !isField;
                 }}
@@ -1264,10 +1809,6 @@ function CodePanel({
           ))}
         </code>
       </pre>
-
-      <div className="bg-[#DDE2F6] px-6 py-3 text-center text-[10px] leading-snug text-slate-600">
-        Illustrative output. Uses standard platform APIs. Component names are placeholders, not a published SDK.
-      </div>
     </div>
   );
 }
@@ -1518,7 +2059,6 @@ export default function BuildSection() {
 
   useEffect(() => () => { if (toastTimer.current) clearTimeout(toastTimer.current); }, []);
 
-  // Close the style guide with Escape and hand focus back to its trigger
   useEffect(() => {
     if (!styleOpen) return;
     const onKey = (e: KeyboardEvent) => {
@@ -1608,7 +2148,9 @@ export default function BuildSection() {
     setExpandedPage(id as PageId);
   };
 
-  /* ---- page reordering (sidebar) ---- */
+  const renamePage = (id: string, label: string) => {
+    setCustomPages((prev) => prev.map((p) => (p.id === id ? { ...p, label } : p)));
+  };
 
   const reorderPage = (id: string, index: number) =>
     setPageOrder((o) => {
@@ -1646,8 +2188,6 @@ export default function BuildSection() {
     reorderPage(pageDrag, pageDrop ?? pageOrder.length);
     endPageDrag();
   };
-
-  /* ---- module drag & drop (phone) ---- */
 
   const startDrag = (e: React.DragEvent, id: ModuleId, from: 'library' | 'canvas') => {
     e.stopPropagation();
@@ -1698,8 +2238,6 @@ export default function BuildSection() {
     endDrag();
   };
 
-  /* ---- app behaviour ---- */
-
   const handleSend = () => {
     const amt = parseAmount(sendAmount);
     if (amt <= 0) return setSendError('Enter an amount greater than $0.00.');
@@ -1728,7 +2266,7 @@ export default function BuildSection() {
 
   const actions: ViewActions = {
     send: () => goToPage('send'),
-    request: () => goToPage('request'),
+    payments: () => goToPage('payments'),
     payBill: () => showToast('Choose a biller to pay'),
     topUp: () => showToast('Top up from linked card'),
     openWallet: () => goToPage('cards'),
@@ -1739,6 +2277,7 @@ export default function BuildSection() {
     toggleFaceId: () => setFaceId((v) => !v),
     openAlerts: () => goToPage('notifications'),
     signIn: () => goToPage('home'),
+    signInWithGoogle: () => showToast('Google sign-in successful'),
     toggleFreeze: () => setIsCardFrozen((v) => !v),
   };
 
@@ -1773,8 +2312,6 @@ export default function BuildSection() {
   const iconBtn =
     'grid h-7 w-7 cursor-pointer place-items-center rounded-lg bg-white text-slate-600 ring-1 ring-slate-200 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40';
 
-  /* --------------------------------- render --------------------------------- */
-
   return (
     <section className="w-full overflow-hidden bg-[#f4f6fc] px-4 py-12 font-sans text-slate-900 sm:px-6 md:py-16 lg:px-10">
       <div className="mx-auto max-w-full space-y-8">
@@ -1790,18 +2327,9 @@ export default function BuildSection() {
           </p>
         </div>
 
-        {/* BUILDER SHELL */}
-        <div className="overflow-hidden rounded-[22px] border border-[#DDE2F6] bg-[#EEF0FB] shadow-[0_10px_40px_rgba(37,52,120,0.08)]">
-          {/* Title bar */}
+        <div className="overflow-hidden border border-[#DDE2F6] bg-[#EEF0FB] shadow-[0_10px_40px_rgba(37,52,120,0.08)]">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#E1E5F8] bg-[#F4F5FD] px-5 py-2.5">
             <div className="flex items-center gap-3">
-              <div className="flex items-center gap-1.5" aria-hidden>
-                <svg viewBox="0 0 32 32" className="h-7 w-7">
-                  <circle cx="16" cy="16" r="11" fill="none" stroke="#1E3A8A" strokeWidth="2.5" strokeDasharray="3 2" />
-                  <circle cx="16" cy="16" r="5" fill="#0040DF" />
-                </svg>
-                <span className="text-[8px] font-bold leading-[1.05] text-slate-800">Fintec<br />Connect</span>
-              </div>
               <h3 className="text-[13px] font-semibold text-slate-800">FintecConnect Mobile Application Build</h3>
             </div>
 
@@ -1825,9 +2353,7 @@ export default function BuildSection() {
             </div>
           </div>
 
-          {/* Three panels */}
           <div className="grid grid-cols-1 lg:h-[700px] lg:grid-cols-[minmax(250px,26%)_minmax(0,1fr)_minmax(290px,30%)]">
-            {/* LEFT: product type + pages */}
             <aside className="flex min-h-0 flex-col border-r border-[#E1E5F8] bg-[#EDEFFC]">
               <div className="space-y-4 px-4 pb-2 pt-5">
                 <div>
@@ -1867,7 +2393,9 @@ export default function BuildSection() {
                   const dropSide = pageDrag ? (pageDrop === i ? 'top' : pageDrop === pageOrder.length && i === pageOrder.length - 1 ? 'bottom' : null) : null;
                   return (
                     <PageMenuItem
-                      key={id} page={id} label={labelFor(id)} count={(pageModules[id as PageId] ?? []).length}
+                      key={id} page={id} label={labelFor(id)}
+                      // Custom pages show the live count; kit pages show the kit size
+                      count={isCustom ? (pageModules[id as PageId] ?? []).length : (pageModules[id as PageId] ?? []).length}
                       active={activePage === id} expanded={expandedPage === id} accent={accentColor} isCustom={isCustom} dropSide={dropSide}
                       canvasModules={canvasModules} thumbCtx={thumbCtx}
                       onSelect={() => selectPage(id as PageId)}
@@ -1875,6 +2403,7 @@ export default function BuildSection() {
                       onAddModule={addModule} onRemoveModule={removeModule} onStartDrag={startDrag} onEndDrag={endDrag} drag={drag}
                       onPageDragStart={(e) => startPageDrag(e, id)} onPageDragEnd={endPageDrag}
                       onPageDragOver={(e) => overPage(e, i)} onPageDrop={dropPage} onMovePage={(dir) => movePage(id, dir)}
+                      onRename={renamePage}
                     />
                   );
                 })}
@@ -1891,7 +2420,6 @@ export default function BuildSection() {
               </div>
             </aside>
 
-            {/* MIDDLE: live rendering harness */}
             <div className="relative flex min-h-0 flex-col items-center bg-gradient-to-b from-[#EEF0FB] via-[#F6F7FE] to-[#EEF0FB] pb-4">
               {styleOpen && <div className="absolute inset-0 z-20" onClick={closeStyle} aria-hidden />}
               {styleOpen && (
@@ -1903,7 +2431,7 @@ export default function BuildSection() {
               )}
 
               <p className="flex items-center gap-1.5 py-3 text-[10px] font-medium text-slate-500">
-                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500 motion-reduce:animate-none" aria-hidden /> Live Rendering Harness
+                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500 motion-reduce:animate-none" aria-hidden /> Live Sandbox
               </p>
 
               <div className={`relative w-full max-w-[340px] shrink-0 border-[3px] border-[#1d2b52] bg-[#101c3a] p-[9px] shadow-2xl ring-1 ring-white/10 ${isAndroid ? 'rounded-[32px]' : 'rounded-[42px]'}`}>
@@ -2021,7 +2549,6 @@ export default function BuildSection() {
               </div>
             </div>
 
-            {/* RIGHT: live code */}
             <div className="min-h-[420px] min-w-0 border-l border-[#E1E5F8] lg:min-h-0">
               <CodePanel
                 pageLabel={currentPageLabel} blurb={currentBlurb} modules={canvasModules} lang={codeLang} onLang={setCodeLang}

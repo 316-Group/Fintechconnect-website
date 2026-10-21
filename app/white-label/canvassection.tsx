@@ -40,6 +40,8 @@ const stepsData: StepItem[] = [
 
 export default function CanvasSection() {
   const [openStep, setOpenStep] = useState<number | null>(1);
+  // Tracks the mouse position for the custom "Your team" cursor over the image
+  const [cursorPos, setCursorPos] = useState<{ x: number; y: number } | null>(null);
 
   const toggleStep = (id: number) => {
     setOpenStep(prev => (prev === id ? null : id));
@@ -130,16 +132,44 @@ export default function CanvasSection() {
           </div>
 
           {/* RIGHT COLUMN: CANVAS / EDITOR ASSET SLOT */}
-          <div className="lg:col-span-7 relative flex items-center justify-center">
-            
-              <img
-                src={getPath('/products/canvasimage.png')}
-                alt="White Label Canvas Studio Editor"
-                className="w-full h-auto object-contain max-h-[580px] rounded-2xl"
-                
-              
-              />
-            
+          {/* cursor-none hides the native pointer so the custom "Your team" cursor takes over */}
+          <div
+            className="lg:col-span-7 relative flex items-center justify-center cursor-none"
+            onMouseMove={(e) => {
+              const rect = e.currentTarget.getBoundingClientRect();
+              setCursorPos({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+            }}
+            onMouseLeave={() => setCursorPos(null)}
+          >
+            <img
+              src={getPath('/products/canvasimage.png')}
+              alt="White Label Canvas Studio Editor"
+              className="w-full h-auto object-contain max-h-[580px] rounded-2xl"
+            />
+
+            {/* Custom collaborative-style cursor: blue arrow + "Your team" pill */}
+            {cursorPos && (
+              <div
+                className="pointer-events-none absolute z-20 flex items-start gap-1 will-change-transform"
+                style={{ left: cursorPos.x, top: cursorPos.y }}
+                aria-hidden
+              >
+                {/* Arrow tip sits exactly on the mouse position */}
+                <svg
+                  width="22"
+                  height="22"
+                  viewBox="0 0 24 24"
+                  fill="#2563EB"
+                  className="shrink-0 drop-shadow-sm"
+                >
+                  <path d="M5.5 3.21V20.8c0 .45.54.67.85.35l4.86-4.86a.5.5 0 0 1 .35-.15h6.87a.5.5 0 0 0 .35-.85L6.35 2.85a.5.5 0 0 0-.85.36Z" />
+                </svg>
+                {/* Name tag pill, aligned to the top of the arrow like the reference */}
+                <span className="whitespace-nowrap rounded-full bg-blue-600 px-4 py-1.5 text-[13px] font-medium leading-none text-white shadow-lg shadow-blue-600/30">
+                  Your team
+                </span>
+              </div>
+            )}
           </div>
 
         </div>
