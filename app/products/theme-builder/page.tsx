@@ -7,6 +7,8 @@ import Footersection from "@/app/Footersection";
 import HoverSection from "@/app/solutions/fintech-startups/hoversection";
 import BackgroundSection from './backgroundsection';
 import CardsSection from './cardssection';
+import ThemeSection from './themesection';
+import NewPlatformSection from './newplatformsection';
 
 
 export default function WhiteLabelHero() {
@@ -96,6 +98,8 @@ export default function WhiteLabelHero() {
       </div>
       
       <CardsSection />
+      <ThemeSection />
+      <NewPlatformSection />
       <HoverSection />
       <BackgroundSection />
       <Footersection />

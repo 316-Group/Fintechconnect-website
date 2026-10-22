@@ -10,6 +10,7 @@ import BackgroundSection from './backgroundsection';
 import NewCardsSection from './newcardssection';
 import CanvasSection from './canvassection';
 import NewBackgroundSection from './newbackgroundsection';
+import NewPlatformSection from './newplatformsection';
 
 export default function WhiteLabelHero() {
   const [heroVisible, setHeroVisible] = useState(false);
@@ -100,6 +101,7 @@ export default function WhiteLabelHero() {
       <NewCardsSection />
       <CanvasSection />
       <BuildSection />
+      <NewPlatformSection />
       <NewBackgroundSection />
       <HoverSection />
       <BackgroundSection />

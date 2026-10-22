@@ -118,9 +118,9 @@ export default function TokenSection() {
            ======================================================== */}
         <div className="mb-20">
           <div className="mb-8">
-            <p className="mb-2 text-[11px] font-bold uppercase tracking-widest text-[#0040DF]">How tokens work</p>
+            <p className="mb-2 text-lg font-bold uppercase tracking-widest text-[#0040DF]">How tokens work</p>
             <h2 className="mb-3 text-3xl font-bold tracking-tight text-slate-900">Raw values, meanings, and parts.</h2>
-            <p className="max-w-2xl text-sm leading-relaxed text-slate-500">
+            <p className="max-w-2xl text-base leading-relaxed text-slate-500">
               Tokens abstract values into three functional layers. Change a raw variable, cascade intent down through semantic aliases, and resolve styling directly at component surfaces.
             </p>
           </div>
@@ -130,7 +130,7 @@ export default function TokenSection() {
             {/* Column 1: Primitives */}
             <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
               <div className="mb-4 flex items-center justify-between">
-                <h3 className="text-[12px] font-bold text-slate-900">1. Primitives</h3>
+                <h3 className="text-base font-bold text-slate-900">1. Primitives</h3>
                 <span className="text-[10px] text-slate-400">Raw constants</span>
               </div>
               <div className="space-y-1">
@@ -150,9 +150,9 @@ export default function TokenSection() {
                       ) : (
                         <span className={`inline-block ${item.visual}`} />
                       )}
-                      <span className="text-[11px] font-medium text-slate-700">{item.name}</span>
+                      <span className="text-base font-medium text-slate-700">{item.name}</span>
                     </div>
-                    <span className="font-mono text-[10px] text-slate-400">{item.value}</span>
+                    <span className="font-mono text-base text-slate-400">{item.value}</span>
                   </button>
                 ))}
               </div>
@@ -161,7 +161,7 @@ export default function TokenSection() {
             {/* Column 2: Semantic Roles */}
             <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
               <div className="mb-4 flex items-center justify-between">
-                <h3 className="text-[12px] font-bold text-slate-900">2. Semantic Roles</h3>
+                <h3 className="text-base font-bold text-slate-900">2. Semantic Roles</h3>
                 <span className="text-[10px] text-slate-400">Meaning & Intent</span>
               </div>
               <div className="space-y-1">
@@ -175,14 +175,14 @@ export default function TokenSection() {
                         : 'hover:bg-slate-50'
                     }`}
                   >
-                    <span className={`text-[11px] font-medium ${
+                    <span className={`text-base font-medium ${
                        activeLineage === item.name || (activeLineage === 'blue-600' && item.name === 'color.action.primary')
                         ? 'text-[#0040DF]'
                         : 'text-slate-700'
                     }`}>
                       {item.name}
                     </span>
-                    <span className="text-[10px] text-slate-500">{item.description}</span>
+                    <span className="text-sm text-slate-500">{item.description}</span>
                   </button>
                 ))}
               </div>
@@ -191,7 +191,7 @@ export default function TokenSection() {
             {/* Column 3: Component Parts */}
             <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
               <div className="mb-4 flex items-center justify-between">
-                <h3 className="text-[12px] font-bold text-slate-900">3. Component Parts</h3>
+                <h3 className="text-base font-bold text-slate-900">3. Component Parts</h3>
                 <span className="text-[10px] text-slate-400">Bound consumers</span>
               </div>
               <div className="space-y-1">
@@ -205,14 +205,14 @@ export default function TokenSection() {
                         : 'hover:bg-slate-50'
                     }`}
                   >
-                    <span className={`text-[11px] font-medium ${
+                    <span className={`text-base font-medium ${
                       activeLineage === item.name || (activeLineage === 'blue-600' && item.name === 'button.primary.background')
                         ? 'text-[#0040DF]'
                         : 'text-slate-700'
                     }`}>
                       {item.name}
                     </span>
-                    <span className="text-[10px] text-slate-500">{item.description}</span>
+                    <span className="text-sm text-slate-500">{item.description}</span>
                   </button>
                 ))}
               </div>
@@ -244,7 +244,7 @@ export default function TokenSection() {
            ======================================================== */}
         <div>
           <div className="mb-6">
-            <p className="mb-2 text-[11px] font-bold uppercase tracking-widest text-[#0040DF]">Token explore</p>
+            <p className="mb-2 text-lg font-bold uppercase tracking-widest text-[#0040DF]">Token explore</p>
             <h2 className="mb-3 text-3xl font-bold tracking-tight text-slate-900">Search and preview active values.</h2>
           </div>
 
