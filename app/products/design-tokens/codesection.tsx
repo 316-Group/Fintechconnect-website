@@ -180,7 +180,7 @@ export default function CodeSection() {
         next/font;
       `}</style>
 
-      <div className="mx-auto max-w-[1400px] px-6">
+      <div className="mx-auto py-16 md:py-24 px-4 sm:px-6 lg:pl-20 lg:pr-14 font-sans text-slate-900 overflow-hidden">
         {/* Header */}
         <div className="mb-6 flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
           <div>

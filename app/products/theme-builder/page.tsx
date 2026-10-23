@@ -9,6 +9,7 @@ import BackgroundSection from './backgroundsection';
 import CardsSection from './cardssection';
 import ThemeSection from './themesection';
 import NewPlatformSection from './newplatformsection';
+import CompareSection from './comparesection';
 
 
 export default function WhiteLabelHero() {
@@ -99,6 +100,7 @@ export default function WhiteLabelHero() {
       
       <CardsSection />
       <ThemeSection />
+      <CompareSection />
       <NewPlatformSection />
       <HoverSection />
       <BackgroundSection />

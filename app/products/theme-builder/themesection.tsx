@@ -407,8 +407,8 @@ export default function ThemeSection() {
   );
 
   return (
-    <section className="w-full bg-[#F8F9FC] py-16 font-sans text-slate-900">
-      <div className="mx-auto max-w-[1400px] px-6">
+    <section className="w-full bg-[#F8F9FC] py-16 md:py-24 px-4 sm:px-6 lg:pl-20 lg:pr-14 font-sans text-slate-900 overflow-hidden">
+      <div className="mx-auto max-w-full px-6">
         
         {/* Header */}
         <div className="mb-8">

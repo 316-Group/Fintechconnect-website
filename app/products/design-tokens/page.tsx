@@ -8,6 +8,7 @@ import HoverSection from "@/app/solutions/fintech-startups/hoversection";
 import TokenSection from './tokensection';
 import CardsSection from './cardssection';
 import CodeSection from './codesection';
+import CompareSection from './comparesection';
 
 export default function WhiteLabelHero() {
   const [heroVisible, setHeroVisible] = useState(false);
@@ -97,6 +98,7 @@ export default function WhiteLabelHero() {
       
       <TokenSection />
       <CardsSection />
+      <CompareSection />
       <CodeSection />
       <HoverSection />
       <Footersection />
