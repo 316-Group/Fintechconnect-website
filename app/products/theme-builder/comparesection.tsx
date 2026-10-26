@@ -1,6 +1,6 @@
 'use client';
-import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { ChevronRight, GripVertical, ArrowRight } from 'lucide-react';
+import React, { useState, useRef, useCallback } from 'react';
+import { GripVertical, ArrowRight } from 'lucide-react';
 
 // --- Data Definitions ---
 
@@ -48,7 +48,6 @@ function PhoneMockup({ theme, isV2 = false }: { theme: typeof V1_THEME; isV2?: b
       style={{ 
         backgroundColor: theme.surface,
         color: theme.text,
-        // V2 has a slightly different inner layout spacing if needed, but using same structure here
       }}
     >
       {/* Phone Status Bar */}
@@ -120,38 +119,19 @@ function PhoneMockup({ theme, isV2 = false }: { theme: typeof V1_THEME; isV2?: b
 
 export default function CompareSection() {
   const [sliderPosition, setSliderPosition] = useState(50);
-  const [isDragging, setIsDragging] = useState(false);
   const [viewMode, setViewMode] = useState<'phone' | 'desktop'>('phone');
   
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const handlePointerMove = useCallback((e: PointerEvent) => {
-    if (!isDragging || !containerRef.current) return;
+  const handlePointerMove = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    if (!containerRef.current) return;
     
     const rect = containerRef.current.getBoundingClientRect();
     const x = Math.max(0, Math.min(e.clientX - rect.left, rect.width));
     const percentage = (x / rect.width) * 100;
     
     setSliderPosition(percentage);
-  }, [isDragging]);
-
-  const handlePointerUp = useCallback(() => {
-    setIsDragging(false);
   }, []);
-
-  useEffect(() => {
-    if (isDragging) {
-      window.addEventListener('pointermove', handlePointerMove);
-      window.addEventListener('pointerup', handlePointerUp);
-    } else {
-      window.removeEventListener('pointermove', handlePointerMove);
-      window.removeEventListener('pointerup', handlePointerUp);
-    }
-    return () => {
-      window.removeEventListener('pointermove', handlePointerMove);
-      window.removeEventListener('pointerup', handlePointerUp);
-    };
-  }, [isDragging, handlePointerMove, handlePointerUp]);
 
   return (
     <section className="w-full bg-[#F8F9FC] py-16 md:py-24 px-4 sm:px-6 lg:pl-20 lg:pr-14 font-sans text-slate-900 overflow-hidden border-t border-slate-200">
@@ -212,31 +192,23 @@ export default function CompareSection() {
             
             <div 
               ref={containerRef}
-              className={`relative overflow-hidden bg-white shadow-2xl rounded-[40px] border-[8px] border-slate-900 transition-all duration-300 ${viewMode === 'phone' ? 'w-[320px] h-[600px]' : 'w-full max-w-[600px] h-[400px] rounded-2xl border-4'}`}
-              onPointerDown={(e) => {
-                // Only start dragging if clicking inside the container
-                setIsDragging(true);
-                // Optionally jump to position immediately
-                const rect = containerRef.current?.getBoundingClientRect();
-                if (rect) {
-                   const x = Math.max(0, Math.min(e.clientX - rect.left, rect.width));
-                   setSliderPosition((x / rect.width) * 100);
-                }
-              }}
+              onPointerMove={handlePointerMove}
+              // Optional: Reset or snap to 50% on leave? Not requested, so we'll just leave it where the mouse left.
+              className={`relative overflow-hidden bg-white shadow-2xl rounded-[40px] border-[8px] border-slate-900 transition-all duration-300 cursor-ew-resize ${viewMode === 'phone' ? 'w-[320px] h-[600px]' : 'w-full max-w-[600px] h-[400px] rounded-2xl border-4'}`}
             >
               {/* Notch (Phone mode only) */}
               {viewMode === 'phone' && (
-                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-28 h-5 bg-slate-900 rounded-b-2xl z-50" />
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-28 h-5 bg-slate-900 rounded-b-2xl z-50 pointer-events-none" />
               )}
 
               {/* V2 Theme (Base Layer - Right side) */}
-              <div className="absolute inset-0">
+              <div className="absolute inset-0 pointer-events-none">
                 <PhoneMockup theme={V2_THEME} isV2={true} />
               </div>
 
               {/* V1 Theme (Overlay Layer - Left side clipped) */}
               <div 
-                className="absolute inset-0 z-10"
+                className="absolute inset-0 z-10 pointer-events-none"
                 style={{ clipPath: `polygon(0 0, ${sliderPosition}% 0, ${sliderPosition}% 100%, 0 100%)` }}
               >
                 <PhoneMockup theme={V1_THEME} isV2={false} />
@@ -250,7 +222,7 @@ export default function CompareSection() {
 
               {/* Slider Handle */}
               <div 
-                className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 z-30 flex h-10 w-10 cursor-ew-resize items-center justify-center rounded-full bg-white shadow-lg border border-slate-200 hover:scale-105 transition-transform pointer-events-none"
+                className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 z-30 flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-lg border border-slate-200 hover:scale-105 transition-transform pointer-events-none"
                 style={{ left: `${sliderPosition}%` }}
               >
                 <div className="flex h-full w-full items-center justify-center rounded-full bg-[#0040DF]/5 text-[#0040DF]">
@@ -260,7 +232,7 @@ export default function CompareSection() {
             </div>
 
             <p className="mt-6 text-[11px] font-medium text-slate-500">
-              Drag to compare v1 (Deep Cobalt) vs v2 (Vibrant Violet).
+              Hover to compare v1 (Deep Cobalt) vs v2 (Vibrant Violet).
             </p>
           </div>
 

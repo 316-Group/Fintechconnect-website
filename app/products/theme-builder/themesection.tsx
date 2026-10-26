@@ -1,11 +1,13 @@
 'use client';
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import {
   Search, Bell, ArrowRight, ArrowUpRight, ArrowDownLeft,
   Send, CreditCard, Receipt, Plus, Users, Wifi, Smartphone,
   Monitor, Shuffle, Moon, Sun, Snowflake,
   Eye, Coffee, PenTool, Sparkles, Home, PieChart, Settings, User, Battery, Signal,
-  ShieldCheck
+  ShieldCheck, ArrowDown, ArrowUp, Wallet, ChevronRight, ShoppingCart,
+  PlusCircle, ChevronDown, Clock, Lock, RefreshCw, QrCode, Pencil,
+  Landmark
 } from 'lucide-react';
 
 // --- Types & Interfaces ---
@@ -74,32 +76,161 @@ function isLight(hex: string) {
   return ((r * 299) + (g * 587) + (b * 114)) / 1000 >= 128;
 }
 
-// --- Module Components ---
+// --- Mobile Specific Components ---
+
+const INK = '#1B1B1F';
+const YELLOW = '#F5B921';
+const GREEN = '#16A36B';
+const PINK = '#EF4F6B';
+
+function MobileBalanceCard({ ctx }: { ctx: ViewCtx }) {
+  const pad = ctx.density === 'compact' ? 'p-4' : ctx.density === 'roomy' ? 'p-6' : 'p-5';
+  return (
+    <div
+      className={`relative h-[132px] overflow-hidden text-white ${pad} ${ctx.radius} ${ctx.elevation}`}
+      style={{ background: INK }}
+    >
+      <span aria-hidden className="absolute -right-7 -top-7 h-[84px] w-[84px] rounded-full" style={{ background: ctx.accent }} />
+      <span aria-hidden className="absolute -right-6 top-[34%] h-16 w-16 rounded-full" style={{ background: YELLOW }} />
+      <span aria-hidden className="absolute -bottom-7 -left-7 h-[76px] w-[76px] rounded-full" style={{ background: GREEN }} />
+      <div className="relative">
+        <p className="text-[10px] text-white/60">Total Balance</p>
+        <p className="mt-1 text-[26px] font-bold leading-none tracking-tight">$25,000.40</p>
+      </div>
+      <button type="button" className="absolute bottom-4 right-4 flex items-center gap-2 text-[10px] font-semibold">
+        My Wallet
+        <span className="grid h-7 w-7 place-items-center rounded-full bg-white" style={{ color: INK }}>
+          <ArrowRight className="h-3.5 w-3.5" />
+        </span>
+      </button>
+    </div>
+  );
+}
+
+function MobileCashflowStrip({ ctx }: { ctx: ViewCtx }) {
+  return (
+    <div className={`relative grid grid-cols-2 overflow-hidden text-white ${ctx.radius} ${ctx.elevation}`} style={{ background: INK }}>
+      <span aria-hidden className="absolute -left-4 -top-4 h-10 w-10 rounded-full bg-violet-500/30" />
+      <span aria-hidden className="absolute -bottom-4 -right-4 h-10 w-10 rounded-full bg-amber-700/40" />
+      <div className="relative flex items-center gap-2.5 px-4 py-3.5">
+        <span className="grid h-8 w-8 place-items-center rounded-full bg-emerald-500/15 text-emerald-400"><ArrowDown className="h-4 w-4" /></span>
+        <div><p className="text-[9px] text-white/50">Income</p><p className="text-[12px] font-semibold">$20,000</p></div>
+      </div>
+      <div className="relative flex items-center gap-2.5 border-l border-white/10 px-4 py-3.5">
+        <span className="grid h-8 w-8 place-items-center rounded-full bg-rose-500/15 text-rose-400"><ArrowUp className="h-4 w-4" /></span>
+        <div><p className="text-[9px] text-white/50">Outcome</p><p className="text-[12px] font-semibold">$17,000</p></div>
+      </div>
+    </div>
+  );
+}
+
+function MobileQuickActions({ ctx }: { ctx: ViewCtx }) {
+  const items = [
+    { label: 'Send', Icon: Send, color: ctx.accent },
+    { label: 'Payments', Icon: ArrowDownLeft, color: GREEN },
+    { label: 'Pay Bill', Icon: Receipt, color: YELLOW },
+    { label: 'Top Up', Icon: PlusCircle, color: PINK },
+  ];
+  return (
+    <div className="grid grid-cols-4 gap-2.5">
+      {items.map(({ label, Icon, color }) => (
+        <button key={label} className={`flex w-full flex-col items-center gap-2 py-3.5 ${ctx.radius} ${ctx.bgCard} ${ctx.elevation} ${ctx.borderWeight}`}>
+          <Icon className="h-[18px] w-[18px]" style={{ color }} strokeWidth={1.75} />
+          <span className={`text-[10px] font-semibold ${ctx.textPrimary}`}>{label}</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function MobileSavingsCards({ ctx }: { ctx: ViewCtx }) {
+  const goals = [
+    { name: 'iPhone 13 Mini', amount: 699 },
+    { name: 'Macbook Pro M1', amount: 1499 },
+  ];
+  return (
+    <section>
+      <div className="mb-2.5 flex items-center justify-between px-0.5">
+        <h3 className={`text-[13px] font-semibold ${ctx.textPrimary}`}>Savings</h3>
+        <button className="flex items-center text-[11px] font-semibold" style={{ color: ctx.accent }}>
+          See All <ChevronRight className="h-3 w-3" />
+        </button>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        {goals.map((g) => (
+          <button key={g.name} className={`w-full p-3.5 text-left ${ctx.radius} ${ctx.bgCard} ${ctx.elevation} ${ctx.borderWeight}`}>
+            <div className={`flex items-center justify-between text-[10px] ${ctx.textSecondary}`}>
+              <span className="truncate">{g.name}</span><ChevronRight className="h-3 w-3 shrink-0" />
+            </div>
+            <p className={`mt-4 text-[15px] font-bold ${ctx.textPrimary}`}>${g.amount.toLocaleString('en-US')}</p>
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function MobileRecentActivity({ ctx }: { ctx: ViewCtx }) {
+  const rows = [
+    { name: 'Apple Flagship Store', sub: 'Gadgets · Today, 10:24 AM', amount: 149, method: 'Visa - #022', kind: 'out' },
+    { name: 'Stripe Payout', sub: 'Income · Today, 08:30 AM', amount: 4200, method: 'Bank - #118', kind: 'in' },
+    { name: 'AWS Hosting', sub: 'Cloud · Yesterday, 6:12 PM', amount: 240.5, method: 'Visa - #022', kind: 'out' },
+  ];
+  return (
+    <section>
+      <div className="mb-2.5 flex items-center justify-between px-0.5">
+        <h3 className={`text-[13px] font-semibold ${ctx.textPrimary}`}>Recent Activity</h3>
+        <button className="flex items-center text-[11px] font-semibold" style={{ color: ctx.accent }}>
+          View History <ChevronRight className="h-3 w-3" />
+        </button>
+      </div>
+      <div className="space-y-2.5">
+        {rows.map((tx, i) => {
+          const isIn = tx.kind === 'in';
+          return (
+            <div key={i} className={`flex items-center justify-between gap-3 p-3 ${ctx.radius} ${ctx.bgCard} ${ctx.elevation} ${ctx.borderWeight}`}>
+              <div className="flex min-w-0 items-center gap-3">
+                <span className={`grid h-10 w-10 shrink-0 place-items-center ${ctx.radius} ${isIn ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-500'}`}>
+                  {isIn ? <ArrowDownLeft className="h-4 w-4" /> : <ShoppingCart className="h-4 w-4" />}
+                </span>
+                <div className="min-w-0">
+                  <p className={`truncate text-[12px] font-semibold ${ctx.textPrimary}`}>{tx.name}</p>
+                  <p className={`truncate text-[9px] ${ctx.textSecondary}`}>{tx.sub}</p>
+                </div>
+              </div>
+              <div className="shrink-0 text-right">
+                <p className={`text-[12px] font-bold ${isIn ? 'text-emerald-600' : ctx.textPrimary}`}>
+                  {isIn ? '+' : '-'} ${tx.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                </p>
+                <p className={`text-[9px] ${ctx.textSecondary}`}>{tx.method}</p>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+// --- Desktop Specific Components ---
 
 function HeroBalanceCard({ ctx }: { ctx: ViewCtx }) {
   const pad = ctx.density === 'compact' ? 'p-4' : ctx.density === 'roomy' ? 'p-8' : 'p-6';
-  // Use primary accent to tint the dark background
   const gradient = `linear-gradient(135deg, #0B132B 0%, ${mixColors(ctx.accent, '#000000', 0.7)} 100%)`; 
   
   return (
     <div className={`relative flex h-full min-h-[220px] flex-col overflow-hidden text-white ${pad} ${ctx.radius} ${ctx.elevation}`} style={{ background: gradient }}>
-      <svg viewBox="0 0 600 240" preserveAspectRatio="none" className="absolute inset-0 h-full w-full opacity-60">
-        
-      </svg>
-      
       <div className="relative z-10 flex items-center justify-between">
         <span className="flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-[0.2em] text-white/60">
           <span className="h-1.5 w-1.5 rounded-full bg-white/60" /> Total Net Balance
         </span>
         <span className="rounded-full bg-emerald-500/20 px-2 py-0.5 text-[9px] font-semibold text-emerald-300">+4.4% vs last month</span>
       </div>
-
       <div className="relative z-10 mt-4 flex flex-1 flex-col justify-between">
         <div>
           <p className="text-[36px] font-bold leading-none tracking-tight">$25,000<span className="text-[20px] text-white/60">.40</span></p>
           <p className="mt-2 text-[10px] text-white/50">Active Vault • Obsidian Tier Account</p>
         </div>
-        
         <div className="mt-6 flex items-end justify-between">
           <div className="flex gap-6">
             <div className="flex items-center gap-2">
@@ -128,7 +259,6 @@ function ActiveCardWidget({ ctx }: { ctx: ViewCtx }) {
         <p className={`text-[12px] font-bold ${ctx.textPrimary}`}>My Active Card</p>
         <span className="rounded-full px-2 py-0.5 text-[9px] font-bold" style={{ backgroundColor: `${ctx.accent}15`, color: ctx.accent }}>Platinum</span>
       </div>
-      
       <div className={`relative flex min-h-[150px] flex-col justify-between overflow-hidden p-4 text-white ${ctx.radius}`} style={{ background: `linear-gradient(135deg, ${ctx.secondary} 0%, ${mixColors(ctx.secondary, '#000000', 0.6)} 100%)` }}>
         <div className="flex items-start justify-between">
           <span className="text-[10px] font-extrabold tracking-wider">OK PRIVATE</span>
@@ -143,7 +273,6 @@ function ActiveCardWidget({ ctx }: { ctx: ViewCtx }) {
           <span>EXP 08/29</span>
         </div>
       </div>
-
       <div className="mt-3 flex gap-2">
         <button className={`flex flex-1 items-center justify-center gap-1.5 border border-slate-200 py-1.5 text-[10px] font-semibold hover:bg-slate-50 ${ctx.radius} ${ctx.isDark ? 'border-slate-700 text-slate-300' : 'text-slate-600'}`}>
           <Snowflake className="h-3 w-3" /> Freeze Card
@@ -158,13 +287,11 @@ function ActiveCardWidget({ ctx }: { ctx: ViewCtx }) {
 
 function EarningsChannelsCard({ ctx }: { ctx: ViewCtx }) {
   const pad = ctx.density === 'compact' ? 'p-3' : ctx.density === 'roomy' ? 'p-5' : 'p-4';
-  // Dynamically generate gradient variations based on primary and secondary seeds
   const channels = [
     { name: 'Upwork Escrow', amt: '$3,000.00', tag: '8 Contracts', bg: `linear-gradient(135deg, ${ctx.accent} 0%, ${mixColors(ctx.accent, '#000000', 0.3)} 100%)`, icon: 'U' },
     { name: 'Freepik Contributor', amt: '$3,000.00', tag: 'Monthly Fee', bg: `linear-gradient(135deg, ${ctx.secondary} 0%, ${mixColors(ctx.secondary, '#000000', 0.3)} 100%)`, icon: 'F' },
     { name: 'Envato Market', amt: '$2,000.00', tag: 'Royalties', bg: `linear-gradient(135deg, ${mixColors(ctx.accent, ctx.secondary, 0.5)} 0%, ${mixColors(ctx.accent, '#000000', 0.5)} 100%)`, icon: 'E' },
   ];
-
   return (
     <div className={`flex h-full flex-col ${ctx.bgCard} ${ctx.borderWeight} ${ctx.radius} ${ctx.elevation} overflow-hidden`}>
       <div className="flex items-center justify-between px-4 pt-4 pb-2">
@@ -192,14 +319,12 @@ function EarningsChannelsCard({ ctx }: { ctx: ViewCtx }) {
 function QuickTransferCard({ ctx }: { ctx: ViewCtx }) {
   const pad = ctx.density === 'compact' ? 'p-3' : ctx.density === 'roomy' ? 'p-5' : 'p-4';
   const people = ['SJ', 'AR', 'DC', 'MP'];
-  
   return (
     <div className={`${ctx.bgCard} ${pad} ${ctx.radius} ${ctx.elevation} ${ctx.borderWeight}`}>
       <div className="mb-3 flex items-center justify-between">
         <p className={`text-[12px] font-bold ${ctx.textPrimary}`}>Quick Transfer</p>
         <Users className="h-3.5 w-3.5 text-slate-400" />
       </div>
-      
       <div className="flex items-center gap-2">
         <button className="flex flex-col items-center gap-1">
           <span className={`grid h-8 w-8 place-items-center border border-dashed border-slate-300 text-slate-400 ${ctx.radius}`}><Plus className="h-3 w-3" /></span>
@@ -207,26 +332,16 @@ function QuickTransferCard({ ctx }: { ctx: ViewCtx }) {
         </button>
         {people.map((p, i) => (
           <div key={p} className="flex flex-col items-center gap-1">
-            <span 
-              className={`grid h-8 w-8 place-items-center text-[9px] font-bold ${ctx.radius} ${i === 0 ? 'text-white' : ''}`} 
-              style={{ 
-                backgroundColor: i === 0 ? ctx.accent : `${ctx.accent}20`, 
-                color: i === 0 ? '#fff' : ctx.accent 
-              }}
-            >
+            <span className={`grid h-8 w-8 place-items-center text-[9px] font-bold ${ctx.radius} ${i === 0 ? 'text-white' : ''}`} style={{ backgroundColor: i === 0 ? ctx.accent : `${ctx.accent}20`, color: i === 0 ? '#fff' : ctx.accent }}>
               {p}
             </span>
             <span className="text-[7px] font-medium text-slate-500">{p === 'SJ' ? 'Sarah' : p === 'AR' ? 'Alex R.' : p === 'DC' ? 'David C.' : 'Maya P.'}</span>
           </div>
         ))}
       </div>
-
       <div className="mt-3 flex items-center gap-2">
         <div className={`flex-1 px-3 py-1.5 text-[11px] font-bold ${ctx.radius} ${ctx.isDark ? 'bg-slate-800 text-slate-200' : 'bg-slate-50 text-slate-700'}`}>$ 350.00</div>
-        <button 
-          className="text-white text-[10px] font-bold px-3 py-1.5 transition-colors hover:opacity-90" 
-          style={{ backgroundColor: ctx.accent, borderRadius: ctx.radius === 'rounded-full' ? '9999px' : ctx.radius === 'rounded-lg' ? '8px' : ctx.radius === 'rounded-none' ? '0px' : '16px' }}
-        >
+        <button className="text-white text-[10px] font-bold px-3 py-1.5 transition-colors hover:opacity-90" style={{ backgroundColor: ctx.accent, borderRadius: ctx.radius === 'rounded-full' ? '9999px' : ctx.radius === 'rounded-lg' ? '8px' : ctx.radius === 'rounded-none' ? '0px' : '16px' }}>
           Send Now
         </button>
       </div>
@@ -242,7 +357,6 @@ function ActivityFeedCard({ ctx }: { ctx: ViewCtx }) {
     { name: 'Blue Bottle Coffee', sub: 'Contactless Pay • Oct 22, 09:15 AM', tag: 'Dining', amt: -8.4, Icon: Coffee },
     { name: 'Stripe Payout', sub: 'Automated Sweep • Oct 21', tag: 'SaaS Subscriptions', amt: 2400.0, Icon: Sparkles },
   ];
-
   return (
     <div className={`${ctx.bgCard} ${pad} ${ctx.radius} ${ctx.elevation} ${ctx.borderWeight} flex flex-col`}>
       <div className="mb-3 flex items-start justify-between gap-2">
@@ -256,7 +370,6 @@ function ActivityFeedCard({ ctx }: { ctx: ViewCtx }) {
           ))}
         </div>
       </div>
-
       <div className="mt-1 flex-1 space-y-1.5">
         {rows.map((r) => (
           <div key={r.name} className={`flex items-center justify-between gap-3 p-2 transition-colors ${ctx.radius} ${ctx.isDark ? 'hover:bg-slate-800/50' : 'hover:bg-slate-50'}`}>
@@ -286,14 +399,12 @@ function SavingsTargetsCard({ ctx }: { ctx: ViewCtx }) {
     { name: 'iPhone 13 Mini', pct: 100, amt: '$699', left: 'Saved $699 of $699', right: 'Target Cleared' },
     { name: 'MacBook Pro M1', pct: 75, amt: '$1,499', left: 'Saved $1,499 of $2,000', right: '$501 remaining' },
   ];
-
   return (
     <div className={`${ctx.bgCard} ${pad} ${ctx.radius} ${ctx.elevation} ${ctx.borderWeight}`}>
       <div className="mb-3 flex items-center justify-between">
         <p className={`text-[12px] font-bold ${ctx.textPrimary}`}>Savings Targets</p>
         <button className={`grid h-5 w-5 place-items-center ${ctx.radius} ${ctx.isDark ? 'bg-slate-800 text-slate-400' : 'bg-slate-50 text-slate-500 hover:bg-slate-100'}`}><Plus className="h-3 w-3" /></button>
       </div>
-      
       <div className="space-y-2">
         {goals.map((g) => (
           <div key={g.name} className={`border p-2.5 ${ctx.radius} ${ctx.isDark ? 'border-slate-700' : 'border-slate-100'}`}>
@@ -318,7 +429,7 @@ function SavingsTargetsCard({ ctx }: { ctx: ViewCtx }) {
   );
 }
 
-// --- Main Theme Section Component ---
+// --- Main Component ---
 
 export default function ThemeSection() {
   // Theme State
@@ -331,6 +442,18 @@ export default function ThemeSection() {
   const [density, setDensity] = useState<DensityMode>('standard');
   const [elevation, setElevation] = useState<ElevationMode>('soft');
   const [viewMode, setViewMode] = useState<'desktop' | 'mobile'>('desktop');
+
+  // Force mobile view on small screens
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 1024) {
+        setViewMode('mobile');
+      }
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Derived scale
   const scale = useMemo(() => generateScale(primarySeed), [primarySeed]);
@@ -361,8 +484,8 @@ export default function ThemeSection() {
     setPrimarySeed(randomHex);
   };
 
-  const renderHomeContent = () => (
-    <div className={`flex flex-col gap-4 ${viewMode === 'mobile' ? 'w-full pb-20' : 'w-full'}`}>
+  const renderDesktopContent = () => (
+    <div className="flex flex-col gap-4 w-full">
       {/* Greeting */}
       <div className="flex items-start justify-between">
         <div>
@@ -372,43 +495,39 @@ export default function ThemeSection() {
           </div>
           <p className={`mt-1 max-w-sm text-[10px] ${ctx.textSecondary}`}>Here is an integrated breakdown of your cash velocity and liquid capital for today.</p>
         </div>
-        {viewMode === 'desktop' && (
-          <div className="flex items-center gap-1.5">
-            <button className={`flex items-center gap-1.5 px-3 py-1.5 text-[9px] font-bold text-white ${ctx.radius}`} style={{ backgroundColor: ctx.accent }}><Send className="h-2.5 w-2.5" /> Send Money</button>
-            <button className={`flex items-center gap-1.5 border border-slate-200 bg-white px-3 py-1.5 text-[9px] font-bold ${ctx.textPrimary} ${ctx.radius}`}><CreditCard className="h-2.5 w-2.5" /> Top Up Card</button>
-            <button className={`flex items-center gap-1.5 border border-slate-200 bg-white px-3 py-1.5 text-[9px] font-bold ${ctx.textPrimary} ${ctx.radius}`}><ArrowDownLeft className="h-2.5 w-2.5" /> Request</button>
-            <button className={`flex items-center gap-1.5 border border-slate-200 bg-white px-3 py-1.5 text-[9px] font-bold ${ctx.textPrimary} ${ctx.radius}`}><Receipt className="h-2.5 w-2.5" /> Pay Bills</button>
-          </div>
-        )}
+        <div className="flex items-center gap-1.5">
+          <button className={`flex items-center gap-1.5 px-3 py-1.5 text-[9px] font-bold text-white ${ctx.radius}`} style={{ backgroundColor: ctx.accent }}><Send className="h-2.5 w-2.5" /> Send Money</button>
+          <button className={`flex items-center gap-1.5 border border-slate-200 bg-white px-3 py-1.5 text-[9px] font-bold ${ctx.textPrimary} ${ctx.radius}`}><CreditCard className="h-2.5 w-2.5" /> Top Up Card</button>
+          <button className={`flex items-center gap-1.5 border border-slate-200 bg-white px-3 py-1.5 text-[9px] font-bold ${ctx.textPrimary} ${ctx.radius}`}><ArrowDownLeft className="h-2.5 w-2.5" /> Request</button>
+          <button className={`flex items-center gap-1.5 border border-slate-200 bg-white px-3 py-1.5 text-[9px] font-bold ${ctx.textPrimary} ${ctx.radius}`}><Receipt className="h-2.5 w-2.5" /> Pay Bills</button>
+        </div>
       </div>
 
       {/* Grid Layout */}
-      <div className={`grid gap-4 ${viewMode === 'desktop' ? 'grid-cols-12' : 'grid-cols-1'}`}>
-        <div className={viewMode === 'desktop' ? 'col-span-8' : ''}>
-          <HeroBalanceCard ctx={ctx} />
-        </div>
-        <div className={viewMode === 'desktop' ? 'col-span-4' : ''}>
-          <ActiveCardWidget ctx={ctx} />
-        </div>
-        <div className={viewMode === 'desktop' ? 'col-span-8' : ''}>
-          <EarningsChannelsCard ctx={ctx} />
-        </div>
-        <div className={viewMode === 'desktop' ? 'col-span-4' : ''}>
-          <QuickTransferCard ctx={ctx} />
-        </div>
-        <div className={viewMode === 'desktop' ? 'col-span-8' : ''}>
-          <ActivityFeedCard ctx={ctx} />
-        </div>
-        <div className={viewMode === 'desktop' ? 'col-span-4' : ''}>
-          <SavingsTargetsCard ctx={ctx} />
-        </div>
+      <div className="grid grid-cols-12 gap-4">
+        <div className="col-span-8"><HeroBalanceCard ctx={ctx} /></div>
+        <div className="col-span-4"><ActiveCardWidget ctx={ctx} /></div>
+        <div className="col-span-8"><EarningsChannelsCard ctx={ctx} /></div>
+        <div className="col-span-4"><QuickTransferCard ctx={ctx} /></div>
+        <div className="col-span-8"><ActivityFeedCard ctx={ctx} /></div>
+        <div className="col-span-4"><SavingsTargetsCard ctx={ctx} /></div>
       </div>
+    </div>
+  );
+
+  const renderMobileContent = () => (
+    <div className="flex flex-col gap-4 pb-24">
+      <MobileBalanceCard ctx={ctx} />
+      <MobileCashflowStrip ctx={ctx} />
+      <MobileQuickActions ctx={ctx} />
+      <MobileSavingsCards ctx={ctx} />
+      <MobileRecentActivity ctx={ctx} />
     </div>
   );
 
   return (
     <section className="w-full bg-[#F8F9FC] py-16 md:py-24 px-4 sm:px-6 lg:pl-20 lg:pr-14 font-sans text-slate-900 overflow-hidden">
-      <div className="mx-auto max-w-full px-6">
+      <div className="mx-auto max-w-full">
         
         {/* Header */}
         <div className="mb-8">
@@ -608,14 +727,14 @@ export default function ThemeSection() {
           </div>
 
           {/* Right Panel: Preview Area */}
-          <div className="flex flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+          <div className="flex flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm min-h-[600px]">
             
             {/* Preview Header */}
             <div className="flex flex-wrap items-center justify-between border-b border-slate-200 bg-[#FBFCFF] px-4 py-2">
               <div className="flex items-center gap-4">
                 <button 
                   onClick={() => setViewMode('desktop')}
-                  className={`flex items-center gap-1.5 pb-2 text-[11px] font-bold border-b-2 transition-colors ${viewMode === 'desktop' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
+                  className={`hidden lg:flex items-center gap-1.5 pb-2 text-[11px] font-bold border-b-2 transition-colors ${viewMode === 'desktop' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
                 >
                   <Monitor className="h-3.5 w-3.5" /> Desktop portal (1440px)
                 </button>
@@ -631,7 +750,7 @@ export default function ThemeSection() {
               </div>
             </div>
 
-            {/* Preview Toolbar (Desktop only) */}
+            {/* Desktop Toolbar (only visible in desktop mode) */}
             {viewMode === 'desktop' && (
               <div className="flex items-center justify-between border-b border-slate-200 px-4 py-2">
                 <div className="relative flex w-full max-w-md items-center">
@@ -654,27 +773,30 @@ export default function ThemeSection() {
             )}
 
             {/* Preview Canvas */}
-            <div className={`flex-1 overflow-y-auto ${ctx.bgSurface} p-6 flex justify-center`}>
+            <div className={`flex-1 overflow-y-auto ${ctx.bgSurface} p-4 sm:p-6 flex justify-center`}>
               
               {viewMode === 'mobile' ? (
-                /* MOBILE FRAME */
-                <div className="relative w-[380px] h-[800px] bg-slate-900 rounded-[50px] p-3 shadow-2xl overflow-hidden border-[8px] border-slate-900 flex flex-col">
+                /* ========================================================
+                   MOBILE VIEW (Device Frame)
+                   ======================================================== */
+                <div className="relative w-full max-w-[375px] h-[812px] bg-[#0B1120] rounded-[50px] p-[10px] shadow-2xl border-[8px] border-slate-900 flex flex-col shrink-0">
                   
-                  {/* Notch / Dynamic Island */}
-                  <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-6 bg-slate-900 rounded-b-3xl z-50 flex items-center justify-center">
-                    <div className="w-16 h-1 rounded-full bg-slate-700" />
+                  {/* Dynamic Island */}
+                  <div className="absolute top-2 left-1/2 -translate-x-1/2 w-28 h-7 bg-black rounded-full z-50 flex items-center justify-end px-3">
+                     <div className="h-1.5 w-1.5 rounded-full bg-[#1a1a1a] mr-2" />
+                     <div className="h-2 w-2 rounded-full bg-[#0d1b2a] shadow-inner" />
                   </div>
 
                   {/* Screen Content */}
-                  <div className={`relative flex-1 rounded-[38px] overflow-y-auto scrollbar-none pb-24 ${ctx.bgSurface}`}>
+                  <div className={`relative flex-1 rounded-[38px] overflow-y-auto scrollbar-none ${ctx.bgSurface}`}>
                     
                     {/* Fake Status Bar */}
                     <div className={`sticky top-0 z-40 flex items-center justify-between px-6 pt-3 pb-2 text-[11px] font-bold ${ctx.isDark ? 'text-white bg-slate-950' : 'text-slate-900 bg-[#F8F9FC]'}`}>
                       <span>09:41</span>
-                      <div className="flex items-center gap-1">
-                        <Signal className="h-3 w-3" />
-                        <Wifi className="h-3 w-3" />
-                        <Battery className="h-4 w-4" />
+                      <div className="flex items-center gap-1.5">
+                        <Signal className="h-3.5 w-3.5" />
+                        <Wifi className="h-3.5 w-3.5" />
+                        <Battery className="h-5 w-5" />
                       </div>
                     </div>
 
@@ -696,23 +818,23 @@ export default function ThemeSection() {
 
                     {/* Mobile Content Flow */}
                     <div className="px-5">
-                      {renderHomeContent()}
+                      {renderMobileContent()}
                     </div>
                   </div>
 
                   {/* Bottom Navigation */}
-                  <div className={`absolute bottom-3 left-3 right-3 h-[72px] rounded-[28px] shadow-lg flex items-center justify-around px-2 backdrop-blur-md border ${ctx.isDark ? 'bg-slate-900/90 border-slate-800' : 'bg-white/90 border-slate-100'}`}>
-                    <button className="flex flex-col items-center gap-1 text-blue-600">
+                  <div className={`absolute bottom-3 left-3 right-3 h-[72px] rounded-[24px] shadow-lg flex items-center justify-around px-2 backdrop-blur-md border ${ctx.isDark ? 'bg-slate-900/90 border-slate-800' : 'bg-white/90 border-slate-100'}`}>
+                    <button className="flex flex-col items-center gap-1" style={{ color: ctx.accent }}>
                       <Home className="h-5 w-5" />
                       <span className="text-[9px] font-bold">Home</span>
                     </button>
                     <button className={`flex flex-col items-center gap-1 ${ctx.textSecondary} hover:text-slate-900`}>
-                      <CreditCard className="h-5 w-5" />
-                      <span className="text-[9px] font-medium">Cards</span>
+                      <Wallet className="h-5 w-5" />
+                      <span className="text-[9px] font-medium">Wallet</span>
                     </button>
                     <button className={`flex flex-col items-center gap-1 ${ctx.textSecondary} hover:text-slate-900`}>
                       <PieChart className="h-5 w-5" />
-                      <span className="text-[9px] font-medium">Stats</span>
+                      <span className="text-[9px] font-medium">Activity</span>
                     </button>
                     <button className={`flex flex-col items-center gap-1 ${ctx.textSecondary} hover:text-slate-900`}>
                       <User className="h-5 w-5" />
@@ -721,9 +843,11 @@ export default function ThemeSection() {
                   </div>
                 </div>
               ) : (
-                /* DESKTOP VIEW */
+                /* ========================================================
+                   DESKTOP VIEW
+                   ======================================================== */
                 <div className="w-full max-w-[1200px]">
-                  {renderHomeContent()}
+                  {renderDesktopContent()}
                 </div>
               )}
 

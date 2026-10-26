@@ -44,13 +44,13 @@ export default function CardsSection() {
 
   return (
     <section className="w-full bg-[#F8F9FC] py-16 md:py-24 px-4 sm:px-6 lg:pl-20 lg:pr-14 font-sans text-slate-900 overflow-hidden">
-      <div className="mx-auto max-w-full px-6 space-y-24">
+      <div className="mx-auto max-w-full space-y-24">
         
         {/* ========================================================
             SECTION 1: Core Foundations
            ======================================================== */}
         <div>
-          <div className="mb-12 text-center flex flex-col items-center">
+          <div className="mb-12 sm:text-start flex flex-col sm:inline-block lg:items-center">
             <p className="mb-3 text-[10px] font-bold uppercase tracking-widest text-[#0040DF]">
               Core Foundations
             </p>

@@ -127,7 +127,7 @@ export default function NewPlatformSection() {
                 <span className="h-1.5 w-1.5 rotate-45 bg-blue-600" aria-hidden />
                 AUDIT MATRIX
               </span>
-              <h2 className="text-7xl font-extrabold leading-[1.15] tracking-tight text-slate-900 sm:text-4xl lg:text-[2.6rem]">
+              <h2 className="md:text-7xl font-extrabold leading-[1.15] tracking-tight text-slate-900 sm:text-3xl lg:text-[2.6rem]">
                 Preview Before Review.
               </h2>
               <p className="max-w-full text-lg leading-relaxed text-slate-500">
