@@ -58,6 +58,13 @@ import {
   Wifi,
   X,
 } from 'lucide-react';
+import {
+  BANKING_WALLET_MODULES,
+  BANKING_WALLET_PAGE_PREPEND,
+  BANKING_WALLET_MODULE_IDS,
+  BankingWalletModuleView,
+  type BankingWalletModuleId,
+} from './banking-wallet-modules';
 
 const outfit = Outfit({ subsets: ['latin'], weight: ['400', '500', '600', '700'], display: 'swap' });
 
@@ -106,7 +113,8 @@ type ModuleId =
   | 'deliveryChannels'
   | 'identityCard'
   | 'securityBaseline'
-  | 'connectedDevices';
+  | 'connectedDevices'
+  | BankingWalletModuleId;  ;
 type RadiusMode = 'rounded' | 'sharp' | 'pill';
 type TabId = 'home' | 'cards' | 'activity' | 'settings' | 'send' | 'fx';
 type AppKind = 'banking' | 'fintech' | 'psp' | 'wallet' | 'crypto';
@@ -549,8 +557,6 @@ const availableModules: ModuleAsset[] = [
 
 const APP_KINDS: { id: AppKind; label: string; blurb: string }[] = [
   { id: 'banking', label: 'Banking app', blurb: 'Retail bank with accounts, cards and transfers' },
-  { id: 'fintech', label: 'Fintech app', blurb: 'Investing, budgeting and analytics-first' },
-  { id: 'psp', label: 'Payment service provider', blurb: 'Merchant payments, payouts and invoicing' },
   { id: 'wallet', label: 'Digital wallet', blurb: 'P2P wallet with virtual cards and top-ups' },
   { id: 'crypto', label: 'Crypto exchange', blurb: 'Spot swaps, multi-chain balances and custody' },
 ];
@@ -617,10 +623,20 @@ const buildInitialPages = (): Record<PageId, ModuleId[]> => {
   return out;
 };
 
-const pageModulesFor = (page: PageId): ModuleId[] =>
-  PAGES.find((p) => p.id === page)?.modules ?? [];
+const allModulesFor = (): ModuleAsset[] => [
+  ...(BANKING_WALLET_MODULES as unknown as ModuleAsset[]),
+  ...availableModules,
+];
 
-const moduleFor = (id: ModuleId) => availableModules.find((m) => m.id === id);
+const pageModulesFor = (page: PageId, appKind: AppKind): ModuleId[] => {
+  const base = PAGES.find((p) => p.id === page)?.modules ?? [];
+  if (appKind === 'crypto') return base;
+  const prepend = (BANKING_WALLET_PAGE_PREPEND[page] ?? []) as ModuleId[];
+  return [...prepend, ...base];
+};
+
+
+const moduleFor = (id: ModuleId) => allModulesFor().find((m) => m.id === id);
 
 interface ViewActions {
   send: () => void;
@@ -1672,46 +1688,90 @@ function FreezeCard({ ctx }: { ctx: ViewCtx }) {
 }
 
 function ModuleView({ id, ctx }: { id: ModuleId; ctx: ViewCtx }) {
+  // New banking / wallet modules are rendered from their own file
+  if (BANKING_WALLET_MODULE_IDS.has(id)) {
+    return <BankingWalletModuleView id={id} ctx={ctx} />;
+  }
+
   switch (id) {
-    case 'accounts': return <BalanceCard ctx={ctx} />;
-    case 'cashflow': return <CashflowStrip ctx={ctx} />;
-    case 'transfers': return <QuickActions ctx={ctx} />;
-    case 'vaults': return <SavingsCards ctx={ctx} />;
-    case 'cards': return <RecentActivity ctx={ctx} />;
-    case 'fx': return <FxWallets ctx={ctx} />;
-    case 'analytics': return <SpendingCard ctx={ctx} />;
-    case 'security': return <SecurityRow ctx={ctx} />;
-    case 'notifications': return <AlertsRow ctx={ctx} />;
-    case 'signin': return <SignInCard ctx={ctx} />;
-    case 'accountsPage': return <AccountsOverview ctx={ctx} />;
-    case 'directTransferEngine': return <DirectTransferEngine ctx={ctx} />;
-    case 'multiMarketFX': return <MultiMarketFX ctx={ctx} />;
-    case 'recurringStanding': return <RecurringStanding ctx={ctx} />;
-    case 'authorizationModal': return <AuthorizationModal ctx={ctx} />;
-    case 'recentRecipients': return <RecentRecipients ctx={ctx} />;
-    case 'beneficiaryValidation': return <BeneficiaryValidation ctx={ctx} />;
-    case 'sendMoneyAmount': return <SendMoneyAmount ctx={ctx} />;
-    case 'transferSuccess': return <TransferSuccess ctx={ctx} />;
-    case 'peerInvoicing': return <PeerInvoicing ctx={ctx} />;
-    case 'paymentQR': return <PaymentQR ctx={ctx} />;
-    case 'splitPayment': return <SplitPayment ctx={ctx} />;
-    case 'outstandingReceivables': return <OutstandingReceivables ctx={ctx} />;
-    case 'historyPage': return <HistoryFilters ctx={ctx} />;
-    case 'splash': return <SplashCard ctx={ctx} />;
-    case 'profile': return <ProfileCard ctx={ctx} />;
-    case 'freezeCard': return <FreezeCard ctx={ctx} />;
-    case 'accountPortfolio': return <AccountPortfolio ctx={ctx} />;
-    case 'routingWireData': return <RoutingWireData ctx={ctx} />;
-    case 'statementsExport': return <StatementsExport ctx={ctx} />;
-    case 'cardPreview': return <CardPreview ctx={ctx} />;
-    case 'cardControls': return <CardControls ctx={ctx} />;
-    case 'pinVault': return <PinVault ctx={ctx} />;
-    case 'alertCenter': return <AlertCenter ctx={ctx} />;
-    case 'deliveryChannels': return <DeliveryChannels ctx={ctx} />;
-    case 'identityCard': return <IdentityCard ctx={ctx} />;
-    case 'securityBaseline': return <SecurityBaseline ctx={ctx} />;
-    case 'connectedDevices': return <ConnectedDevices ctx={ctx} />;
-    default: return null;
+    case 'accounts':
+      return <BalanceCard ctx={ctx} />;
+    case 'cashflow':
+      return <CashflowStrip ctx={ctx} />;
+    case 'transfers':
+      return <QuickActions ctx={ctx} />;
+    case 'vaults':
+      return <SavingsCards ctx={ctx} />;
+    case 'cards':
+      return <RecentActivity ctx={ctx} />;
+    case 'fx':
+      return <FxWallets ctx={ctx} />;
+    case 'analytics':
+      return <SpendingCard ctx={ctx} />;
+    case 'security':
+      return <SecurityRow ctx={ctx} />;
+    case 'notifications':
+      return <AlertsRow ctx={ctx} />;
+    case 'signin':
+      return <SignInCard ctx={ctx} />;
+    case 'accountsPage':
+      return <AccountsOverview ctx={ctx} />;
+    case 'directTransferEngine':
+      return <DirectTransferEngine ctx={ctx} />;
+    case 'multiMarketFX':
+      return <MultiMarketFX ctx={ctx} />;
+    case 'recurringStanding':
+      return <RecurringStanding ctx={ctx} />;
+    case 'authorizationModal':
+      return <AuthorizationModal ctx={ctx} />;
+    case 'recentRecipients':
+      return <RecentRecipients ctx={ctx} />;
+    case 'beneficiaryValidation':
+      return <BeneficiaryValidation ctx={ctx} />;
+    case 'sendMoneyAmount':
+      return <SendMoneyAmount ctx={ctx} />;
+    case 'transferSuccess':
+      return <TransferSuccess ctx={ctx} />;
+    case 'peerInvoicing':
+      return <PeerInvoicing ctx={ctx} />;
+    case 'paymentQR':
+      return <PaymentQR ctx={ctx} />;
+    case 'splitPayment':
+      return <SplitPayment ctx={ctx} />;
+    case 'outstandingReceivables':
+      return <OutstandingReceivables ctx={ctx} />;
+    case 'historyPage':
+      return <HistoryFilters ctx={ctx} />;
+    case 'splash':
+      return <SplashCard ctx={ctx} />;
+    case 'profile':
+      return <ProfileCard ctx={ctx} />;
+    case 'freezeCard':
+      return <FreezeCard ctx={ctx} />;
+    case 'accountPortfolio':
+      return <AccountPortfolio ctx={ctx} />;
+    case 'routingWireData':
+      return <RoutingWireData ctx={ctx} />;
+    case 'statementsExport':
+      return <StatementsExport ctx={ctx} />;
+    case 'cardPreview':
+      return <CardPreview ctx={ctx} />;
+    case 'cardControls':
+      return <CardControls ctx={ctx} />;
+    case 'pinVault':
+      return <PinVault ctx={ctx} />;
+    case 'alertCenter':
+      return <AlertCenter ctx={ctx} />;
+    case 'deliveryChannels':
+      return <DeliveryChannels ctx={ctx} />;
+    case 'identityCard':
+      return <IdentityCard ctx={ctx} />;
+    case 'securityBaseline':
+      return <SecurityBaseline ctx={ctx} />;
+    case 'connectedDevices':
+      return <ConnectedDevices ctx={ctx} />;
+    default:
+      return null;
   }
 }
 
@@ -1798,6 +1858,7 @@ interface PageMenuItemProps {
   dropSide: 'top' | 'bottom' | null;
   canvasModules: ModuleId[];
   thumbCtx: ViewCtx;
+  appKind: AppKind;
   onSelect: () => void;
   onToggleExpand: () => void;
   onAddModule: (id: ModuleId) => void;
@@ -1814,11 +1875,15 @@ interface PageMenuItemProps {
 }
 
 function PageMenuItem({
-  page, label, count, active, expanded, accent, isCustom, singleSlot, dropSide, canvasModules, thumbCtx,
+  page, label, count, active, expanded, accent, isCustom, singleSlot, dropSide, canvasModules, thumbCtx, appKind,
   onSelect, onToggleExpand, onAddModule, onRemoveModule, onStartDrag, onEndDrag, drag,
   onPageDragStart, onPageDragEnd, onPageDragOver, onPageDrop, onMovePage, onRename,
 }: PageMenuItemProps) {
-  const pageComponents = isCustom ? availableModules : availableModules.filter((m) => pageModulesFor(page as PageId).includes(m.id));
+  const pageComponents = isCustom
+    ? allModulesFor()
+    : allModulesFor().filter((m) =>
+        pageModulesFor(page as PageId, appKind).includes(m.id),
+      );
 
   const [isRenaming, setIsRenaming] = useState(false);
   const [renameValue, setRenameValue] = useState(label);
@@ -1973,6 +2038,7 @@ interface PageCanvasProps {
   drag: { id: ModuleId; from: 'library' | 'canvas' } | null;
   dropIndex: number | null;
   bodyRef: { current: HTMLDivElement | null };
+  appKind: AppKind;
   onStartDrag: (e: React.DragEvent, id: ModuleId, from: 'library' | 'canvas') => void;
   onEndDrag: () => void;
   onItemDragOver: (e: React.DragEvent, index: number) => void;
@@ -1987,11 +2053,13 @@ interface PageCanvasProps {
 }
 
 function PageCanvas({
-  page, pageLabel, modules, ctx, editMode, density, drag, dropIndex, bodyRef,
+  page, pageLabel, modules, ctx, editMode, density, drag, dropIndex, bodyRef, appKind,
   onStartDrag, onEndDrag, onItemDragOver, onDrop, onMove, onRemove, onQuickAdd,
   onBackHome, isDark, accent, radius,
 }: PageCanvasProps) {
-  const suggestions: ModuleId[] = pageModulesFor(page).length ? pageModulesFor(page) : ['accounts', 'transfers', 'cards'];
+  const suggestions: ModuleId[] = pageModulesFor(page, appKind).length
+    ? pageModulesFor(page, appKind)
+    : ['accounts', 'transfers', 'cards'];
 
   return (
     <>
@@ -2376,10 +2444,10 @@ export default function BuildSection() {
     customPages.find((p) => p.id === id)?.label ?? PAGES.find((p) => p.id === id)?.label ?? 'Page';
 
   // Page menu count: kit size for built-in pages, current canvas count for custom pages.
-  const countFor = (id: string) => {
-    if (id.startsWith('custom-')) return (pageModules[id as PageId] ?? []).length;
-    return PAGES.find((p) => p.id === id)?.modules.length ?? 0;
-  };
+  const countFor = (id: string, appKind: AppKind) => {
+  if (id.startsWith('custom-')) return (pageModules[id as PageId] ?? []).length;
+  return pageModulesFor(id as PageId, appKind).length;
+};
 
   const canvasModules = pageModules[activePage] ?? [];
   const history = histories[activePage] ?? [];
@@ -2499,10 +2567,10 @@ export default function BuildSection() {
   };
 
   const loadStarter = () => {
-    const kit = pageModulesFor(activePage);
-    commit(isSingleSlot ? kit.slice(0, 1) : kit);
-    setActiveTab(PAGE_TO_TAB[activePage] ?? 'home');
-  };
+  const kit = pageModulesFor(activePage, appKind);
+  commit(isSingleSlot ? kit.slice(0, 1) : kit);
+  setActiveTab(PAGE_TO_TAB[activePage] ?? 'home');
+};
 
   const selectPage = (id: PageId) => {
     setActivePage(id);
@@ -2686,7 +2754,7 @@ export default function BuildSection() {
   const hasAlerts = canvasModules.includes('notifications');
 
   const canvasProps = {
-    page: activePage, pageLabel: currentPageLabel, modules: canvasModules, ctx: liveCtx, editMode, density, drag, dropIndex, bodyRef,
+    page: activePage, pageLabel: currentPageLabel, modules: canvasModules, ctx: liveCtx, editMode, density, drag, dropIndex, bodyRef, appKind,
     onStartDrag: startDrag, onEndDrag: endDrag, onItemDragOver: handleItemDragOver, onDrop: handleDrop,
     onMove: moveModule, onRemove: removeModule, onQuickAdd: addModule, isDark, accent: accentColor, radius,
   };
@@ -2780,9 +2848,9 @@ export default function BuildSection() {
                   return (
                     <PageMenuItem
                       key={id} page={id} label={labelFor(id)}
-                      count={countFor(id)}
+                      count={countFor(id, appKind)}
                       active={activePage === id} expanded={expandedPage === id} accent={accentColor} isCustom={isCustom} singleSlot={!!SINGLE_SLOT[id as PageId]} dropSide={dropSide}
-                      canvasModules={canvasModules} thumbCtx={thumbCtx}
+                      canvasModules={canvasModules} thumbCtx={thumbCtx} appKind={appKind}
                       onSelect={() => selectPage(id as PageId)}
                       onToggleExpand={() => { if (expandedPage === id) setExpandedPage(null); else selectPage(id as PageId); }}
                       onAddModule={addModule} onRemoveModule={removeModule} onStartDrag={startDrag} onEndDrag={endDrag} drag={drag}
@@ -2860,22 +2928,7 @@ export default function BuildSection() {
                           <span className="text-[10px] font-semibold text-slate-400">Wire Transfer</span>
                         </div>
                         <PageCanvas {...canvasProps} />
-                        <div className={`space-y-2.5 p-3 ${radius.card} ${pageSurface}`}>
-                          <div>
-                            <label htmlFor="wire-recipient" className="mb-0.5 block text-[9px] font-semibold text-slate-400">Recipient IBAN / Account</label>
-                            <input id="wire-recipient" type="text" value={recipient} onChange={(e) => setRecipient(e.target.value)} className={`${inputCls} font-mono`} style={ringVar(accentColor)} />
-                          </div>
-                          <div>
-                            <label htmlFor="wire-amount" className="mb-0.5 block text-[9px] font-semibold text-slate-400">Transfer Amount (USD)</label>
-                            <input id="wire-amount" type="text" inputMode="decimal" value={sendAmount}
-                              onChange={(e) => { setSendAmount(e.target.value); setSendError(null); }}
-                              onBlur={() => setSendAmount(formatAmount(parseAmount(sendAmount)))} aria-invalid={!!sendError}
-                              className={`${inputCls} font-bold`} style={ringVar(accentColor)} />
-                            <p className="mt-0.5 text-[8px] text-slate-400">Available: {usd(balance)}</p>
-                          </div>
-                          {sendError && <p role="alert" className="text-[9px] font-semibold text-rose-500">{sendError}</p>}
-                          <button type="button" onClick={handleSend} className={`w-full cursor-pointer py-2.5 text-[11px] font-bold text-white shadow-md transition hover:opacity-90 ${radius.icon}`} style={{ background: accentColor }}>Confirm &amp; Send Wire</button>
-                        </div>
+                        
                       </div>
                     )}
 
