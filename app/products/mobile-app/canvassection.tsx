@@ -13,6 +13,7 @@ import {
   CreditCard,
   ListFilter,
   Search,
+  Send as SendIcon,
   Apple,
   Snowflake,
   Settings,
@@ -56,12 +57,15 @@ const stepsData: StepItem[] = [
 ];
 
 // ---------------------------------------------------------------------------
-// Animation timeline: 5 screens x 2s = 10s loop
+// Timeline: Home -> Cards -> Recipients -> Send -> Sent (about 10 seconds)
 // ---------------------------------------------------------------------------
 
-const SCREEN_COUNT = 5;
-const SCREEN_MS = 2000;
-const TOTAL_MS = SCREEN_COUNT * SCREEN_MS;
+const SCENE_MS = [2000, 2100, 2000, 2700, 1600];
+const SCENE_START = SCENE_MS.reduce<number[]>((acc, ms, i) => {
+  acc.push(i === 0 ? 0 : acc[i - 1] + SCENE_MS[i - 1]);
+  return acc;
+}, []);
+const TOTAL_MS = SCENE_MS.reduce((a, b) => a + b, 0);
 const TICK_MS = 50;
 const AUTO_AMOUNT = '286';
 
@@ -69,28 +73,56 @@ const AUTO_AMOUNT = '286';
 const STAGE_W = 1000;
 const STAGE_H = 645;
 
+// Motion curves
+const EASE = 'cubic-bezier(0.32, 0.72, 0, 1)'; // smooth, iOS-style deceleration
+const SPRING = 'cubic-bezier(0.34, 1.4, 0.64, 1)'; // slight overshoot
+
+type TapStage = 'hidden' | 'in' | 'move' | 'tap';
+
 interface AutoState {
-  screen: number;
+  scene: number;
   digits: string;
   pressedKey: string | null;
+  tap: TapStage;
+  sendPressed: boolean;
 }
 
-// Works out what the demo should show at a given point on the 10s timeline
+// Works out what the demo should show at a given point on the timeline
 function getAutoState(t: number): AutoState {
-  const screen = Math.min(SCREEN_COUNT - 1, Math.floor(t / SCREEN_MS));
-  const local = (t % SCREEN_MS) / SCREEN_MS;
+  let scene = 0;
+  SCENE_START.forEach((start, i) => {
+    if (t >= start) scene = i;
+  });
+  const local = t - SCENE_START[scene];
 
-  if (screen < 3) return { screen, digits: '', pressedKey: null };
-  if (screen === 4) return { screen, digits: AUTO_AMOUNT, pressedKey: null };
+  let digits = '';
+  let pressedKey: string | null = null;
+  let tap: TapStage = 'hidden';
+  let sendPressed = false;
 
-  // Screen 4: the amount is typed out key by key (2, 8, 6)
-  if (local < 0.18) return { screen, digits: '', pressedKey: null };
-  if (local < 0.3) return { screen, digits: '2', pressedKey: '2' };
-  if (local < 0.42) return { screen, digits: '2', pressedKey: null };
-  if (local < 0.54) return { screen, digits: '28', pressedKey: '8' };
-  if (local < 0.66) return { screen, digits: '28', pressedKey: null };
-  if (local < 0.78) return { screen, digits: '286', pressedKey: '6' };
-  return { screen, digits: '286', pressedKey: null };
+  if (scene === 2) {
+    // A touch indicator glides over to Pavlo and taps
+    tap = local < 400 ? 'hidden' : local < 500 ? 'in' : local < 1300 ? 'move' : 'tap';
+  }
+
+  if (scene === 3) {
+    // The amount is typed key by key (2, 8, 6), then Send is pressed
+    if (local >= 1600) {
+      digits = '286';
+      if (local < 1750) pressedKey = '6';
+    } else if (local >= 1250) {
+      digits = '28';
+      if (local < 1400) pressedKey = '8';
+    } else if (local >= 900) {
+      digits = '2';
+      if (local < 1050) pressedKey = '2';
+    }
+    sendPressed = local >= 2350 && local < 2600;
+  }
+
+  if (scene === 4) digits = AUTO_AMOUNT;
+
+  return { scene, digits, pressedKey, tap, sendPressed };
 }
 
 function formatAmount(raw: string) {
@@ -144,36 +176,60 @@ function Avatar({
   );
 }
 
-function BottomNav({ active, go }: { active: 'home' | 'cards'; go: (screen: number) => void }) {
-  const items = [
-    { key: 'people', Icon: Users, target: 2 },
-    { key: 'home', Icon: Home, target: 0 },
-    { key: 'cards', Icon: CreditCard, target: 1 },
-  ];
+// Full-screen layer in the dark area that fades/slides in when its scene is active
+function TopLayer({
+  active,
+  delay = 0,
+  lift = 10,
+  children,
+}: {
+  active: boolean;
+  delay?: number;
+  lift?: number;
+  children: React.ReactNode;
+}) {
   return (
-    <div className="absolute bottom-[20px] left-1/2 z-10 flex -translate-x-1/2 items-center gap-1 rounded-full bg-[#2A2E37] p-1.5 shadow-lg">
-      {items.map(({ key, Icon, target }) => {
-        const selected = key === active;
-        return (
-          <button
-            key={key}
-            type="button"
-            onClick={() => go(target)}
-            aria-label={key}
-            className={`flex h-8 items-center justify-center rounded-full transition-colors ${
-              selected ? 'w-[52px] bg-white text-slate-900' : 'w-9 text-slate-400 hover:text-white'
-            }`}
-          >
-            <Icon className="h-3.5 w-3.5" fill={selected && key === 'home' ? 'currentColor' : 'none'} />
-          </button>
-        );
-      })}
+    <div
+      className={`absolute inset-0 ${active ? '' : 'pointer-events-none'}`}
+      style={{
+        opacity: active ? 1 : 0,
+        transform: active ? 'translateY(0)' : `translateY(${-lift}px)`,
+        transition: active
+          ? `opacity 450ms ease ${delay}ms, transform 700ms ${EASE} ${delay}ms`
+          : 'opacity 220ms ease, transform 300ms ease',
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+// Content that lives inside the morphing white sheet
+function SheetLayer({
+  active,
+  height,
+  children,
+}: {
+  active: boolean;
+  height: number;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      className={`absolute inset-x-0 top-0 ${active ? '' : 'pointer-events-none'}`}
+      style={{
+        height,
+        opacity: active ? 1 : 0,
+        transition: active ? 'opacity 350ms ease 380ms' : 'opacity 160ms ease',
+      }}
+    >
+      {children}
     </div>
   );
 }
 
 // ---------------------------------------------------------------------------
-// The five phone screens
+// Scene content
 // ---------------------------------------------------------------------------
 
 const TRANSACTIONS = [
@@ -198,71 +254,377 @@ function TxIcon({ kind }: { kind: string }) {
   );
 }
 
-function HomeScreen({ go }: { go: (screen: number) => void }) {
+// --- Home (dark area) ---
+function HomeTop({ active, go }: { active: boolean; go: (scene: number) => void }) {
+  const strips = ['#FBD32A', '#2DD4A0', '#0A84FF'];
   return (
-    <div className="relative h-full w-full bg-[#0F1218] text-white">
-      {/* Avatar + bell */}
-      <div className="absolute left-4 right-4 top-[46px] flex items-center justify-between">
-        <Avatar initials="AL" size={26} gradient={2} />
-        <Bell className="h-3.5 w-3.5 text-slate-300" />
-      </div>
-
-      {/* Balance */}
-      <div className="absolute left-4 top-[92px]">
-        <p className="text-[9px] text-slate-400">Total balance</p>
-        <p className="mt-0.5 flex items-baseline gap-1">
-          <span className="text-[15px] font-semibold">$</span>
-          <span className="text-[27px] font-bold leading-none tracking-tight">7,854</span>
-          <span className="text-[10px] text-slate-400">.43</span>
-        </p>
-      </div>
-
-      {/* Actions */}
-      <div className="absolute left-4 top-[146px] flex gap-2">
-        <button
-          type="button"
-          onClick={() => go(3)}
-          className="flex h-6 items-center gap-1.5 rounded-full border border-white/20 bg-[#1B1F27] pl-1.5 pr-3 text-[9px] font-semibold transition-colors hover:bg-[#252A34]"
-        >
-          <span className="grid h-3.5 w-3.5 place-items-center rounded-full bg-white text-black">
-            <ArrowUpRight className="h-2.5 w-2.5" />
-          </span>
-          Send
-        </button>
-        <button
-          type="button"
-          className="flex h-6 items-center rounded-full border border-white/10 bg-[#1B1F27] px-3 text-[9px] font-medium text-slate-200 transition-colors hover:bg-[#252A34]"
-        >
-          Request
-        </button>
-      </div>
-
-      {/* Stacked cards peeking in */}
-      <div className="absolute right-0 top-[94px] h-[75px] w-[60px]">
-        <div className="absolute right-[26px] top-0 h-full w-[28px] rounded-l-lg bg-[#FBD32A]" />
-        <div className="absolute right-[13px] top-0 h-full w-[28px] rounded-l-lg bg-[#2DD4A0]" />
-        <div className="absolute right-0 top-0 h-full w-[28px] rounded-l-lg bg-[#0A84FF]" />
-      </div>
-
-      {/* Spending */}
-      <div className="absolute left-3 right-3 top-[178px] flex items-center justify-between rounded-xl border border-white/5 bg-[#161A22] px-3 py-2.5">
-        <div>
-          <p className="text-[8px] text-slate-400">Spending</p>
-          <p className="mt-0.5 text-[12px] font-bold">$1,385</p>
+    <TopLayer active={active} delay={150} lift={0}>
+      <div className="relative h-full w-full text-white">
+        <div className="absolute left-4 right-4 top-[46px] flex items-center justify-between">
+          <Avatar initials="AL" size={26} gradient={2} />
+          <Bell className="h-3.5 w-3.5 text-slate-300" />
         </div>
-        <div className="flex -space-x-1.5">
-          {['#16A34A', '#F97316', '#64748B', '#000000', '#FFFFFF', '#C2410C'].map((c, i) => (
-            <span
-              key={i}
-              className="h-[14px] w-[14px] rounded-full ring-1 ring-[#161A22]"
-              style={{ backgroundColor: c }}
+
+        <div className="absolute left-4 top-[92px]">
+          <p className="text-[9px] text-slate-400">Total balance</p>
+          <p className="mt-0.5 flex items-baseline gap-1">
+            <span className="text-[15px] font-semibold">$</span>
+            <span className="text-[27px] font-bold leading-none tracking-tight">7,854</span>
+            <span className="text-[10px] text-slate-400">.43</span>
+          </p>
+        </div>
+
+        <div className="absolute left-4 top-[146px] flex gap-2">
+          <button
+            type="button"
+            onClick={() => go(3)}
+            className="flex h-6 items-center gap-1.5 rounded-full border border-white/20 bg-[#1B1F27] pl-1.5 pr-3 text-[9px] font-semibold transition-colors hover:bg-[#252A34]"
+          >
+            <span className="grid h-3.5 w-3.5 place-items-center rounded-full bg-white text-black">
+              <ArrowUpRight className="h-2.5 w-2.5" />
+            </span>
+            Send
+          </button>
+          <button
+            type="button"
+            className="flex h-6 items-center rounded-full border border-white/10 bg-[#1B1F27] px-3 text-[9px] font-medium text-slate-200 transition-colors hover:bg-[#252A34]"
+          >
+            Request
+          </button>
+        </div>
+
+        {/* Stacked cards slide in from the right edge */}
+        <div className="absolute right-0 top-[94px] h-[75px] w-[60px] overflow-hidden">
+          {strips.map((color, i) => (
+            <div
+              key={color}
+              className="absolute top-0 h-full w-[28px] rounded-l-lg"
+              style={{
+                right: (2 - i) * 13 + (i === 0 ? 0 : 0),
+                backgroundColor: color,
+                transform: active ? 'translateX(0)' : 'translateX(70px)',
+                transition: active
+                  ? `transform 700ms ${EASE} ${350 + i * 110}ms`
+                  : 'transform 250ms ease',
+              }}
             />
           ))}
         </div>
+
+        <div className="absolute left-3 right-3 top-[178px] flex items-center justify-between rounded-xl border border-white/5 bg-[#161A22] px-3 py-2.5">
+          <div>
+            <p className="text-[8px] text-slate-400">Spending</p>
+            <p className="mt-0.5 text-[12px] font-bold">$1,385</p>
+          </div>
+          <div className="flex -space-x-1.5">
+            {['#16A34A', '#F97316', '#64748B', '#000000', '#FFFFFF', '#C2410C'].map((c, i) => (
+              <span
+                key={i}
+                className="h-[14px] w-[14px] rounded-full ring-1 ring-[#161A22]"
+                style={{ backgroundColor: c }}
+              />
+            ))}
+          </div>
+        </div>
+      </div>
+    </TopLayer>
+  );
+}
+
+// --- Cards (dark area): three cards drop in from the top, one after another ---
+const CARD_STYLES = [
+  { number: '7642', gradient: 'linear-gradient(135deg,#F5BE0B 0%,#F7D24B 55%,#F2D36B 100%)' },
+  { number: '5123', gradient: 'linear-gradient(135deg,#1FC2AE 0%,#46D0BD 55%,#6FDACB 100%)' },
+  { number: '3413', gradient: 'linear-gradient(135deg,#2788EE 0%,#4AA6F0 55%,#7CCBF2 100%)' },
+];
+
+function CardsTop({ active }: { active: boolean }) {
+  return (
+    <div
+      className={`absolute inset-0 text-white ${active ? '' : 'pointer-events-none'}`}
+      style={{
+        opacity: active ? 1 : 0,
+        transition: active ? 'opacity 200ms ease' : 'opacity 250ms ease 50ms',
+      }}
+    >
+      <div
+        className="absolute left-4 right-4 top-[56px] flex items-center justify-between"
+        style={{
+          opacity: active ? 1 : 0,
+          transform: active ? 'translateY(0)' : 'translateY(-12px)',
+          transition: active ? `all 600ms ${EASE} 150ms` : 'all 200ms ease',
+        }}
+      >
+        <h4 className="text-[19px] font-bold tracking-tight">Cards</h4>
+        <button
+          type="button"
+          className="rounded-full bg-white px-2.5 py-1 text-[8px] font-bold text-black transition-opacity hover:opacity-90"
+        >
+          Order a card
+        </button>
       </div>
 
-      {/* Transactions sheet */}
-      <div className="absolute inset-x-0 bottom-0 top-[239px] rounded-t-[22px] bg-white text-slate-900">
+      <div className="absolute inset-x-3 top-[92px] flex flex-col gap-[10px]">
+        {CARD_STYLES.map((card, i) => (
+          <div
+            key={card.number}
+            className="relative h-[113px] overflow-hidden rounded-xl text-white shadow-lg"
+            style={{
+              background: card.gradient,
+              opacity: active ? 1 : 0,
+              transform: active ? 'translateY(0) scale(1)' : 'translateY(-260px) scale(0.96)',
+              transition: active
+                ? `transform 850ms ${SPRING} ${250 + i * 150}ms, opacity 300ms ease ${250 + i * 150}ms`
+                : 'transform 300ms ease, opacity 200ms ease',
+            }}
+          >
+            <div className="absolute left-3 top-2.5 text-[8px] font-bold">Digital card</div>
+            <div className="absolute right-3 top-2.5 text-[8px] font-bold tracking-widest">
+              •••• {card.number}
+            </div>
+            <div className="absolute bottom-2.5 left-3 flex gap-1.5">
+              {[Snowflake, CreditCard, Settings].map((Icon, j) => (
+                <span key={j} className="grid h-[22px] w-[22px] place-items-center rounded-full bg-white/30">
+                  <Icon className="h-2.5 w-2.5" />
+                </span>
+              ))}
+            </div>
+            <div className="absolute bottom-2.5 right-3 flex -space-x-2">
+              <span className="h-[18px] w-[18px] rounded-full bg-black/25" />
+              <span className="h-[18px] w-[18px] rounded-full bg-black/20" />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// --- Recipients (dark area) ---
+const RECIPIENTS = [
+  { name: 'Sarah', handle: '@sarahsdesi...' },
+  { name: 'Pavlo', handle: '@designwitha...' },
+  { name: 'Jordan', handle: '@jordan.creat...' },
+  { name: 'Chris', handle: '@chrisgraph...' },
+  { name: 'Emily', handle: '@emilyartis...' },
+  { name: 'Taylor', handle: '@taylorcrea...' },
+];
+
+function RecipientsTop({
+  active,
+  pavloPressed,
+  go,
+}: {
+  active: boolean;
+  pavloPressed: boolean;
+  go: (scene: number) => void;
+}) {
+  return (
+    <div
+      className={`absolute inset-0 text-white ${active ? '' : 'pointer-events-none'}`}
+      style={{
+        opacity: active ? 1 : 0,
+        transition: active ? 'opacity 250ms ease 100ms' : 'opacity 250ms ease',
+      }}
+    >
+      <div className="absolute left-4 right-4 top-[56px] flex items-center justify-between">
+        <h4 className="text-[19px] font-bold tracking-tight">Recipients</h4>
+        <button type="button" className="rounded-full bg-white px-3 py-1 text-[8px] font-bold text-black">
+          Add
+        </button>
+      </div>
+
+      <div className="absolute inset-x-4 top-[98px] grid grid-cols-3 gap-y-3">
+        {RECIPIENTS.map((r, i) => {
+          const pressed = r.name === 'Pavlo' && pavloPressed;
+          return (
+            <button
+              key={r.name}
+              type="button"
+              onClick={() => go(3)}
+              className="flex flex-col items-center"
+              style={{
+                opacity: active ? 1 : 0,
+                transform: pressed ? 'scale(0.92)' : active ? 'translateY(0)' : 'translateY(14px)',
+                transition: pressed
+                  ? 'transform 150ms ease'
+                  : active
+                  ? `transform 600ms ${EASE} ${250 + i * 60}ms, opacity 400ms ease ${250 + i * 60}ms`
+                  : 'transform 200ms ease, opacity 200ms ease',
+              }}
+            >
+              <span
+                className="rounded-full transition-shadow duration-200"
+                style={{ boxShadow: pressed ? '0 0 0 3px rgba(255,255,255,0.7)' : '0 0 0 0 rgba(255,255,255,0)' }}
+              >
+                <Avatar initials={r.name[0]} size={40} gradient={i} />
+              </span>
+              <span className="mt-1 text-[9px] font-medium">{r.name}</span>
+              <span className="text-[6.5px] text-slate-500">{r.handle}</span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// --- Send (dark area): the chosen recipient pops in above the sheet ---
+function SendTop({ active }: { active: boolean }) {
+  return (
+    <div
+      className="pointer-events-none absolute inset-0 text-white"
+      style={{
+        opacity: active ? 1 : 0,
+        transition: active ? 'opacity 250ms ease 150ms' : 'opacity 200ms ease',
+      }}
+    >
+      <div
+        className="absolute left-1/2 top-[42px] flex -translate-x-1/2 flex-col items-center"
+        style={{
+          transform: `translateX(-50%) scale(${active ? 1 : 0.4})`,
+          transition: active ? `transform 700ms ${SPRING} 250ms` : 'transform 200ms ease',
+        }}
+      >
+        <Avatar initials="P" size={26} gradient={1} />
+        <span className="mt-1 text-[8px] font-medium text-slate-300">Pavlo</span>
+      </div>
+    </div>
+  );
+}
+
+// --- Sent (full-screen green) ---
+function SentLayer({
+  active,
+  digits,
+  onDone,
+}: {
+  active: boolean;
+  digits: string;
+  onDone: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onDone}
+      tabIndex={active ? 0 : -1}
+      className={`absolute inset-0 flex flex-col items-center justify-center pb-12 text-white ${
+        active ? '' : 'pointer-events-none'
+      }`}
+      style={{
+        opacity: active ? 1 : 0,
+        transition: active ? 'opacity 300ms ease 250ms' : 'opacity 200ms ease',
+      }}
+    >
+      <span
+        style={{
+          transform: active ? 'scale(1)' : 'scale(0.3)',
+          transition: active ? `transform 600ms ${SPRING} 450ms` : 'transform 200ms ease',
+        }}
+      >
+        <Check className="h-9 w-9" strokeWidth={4} />
+      </span>
+      <p
+        className="mt-5 text-[34px] font-bold leading-none tracking-tight"
+        style={{
+          transform: active ? 'translateY(0)' : 'translateY(14px)',
+          opacity: active ? 1 : 0,
+          transition: active ? `all 600ms ${EASE} 600ms` : 'all 200ms ease',
+        }}
+      >
+        $ {formatAmount(digits || AUTO_AMOUNT)}
+      </p>
+      <p
+        className="mt-2 text-[11px] font-medium"
+        style={{
+          transform: active ? 'translateY(0)' : 'translateY(14px)',
+          opacity: active ? 1 : 0,
+          transition: active ? `all 600ms ${EASE} 750ms` : 'all 200ms ease',
+        }}
+      >
+        Sent to Pavlo
+      </p>
+    </button>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// The white sheet that morphs between scenes
+// ---------------------------------------------------------------------------
+
+interface SheetGeometry {
+  top: number;
+  left: number;
+  right: number;
+  height: number;
+  radius: number;
+  shadow: string;
+}
+
+const NO_SHADOW = '0 0 0 rgba(0,0,0,0)';
+const OFFSCREEN: SheetGeometry = { top: 600, left: 0, right: 0, height: 480, radius: 22, shadow: NO_SHADOW };
+
+const SHEET_GEOMETRY: SheetGeometry[] = [
+  { top: 239, left: 0, right: 0, height: 325, radius: 22, shadow: NO_SHADOW }, // Home: transactions
+  { top: 490, left: 16, right: 16, height: 50, radius: 25, shadow: '0 10px 28px rgba(0,0,0,0.45)' }, // Cards: quick action bar
+  { top: 322, left: 0, right: 0, height: 242, radius: 22, shadow: NO_SHADOW }, // Recipients list
+  { top: 84, left: 0, right: 0, height: 480, radius: 22, shadow: NO_SHADOW }, // Send keypad
+  OFFSCREEN, // Sent: slides away
+];
+
+const QUICK_ACTIONS = [
+  { key: 'home', label: 'Home', Icon: Home, target: 0 },
+  { key: 'cards', label: 'Cards', Icon: CreditCard, target: 1 },
+  { key: 'search', label: 'Search', Icon: Search, target: 2 },
+  { key: 'send', label: 'Send', Icon: SendIcon, target: 3 },
+];
+
+const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '0', 'back'];
+
+const RECIPIENT_ROWS = [
+  { name: 'Gigi Hadid', account: 'Chase 2983', dot: '#2DD4BF' },
+  { name: 'Bella Hadid', account: 'Mastercard 9283', dot: '#D9F100' },
+  { name: 'Bella Hadid', account: 'Mastercard 9283', dot: '#D9F100' },
+  { name: 'Bella Hadid', account: 'Mastercard 9283', dot: '#D9F100' },
+];
+
+function Sheet({
+  scene,
+  digits,
+  pressedKey,
+  sendPressed,
+  go,
+  onKey,
+  onSend,
+}: {
+  scene: number;
+  digits: string;
+  pressedKey: string | null;
+  sendPressed: boolean;
+  go: (scene: number) => void;
+  onKey: (key: string) => void;
+  onSend: () => void;
+}) {
+  const g = scene >= 0 ? SHEET_GEOMETRY[scene] : OFFSCREEN;
+  const hasAmount = digits !== '' && parseFloat(digits) > 0;
+
+  return (
+    <div
+      className="absolute z-10 overflow-hidden bg-white text-slate-900"
+      style={{
+        top: g.top,
+        left: g.left,
+        right: g.right,
+        height: g.height,
+        borderRadius: g.radius,
+        boxShadow: g.shadow,
+        transitionProperty: 'top, left, right, height, border-radius, box-shadow',
+        transitionDuration: '850ms',
+        transitionTimingFunction: EASE,
+      }}
+    >
+      {/* HOME: transactions */}
+      <SheetLayer active={scene === 0} height={325}>
         <div className="mx-auto mt-2 h-[3px] w-8 rounded-full bg-slate-200" />
         <div className="mt-3 flex items-center justify-between px-4 text-slate-400">
           <ListFilter className="h-3 w-3" />
@@ -288,105 +650,57 @@ function HomeScreen({ go }: { go: (screen: number) => void }) {
             </div>
           ))}
         </div>
-      </div>
 
-      <BottomNav active="home" go={go} />
-    </div>
-  );
-}
+        {/* Floating nav pill */}
+        <div className="absolute bottom-[20px] left-1/2 flex -translate-x-1/2 items-center gap-1 rounded-full bg-[#2A2E37] p-1.5 shadow-lg">
+          {[
+            { key: 'people', Icon: Users, target: 2 },
+            { key: 'home', Icon: Home, target: 0 },
+            { key: 'cards', Icon: CreditCard, target: 1 },
+          ].map(({ key, Icon, target }) => {
+            const selected = key === 'home';
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => go(target)}
+                aria-label={key}
+                className={`flex h-8 items-center justify-center rounded-full transition-colors ${
+                  selected ? 'w-[52px] bg-white text-slate-900' : 'w-9 text-slate-400 hover:text-white'
+                }`}
+              >
+                <Icon className="h-3.5 w-3.5" fill={selected ? 'currentColor' : 'none'} />
+              </button>
+            );
+          })}
+        </div>
+      </SheetLayer>
 
-const CARD_STYLES = [
-  { number: '7642', gradient: 'linear-gradient(135deg,#F5BE0B 0%,#F7D24B 55%,#F2D36B 100%)' },
-  { number: '5123', gradient: 'linear-gradient(135deg,#1FC2AE 0%,#46D0BD 55%,#6FDACB 100%)' },
-  { number: '3413', gradient: 'linear-gradient(135deg,#2788EE 0%,#4AA6F0 55%,#7CCBF2 100%)' },
-];
+      {/* CARDS: quick action bar */}
+      <SheetLayer active={scene === 1} height={50}>
+        <div className="flex h-full items-center justify-around px-2">
+          {QUICK_ACTIONS.map(({ key, label, Icon, target }) => {
+            const selected = key === 'cards';
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => go(target)}
+                aria-label={label}
+                className={`flex h-[38px] w-[54px] flex-col items-center justify-center gap-0.5 rounded-2xl transition-colors ${
+                  selected ? 'bg-slate-100 text-slate-900' : 'text-slate-400 hover:text-slate-700'
+                }`}
+              >
+                <Icon className="h-3.5 w-3.5" />
+                <span className="text-[7px] font-semibold">{label}</span>
+              </button>
+            );
+          })}
+        </div>
+      </SheetLayer>
 
-function CardsScreen({ go }: { go: (screen: number) => void }) {
-  return (
-    <div className="relative h-full w-full bg-[#0F1218] text-white">
-      <div className="absolute left-4 right-4 top-[56px] flex items-center justify-between">
-        <h4 className="text-[19px] font-bold tracking-tight">Cards</h4>
-        <button
-          type="button"
-          className="rounded-full bg-white px-2.5 py-1 text-[8px] font-bold text-black transition-opacity hover:opacity-90"
-        >
-          Order a card
-        </button>
-      </div>
-
-      <div className="absolute inset-x-3 top-[92px] flex flex-col gap-[10px]">
-        {CARD_STYLES.map((card) => (
-          <div
-            key={card.number}
-            className="relative h-[113px] overflow-hidden rounded-xl text-white shadow-lg transition-transform hover:-translate-y-0.5"
-            style={{ background: card.gradient }}
-          >
-            <div className="absolute left-3 top-2.5 text-[8px] font-bold">Digital card</div>
-            <div className="absolute right-3 top-2.5 text-[8px] font-bold tracking-widest">
-              •••• {card.number}
-            </div>
-            <div className="absolute bottom-2.5 left-3 flex gap-1.5">
-              {[Snowflake, CreditCard, Settings].map((Icon, i) => (
-                <span key={i} className="grid h-[22px] w-[22px] place-items-center rounded-full bg-white/30">
-                  <Icon className="h-2.5 w-2.5" />
-                </span>
-              ))}
-            </div>
-            <div className="absolute bottom-2.5 right-3 flex -space-x-2">
-              <span className="h-[18px] w-[18px] rounded-full bg-black/25" />
-              <span className="h-[18px] w-[18px] rounded-full bg-black/20" />
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <BottomNav active="cards" go={go} />
-    </div>
-  );
-}
-
-const RECIPIENTS = [
-  { name: 'Sarah', handle: '@sarahsdesi...' },
-  { name: 'Pavlo', handle: '@designwitha...' },
-  { name: 'Jordan', handle: '@jordan.creat...' },
-  { name: 'Chris', handle: '@chrisgraph...' },
-  { name: 'Emily', handle: '@emilyartis...' },
-  { name: 'Taylor', handle: '@taylorcrea...' },
-];
-
-const RECIPIENT_ROWS = [
-  { name: 'Gigi Hadid', account: 'Chase 2983', dot: '#2DD4BF' },
-  { name: 'Bella Hadid', account: 'Mastercard 9283', dot: '#D9F100' },
-  { name: 'Bella Hadid', account: 'Mastercard 9283', dot: '#D9F100' },
-  { name: 'Bella Hadid', account: 'Mastercard 9283', dot: '#D9F100' },
-];
-
-function RecipientsScreen({ go }: { go: (screen: number) => void }) {
-  return (
-    <div className="relative h-full w-full bg-[#0F1218] text-white">
-      <div className="absolute left-4 right-4 top-[56px] flex items-center justify-between">
-        <h4 className="text-[19px] font-bold tracking-tight">Recipients</h4>
-        <button type="button" className="rounded-full bg-white px-3 py-1 text-[8px] font-bold text-black">
-          Add
-        </button>
-      </div>
-
-      <div className="absolute inset-x-4 top-[98px] grid grid-cols-3 gap-y-3">
-        {RECIPIENTS.map((r, i) => (
-          <button
-            key={r.name}
-            type="button"
-            onClick={() => go(3)}
-            className="flex flex-col items-center transition-transform hover:scale-105"
-          >
-            <Avatar initials={r.name[0]} size={40} gradient={i} />
-            <span className="mt-1 text-[9px] font-medium">{r.name}</span>
-            <span className="text-[6.5px] text-slate-500">{r.handle}</span>
-          </button>
-        ))}
-      </div>
-
-      <div className="absolute inset-x-0 bottom-0 top-[322px] rounded-t-[22px] bg-white text-slate-900">
+      {/* RECIPIENTS: list */}
+      <SheetLayer active={scene === 2} height={242}>
         <div className="mx-auto mt-2 h-[3px] w-8 rounded-full bg-slate-200" />
         <div className="mt-3 flex items-center justify-between px-4">
           <div className="flex rounded-full bg-slate-100 p-[3px] text-[8px]">
@@ -411,34 +725,12 @@ function RecipientsScreen({ go }: { go: (screen: number) => void }) {
             </button>
           ))}
         </div>
-      </div>
-    </div>
-  );
-}
+      </SheetLayer>
 
-const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '0', 'back'];
-
-function SendScreen({
-  digits,
-  pressedKey,
-  onKey,
-  onSend,
-}: {
-  digits: string;
-  pressedKey: string | null;
-  onKey: (key: string) => void;
-  onSend: () => void;
-}) {
-  const hasAmount = digits !== '' && parseFloat(digits) > 0;
-  return (
-    <div className="relative h-full w-full bg-[#0F1218]">
-      {/* Peek of the screen behind the sheet */}
-      <div className="absolute inset-x-3 top-[58px] h-[44px] rounded-t-2xl bg-[#1A1E26]" />
-
-      <div className="absolute inset-x-0 bottom-0 top-[84px] rounded-t-[22px] bg-white text-slate-900">
+      {/* SEND: amount + keypad */}
+      <SheetLayer active={scene === 3} height={480}>
         <div className="mx-auto mt-2 h-[3px] w-8 rounded-full bg-slate-200" />
 
-        {/* Send / Request */}
         <div className="mx-auto mt-3 flex w-[150px] rounded-full bg-slate-100 p-[3px] text-[9px]">
           <span className="flex-1 rounded-full bg-white py-1.5 text-center font-bold shadow-sm">Send</span>
           <span className="flex-1 py-1.5 text-center text-slate-400">Request</span>
@@ -448,9 +740,8 @@ function SendScreen({
           Pavlo • 7642 USD <ChevronDown className="h-2.5 w-2.5" />
         </p>
 
-        {/* Amount */}
         <p
-          className={`mt-2 text-center text-[40px] font-semibold leading-none tracking-tight transition-colors ${
+          className={`mt-2 text-center text-[40px] font-semibold leading-none tracking-tight transition-colors duration-200 ${
             digits === '' ? 'text-slate-300' : 'text-[#0F1218]'
           }`}
         >
@@ -461,20 +752,24 @@ function SendScreen({
           Available <span className="font-semibold underline">$ 7,854.43</span>
         </p>
 
-        {/* Confirm */}
         <div className="mt-2 flex h-[26px] justify-center">
-          {hasAmount && (
-            <button
-              type="button"
-              onClick={onSend}
-              className="rounded-full bg-[#0F1218] px-5 text-[9px] font-bold text-white transition-transform hover:scale-105"
-            >
-              Send ${formatAmount(digits)}
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={onSend}
+            tabIndex={hasAmount ? 0 : -1}
+            className={`rounded-full bg-[#0F1218] px-5 text-[9px] font-bold text-white ${
+              hasAmount ? '' : 'pointer-events-none'
+            }`}
+            style={{
+              opacity: hasAmount ? 1 : 0,
+              transform: sendPressed ? 'scale(0.92)' : hasAmount ? 'scale(1)' : 'scale(0.8)',
+              transition: sendPressed ? 'transform 120ms ease' : `all 350ms ${SPRING}`,
+            }}
+          >
+            Send ${formatAmount(digits)}
+          </button>
         </div>
 
-        {/* Operators */}
         <div className="mt-2 flex justify-around px-8 text-[15px] text-slate-300">
           <span>+</span>
           <span>−</span>
@@ -482,7 +777,6 @@ function SendScreen({
           <span>÷</span>
         </div>
 
-        {/* Keypad */}
         <div className="mx-3 mt-3 grid grid-cols-3 gap-1.5 rounded-2xl bg-slate-100 p-2">
           {KEYS.map((k) => (
             <button
@@ -490,32 +784,52 @@ function SendScreen({
               type="button"
               onClick={() => onKey(k)}
               aria-label={k === 'back' ? 'Delete' : k}
-              className={`grid h-[34px] place-items-center rounded-xl text-[16px] font-medium text-slate-700 transition-all active:scale-95 ${
-                pressedKey === k ? 'scale-95 bg-slate-200' : 'bg-white hover:bg-slate-50'
+              className={`grid h-[34px] place-items-center rounded-xl text-[16px] font-medium text-slate-700 transition-all duration-150 active:scale-95 ${
+                pressedKey === k ? 'scale-90 bg-slate-300' : 'bg-white hover:bg-slate-50'
               }`}
             >
               {k === 'back' ? <Delete className="h-4 w-4" /> : k}
             </button>
           ))}
         </div>
-      </div>
+      </SheetLayer>
     </div>
   );
 }
 
-function SentScreen({ digits, onDone }: { digits: string; onDone: () => void }) {
+// ---------------------------------------------------------------------------
+// Touch indicator: a finger-tap marker that glides to Pavlo and taps
+// ---------------------------------------------------------------------------
+
+const TAP_START = { x: 215, y: 300 };
+const TAP_TARGET = { x: 141, y: 118 }; // centre of Pavlo's avatar
+
+function TouchIndicator({ stage }: { stage: TapStage }) {
+  const atTarget = stage === 'move' || stage === 'tap';
+  const pos = atTarget ? TAP_TARGET : TAP_START;
+  const visible = stage !== 'hidden';
   return (
-    <button
-      type="button"
-      onClick={onDone}
-      className="flex h-full w-full flex-col items-center justify-center bg-[#00D90B] pb-12 text-white"
+    <div
+      className="pointer-events-none absolute left-0 top-0 z-40"
+      style={{
+        transform: `translate(${pos.x - 15}px, ${pos.y - 15}px)`,
+        opacity: visible ? 1 : 0,
+        transition: `transform 800ms ${EASE}, opacity 250ms ease`,
+      }}
+      aria-hidden
     >
-      <Check className="h-9 w-9" strokeWidth={4} />
-      <p className="mt-5 text-[34px] font-bold leading-none tracking-tight">
-        $ {formatAmount(digits || AUTO_AMOUNT)}
-      </p>
-      <p className="mt-2 text-[11px] font-medium">Sent to Pavlo</p>
-    </button>
+      <div
+        className="relative h-[30px] w-[30px] rounded-full border border-white/70 bg-white/30 shadow-lg backdrop-blur-[1px]"
+        style={{
+          transform: stage === 'tap' ? 'scale(0.75)' : 'scale(1)',
+          transition: 'transform 150ms ease',
+        }}
+      >
+        {stage === 'tap' && (
+          <span className="absolute inset-0 animate-ping rounded-full bg-white/60" />
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -523,21 +837,23 @@ function SentScreen({ digits, onDone }: { digits: string; onDone: () => void }) 
 // Phone frame
 // ---------------------------------------------------------------------------
 
-const SCREEN_W = 282;
-
 function PhoneDemo({
-  current,
+  scene,
   digits,
   pressedKey,
+  tap,
+  sendPressed,
   go,
   onKey,
   onSend,
   onDone,
 }: {
-  current: number;
+  scene: number; // -1 = not started yet (sheet waits below the screen)
   digits: string;
   pressedKey: string | null;
-  go: (screen: number) => void;
+  tap: TapStage;
+  sendPressed: boolean;
+  go: (scene: number) => void;
   onKey: (key: string) => void;
   onSend: () => void;
   onDone: () => void;
@@ -547,30 +863,38 @@ function PhoneDemo({
       className="absolute rounded-[46px] bg-[#141B3A] p-[9px] shadow-[0_30px_60px_-20px_rgba(15,23,42,0.35)]"
       style={{ left: 348, top: 30, width: 300, height: 582 }}
     >
-      <div className="relative h-full w-full overflow-hidden rounded-[37px] bg-[#0F1218]">
-        {/* Sliding strip of screens */}
+      <div className="relative h-full w-full overflow-hidden rounded-[37px]">
+        {/* Background colour: dark, then green for "Sent" */}
         <div
-          className="flex h-full transition-transform duration-700 ease-in-out"
+          className="absolute inset-0"
           style={{
-            width: SCREEN_W * SCREEN_COUNT,
-            transform: `translateX(-${current * SCREEN_W}px)`,
+            backgroundColor: scene === 4 ? '#00D90B' : '#0F1218',
+            transition: 'background-color 700ms ease',
           }}
-        >
-          {[
-            <HomeScreen key="home" go={go} />,
-            <CardsScreen key="cards" go={go} />,
-            <RecipientsScreen key="recipients" go={go} />,
-            <SendScreen key="send" digits={digits} pressedKey={pressedKey} onKey={onKey} onSend={onSend} />,
-            <SentScreen key="sent" digits={digits} onDone={onDone} />,
-          ].map((screen, i) => (
-            <div key={i} className="h-full shrink-0 overflow-hidden" style={{ width: SCREEN_W }}>
-              {screen}
-            </div>
-          ))}
-        </div>
+        />
 
-        {/* Status bar + dynamic island (fixed over the sliding screens) */}
-        <div className="pointer-events-none absolute inset-x-0 top-0 z-30 flex h-[34px] items-center justify-between px-5 text-[9px] font-semibold text-white">
+        {/* Dark-area content for each scene */}
+        <HomeTop active={scene === 0} go={go} />
+        <CardsTop active={scene === 1} />
+        <RecipientsTop active={scene === 2} pavloPressed={tap === 'tap'} go={go} />
+        <SendTop active={scene === 3} />
+        <SentLayer active={scene === 4} digits={digits} onDone={onDone} />
+
+        {/* The white sheet that pulls up, shrinks to a quick action bar, and slides away */}
+        <Sheet
+          scene={scene}
+          digits={digits}
+          pressedKey={pressedKey}
+          sendPressed={sendPressed}
+          go={go}
+          onKey={onKey}
+          onSend={onSend}
+        />
+
+        {scene === 2 && <TouchIndicator stage={tap} />}
+
+        {/* Status bar + dynamic island */}
+        <div className="pointer-events-none absolute inset-x-0 top-0 z-50 flex h-[34px] items-center justify-between px-5 text-[9px] font-semibold text-white">
           <span>09:41</span>
           <span className="absolute left-1/2 top-[9px] h-[15px] w-[64px] -translate-x-1/2 rounded-full bg-black" />
           <span className="flex items-center gap-1">
@@ -657,10 +981,12 @@ export default function CanvasSection() {
   const [cursorPos, setCursorPos] = useState<{ x: number; y: number } | null>(null);
 
   // Animation state
-  const [t, setT] = useState(0); // position on the 10s timeline (autoplay)
+  const [t, setT] = useState(0); // position on the timeline (autoplay)
   const [hovered, setHovered] = useState(false);
-  const [manualScreen, setManualScreen] = useState(0);
+  const [manualScene, setManualScene] = useState(0);
   const [manualDigits, setManualDigits] = useState('');
+  const [inView, setInView] = useState(false);
+  const [started, setStarted] = useState(false);
 
   // Scale the fixed-size stage to fit its container
   const canvasRef = useRef<HTMLDivElement>(null);
@@ -676,33 +1002,53 @@ export default function CanvasSection() {
     return () => observer.disconnect();
   }, []);
 
+  // Only play while the canvas is on screen (so the first pull-up is actually seen)
+  useEffect(() => {
+    const el = canvasRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(([entry]) => setInView(entry.isIntersecting), {
+      threshold: 0.35,
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (!inView || started) return;
+    const id = setTimeout(() => setStarted(true), 150);
+    return () => clearTimeout(id);
+  }, [inView, started]);
+
   // Autoplay: advance the timeline unless the user is hovering
   useEffect(() => {
-    if (hovered) return;
+    if (hovered || !inView || !started) return;
     const id = setInterval(() => setT((prev) => (prev + TICK_MS) % TOTAL_MS), TICK_MS);
     return () => clearInterval(id);
-  }, [hovered]);
+  }, [hovered, inView, started]);
 
   const auto = getAutoState(t);
-  const current = hovered ? manualScreen : auto.screen;
+  const rawScene = hovered ? manualScene : auto.scene;
+  const scene = started ? rawScene : -1;
   const digits = hovered ? manualDigits : auto.digits;
   const pressedKey = hovered ? null : auto.pressedKey;
+  const tap: TapStage = hovered ? 'hidden' : auto.tap;
+  const sendPressed = hovered ? false : auto.sendPressed;
 
   const handleEnter = () => {
     // Freeze on whatever the animation is showing right now
-    setManualScreen(auto.screen);
+    setManualScene(auto.scene);
     setManualDigits(auto.digits);
     setHovered(true);
   };
 
   const handleLeave = () => {
-    // Resume the animation from the screen the user ended on
-    setT(manualScreen * SCREEN_MS);
+    // Resume the animation from the start of the screen the user ended on
+    setT(SCENE_START[manualScene]);
     setHovered(false);
     setCursorPos(null);
   };
 
-  const go = (screen: number) => setManualScreen(screen);
+  const go = (target: number) => setManualScene(target);
 
   const handleKey = (key: string) => {
     setManualDigits((d) => {
@@ -714,11 +1060,11 @@ export default function CanvasSection() {
     });
   };
 
-  const handleSend = () => setManualScreen(4);
+  const handleSend = () => setManualScene(4);
 
   const handleDone = () => {
     setManualDigits('');
-    setManualScreen(0);
+    setManualScene(0);
   };
 
   const toggleStep = (id: number) => {
@@ -835,9 +1181,11 @@ export default function CanvasSection() {
             >
               <CanvasChrome />
               <PhoneDemo
-                current={current}
+                scene={scene}
                 digits={digits}
                 pressedKey={pressedKey}
+                tap={tap}
+                sendPressed={sendPressed}
                 go={go}
                 onKey={handleKey}
                 onSend={handleSend}
