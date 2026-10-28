@@ -86,7 +86,7 @@ export default function ForCryptoExchanges() {
           {/* MOBILE ONLY IMAGE */}
           <div className="block md:hidden w-full overflow-hidden rounded-2xl shadow-2xl shadow-slate-300/60 pl-4 pr-0 pt-10 pb-20">
             <img 
-              src={getPath("/solutions/insurancecompanies.png")} 
+              src={getPath("/solutions/crytpoexchangehero.png")} 
               alt="Fintech Connect dashboard visualization mobile"
               className="w-full h-auto transform scale-128 origin-left" 
             />
@@ -94,9 +94,9 @@ export default function ForCryptoExchanges() {
 
           {/* DESKTOP ONLY IMAGE */}
           <img 
-            src={getPath("/solutions/creditunions.png")} 
+            src={getPath("/solutions/crytpoexchangehero.png")} 
             alt="Fintech Connect dashboard visualization"
-            className="hidden md:block w-full max-h-230 mx-auto md:pl-70 md:py-0 md:mb-0 md:object-contain rounded-2xl shadow-2xl shadow-slate-300/60"
+            className="hidden md:block w-full max-h-230 mx-auto md:py-0 md:mb-0 md:object-contain rounded-2xl shadow-2xl shadow-slate-300/60"
 />
         </div>
 

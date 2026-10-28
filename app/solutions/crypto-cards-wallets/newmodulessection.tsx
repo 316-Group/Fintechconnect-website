@@ -8,13 +8,13 @@ const modules = [
     tag: "Custody",
     title: "MPC Wallet Infrastructure",
     desc: "Multi-Party Computation wallets with hot/warm/cold tiering for 100+ blockchains. Instant access for everyday spending, with institutional-grade security for long-term holdings. No single point of key compromise.",
-    img: '/solutions/creditunions/digitalondoarding.png'
+    img: '/products/corebanking modules/image6.png'
   },
   {
     tag: "Cards",
     title: "Crypto Debit & Prepaid Card Issuing",
     desc: "Issue Visa and Mastercard debit and prepaid cards that spend directly from crypto balances — with real-time conversion at point of sale. Configurable spend controls, velocity limits, and cashback rewards.",
-    img: '/solutions/creditunions/SMEengine.png'
+    img: '/products/corebanking modules/image4.png'
   },
   {
     tag: "FX",
@@ -32,13 +32,13 @@ const modules = [
     tag: "Staking",
     title: "Staking & Yield Engine",
     desc: "Offer users native staking rewards on ETH, SOL, and other PoS assets — plus USDC yield products via regulated DeFi protocols. Automated compounding, real-time APY display, and tax reporting.",
-    img: '/solutions/creditunions/instantpayments.png'
+    img: '/products/realtimeledger modules/image6.png'
   },
   {
     tag: "KYC",
     title: "Crypto-Ready KYC & Onboarding",
     desc: "Onboard users in under 5 minutes with biometric KYC, document verification, and source-of-funds checks — pre-certified for FATF Travel Rule and EU MiCA compliance. Supports 190+ countries.",
-    img: '/solutions/creditunions/compliance.png'
+    img: '/products/treasury modules/image3.png'
   },
   {
     tag: "Cards",

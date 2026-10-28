@@ -8,19 +8,19 @@ const modules = [
     tag: "Custody",
     title: "MPC Custody Infrastructure",
     desc: "Institutional-grade Multi-Party Computation (MPC) wallets with hot/cold storage tiering, multi-signature approval workflows, and hardware security module (HSM) key management. Supports 100+ blockchains.",
-    img: '/solutions/creditunions/digitalondoarding.png'
+    img: '/products/treasury modules/image3.png'
   },
   {
     tag: "AML",
     title: "On-Chain AML & Blockchain Analytics",
     desc: "Real-time on-chain transaction monitoring with mixer detection, sanctioned address screening, and illicit fund flow analysis. Pre-integrated with Chainalysis and Elliptic for institutional-grade chain analytics.",
-    img: '/solutions/creditunions/SMEengine.png'
+    img: '/products/corebanking modules/image7.png'
   },
   {
     tag: "Fiat Rails",
     title: "Fiat On/Off Ramp",
     desc: "Seamless fiat-to-crypto and crypto-to-fiat conversion via bank transfer, card, and open banking. Instant settlement, competitive FX rates, and full KYC/AML compliance at every conversion point.",
-    img: '/solutions/creditunions/whitelabel.png'
+    img: '/products/corebanking modules/image9.png'
   },
   {
     tag: "KYC",
@@ -32,13 +32,13 @@ const modules = [
     tag: "Cards",
     title: "Crypto Debit & Prepaid Cards",
     desc: "Issue Visa and Mastercard debit cards that spend directly from crypto balances — with real-time conversion at point of sale. Configurable spend controls, FX fees, and cashback rewards programmes.",
-    img: '/solutions/creditunions/instantpayments.png'
+    img: '/products/realtimeledger modules/image7.png'
   },
   {
     tag: "Core Banking",
     title: "Hybrid Fiat & Crypto Ledger",
     desc: "A unified real-time ledger that tracks both fiat and crypto balances in a single account view. Multi-currency, multi-asset, with automated reconciliation, interest accrual, and regulatory reporting.",
-    img: '/solutions/creditunions/compliance.png'
+    img: '/products/treasury modules/image9.png'
   },
   {
     tag: "Cards",

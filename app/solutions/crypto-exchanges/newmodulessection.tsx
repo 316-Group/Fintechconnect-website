@@ -8,19 +8,19 @@ const modules = [
     tag: "Fiat Rails",
     title: "Fiat Banking Rails & Payment Processing",
     desc: "Pre-established banking relationships for fiat deposits and withdrawals via bank transfer, card, and open banking — in GBP, EUR, USD, and 60+ currencies. Instant deposits, same-day withdrawals, and full AML compliance.",
-    img: '/solutions/creditunions/digitalondoarding.png'
+    img: '/products/corebanking modules/image9.png'
   },
   {
     tag: "Custody",
     title: "MPC Exchange Custody",
     desc: "Institutional-grade MPC custody for user funds with hot/warm/cold tiering, multi-signature withdrawal approvals, and proof-of-reserves reporting. Supports 100+ blockchains and all major token standards.",
-    img: '/solutions/creditunions/SMEengine.png'
+    img: '/products/realtimeledger modules/image4.png'
   },
   {
     tag: "KYC/KYB",
     title: "Exchange KYC & Institutional KYB",
     desc: "Onboard retail traders in under 5 minutes with biometric KYC, and institutional clients with full KYB, source-of-funds verification, and enhanced due diligence — pre-certified for FATF Travel Rule compliance.",
-    img: '/solutions/creditunions/whitelabel.png'
+    img: '/products/corebanking modules/image7.png'
   },
   {
     tag: "AML",
