@@ -8,13 +8,13 @@ const modules = [
     tag: "FX",
     title: "Real-Time FX Engine",
     desc: "Live mid-market FX rates with configurable spreads across 60+ currency pairs. AI-powered rate optimisation, automated hedging, and real-time P&L visibility — all in one engine.",
-    img: '/solutions/creditunions/digitalondoarding.png'
+    img: '/products/corebanking modules/image5.png'
   },
   {
     tag: "Rails",
     title: "Cross-Border Payment Rails",
     desc: "Access SWIFT, SEPA, Faster Payments, ACH, and real-time local rails across 180+ countries through a single API. No correspondent banking relationships required.",
-    img: '/solutions/creditunions/SMEengine.png'
+    img: '/products/treasury modules/image8.png'
   },
   {
     tag: "Mobile Money",
@@ -26,7 +26,7 @@ const modules = [
     tag: "Compliance",
     title: "AML & KYC Compliance",
     desc: "Automated AML transaction monitoring, sanctions screening, and KYC verification — pre-certified for FATF, EU AMLD, and FinCEN requirements. Automated regulatory reporting eliminates manual overhead.",
-    img: '/solutions/creditunions/treasury.png'
+    img: '/solutions/creditunions/compliance.png'
   },
   {
     tag: "White Label",
@@ -38,7 +38,7 @@ const modules = [
     tag: "Treasury",
     title: "Treasury & Liquidity Management",
     desc: "Manage pre-funded accounts, liquidity pools, and FX exposure across all corridors from a single dashboard. Real-time visibility, automated rebalancing, and AI-powered cash flow forecasting.",
-    img: '/solutions/creditunions/compliance.png'
+    img: '/products/treasury modules/image6.png'
   },
   {
     tag: "Cards",

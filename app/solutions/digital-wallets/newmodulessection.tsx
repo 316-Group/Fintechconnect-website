@@ -8,37 +8,37 @@ const modules = [
     tag: "Wallets",
     title: "Wallets-as-a-Service",
     desc: "Provision multi-currency wallets instantly via API. Each wallet has a real-time ledger, transaction history, balance visibility, and support for GBP, USD, EUR, and 60+ additional currencies.",
-    img: '/solutions/creditunions/digitalondoarding.png'
+    img: '/products/realtimeledger modules/image5.png'
   },
   {
     tag: "Cards",
     title: "Virtual & Physical Card Issuing",
     desc: "Issue Visa and Mastercard virtual cards instantly and physical cards within days. Configure spend controls, velocity limits, merchant category restrictions, and FX fees — all via API.",
-    img: '/solutions/creditunions/SMEengine.png'
+    img: '/products/corebanking modules/image4.png'
   },
   {
     tag: "Payments",
     title: "Instant Payments & Top-ups",
     desc: "Accept wallet top-ups via open banking, debit/credit card, and bank transfer. Send instant P2P payments, bill payments, and cross-border transfers — all from a single payments API.",
-    img: '/solutions/creditunions/whitelabel.png'
+    img: '/products/realtimeledger modules/image3.png'
   },
   {
     tag: "KYC",
     title: "KYC & Identity Verification",
     desc: "Onboard wallet users in under 3 minutes with biometric liveness detection, document OCR, and AI-powered identity verification — covering 190+ countries with automated KYC tier management.",
-    img: '/solutions/creditunions/treasury.png'
+    img: '/products/realtimeledger modules/image6.png'
   },
   {
     tag: "Fraud",
     title: "AI Fraud Monitoring",
     desc: "Real-time AI fraud scoring on every wallet transaction — detecting account takeover, synthetic identity fraud, and card-not-present fraud in under 50ms. Configurable rules engine with automated blocking.",
-    img: '/solutions/creditunions/instantpayments.png'
+    img: '/products/corebanking modules/image8.png'
   },
   {
     tag: "FX",
     title: "Real-Time FX Engine",
     desc: "Offer live mid-market FX rates with configurable spreads across 60+ currency pairs. Instant in-wallet currency conversion, automated hedging, and real-time P&L visibility for your FX book.",
-    img: '/solutions/creditunions/compliance.png'
+    img: '/products/corebanking modules/image5.png'
   },
   {
     tag: "Cards",

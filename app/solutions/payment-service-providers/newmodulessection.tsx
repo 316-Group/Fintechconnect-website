@@ -8,37 +8,37 @@ const modules = [
     tag: "Routing",
     title: "Intelligent Payment Routing",
     desc: "AI-powered routing engine that dynamically selects the optimal acquirer, rail, and currency path for every transaction — maximising approval rates and minimising processing costs in real time.",
-    img: '/solutions/creditunions/digitalondoarding.png'
+    img: '/solutions/creditunions/instantpayments.png'
   },
   {
     tag: "Fraud",
     title: "AI Fraud & Risk Engine",
     desc: "Real-time transaction scoring using machine learning models trained on billions of payment data points. Reduce chargebacks, block fraud, and protect merchants — without blocking good customers.",
-    img: '/solutions/creditunions/SMEengine.png'
+    img: '/products/corebanking modules/image8.png'
   },
   {
     tag: "Acquiring",
     title: "Multi-Rail Acquiring",
     desc: "Accept card payments (Visa, Mastercard, Amex), open banking, SEPA, SWIFT, and local payment methods through a single unified API. One integration, every payment method your merchants need.",
-    img: '/solutions/creditunions/whitelabel.png'
+    img: '/products/treasury modules/image8.png'
   },
   {
     tag: "Settlement",
     title: "Real-Time Settlement & Reconciliation",
     desc: "Move from T+2 to same-day or real-time settlement. Automated reconciliation, split payouts, and a real-time ledger give merchants instant visibility and PSPs full control over cash flow.",
-    img: '/solutions/creditunions/treasury.png'
+    img: '/products/realtimeledger modules/image2.png'
   },
   {
     tag: "Compliance",
     title: "PCI-DSS & 3DS2 Compliance",
     desc: "Inherit PCI-DSS Level 1 certification and 3DS2 strong customer authentication out of the box. Automated compliance reporting, tokenisation, and encrypted card data storage — no annual audit overhead.",
-    img: '/solutions/creditunions/instantpayments.png'
+    img: '/solutions/creditunions/compliance.png'
   },
   {
     tag: "Merchant",
     title: "Merchant Management Portal",
     desc: "A white-label merchant portal for onboarding, KYB verification, transaction monitoring, dispute management, and real-time analytics. Give your merchants the tools they need — under your brand.",
-    img: '/solutions/creditunions/compliance.png'
+    img: '/products/realtimeledger modules/image9.png'
   },
   {
     tag: "Cards",

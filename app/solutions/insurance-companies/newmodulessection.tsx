@@ -8,37 +8,37 @@ const modules = [
     tag: "Payments",
     title: "Premium Collection & Wallet Management",
     desc: "Collect premiums via direct debit, card, open banking, or mobile money. Issue policy wallets to policyholders for instant premium storage, claims receipt, and embedded spending.",
-    img: '/solutions/creditunions/digitalondoarding.png'
+    img: '/products/corebanking modules/image6.png'
   },
   {
     tag: "Claims",
     title: "Real-Time Claims Disbursement",
     desc: "Pay approved claims instantly to policyholder wallets, bank accounts, or mobile money. Automated payment routing, full audit trail, and real-time status notifications for policyholders.",
-    img: '/solutions/creditunions/SMEengine.png'
+    img: '/products/treasury modules/image5.png'
   },
   {
     tag: "Security",
     title: "AI Claims Fraud Detection",
     desc: "A self-learning fraud engine that scores every claim in real time. Behavioural profiling, network analysis, velocity rules, and anomaly detection — with an automated case management workflow for flagged claims.",
-    img: '/solutions/creditunions/whitelabel.png'
+    img: '/products/corebanking modules/image8.png'
   },
   {
     tag: "Embedded Finance",
     title: "Embedded Banking & Card Issuing",
     desc: "Embed savings accounts, virtual debit cards, and micro-lending directly into your insurance products. Offer policyholders a branded financial account alongside their policy — with zero banking infrastructure required.",
-    img: '/solutions/creditunions/treasury.png'
+    img: '/products/corebanking modules/image1.png'
   },
   {
     tag: "Compliance",
     title: "KYC, AML & Regulatory Compliance",
     desc: "Automated policyholder identity verification, AML screening, and regulatory reporting — pre-certified for FCA, PRA, and GDPR. Reduce compliance overhead without sacrificing rigour.",
-    img: '/solutions/creditunions/instantpayments.png'
+    img: '/solutions/creditunions/compliance.png'
   },
   {
     tag: "Treasury",
     title: "Treasury & Float Management",
     desc: "Optimise the management of premium float, claims reserves, and investment portfolios. Real-time liquidity dashboards, multi-currency support, and AI-powered rebalancing recommendations.",
-    img: '/solutions/creditunions/compliance.png'
+    img: '/products/treasury modules/image6.png'
   },
   {
     tag: "Cards",

@@ -26,7 +26,7 @@ const modules = [
     tag: "KYC",
     title: "Crypto-Ready KYC & KYB",
     desc: "Onboard retail and institutional crypto clients with biometric KYC, corporate KYB, source-of-funds verification, and enhanced due diligence — all pre-certified for FATF Travel Rule compliance.",
-    img: '/solutions/creditunions/treasury.png'
+    img: '/products/realtimeledger modules/image6.png'
   },
   {
     tag: "Cards",
