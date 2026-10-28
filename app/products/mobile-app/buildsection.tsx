@@ -65,6 +65,13 @@ import {
   BankingWalletModuleView,
   type BankingWalletModuleId,
 } from './banking-wallet-modules';
+import {
+  CRYPTO_MODULES,
+  CRYPTO_PAGE_PREPEND,
+  CRYPTO_MODULE_IDS,
+  CryptoModuleView,
+  type CryptoModuleId,
+} from './crypto-modules';
 
 const outfit = Outfit({ subsets: ['latin'], weight: ['400', '500', '600', '700'], display: 'swap' });
 
@@ -114,7 +121,8 @@ type ModuleId =
   | 'identityCard'
   | 'securityBaseline'
   | 'connectedDevices'
-  | BankingWalletModuleId;  ;
+  | BankingWalletModuleId
+  | CryptoModuleId ;
 type RadiusMode = 'rounded' | 'sharp' | 'pill';
 type TabId = 'home' | 'cards' | 'activity' | 'settings' | 'send' | 'fx';
 type AppKind = 'banking' | 'fintech' | 'psp' | 'wallet' | 'crypto';
@@ -624,15 +632,19 @@ const buildInitialPages = (): Record<PageId, ModuleId[]> => {
 };
 
 const allModulesFor = (): ModuleAsset[] => [
+  ...(CRYPTO_MODULES as unknown as ModuleAsset[]),
   ...(BANKING_WALLET_MODULES as unknown as ModuleAsset[]),
   ...availableModules,
 ];
 
 const pageModulesFor = (page: PageId, appKind: AppKind): ModuleId[] => {
   const base = PAGES.find((p) => p.id === page)?.modules ?? [];
-  if (appKind === 'crypto') return base;
+  if (appKind === 'crypto') {
+    const prepend = (CRYPTO_PAGE_PREPEND[page] ?? []) as ModuleId[];
+    return [...prepend, ...base];                            // ← crypto prepend
+  }
   const prepend = (BANKING_WALLET_PAGE_PREPEND[page] ?? []) as ModuleId[];
-  return [...prepend, ...base];
+  return [...prepend, ...base];                              // existing banking/wallet
 };
 
 
@@ -1688,7 +1700,11 @@ function FreezeCard({ ctx }: { ctx: ViewCtx }) {
 }
 
 function ModuleView({ id, ctx }: { id: ModuleId; ctx: ViewCtx }) {
-  // New banking / wallet modules are rendered from their own file
+  // Crypto modules render from their own file
+  if (CRYPTO_MODULE_IDS.has(id)) {
+    return <CryptoModuleView id={id} ctx={ctx} />;
+  }
+  // Banking / wallet modules render from their own file
   if (BANKING_WALLET_MODULE_IDS.has(id)) {
     return <BankingWalletModuleView id={id} ctx={ctx} />;
   }

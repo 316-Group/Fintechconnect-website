@@ -4,11 +4,11 @@ import React, { useEffect, useRef, useState } from 'react';
 import {
   ChevronDown,
   ChevronUp,
+  ChevronRight,
   ArrowRight,
   MousePointer2,
   Bell,
   ArrowUpRight,
-  Users,
   Home,
   CreditCard,
   ListFilter,
@@ -20,6 +20,16 @@ import {
   Wifi,
   Delete,
   Check,
+  ChevronLeft,
+  ScanFace,
+  User,
+  Building2,
+  ShieldCheck,
+  SlidersHorizontal,
+  HelpCircle,
+  LogOut,
+  QrCode,
+  Edit2,
 } from 'lucide-react';
 
 interface StepItem {
@@ -72,6 +82,10 @@ const AUTO_AMOUNT = '286';
 // Stage design size (everything inside is laid out at 1000 x 645, then scaled to fit)
 const STAGE_W = 1000;
 const STAGE_H = 645;
+
+// Phone size
+const PHONE_W = 300;
+const PHONE_H = 582;
 
 // Motion curves
 const EASE = 'cubic-bezier(0.32, 0.72, 0, 1)'; // smooth, iOS-style deceleration
@@ -145,26 +159,64 @@ const AVATAR_GRADIENTS = [
   'from-slate-300 to-slate-500',
 ];
 
+// Placeholder portraits (randomuser.me). Swap these for your own images, e.g. '/people/sarah.jpg'.
+const PHOTOS = {
+  me: 'https://randomuser.me/api/portraits/women/79.jpg',
+  sarah: 'https://randomuser.me/api/portraits/women/44.jpg',
+  pavlo: 'https://randomuser.me/api/portraits/men/32.jpg',
+  jordan: 'https://randomuser.me/api/portraits/men/75.jpg',
+  chris: 'https://randomuser.me/api/portraits/men/46.jpg',
+  emily: 'https://randomuser.me/api/portraits/women/65.jpg',
+  taylor: 'https://randomuser.me/api/portraits/women/12.jpg',
+  gigi: 'https://randomuser.me/api/portraits/women/68.jpg',
+  bella: 'https://randomuser.me/api/portraits/women/33.jpg',
+};
+
+// Round face with a ring around it. Falls back to coloured initials if the image fails to load.
 function Avatar({
+  name,
   initials,
   size,
   gradient = 0,
   dot,
+  src,
+  ring = 'dark',
 }: {
+  name?: string;
   initials: string;
   size: number;
   gradient?: number;
   dot?: string;
+  src?: string;
+  ring?: 'dark' | 'light'; // 'dark' = ring for dark backgrounds, 'light' = ring for white sheets
 }) {
+  const [failed, setFailed] = useState(false);
+  const ringColor = ring === 'light' ? '#CBD5E1' : 'rgba(255,255,255,0.85)';
+
   return (
     <div className="relative shrink-0" style={{ width: size, height: size }}>
       <div
-        className={`flex h-full w-full items-center justify-center rounded-full bg-gradient-to-br font-semibold text-white ${
-          AVATAR_GRADIENTS[gradient % AVATAR_GRADIENTS.length]
-        }`}
-        style={{ fontSize: size * 0.36 }}
+        className="h-full w-full overflow-hidden rounded-full"
+        style={{ padding: 2, border: `1.5px solid ${ringColor}` }}
       >
-        {initials}
+        {src && !failed ? (
+          <img
+            src={src}
+            alt={name ?? initials}
+            draggable={false}
+            onError={() => setFailed(true)}
+            className="h-full w-full rounded-full object-cover"
+          />
+        ) : (
+          <div
+            className={`flex h-full w-full items-center justify-center rounded-full bg-gradient-to-br font-semibold text-white ${
+              AVATAR_GRADIENTS[gradient % AVATAR_GRADIENTS.length]
+            }`}
+            style={{ fontSize: size * 0.34 }}
+          >
+            {initials}
+          </div>
+        )}
       </div>
       {dot && (
         <span
@@ -209,14 +261,18 @@ function SheetLayer({
   active,
   height,
   children,
+  scrollable = false,
 }: {
   active: boolean;
   height: number;
   children: React.ReactNode;
+  scrollable?: boolean;
 }) {
   return (
     <div
-      className={`absolute inset-x-0 top-0 ${active ? '' : 'pointer-events-none'}`}
+      className={`absolute inset-x-0 top-0 ${active ? '' : 'pointer-events-none'} ${
+        scrollable ? 'overflow-y-auto [&::-webkit-scrollbar]:hidden' : ''
+      }`}
       style={{
         height,
         opacity: active ? 1 : 0,
@@ -261,7 +317,9 @@ function HomeTop({ active, go }: { active: boolean; go: (scene: number) => void 
     <TopLayer active={active} delay={150} lift={0}>
       <div className="relative h-full w-full text-white">
         <div className="absolute left-4 right-4 top-[46px] flex items-center justify-between">
-          <Avatar initials="AL" size={26} gradient={2} />
+          <button type="button" onClick={() => go(7)} aria-label="Open profile">
+            <Avatar name="Alex" initials="AL" size={28} gradient={2} src={PHOTOS.me} />
+          </button>
           <Bell className="h-3.5 w-3.5 text-slate-300" />
         </div>
 
@@ -287,6 +345,7 @@ function HomeTop({ active, go }: { active: boolean; go: (scene: number) => void 
           </button>
           <button
             type="button"
+            onClick={() => go(5)}
             className="flex h-6 items-center rounded-full border border-white/10 bg-[#1B1F27] px-3 text-[9px] font-medium text-slate-200 transition-colors hover:bg-[#252A34]"
           >
             Request
@@ -294,7 +353,13 @@ function HomeTop({ active, go }: { active: boolean; go: (scene: number) => void 
         </div>
 
         {/* Stacked cards slide in from the right edge */}
-        <div className="absolute right-0 top-[94px] h-[75px] w-[60px] overflow-hidden">
+        <button
+          type="button"
+          onClick={() => go(1)}
+          tabIndex={active ? 0 : -1}
+          aria-label="Open cards"
+          className="absolute right-0 top-[94px] h-[75px] w-[60px] overflow-hidden transition-[filter] duration-200 hover:brightness-110"
+        >
           {strips.map((color, i) => (
             <div
               key={color}
@@ -309,7 +374,7 @@ function HomeTop({ active, go }: { active: boolean; go: (scene: number) => void 
               }}
             />
           ))}
-        </div>
+        </button>
 
         <div className="absolute left-3 right-3 top-[178px] flex items-center justify-between rounded-xl border border-white/5 bg-[#161A22] px-3 py-2.5">
           <div>
@@ -402,12 +467,12 @@ function CardsTop({ active }: { active: boolean }) {
 
 // --- Recipients (dark area) ---
 const RECIPIENTS = [
-  { name: 'Sarah', handle: '@sarahsdesi...' },
-  { name: 'Pavlo', handle: '@designwitha...' },
-  { name: 'Jordan', handle: '@jordan.creat...' },
-  { name: 'Chris', handle: '@chrisgraph...' },
-  { name: 'Emily', handle: '@emilyartis...' },
-  { name: 'Taylor', handle: '@taylorcrea...' },
+  { name: 'Sarah', handle: '@sarahsdesi...', src: PHOTOS.sarah },
+  { name: 'Pavlo', handle: '@designwitha...', src: PHOTOS.pavlo },
+  { name: 'Jordan', handle: '@jordan.creat...', src: PHOTOS.jordan },
+  { name: 'Chris', handle: '@chrisgraph...', src: PHOTOS.chris },
+  { name: 'Emily', handle: '@emilyartis...', src: PHOTOS.emily },
+  { name: 'Taylor', handle: '@taylorcrea...', src: PHOTOS.taylor },
 ];
 
 function RecipientsTop({
@@ -429,7 +494,7 @@ function RecipientsTop({
     >
       <div className="absolute left-4 right-4 top-[56px] flex items-center justify-between">
         <h4 className="text-[19px] font-bold tracking-tight">Recipients</h4>
-        <button type="button" className="rounded-full bg-white px-3 py-1 text-[8px] font-bold text-black">
+        <button type="button" onClick={() => go(6)} className="rounded-full bg-white px-3 py-1 text-[8px] font-bold text-black">
           Add
         </button>
       </div>
@@ -457,7 +522,7 @@ function RecipientsTop({
                 className="rounded-full transition-shadow duration-200"
                 style={{ boxShadow: pressed ? '0 0 0 3px rgba(255,255,255,0.7)' : '0 0 0 0 rgba(255,255,255,0)' }}
               >
-                <Avatar initials={r.name[0]} size={40} gradient={i} />
+                <Avatar name={r.name} initials={r.name[0]} size={44} gradient={i} src={r.src} />
               </span>
               <span className="mt-1 text-[9px] font-medium">{r.name}</span>
               <span className="text-[6.5px] text-slate-500">{r.handle}</span>
@@ -480,16 +545,105 @@ function SendTop({ active }: { active: boolean }) {
       }}
     >
       <div
-        className="absolute left-1/2 top-[42px] flex -translate-x-1/2 flex-col items-center"
+        className="absolute left-1/2 top-[36px] flex -translate-x-1/2 flex-col items-center"
         style={{
           transform: `translateX(-50%) scale(${active ? 1 : 0.4})`,
           transition: active ? `transform 700ms ${SPRING} 250ms` : 'transform 200ms ease',
         }}
       >
-        <Avatar initials="P" size={26} gradient={1} />
+        <Avatar name="Pavlo" initials="P" size={30} gradient={1} src={PHOTOS.pavlo} />
         <span className="mt-1 text-[8px] font-medium text-slate-300">Pavlo</span>
       </div>
     </div>
+  );
+}
+
+// --- Add Recipient (dark area) ---
+function AddRecipientTop({ active, go }: { active: boolean; go: (scene: number) => void }) {
+  return (
+    <TopLayer active={active} delay={150} lift={0}>
+      <div className="relative h-full w-full bg-[#141414] text-white px-4 pt-[46px]">
+        <div className="flex items-center justify-between">
+          <button type="button" onClick={() => go(2)} className="grid h-8 w-8 place-items-center rounded-full bg-white/10">
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+          <span className="text-[13px] font-semibold">Add Recipient</span>
+          <button type="button" className="grid h-8 w-8 place-items-center rounded-full bg-white/10">
+            <ScanFace className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="mt-6 space-y-4 text-[11px]">
+          <div>
+            <label className="text-slate-400 mb-1.5 block">Full Legal Name</label>
+            <div className="flex items-center rounded-xl bg-[#1C1C1E] border border-white/5 px-3 py-2.5">
+              <input type="text" placeholder="e.g. Alex Morgan" className="flex-1 bg-transparent outline-none placeholder:text-slate-600" />
+              <User className="h-4 w-4 text-slate-500" />
+            </div>
+          </div>
+
+          <div>
+            <label className="text-slate-400 mb-1.5 block">Username, Tag, or Mobile</label>
+            <div className="flex items-center rounded-xl bg-[#1C1C1E] border border-white/5 px-3 py-2.5">
+              <input type="text" placeholder="@ username or phone" className="flex-1 bg-transparent outline-none placeholder:text-slate-600" />
+            </div>
+          </div>
+
+          <div>
+            <label className="text-slate-400 mb-1.5 block">Select Bank or Card Provider</label>
+            <div className="flex items-center justify-between rounded-xl bg-[#1C1C1E] border border-white/5 px-3 py-2.5">
+              <div className="flex items-center gap-2">
+                <div className="h-5 w-5 rounded-full bg-blue-900 flex items-center justify-center">
+                  <span className="text-[8px] text-blue-400 font-bold">C</span>
+                </div>
+                <span className="font-medium">Chase Bank</span>
+              </div>
+              <div className="flex items-center gap-2 text-slate-500">
+                <span className="text-[9px]">Routing 021000021</span>
+                <ChevronDown className="h-3 w-3" />
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <label className="text-slate-400 mb-1.5 block">Account Number / IBAN</label>
+            <div className="flex items-center justify-between rounded-xl bg-[#1C1C1E] border border-white/5 px-3 py-2.5">
+              <input type="text" value="•••• •••• •••• 2983" readOnly className="flex-1 bg-transparent outline-none text-slate-300" />
+              <span className="rounded bg-orange-500/20 px-1.5 py-0.5 text-[8px] font-bold text-orange-400">INSTANT</span>
+            </div>
+          </div>
+
+          <div>
+            <label className="text-slate-400 mb-1.5 block">Category (Optional)</label>
+            <div className="flex gap-2">
+              {['Friend', 'Family', 'Work', 'Services'].map((cat, i) => (
+                <button
+                  key={cat}
+                  type="button"
+                  className={`rounded-full px-3 py-1.5 text-[10px] font-medium transition-colors ${
+                    i === 0 ? 'bg-white text-black' : 'bg-[#1C1C1E] border border-white/5 text-slate-300'
+                  }`}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="absolute bottom-6 left-4 right-4">
+          <div className="mb-4 flex items-center gap-2 rounded-xl bg-[#1C1C1E] border border-white/5 p-3">
+            <ShieldCheck className="h-5 w-5 text-orange-500 shrink-0" />
+            <p className="text-[9px] text-slate-400 leading-tight">
+              Encrypted and validated through <span className="text-white font-medium">Chase & Partner</span> clearing network for immediate settlements.
+            </p>
+          </div>
+          <button type="button" onClick={() => go(2)} className="flex w-full items-center justify-center gap-2 rounded-full bg-white py-3 text-[12px] font-bold text-black">
+            Add Recipient <ArrowRight className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+    </TopLayer>
   );
 }
 
@@ -566,10 +720,13 @@ const OFFSCREEN: SheetGeometry = { top: 600, left: 0, right: 0, height: 480, rad
 
 const SHEET_GEOMETRY: SheetGeometry[] = [
   { top: 239, left: 0, right: 0, height: 325, radius: 22, shadow: NO_SHADOW }, // Home: transactions
-  { top: 490, left: 16, right: 16, height: 50, radius: 25, shadow: '0 10px 28px rgba(0,0,0,0.45)' }, // Cards: quick action bar
+  { top: 490, left: 16, right: 16, height: 50, radius: 25, shadow: NO_SHADOW }, // Cards: shrinks to the quick action bar
   { top: 322, left: 0, right: 0, height: 242, radius: 22, shadow: NO_SHADOW }, // Recipients list
   { top: 84, left: 0, right: 0, height: 480, radius: 22, shadow: NO_SHADOW }, // Send keypad
   OFFSCREEN, // Sent: slides away
+  { top: 84, left: 0, right: 0, height: 480, radius: 22, shadow: NO_SHADOW }, // 5: Request
+  OFFSCREEN, // 6: Add Recipient (handled by TopLayer)
+  { top: 30, left: 0, right: 0, height: 552, radius: 37, shadow: NO_SHADOW }, // 7: Profile
 ];
 
 const QUICK_ACTIONS = [
@@ -582,10 +739,19 @@ const QUICK_ACTIONS = [
 const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '0', 'back'];
 
 const RECIPIENT_ROWS = [
-  { name: 'Gigi Hadid', account: 'Chase 2983', dot: '#2DD4BF' },
-  { name: 'Bella Hadid', account: 'Mastercard 9283', dot: '#D9F100' },
-  { name: 'Bella Hadid', account: 'Mastercard 9283', dot: '#D9F100' },
-  { name: 'Bella Hadid', account: 'Mastercard 9283', dot: '#D9F100' },
+  { name: 'Gigi Hadid', account: 'Chase 2983', dot: '#2DD4BF', src: PHOTOS.gigi },
+  { name: 'Bella Hadid', account: 'Mastercard 9283', dot: '#D9F100', src: PHOTOS.bella },
+  { name: 'Bella Hadid', account: 'Mastercard 9283', dot: '#D9F100', src: PHOTOS.bella },
+  { name: 'Bella Hadid', account: 'Mastercard 9283', dot: '#D9F100', src: PHOTOS.bella },
+];
+
+const PROFILE_MENU = [
+  { icon: User, label: 'Personal Details', sub: 'Legal name, DOB, tax ID, phone', badge: '' },
+  { icon: Building2, label: 'Bank Accounts & Cards', sub: '2 active cards linked', badge: 'Primary' },
+  { icon: ShieldCheck, label: 'Security & Privacy', sub: 'Face ID active, 2FA enabled', badge: '🔒' },
+  { icon: SlidersHorizontal, label: 'Limits & Monthly Budgets', sub: '$1,385 spent of $4,000 budget', badge: '34.6%' },
+  { icon: Bell, label: 'Notifications & Statements', sub: 'Monthly PDF exports', badge: '' },
+  { icon: HelpCircle, label: 'Help & Support', sub: '24/7 Priority Concierge', badge: 'Live' },
 ];
 
 function Sheet({
@@ -650,53 +816,6 @@ function Sheet({
             </div>
           ))}
         </div>
-
-        {/* Floating nav pill */}
-        <div className="absolute bottom-[20px] left-1/2 flex -translate-x-1/2 items-center gap-1 rounded-full bg-[#2A2E37] p-1.5 shadow-lg">
-          {[
-            { key: 'people', Icon: Users, target: 2 },
-            { key: 'home', Icon: Home, target: 0 },
-            { key: 'cards', Icon: CreditCard, target: 1 },
-          ].map(({ key, Icon, target }) => {
-            const selected = key === 'home';
-            return (
-              <button
-                key={key}
-                type="button"
-                onClick={() => go(target)}
-                aria-label={key}
-                className={`flex h-8 items-center justify-center rounded-full transition-colors ${
-                  selected ? 'w-[52px] bg-white text-slate-900' : 'w-9 text-slate-400 hover:text-white'
-                }`}
-              >
-                <Icon className="h-3.5 w-3.5" fill={selected ? 'currentColor' : 'none'} />
-              </button>
-            );
-          })}
-        </div>
-      </SheetLayer>
-
-      {/* CARDS: quick action bar */}
-      <SheetLayer active={scene === 1} height={50}>
-        <div className="flex h-full items-center justify-around px-2">
-          {QUICK_ACTIONS.map(({ key, label, Icon, target }) => {
-            const selected = key === 'cards';
-            return (
-              <button
-                key={key}
-                type="button"
-                onClick={() => go(target)}
-                aria-label={label}
-                className={`flex h-[38px] w-[54px] flex-col items-center justify-center gap-0.5 rounded-2xl transition-colors ${
-                  selected ? 'bg-slate-100 text-slate-900' : 'text-slate-400 hover:text-slate-700'
-                }`}
-              >
-                <Icon className="h-3.5 w-3.5" />
-                <span className="text-[7px] font-semibold">{label}</span>
-              </button>
-            );
-          })}
-        </div>
       </SheetLayer>
 
       {/* RECIPIENTS: list */}
@@ -719,7 +838,7 @@ function Sheet({
               onClick={() => go(3)}
               className="flex h-[42px] w-full items-center gap-2.5 text-left transition-colors hover:bg-slate-50"
             >
-              <Avatar initials={row.name[0]} size={26} gradient={i + 2} dot={row.dot} />
+              <Avatar name={row.name} initials={row.name[0]} size={28} gradient={i + 2} dot={row.dot} src={row.src} ring="light" />
               <span className="flex-1 text-[10px] font-bold">{row.name}</span>
               <span className="text-[8px] text-slate-400">{row.account}</span>
             </button>
@@ -793,6 +912,225 @@ function Sheet({
           ))}
         </div>
       </SheetLayer>
+
+      {/* REQUEST: amount + split */}
+      <SheetLayer active={scene === 5} height={480}>
+        <div className="mx-auto mt-2 h-[3px] w-8 rounded-full bg-slate-200" />
+        <div className="mx-auto mt-3 flex w-[150px] rounded-full bg-slate-100 p-[3px] text-[9px]">
+          <span className="flex-1 py-1.5 text-center text-slate-400">Send</span>
+          <span className="flex-1 rounded-full bg-white py-1.5 text-center font-bold shadow-sm">Request</span>
+        </div>
+
+        <p className="mt-6 text-center text-[40px] font-semibold leading-none tracking-tight text-slate-300">
+          <span className="mr-1.5">$</span>0.00
+        </p>
+        <p className="mt-2 text-center text-[8px] text-slate-400">
+          Available <span className="font-semibold underline">$ 7,854.43</span>
+        </p>
+
+        <div className="mt-4 px-4">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-semibold text-slate-600">Selected Participants (3)</span>
+            <span className="text-[9px] text-slate-400">Clear all</span>
+          </div>
+          <div className="mt-2 flex gap-2 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden">
+            {[
+              { name: 'Sarah', src: PHOTOS.sarah },
+              { name: 'Jordan', src: PHOTOS.jordan },
+              { name: 'Pavlo', src: PHOTOS.pavlo },
+            ].map((p) => (
+              <div key={p.name} className="flex items-center gap-1.5 rounded-full bg-slate-100 py-1 pl-1 pr-2.5">
+                <Avatar name={p.name} initials={p.name[0]} size={20} src={p.src} ring="light" />
+                <span className="text-[9px] font-medium text-slate-700">{p.name}</span>
+                <button type="button" className="grid h-3.5 w-3.5 place-items-center rounded-full bg-slate-300 text-white">
+                  <span className="text-[8px] leading-none">×</span>
+                </button>
+              </div>
+            ))}
+            <button type="button" className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-slate-100 text-slate-400">
+              +
+            </button>
+          </div>
+        </div>
+
+        <div className="mt-4 px-4">
+          <div className="flex items-center justify-between text-[9px]">
+            <span className="font-semibold text-slate-600">Split Breakdown</span>
+            <span className="text-slate-400">Automatic</span>
+          </div>
+          <div className="mt-2 flex gap-2">
+            <button type="button" className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-[#0F1218] py-2 text-[10px] font-medium text-white">
+              <svg viewBox="0 0 24 24" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" />
+              </svg>
+              Equal Split
+            </button>
+            <button type="button" className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-slate-100 py-2 text-[10px] font-medium text-slate-500">
+              <svg viewBox="0 0 24 24" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+              </svg>
+              Custom Amounts
+            </button>
+          </div>
+          <div className="mt-3 flex items-center justify-between rounded-xl bg-[#E8F4FF] px-3 py-2.5">
+            <div className="flex items-center gap-2 text-[10px] font-semibold text-blue-600">
+              <span className="grid h-4 w-4 place-items-center rounded-full bg-blue-100 text-[10px]">+</span>
+              $150.00 + 3 people
+            </div>
+            <span className="text-[10px] font-bold text-blue-600">$50.00/each</span>
+          </div>
+        </div>
+
+        <div className="mt-3 px-4">
+          <div className="flex items-center gap-2 rounded-full bg-slate-100 px-3 py-2 text-slate-400">
+            <Search className="h-3 w-3" />
+            <input type="text" placeholder="Search name, @tag, or phone" className="flex-1 bg-transparent text-[10px] outline-none placeholder:text-slate-400" />
+          </div>
+          <div className="mt-3 flex items-center justify-between">
+            <span className="text-[10px] font-semibold text-slate-700">Recent & Suggested</span>
+            <span className="text-[9px] text-slate-400">Tap to select</span>
+          </div>
+          <div className="mt-2 grid grid-cols-3 gap-y-2">
+            {RECIPIENTS.slice(0, 6).map((r, i) => (
+              <button key={r.name} type="button" className="flex flex-col items-center">
+                <Avatar name={r.name} initials={r.name[0]} size={36} gradient={i} src={r.src} ring="light" />
+                <span className="mt-1 text-[9px] font-medium">{r.name}</span>
+                <span className="text-[6.5px] text-slate-400">{r.handle}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="absolute bottom-4 left-4 right-4">
+          <button type="button" className="flex w-full items-center justify-between rounded-full bg-[#0F1218] px-5 py-3 text-[12px] font-bold text-white">
+            Continue
+            <span>$150.00 →</span>
+          </button>
+        </div>
+      </SheetLayer>
+
+      {/* PROFILE */}
+      <SheetLayer active={scene === 7} height={552} scrollable>
+        <div className="mx-auto mt-2 h-[3px] w-8 rounded-full bg-slate-200 shrink-0" />
+        <div className="flex flex-col items-center pt-4 pb-6">
+          <div className="relative">
+            <Avatar name="Pavlo" initials="P" size={68} src={PHOTOS.pavlo} ring="light" />
+            <span className="absolute bottom-1 right-1 grid h-4 w-4 place-items-center rounded-full bg-blue-500 text-white ring-2 ring-white">
+              <Check className="h-2.5 w-2.5" />
+            </span>
+          </div>
+          <h3 className="mt-2 text-[16px] font-bold text-slate-900">Pavlo Kovalenko</h3>
+          <p className="text-[10px] text-slate-500">@pavlo_k • Pro Member</p>
+          
+          <div className="mt-3 flex gap-2">
+            <button type="button" className="flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1.5 text-[10px] font-medium text-slate-700">
+              <Edit2 className="h-3 w-3" /> Edit Profile
+            </button>
+            <button type="button" className="flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1.5 text-[10px] font-medium text-slate-700">
+              <QrCode className="h-3 w-3" /> Share QR
+            </button>
+          </div>
+        </div>
+
+        <div className="mx-4 rounded-2xl bg-[#2C2C2E] p-4 text-white">
+          <p className="text-[9px] text-slate-400">PRIMARY BALANCE</p>
+          <div className="mt-1 flex items-end justify-between">
+            <p className="text-[24px] font-bold tracking-tight">
+              $7,854<span className="text-[14px] text-slate-400">.43</span>
+            </p>
+            <div className="flex -space-x-3">
+              <div className="h-7 w-5 rounded bg-[#FBD32A] rotate-[-10deg]" />
+              <div className="h-7 w-5 rounded bg-[#2DD4A0] rotate-[-5deg]" />
+              <div className="h-7 w-5 rounded bg-[#0A84FF]" />
+            </div>
+          </div>
+          <div className="mt-3 flex items-center gap-2 rounded-full bg-black/20 px-2.5 py-1 w-fit">
+            <span className="text-[9px] text-slate-300">DE89 •••• 7642</span>
+          </div>
+        </div>
+
+        <div className="mt-6 px-4">
+          <p className="mb-3 text-[9px] font-bold tracking-widest text-slate-400 uppercase">Account & Preferences</p>
+          <div className="space-y-1">
+            {PROFILE_MENU.map((item, i) => (
+              <button key={i} type="button" className="flex w-full items-center gap-3 rounded-xl py-2.5 transition-colors hover:bg-slate-50">
+                <div className="grid h-8 w-8 place-items-center rounded-full bg-slate-100 text-slate-600">
+                  <item.icon className="h-4 w-4" />
+                </div>
+                <div className="flex-1 text-left">
+                  <p className="text-[11px] font-semibold text-slate-900">{item.label}</p>
+                  <p className="text-[9px] text-slate-400">{item.sub}</p>
+                </div>
+                {item.badge && (
+                  <span className={`rounded-full px-2 py-0.5 text-[8px] font-bold ${
+                    item.badge === 'Primary' ? 'bg-slate-100 text-slate-600' :
+                    item.badge === 'Live' ? 'bg-orange-100 text-orange-600' :
+                    'text-slate-400'
+                  }`}>
+                    {item.badge}
+                  </span>
+                )}
+                {item.badge !== '34.6%' && <ChevronRight className="h-4 w-4 text-slate-300" />}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="mt-4 px-4 pb-8">
+          <button type="button" className="flex w-full items-center justify-center gap-2 rounded-full bg-slate-100 py-3 text-[11px] font-semibold text-red-500">
+            <LogOut className="h-4 w-4" /> Log Out
+          </button>
+          <p className="mt-4 text-center text-[8px] text-slate-400">Fintech App v3.4.1 (Build 8902)</p>
+        </div>
+      </SheetLayer>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Bottom quick action bar (Home, Cards, Search, Send)
+// On Cards the white sheet shrinks into exactly this shape; on Home and Send it floats above the sheet.
+// ---------------------------------------------------------------------------
+
+const BAR_SELECTED: Record<number, string> = { 0: 'home', 1: 'cards', 3: 'send' };
+
+function QuickBar({ scene, go }: { scene: number; go: (scene: number) => void }) {
+  const visible = scene === 0 || scene === 1 || scene === 3;
+  const selectedKey = BAR_SELECTED[scene];
+
+  return (
+    <div
+      className={`absolute z-20 flex items-center justify-around rounded-full border border-slate-200 bg-white px-2 ${
+        visible ? '' : 'pointer-events-none'
+      }`}
+      style={{
+        left: 16,
+        right: 16,
+        top: 490,
+        height: 50,
+        boxShadow: '0 8px 24px rgba(15,23,42,0.22)',
+        opacity: visible ? 1 : 0,
+        transition: visible ? 'opacity 350ms ease 550ms' : 'opacity 150ms ease',
+      }}
+    >
+      {QUICK_ACTIONS.map(({ key, label, Icon, target }) => {
+        const selected = key === selectedKey;
+        return (
+          <button
+            key={key}
+            type="button"
+            onClick={() => go(target)}
+            tabIndex={visible ? 0 : -1}
+            aria-label={label}
+            className={`flex h-[38px] w-[54px] flex-col items-center justify-center gap-0.5 rounded-2xl transition-colors duration-300 ${
+              selected ? 'bg-slate-100 text-slate-900' : 'text-slate-400 hover:text-slate-700'
+            }`}
+          >
+            <Icon className="h-3.5 w-3.5" />
+            <span className="text-[7px] font-semibold">{label}</span>
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -847,6 +1185,7 @@ function PhoneDemo({
   onKey,
   onSend,
   onDone,
+  isMobile = false,
 }: {
   scene: number; // -1 = not started yet (sheet waits below the screen)
   digits: string;
@@ -857,18 +1196,23 @@ function PhoneDemo({
   onKey: (key: string) => void;
   onSend: () => void;
   onDone: () => void;
+  isMobile?: boolean;
 }) {
   return (
     <div
-      className="absolute rounded-[46px] bg-[#141B3A] p-[9px] shadow-[0_30px_60px_-20px_rgba(15,23,42,0.35)]"
-      style={{ left: 348, top: 30, width: 300, height: 582 }}
+      className={`${isMobile ? 'relative' : 'absolute'} rounded-[46px] bg-[#141B3A] p-[9px] shadow-[0_30px_60px_-20px_rgba(15,23,42,0.35)]`}
+      style={
+        isMobile
+          ? { width: PHONE_W, height: PHONE_H }
+          : { left: 348, top: 30, width: PHONE_W, height: PHONE_H }
+      }
     >
       <div className="relative h-full w-full overflow-hidden rounded-[37px]">
         {/* Background colour: dark, then green for "Sent" */}
         <div
           className="absolute inset-0"
           style={{
-            backgroundColor: scene === 4 ? '#00D90B' : '#0F1218',
+            backgroundColor: scene === 4 ? '#00D90B' : (scene === 6 ? '#141414' : '#0F1218'),
             transition: 'background-color 700ms ease',
           }}
         />
@@ -879,6 +1223,7 @@ function PhoneDemo({
         <RecipientsTop active={scene === 2} pavloPressed={tap === 'tap'} go={go} />
         <SendTop active={scene === 3} />
         <SentLayer active={scene === 4} digits={digits} onDone={onDone} />
+        <AddRecipientTop active={scene === 6} go={go} />
 
         {/* The white sheet that pulls up, shrinks to a quick action bar, and slides away */}
         <Sheet
@@ -890,6 +1235,8 @@ function PhoneDemo({
           onKey={onKey}
           onSend={onSend}
         />
+
+        <QuickBar scene={scene} go={go} />
 
         {scene === 2 && <TouchIndicator stage={tap} />}
 
@@ -988,6 +1335,9 @@ export default function CanvasSection() {
   const [inView, setInView] = useState(false);
   const [started, setStarted] = useState(false);
 
+  // Mobile vs desktop mode
+  const [isMobile, setIsMobile] = useState(false);
+
   // Scale the fixed-size stage to fit its container
   const canvasRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(0.8);
@@ -995,7 +1345,19 @@ export default function CanvasSection() {
   useEffect(() => {
     const el = canvasRef.current;
     if (!el) return;
-    const update = () => setScale(el.clientWidth / STAGE_W);
+    const update = () => {
+      const mobile = window.innerWidth < 1024;
+      setIsMobile(mobile);
+      if (mobile) {
+        // On mobile, scale the phone itself to fill the container width/height,
+        // leaving a small padding, so the phone appears large and centered.
+        const scaleForWidth = (el.clientWidth - 16) / PHONE_W;
+        const scaleForHeight = (el.clientHeight - 16) / PHONE_H;
+        setScale(Math.min(scaleForWidth, scaleForHeight));
+      } else {
+        setScale(el.clientWidth / STAGE_W);
+      }
+    };
     update();
     const observer = new ResizeObserver(update);
     observer.observe(el);
@@ -1043,7 +1405,7 @@ export default function CanvasSection() {
 
   const handleLeave = () => {
     // Resume the animation from the start of the screen the user ended on
-    setT(SCENE_START[manualScene]);
+    setT(SCENE_START[manualScene] || 0);
     setHovered(false);
     setCursorPos(null);
   };
@@ -1092,7 +1454,7 @@ export default function CanvasSection() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-start pt-4">
 
           {/* LEFT COLUMN: INTERACTIVE ACCORDION STEPS */}
-          <div className="lg:col-span-5 space-y-5">
+          <div className="order-2 lg:order-1 lg:col-span-5 space-y-5">
             <div className="divide-y divide-slate-100">
               {stepsData.map((step) => {
                 const isOpen = openStep === step.id;
@@ -1159,13 +1521,19 @@ export default function CanvasSection() {
           {/* The native pointer is hidden everywhere inside so the custom "Your team" cursor takes over */}
           <div
             ref={canvasRef}
-            className="lg:col-span-7 relative w-full select-none overflow-hidden rounded-2xl border border-slate-200 bg-[#FBFCFE] cursor-none [&_*]:!cursor-none"
-            style={{
-              aspectRatio: `${STAGE_W} / ${STAGE_H}`,
-              backgroundImage:
-                'conic-gradient(#F1F4F9 25%, transparent 0 50%, #F1F4F9 0 75%, transparent 0)',
-              backgroundSize: '16px 16px',
-            }}
+            className={`order-1 lg:order-2 lg:col-span-7 relative w-full select-none overflow-hidden cursor-none [&_*]:!cursor-none h-[560px] sm:h-[620px] lg:h-auto lg:aspect-[1000/645] ${
+              isMobile ? '' : 'rounded-2xl border border-slate-200'
+            }`}
+            style={
+              isMobile
+                ? {}
+                : {
+                    backgroundColor: '#FBFCFE',
+                    backgroundImage:
+                      'conic-gradient(#F1F4F9 25%, transparent 0 50%, #F1F4F9 0 75%, transparent 0)',
+                    backgroundSize: '16px 16px',
+                  }
+            }
             onMouseEnter={handleEnter}
             onMouseMove={(e) => {
               const rect = e.currentTarget.getBoundingClientRect();
@@ -1174,27 +1542,47 @@ export default function CanvasSection() {
             onMouseLeave={handleLeave}
             aria-label="Animated mobile app demo. Hover to pause and interact."
           >
-            {/* Fixed-size stage, scaled to fit */}
-            <div
-              className="absolute left-0 top-0 origin-top-left"
-              style={{ width: STAGE_W, height: STAGE_H, transform: `scale(${scale})` }}
-            >
-              <CanvasChrome />
-              <PhoneDemo
-                scene={scene}
-                digits={digits}
-                pressedKey={pressedKey}
-                tap={tap}
-                sendPressed={sendPressed}
-                go={go}
-                onKey={handleKey}
-                onSend={handleSend}
-                onDone={handleDone}
-              />
-            </div>
+            {isMobile ? (
+              /* Mobile: show just the phone, scaled up to fill the container */
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div style={{ width: PHONE_W, height: PHONE_H, transform: `scale(${scale})` }}>
+                  <PhoneDemo
+                    scene={scene}
+                    digits={digits}
+                    pressedKey={pressedKey}
+                    tap={tap}
+                    sendPressed={sendPressed}
+                    go={go}
+                    onKey={handleKey}
+                    onSend={handleSend}
+                    onDone={handleDone}
+                    isMobile
+                  />
+                </div>
+              </div>
+            ) : (
+              /* Desktop: full canvas with rulers, toolbar, and checkered background */
+              <div
+                className="absolute top-1/2 left-1/2 origin-center"
+                style={{ width: STAGE_W, height: STAGE_H, transform: `translate(-50%, -50%) scale(${scale})` }}
+              >
+                <CanvasChrome />
+                <PhoneDemo
+                  scene={scene}
+                  digits={digits}
+                  pressedKey={pressedKey}
+                  tap={tap}
+                  sendPressed={sendPressed}
+                  go={go}
+                  onKey={handleKey}
+                  onSend={handleSend}
+                  onDone={handleDone}
+                />
+              </div>
+            )}
 
-            {/* Custom collaborative-style cursor: blue arrow + "Your team" pill */}
-            {cursorPos && (
+            {/* Custom collaborative-style cursor: blue arrow + "Your team" pill (desktop only) */}
+            {!isMobile && cursorPos && (
               <div
                 className="pointer-events-none absolute z-40 flex items-start gap-1 will-change-transform"
                 style={{ left: cursorPos.x, top: cursorPos.y }}
