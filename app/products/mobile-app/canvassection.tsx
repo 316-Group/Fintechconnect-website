@@ -79,13 +79,13 @@ const TOTAL_MS = SCENE_MS.reduce((a, b) => a + b, 0);
 const TICK_MS = 50;
 const AUTO_AMOUNT = '286';
 
-// Stage design size (everything inside is laid out at 1000 x 645, then scaled to fit)
+// Stage design size (everything inside is laid out at 1000 x 720, then scaled to fit)
 const STAGE_W = 1000;
-const STAGE_H = 645;
+const STAGE_H = 720;
 
 // Phone size
-const PHONE_W = 300;
-const PHONE_H = 582;
+const PHONE_W = 340;
+const PHONE_H = 660;
 
 // Motion curves
 const EASE = 'cubic-bezier(0.32, 0.72, 0, 1)'; // smooth, iOS-style deceleration
@@ -716,24 +716,24 @@ interface SheetGeometry {
 }
 
 const NO_SHADOW = '0 0 0 rgba(0,0,0,0)';
-const OFFSCREEN: SheetGeometry = { top: 600, left: 0, right: 0, height: 480, radius: 22, shadow: NO_SHADOW };
+const OFFSCREEN: SheetGeometry = { top: 700, left: 0, right: 0, height: 480, radius: 22, shadow: NO_SHADOW };
 
 const SHEET_GEOMETRY: SheetGeometry[] = [
-  { top: 239, left: 0, right: 0, height: 325, radius: 22, shadow: NO_SHADOW }, // Home: transactions
-  { top: 490, left: 16, right: 16, height: 50, radius: 25, shadow: NO_SHADOW }, // Cards: shrinks to the quick action bar
-  { top: 322, left: 0, right: 0, height: 242, radius: 22, shadow: NO_SHADOW }, // Recipients list
-  { top: 84, left: 0, right: 0, height: 480, radius: 22, shadow: NO_SHADOW }, // Send keypad
+  { top: 275, left: 0, right: 0, height: 385, radius: 22, shadow: NO_SHADOW }, // Home: transactions
+  { top: 560, left: 16, right: 16, height: 50, radius: 25, shadow: NO_SHADOW }, // Cards: shrinks to the quick action bar
+  { top: 370, left: 0, right: 0, height: 290, radius: 22, shadow: NO_SHADOW }, // Recipients list
+  { top: 95, left: 0, right: 0, height: 565, radius: 22, shadow: NO_SHADOW }, // Send keypad
   OFFSCREEN, // Sent: slides away
-  { top: 84, left: 0, right: 0, height: 480, radius: 22, shadow: NO_SHADOW }, // 5: Request
+  { top: 95, left: 0, right: 0, height: 565, radius: 22, shadow: NO_SHADOW }, // 5: Request
   OFFSCREEN, // 6: Add Recipient (handled by TopLayer)
-  { top: 30, left: 0, right: 0, height: 552, radius: 37, shadow: NO_SHADOW }, // 7: Profile
+  { top: 30, left: 0, right: 0, height: 630, radius: 37, shadow: NO_SHADOW }, // 7: Profile
 ];
 
 const QUICK_ACTIONS = [
   { key: 'home', label: 'Home', Icon: Home, target: 0 },
   { key: 'cards', label: 'Cards', Icon: CreditCard, target: 1 },
-  { key: 'search', label: 'Search', Icon: Search, target: 2 },
   { key: 'send', label: 'Send', Icon: SendIcon, target: 3 },
+  { key: 'profile', label: 'Profile', Icon: User, target: 7 },
 ];
 
 const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '0', 'back'];
@@ -790,7 +790,7 @@ function Sheet({
       }}
     >
       {/* HOME: transactions */}
-      <SheetLayer active={scene === 0} height={325}>
+      <SheetLayer active={scene === 0} height={385}>
         <div className="mx-auto mt-2 h-[3px] w-8 rounded-full bg-slate-200" />
         <div className="mt-3 flex items-center justify-between px-4 text-slate-400">
           <ListFilter className="h-3 w-3" />
@@ -819,7 +819,7 @@ function Sheet({
       </SheetLayer>
 
       {/* RECIPIENTS: list */}
-      <SheetLayer active={scene === 2} height={242}>
+      <SheetLayer active={scene === 2} height={290}>
         <div className="mx-auto mt-2 h-[3px] w-8 rounded-full bg-slate-200" />
         <div className="mt-3 flex items-center justify-between px-4">
           <div className="flex rounded-full bg-slate-100 p-[3px] text-[8px]">
@@ -847,7 +847,7 @@ function Sheet({
       </SheetLayer>
 
       {/* SEND: amount + keypad */}
-      <SheetLayer active={scene === 3} height={480}>
+      <SheetLayer active={scene === 3} height={565}>
         <div className="mx-auto mt-2 h-[3px] w-8 rounded-full bg-slate-200" />
 
         <div className="mx-auto mt-3 flex w-[150px] rounded-full bg-slate-100 p-[3px] text-[9px]">
@@ -903,18 +903,18 @@ function Sheet({
               type="button"
               onClick={() => onKey(k)}
               aria-label={k === 'back' ? 'Delete' : k}
-              className={`grid h-[34px] place-items-center rounded-xl text-[16px] font-medium text-slate-700 transition-all duration-150 active:scale-95 ${
+              className={`grid h-[38px] place-items-center rounded-xl text-[18px] font-medium text-slate-700 transition-all duration-150 active:scale-95 ${
                 pressedKey === k ? 'scale-90 bg-slate-300' : 'bg-white hover:bg-slate-50'
               }`}
             >
-              {k === 'back' ? <Delete className="h-4 w-4" /> : k}
+              {k === 'back' ? <Delete className="h-5 w-5" /> : k}
             </button>
           ))}
         </div>
       </SheetLayer>
 
       {/* REQUEST: amount + split */}
-      <SheetLayer active={scene === 5} height={480}>
+      <SheetLayer active={scene === 5} height={565} scrollable>
         <div className="mx-auto mt-2 h-[3px] w-8 rounded-full bg-slate-200" />
         <div className="mx-auto mt-3 flex w-[150px] rounded-full bg-slate-100 p-[3px] text-[9px]">
           <span className="flex-1 py-1.5 text-center text-slate-400">Send</span>
@@ -981,7 +981,7 @@ function Sheet({
           </div>
         </div>
 
-        <div className="mt-3 px-4">
+        <div className="mt-4 px-4">
           <div className="flex items-center gap-2 rounded-full bg-slate-100 px-3 py-2 text-slate-400">
             <Search className="h-3 w-3" />
             <input type="text" placeholder="Search name, @tag, or phone" className="flex-1 bg-transparent text-[10px] outline-none placeholder:text-slate-400" />
@@ -1001,7 +1001,7 @@ function Sheet({
           </div>
         </div>
 
-        <div className="absolute bottom-4 left-4 right-4">
+        <div className="mt-6 px-4 pb-6">
           <button type="button" className="flex w-full items-center justify-between rounded-full bg-[#0F1218] px-5 py-3 text-[12px] font-bold text-white">
             Continue
             <span>$150.00 →</span>
@@ -1010,7 +1010,7 @@ function Sheet({
       </SheetLayer>
 
       {/* PROFILE */}
-      <SheetLayer active={scene === 7} height={552} scrollable>
+      <SheetLayer active={scene === 7} height={630} scrollable>
         <div className="mx-auto mt-2 h-[3px] w-8 rounded-full bg-slate-200 shrink-0" />
         <div className="flex flex-col items-center pt-4 pb-6">
           <div className="relative">
@@ -1088,11 +1088,11 @@ function Sheet({
 }
 
 // ---------------------------------------------------------------------------
-// Bottom quick action bar (Home, Cards, Search, Send)
+// Bottom quick action bar (Home, Cards, Send, Profile)
 // On Cards the white sheet shrinks into exactly this shape; on Home and Send it floats above the sheet.
 // ---------------------------------------------------------------------------
 
-const BAR_SELECTED: Record<number, string> = { 0: 'home', 1: 'cards', 3: 'send' };
+const BAR_SELECTED: Record<number, string> = { 0: 'home', 1: 'cards', 3: 'send', 7: 'profile' };
 
 function QuickBar({ scene, go }: { scene: number; go: (scene: number) => void }) {
   const visible = scene === 0 || scene === 1 || scene === 3;
@@ -1106,7 +1106,7 @@ function QuickBar({ scene, go }: { scene: number; go: (scene: number) => void })
       style={{
         left: 16,
         right: 16,
-        top: 490,
+        top: 560,
         height: 50,
         boxShadow: '0 8px 24px rgba(15,23,42,0.22)',
         opacity: visible ? 1 : 0,
@@ -1140,7 +1140,7 @@ function QuickBar({ scene, go }: { scene: number; go: (scene: number) => void })
 // ---------------------------------------------------------------------------
 
 const TAP_START = { x: 215, y: 300 };
-const TAP_TARGET = { x: 141, y: 118 }; // centre of Pavlo's avatar
+const TAP_TARGET = { x: 170, y: 120 }; // centre of Pavlo's avatar
 
 function TouchIndicator({ stage }: { stage: TapStage }) {
   const atTarget = stage === 'move' || stage === 'tap';
@@ -1204,7 +1204,7 @@ function PhoneDemo({
       style={
         isMobile
           ? { width: PHONE_W, height: PHONE_H }
-          : { left: 348, top: 30, width: PHONE_W, height: PHONE_H }
+          : { left: 330, top: 30, width: PHONE_W, height: PHONE_H }
       }
     >
       <div className="relative h-full w-full overflow-hidden rounded-[37px]">
@@ -1263,8 +1263,8 @@ function PhoneDemo({
 // Canvas chrome: rulers, toolbar, checkered background
 // ---------------------------------------------------------------------------
 
-const TOP_RULER = [0, 80, 160, 240, 320, 400, 480, 560, 640];
-const LEFT_RULER = [0, 120, 240, 360, 480, 600];
+const TOP_RULER = [0, 80, 160, 240, 320, 400, 480, 560, 640, 720];
+const LEFT_RULER = [0, 120, 240, 360, 480, 600, 720];
 
 function CanvasChrome() {
   return (
@@ -1275,7 +1275,7 @@ function CanvasChrome() {
           <span
             key={n}
             className="absolute top-[7px] -translate-x-1/2 text-[9px] text-slate-400"
-            style={{ left: 26 + i * 117.0 }}
+            style={{ left: 26 + i * 110.0 }}
           >
             {n}
           </span>
@@ -1288,7 +1288,7 @@ function CanvasChrome() {
           <span
             key={n}
             className="absolute left-0 w-full -translate-y-1/2 text-center text-[9px] text-slate-400"
-            style={{ top: 57 + i * 110.2 }}
+            style={{ top: 57 + i * 110.5 }}
           >
             {n}
           </span>
@@ -1521,7 +1521,7 @@ export default function CanvasSection() {
           {/* The native pointer is hidden everywhere inside so the custom "Your team" cursor takes over */}
           <div
             ref={canvasRef}
-            className={`order-1 lg:order-2 lg:col-span-7 relative w-full select-none overflow-hidden cursor-none [&_*]:!cursor-none h-[560px] sm:h-[620px] lg:h-auto lg:aspect-[1000/645] ${
+            className={`order-1 lg:order-2 lg:col-span-7 relative w-full select-none overflow-hidden cursor-none [&_*]:!cursor-none h-[560px] sm:h-[620px] lg:h-auto lg:aspect-[1000/720] ${
               isMobile ? '' : 'rounded-2xl border border-slate-200'
             }`}
             style={
