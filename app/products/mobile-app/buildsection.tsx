@@ -2053,7 +2053,6 @@ interface PageCanvasProps {
   density: Density;
   drag: { id: ModuleId; from: 'library' | 'canvas' } | null;
   dropIndex: number | null;
-  bodyRef: { current: HTMLDivElement | null };
   appKind: AppKind;
   onStartDrag: (e: React.DragEvent, id: ModuleId, from: 'library' | 'canvas') => void;
   onEndDrag: () => void;
@@ -2069,7 +2068,7 @@ interface PageCanvasProps {
 }
 
 function PageCanvas({
-  page, pageLabel, modules, ctx, editMode, density, drag, dropIndex, bodyRef, appKind,
+  page, pageLabel, modules, ctx, editMode, density, drag, dropIndex, appKind,
   onStartDrag, onEndDrag, onItemDragOver, onDrop, onMove, onRemove, onQuickAdd,
   onBackHome, isDark, accent, radius,
 }: PageCanvasProps) {
@@ -2088,10 +2087,18 @@ function PageCanvas({
       {page !== 'home' && <h3 className="mb-3 text-[15px] font-bold">{pageLabel}</h3>}
 
       {modules.length === 0 ? (
-        <div
-          style={drag ? { borderColor: accent, background: `${accent}14` } : undefined}
-          className={`my-auto flex flex-col items-center justify-center space-y-3 border-2 border-dashed p-6 text-center transition-colors ${radius.card} ${drag ? '' : isDark ? 'border-slate-700 bg-slate-900/50' : 'border-blue-300/60 bg-blue-50/20'}`}
-        >
+  <div
+    onDragOver={(e) => {
+      if (!drag) return;
+      e.preventDefault();
+      e.stopPropagation();
+    }}
+    onDrop={onDrop}
+    style={drag ? { borderColor: accent, background: `${accent}14` } : undefined}
+    className={`my-auto flex flex-col items-center justify-center space-y-3 border-2 border-dashed p-6 text-center transition-colors ${radius.card} ${
+      drag ? 'border-solid' : isDark ? 'border-slate-700 bg-slate-900/50' : 'border-blue-300/60 bg-blue-50/20'
+    }`}
+  >
           <div className={`grid h-12 w-12 place-items-center text-white shadow-sm ${radius.icon}`} style={{ background: accent }}><Plus className="h-6 w-6" /></div>
           <div className="space-y-1">
             <h4 className="text-xs font-bold">{drag ? 'Drop to add it here' : `Build the ${pageLabel} page`}</h4>
@@ -2146,7 +2153,7 @@ function PageCanvas({
           })}
         </div>
       )}
-      <div ref={bodyRef} className="hidden" aria-hidden />
+      
     </>
   );
 }
@@ -2653,12 +2660,13 @@ export default function BuildSection() {
   };
 
   const startDrag = (e: React.DragEvent, id: ModuleId, from: 'library' | 'canvas') => {
-    e.stopPropagation();
-    e.dataTransfer.setData('text/plain', id);
-    e.dataTransfer.effectAllowed = from === 'library' ? 'copyMove' : 'move';
-    setDrag({ id, from });
-    if (activeTab !== PAGE_TO_TAB[activePage]) setActiveTab(PAGE_TO_TAB[activePage] ?? 'home');
-  };
+  e.stopPropagation();
+  e.dataTransfer.setData('text/plain', id);
+  e.dataTransfer.setData('application/x-pf-module-id', id);
+  e.dataTransfer.effectAllowed = from === 'library' ? 'copyMove' : 'move';
+  setDrag({ id, from });
+  if (activeTab !== PAGE_TO_TAB[activePage]) setActiveTab(PAGE_TO_TAB[activePage] ?? 'home');
+};
 
   const endDrag = () => { setDrag(null); setDropIndex(null); };
 
@@ -2671,35 +2679,50 @@ export default function BuildSection() {
   };
 
   const handleItemDragOver = (e: React.DragEvent, index: number) => {
-    if (!drag) return;
-    e.preventDefault();
-    e.stopPropagation();
+  const types = Array.from(e.dataTransfer.types);
+  const isOurDrag = types.includes('application/x-pf-module-id');
+  if (!drag && !isOurDrag) return;
+  e.preventDefault();
+  e.stopPropagation();
+  if (drag) {
     const rect = e.currentTarget.getBoundingClientRect();
     setDropIndex(e.clientY < rect.top + rect.height / 2 ? index : index + 1);
     autoScroll(e.clientY);
-  };
+  }
+};
 
   const handleContainerDragOver = (e: React.DragEvent) => {
-    if (!drag) return;
-    e.preventDefault();
+  const types = Array.from(e.dataTransfer.types);
+  const isOurDrag = types.includes('application/x-pf-module-id');
+  if (!drag && !isOurDrag) return;
+  e.preventDefault();
+  e.dataTransfer.dropEffect = drag?.from === 'library' ? 'copy' : 'move';
+  if (drag) {
     setDropIndex(canvasModules.length);
     autoScroll(e.clientY);
-  };
+  }
+};
 
   const handleContainerDragLeave = (e: React.DragEvent) => {
     if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setDropIndex(null);
   };
 
   const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (!drag) return;
-    if (availableModules.some((m) => m.id === drag.id)) {
-      placeModule(drag.id, dropIndex ?? canvasModules.length);
-      scrollModuleIntoView(drag.id);
-    }
-    endDrag();
-  };
+  e.preventDefault();
+  e.stopPropagation();
+
+  // Fallback to dataTransfer so drops still work even if React state
+  // hasn't committed `drag` yet (very common race on fast drags).
+  const id = (drag?.id ?? e.dataTransfer.getData('application/x-pf-module-id')) as ModuleId | '';
+  if (!id) { endDrag(); return; }
+
+  // FIX: check against ALL modules (built-in + banking/wallet + crypto)
+  if (allModulesFor().some((m) => m.id === id)) {
+    placeModule(id, dropIndex ?? canvasModules.length);
+    scrollModuleIntoView(id);
+  }
+  endDrag();
+};
 
   const handleSend = () => {
     const amt = parseAmount(sendAmount);
@@ -2770,7 +2793,7 @@ export default function BuildSection() {
   const hasAlerts = canvasModules.includes('notifications');
 
   const canvasProps = {
-    page: activePage, pageLabel: currentPageLabel, modules: canvasModules, ctx: liveCtx, editMode, density, drag, dropIndex, bodyRef, appKind,
+    page: activePage, pageLabel: currentPageLabel, modules: canvasModules, ctx: liveCtx, editMode, density, drag, dropIndex, appKind,
     onStartDrag: startDrag, onEndDrag: endDrag, onItemDragOver: handleItemDragOver, onDrop: handleDrop,
     onMove: moveModule, onRemove: removeModule, onQuickAdd: addModule, isDark, accent: accentColor, radius,
   };

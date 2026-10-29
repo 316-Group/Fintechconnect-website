@@ -172,6 +172,8 @@ const PHOTOS = {
   bella: 'https://randomuser.me/api/portraits/women/33.jpg',
 };
 
+type Recipient = { name: string; src: string; handle?: string };
+
 // Round face with a ring around it. Falls back to coloured initials if the image fails to load.
 function Avatar({
   name,
@@ -479,10 +481,12 @@ function RecipientsTop({
   active,
   pavloPressed,
   go,
+  onSelectRecipient,
 }: {
   active: boolean;
   pavloPressed: boolean;
   go: (scene: number) => void;
+  onSelectRecipient: (r: Recipient) => void;
 }) {
   return (
     <div
@@ -506,7 +510,10 @@ function RecipientsTop({
             <button
               key={r.name}
               type="button"
-              onClick={() => go(3)}
+              onClick={() => {
+                onSelectRecipient({ name: r.name, src: r.src, handle: r.handle });
+                go(3);
+              }}
               className="flex flex-col items-center"
               style={{
                 opacity: active ? 1 : 0,
@@ -535,7 +542,7 @@ function RecipientsTop({
 }
 
 // --- Send (dark area): the chosen recipient pops in above the sheet ---
-function SendTop({ active }: { active: boolean }) {
+function SendTop({ active, recipientName, recipientSrc }: { active: boolean; recipientName: string; recipientSrc: string }) {
   return (
     <div
       className="pointer-events-none absolute inset-0 text-white"
@@ -551,8 +558,8 @@ function SendTop({ active }: { active: boolean }) {
           transition: active ? `transform 700ms ${SPRING} 250ms` : 'transform 200ms ease',
         }}
       >
-        <Avatar name="Pavlo" initials="P" size={30} gradient={1} src={PHOTOS.pavlo} />
-        <span className="mt-1 text-[8px] font-medium text-slate-300">Pavlo</span>
+        <Avatar name={recipientName} initials={recipientName[0]} size={30} gradient={1} src={recipientSrc} />
+        <span className="mt-1 text-[8px] font-medium text-slate-300">{recipientName}</span>
       </div>
     </div>
   );
@@ -650,11 +657,15 @@ function AddRecipientTop({ active, go }: { active: boolean; go: (scene: number) 
 // --- Sent (full-screen green) ---
 function SentLayer({
   active,
-  digits,
+  amount,
+  recipientName,
+  mode,
   onDone,
 }: {
   active: boolean;
-  digits: string;
+  amount: string;
+  recipientName: string;
+  mode: 'send' | 'request';
   onDone: () => void;
 }) {
   return (
@@ -686,7 +697,7 @@ function SentLayer({
           transition: active ? `all 600ms ${EASE} 600ms` : 'all 200ms ease',
         }}
       >
-        $ {formatAmount(digits || AUTO_AMOUNT)}
+        $ {formatAmount(amount || AUTO_AMOUNT)}
       </p>
       <p
         className="mt-2 text-[11px] font-medium"
@@ -696,7 +707,7 @@ function SentLayer({
           transition: active ? `all 600ms ${EASE} 750ms` : 'all 200ms ease',
         }}
       >
-        Sent to Pavlo
+        {mode === 'request' ? 'Requested from' : 'Sent to'} {recipientName}
       </p>
     </button>
   );
@@ -762,6 +773,9 @@ function Sheet({
   go,
   onKey,
   onSend,
+  selectedRecipient,
+  onSelectRecipient,
+  onRequestSent,
 }: {
   scene: number;
   digits: string;
@@ -770,9 +784,78 @@ function Sheet({
   go: (scene: number) => void;
   onKey: (key: string) => void;
   onSend: () => void;
+  selectedRecipient: Recipient;
+  onSelectRecipient: (r: Recipient) => void;
+  onRequestSent: (amount: string) => void;
 }) {
   const g = scene >= 0 ? SHEET_GEOMETRY[scene] : OFFSCREEN;
   const hasAmount = digits !== '' && parseFloat(digits) > 0;
+
+  // ------- Request page local state -------
+  const [requestAmount, setRequestAmount] = useState('');
+  const [requestParticipants, setRequestParticipants] = useState<{ name: string; src: string }[]>([
+    { name: 'Sarah', src: PHOTOS.sarah },
+    { name: 'Jordan', src: PHOTOS.jordan },
+    { name: 'Pavlo', src: PHOTOS.pavlo },
+  ]);
+  const [requestSplitMode, setRequestSplitMode] = useState<'equal' | 'custom'>('equal');
+  const [requestKeypadOpen, setRequestKeypadOpen] = useState(false);
+  const [requestSearch, setRequestSearch] = useState('');
+
+  // Reset request form whenever we leave the Request screen
+  useEffect(() => {
+    if (scene !== 5) {
+      setRequestKeypadOpen(false);
+      setRequestAmount('');
+      setRequestParticipants([
+        { name: 'Sarah', src: PHOTOS.sarah },
+        { name: 'Jordan', src: PHOTOS.jordan },
+        { name: 'Pavlo', src: PHOTOS.pavlo },
+      ]);
+      setRequestSplitMode('equal');
+      setRequestSearch('');
+    }
+  }, [scene]);
+
+  const handleRequestKey = (key: string) => {
+    setRequestAmount((d) => {
+      if (key === 'back') return d.slice(0, -1);
+      if (key === '.') return d.includes('.') ? d : d === '' ? '0.' : d + '.';
+      if (d.length >= 8) return d;
+      if (d.includes('.') && d.split('.')[1].length >= 2) return d;
+      return d === '0' ? key : d + key;
+    });
+  };
+
+  const handleRequestClearAll = () => setRequestParticipants([]);
+  const handleRequestRemove = (name: string) =>
+    setRequestParticipants((p) => p.filter((x) => x.name !== name));
+  const handleRequestAddNext = () => {
+    const next = RECIPIENTS.find((r) => !requestParticipants.some((p) => p.name === r.name));
+    if (next) setRequestParticipants((p) => [...p, { name: next.name, src: next.src }]);
+  };
+  const handleRequestToggleRecent = (r: { name: string; src: string }) => {
+    if (requestParticipants.some((p) => p.name === r.name)) {
+      handleRequestRemove(r.name);
+    } else {
+      setRequestParticipants((p) => [...p, { name: r.name, src: r.src }]);
+    }
+  };
+  const handleRequestContinue = () => {
+    const amount = parseFloat(requestAmount);
+    if (!amount || amount <= 0 || requestParticipants.length === 0) return;
+    onRequestSent(requestAmount);
+    go(4);
+  };
+
+  const requestTotal = parseFloat(requestAmount) || 0;
+  const perPerson = requestParticipants.length > 0 ? requestTotal / requestParticipants.length : 0;
+  const filteredRecipients = RECIPIENTS.filter(
+    (r) =>
+      !requestSearch ||
+      r.name.toLowerCase().includes(requestSearch.toLowerCase()) ||
+      r.handle.toLowerCase().includes(requestSearch.toLowerCase())
+  );
 
   return (
     <div
@@ -835,7 +918,10 @@ function Sheet({
             <button
               key={i}
               type="button"
-              onClick={() => go(3)}
+              onClick={() => {
+                onSelectRecipient({ name: row.name, src: row.src });
+                go(3);
+              }}
               className="flex h-[42px] w-full items-center gap-2.5 text-left transition-colors hover:bg-slate-50"
             >
               <Avatar name={row.name} initials={row.name[0]} size={28} gradient={i + 2} dot={row.dot} src={row.src} ring="light" />
@@ -852,11 +938,11 @@ function Sheet({
 
         <div className="mx-auto mt-3 flex w-[150px] rounded-full bg-slate-100 p-[3px] text-[9px]">
           <span className="flex-1 rounded-full bg-white py-1.5 text-center font-bold shadow-sm">Send</span>
-          <span className="flex-1 py-1.5 text-center text-slate-400">Request</span>
+          <button type="button" onClick={() => go(5)} className="flex-1 py-1.5 text-center text-slate-400">Request</button>
         </div>
 
         <p className="mt-4 flex items-center justify-center gap-1 text-[8px] text-slate-400">
-          Pavlo • 7642 USD <ChevronDown className="h-2.5 w-2.5" />
+          {selectedRecipient.name} • 7642 USD <ChevronDown className="h-2.5 w-2.5" />
         </p>
 
         <p
@@ -913,100 +999,214 @@ function Sheet({
         </div>
       </SheetLayer>
 
-      {/* REQUEST: amount + split */}
-      <SheetLayer active={scene === 5} height={565} scrollable>
+      {/* REQUEST: interactive request form */}
+      <SheetLayer active={scene === 5} height={565} scrollable={!requestKeypadOpen}>
         <div className="mx-auto mt-2 h-[3px] w-8 rounded-full bg-slate-200" />
         <div className="mx-auto mt-3 flex w-[150px] rounded-full bg-slate-100 p-[3px] text-[9px]">
-          <span className="flex-1 py-1.5 text-center text-slate-400">Send</span>
+          <button type="button" onClick={() => go(3)} className="flex-1 py-1.5 text-center text-slate-400">Send</button>
           <span className="flex-1 rounded-full bg-white py-1.5 text-center font-bold shadow-sm">Request</span>
         </div>
 
-        <p className="mt-6 text-center text-[40px] font-semibold leading-none tracking-tight text-slate-300">
-          <span className="mr-1.5">$</span>0.00
-        </p>
-        <p className="mt-2 text-center text-[8px] text-slate-400">
-          Available <span className="font-semibold underline">$ 7,854.43</span>
-        </p>
+        {requestKeypadOpen ? (
+          /* ---------- KEYPAD VIEW ---------- */
+          <>
+            <p
+              className={`mt-5 text-center text-[40px] font-semibold leading-none tracking-tight ${
+                requestAmount === '' ? 'text-slate-300' : 'text-[#0F1218]'
+              }`}
+            >
+              <span className="mr-1.5">$</span>
+              {formatAmount(requestAmount)}
+            </p>
+            <p className="mt-2 text-center text-[8px] text-slate-400">
+              Available <span className="font-semibold underline">$ 7,854.43</span>
+            </p>
 
-        <div className="mt-4 px-4">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-semibold text-slate-600">Selected Participants (3)</span>
-            <span className="text-[9px] text-slate-400">Clear all</span>
-          </div>
-          <div className="mt-2 flex gap-2 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden">
-            {[
-              { name: 'Sarah', src: PHOTOS.sarah },
-              { name: 'Jordan', src: PHOTOS.jordan },
-              { name: 'Pavlo', src: PHOTOS.pavlo },
-            ].map((p) => (
-              <div key={p.name} className="flex items-center gap-1.5 rounded-full bg-slate-100 py-1 pl-1 pr-2.5">
-                <Avatar name={p.name} initials={p.name[0]} size={20} src={p.src} ring="light" />
-                <span className="text-[9px] font-medium text-slate-700">{p.name}</span>
-                <button type="button" className="grid h-3.5 w-3.5 place-items-center rounded-full bg-slate-300 text-white">
-                  <span className="text-[8px] leading-none">×</span>
+            <div className="mx-3 mt-4 grid grid-cols-3 gap-1.5 rounded-2xl bg-slate-100 p-2">
+              {KEYS.map((k) => (
+                <button
+                  key={k}
+                  type="button"
+                  onClick={() => handleRequestKey(k)}
+                  aria-label={k === 'back' ? 'Delete' : k}
+                  className="grid h-[38px] place-items-center rounded-xl bg-white text-[18px] font-medium text-slate-700 transition-all duration-150 hover:bg-slate-50 active:scale-95"
+                >
+                  {k === 'back' ? <Delete className="h-5 w-5" /> : k}
+                </button>
+              ))}
+            </div>
+
+            <div className="mt-4 px-4">
+              <button
+                type="button"
+                onClick={() => setRequestKeypadOpen(false)}
+                className="w-full rounded-full bg-[#0F1218] py-3 text-[12px] font-bold text-white transition-transform active:scale-95"
+              >
+                Done
+              </button>
+            </div>
+          </>
+        ) : (
+          /* ---------- SUMMARY VIEW ---------- */
+          <>
+            <button
+              type="button"
+              onClick={() => setRequestKeypadOpen(true)}
+              className={`mt-4 block w-full text-center text-[40px] font-semibold leading-none tracking-tight ${
+                requestAmount === '' ? 'text-slate-300' : 'text-[#0F1218]'
+              }`}
+            >
+              <span className="mr-1.5">$</span>
+              {formatAmount(requestAmount)}
+            </button>
+            <p className="mt-2 text-center text-[8px] text-slate-400">
+              Available <span className="font-semibold underline">$ 7,854.43</span>
+            </p>
+
+            <div className="mt-4 px-4">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-semibold text-slate-600">
+                  Selected Participants ({requestParticipants.length})
+                </span>
+                <button
+                  type="button"
+                  onClick={handleRequestClearAll}
+                  className="text-[9px] text-slate-400 hover:text-slate-700"
+                >
+                  Clear all
                 </button>
               </div>
-            ))}
-            <button type="button" className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-slate-100 text-slate-400">
-              +
-            </button>
-          </div>
-        </div>
-
-        <div className="mt-4 px-4">
-          <div className="flex items-center justify-between text-[9px]">
-            <span className="font-semibold text-slate-600">Split Breakdown</span>
-            <span className="text-slate-400">Automatic</span>
-          </div>
-          <div className="mt-2 flex gap-2">
-            <button type="button" className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-[#0F1218] py-2 text-[10px] font-medium text-white">
-              <svg viewBox="0 0 24 24" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" />
-              </svg>
-              Equal Split
-            </button>
-            <button type="button" className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-slate-100 py-2 text-[10px] font-medium text-slate-500">
-              <svg viewBox="0 0 24 24" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-              </svg>
-              Custom Amounts
-            </button>
-          </div>
-          <div className="mt-3 flex items-center justify-between rounded-xl bg-[#E8F4FF] px-3 py-2.5">
-            <div className="flex items-center gap-2 text-[10px] font-semibold text-blue-600">
-              <span className="grid h-4 w-4 place-items-center rounded-full bg-blue-100 text-[10px]">+</span>
-              $150.00 + 3 people
+              <div className="mt-2 flex gap-2 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden">
+                {requestParticipants.map((p) => (
+                  <div key={p.name} className="flex items-center gap-1.5 rounded-full bg-slate-100 py-1 pl-1 pr-2.5">
+                    <Avatar name={p.name} initials={p.name[0]} size={20} src={p.src} ring="light" />
+                    <span className="text-[9px] font-medium text-slate-700">{p.name}</span>
+                    <button
+                      type="button"
+                      onClick={() => handleRequestRemove(p.name)}
+                      className="grid h-3.5 w-3.5 place-items-center rounded-full bg-slate-300 text-white hover:bg-slate-400"
+                      aria-label={`Remove ${p.name}`}
+                    >
+                      <span className="text-[8px] leading-none">×</span>
+                    </button>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={handleRequestAddNext}
+                  className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-slate-100 text-slate-400 hover:bg-slate-200"
+                  aria-label="Add participant"
+                >
+                  +
+                </button>
+              </div>
             </div>
-            <span className="text-[10px] font-bold text-blue-600">$50.00/each</span>
-          </div>
-        </div>
 
-        <div className="mt-4 px-4">
-          <div className="flex items-center gap-2 rounded-full bg-slate-100 px-3 py-2 text-slate-400">
-            <Search className="h-3 w-3" />
-            <input type="text" placeholder="Search name, @tag, or phone" className="flex-1 bg-transparent text-[10px] outline-none placeholder:text-slate-400" />
-          </div>
-          <div className="mt-3 flex items-center justify-between">
-            <span className="text-[10px] font-semibold text-slate-700">Recent & Suggested</span>
-            <span className="text-[9px] text-slate-400">Tap to select</span>
-          </div>
-          <div className="mt-2 grid grid-cols-3 gap-y-2">
-            {RECIPIENTS.slice(0, 6).map((r, i) => (
-              <button key={r.name} type="button" className="flex flex-col items-center">
-                <Avatar name={r.name} initials={r.name[0]} size={36} gradient={i} src={r.src} ring="light" />
-                <span className="mt-1 text-[9px] font-medium">{r.name}</span>
-                <span className="text-[6.5px] text-slate-400">{r.handle}</span>
+            <div className="mt-4 px-4">
+              <div className="flex items-center justify-between text-[9px]">
+                <span className="font-semibold text-slate-600">Split Breakdown</span>
+                <span className="text-slate-400">{requestSplitMode === 'equal' ? 'Automatic' : 'Manual'}</span>
+              </div>
+              <div className="mt-2 flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setRequestSplitMode('equal')}
+                  className={`flex flex-1 items-center justify-center gap-1.5 rounded-full py-2 text-[10px] font-medium transition-colors ${
+                    requestSplitMode === 'equal' ? 'bg-[#0F1218] text-white' : 'bg-slate-100 text-slate-500'
+                  }`}
+                >
+                  <svg viewBox="0 0 24 24" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" />
+                  </svg>
+                  Equal Split
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRequestSplitMode('custom')}
+                  className={`flex flex-1 items-center justify-center gap-1.5 rounded-full py-2 text-[10px] font-medium transition-colors ${
+                    requestSplitMode === 'custom' ? 'bg-[#0F1218] text-white' : 'bg-slate-100 text-slate-500'
+                  }`}
+                >
+                  <svg viewBox="0 0 24 24" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                  </svg>
+                  Custom Amounts
+                </button>
+              </div>
+              <div className="mt-3 flex items-center justify-between rounded-xl bg-[#E8F4FF] px-3 py-2.5">
+                <div className="flex items-center gap-2 text-[10px] font-semibold text-blue-600">
+                  <span className="grid h-4 w-4 place-items-center rounded-full bg-blue-100 text-[10px]">+</span>
+                  ${requestTotal.toFixed(2)} + {requestParticipants.length} {requestParticipants.length === 1 ? 'person' : 'people'}
+                </div>
+                <span className="text-[10px] font-bold text-blue-600">
+                  ${perPerson.toFixed(2)}/each
+                </span>
+              </div>
+            </div>
+
+            <div className="mt-4 px-4">
+              <div className="flex items-center gap-2 rounded-full bg-slate-100 px-3 py-2 text-slate-400">
+                <Search className="h-3 w-3" />
+                <input
+                  type="text"
+                  value={requestSearch}
+                  onChange={(e) => setRequestSearch(e.target.value)}
+                  placeholder="Search name, @tag, or phone"
+                  className="flex-1 bg-transparent text-[10px] text-slate-700 outline-none placeholder:text-slate-400"
+                />
+              </div>
+              <div className="mt-3 flex items-center justify-between">
+                <span className="text-[10px] font-semibold text-slate-700">Recent & Suggested</span>
+                <span className="text-[9px] text-slate-400">Tap to select</span>
+              </div>
+              <div className="mt-2 grid grid-cols-3 gap-y-2">
+                {filteredRecipients.slice(0, 6).map((r, i) => {
+                  const isSelected = requestParticipants.some((p) => p.name === r.name);
+                  return (
+                    <button
+                      key={r.name}
+                      type="button"
+                      onClick={() => handleRequestToggleRecent({ name: r.name, src: r.src })}
+                      className={`flex flex-col items-center rounded-xl py-1 transition-colors hover:bg-slate-50 ${
+                        isSelected ? 'opacity-60' : ''
+                      }`}
+                    >
+                      <span
+                        className="rounded-full transition-shadow"
+                        style={{ boxShadow: isSelected ? '0 0 0 2px #0F1218' : 'none' }}
+                      >
+                        <Avatar name={r.name} initials={r.name[0]} size={36} gradient={i} src={r.src} ring="light" />
+                      </span>
+                      <span className="mt-1 text-[9px] font-medium">{r.name}</span>
+                      <span className="text-[6.5px] text-slate-400">{r.handle}</span>
+                    </button>
+                  );
+                })}
+                {filteredRecipients.length === 0 && (
+                  <div className="col-span-3 py-4 text-center text-[9px] text-slate-400">
+                    No contacts match "{requestSearch}"
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="mt-6 px-4 pb-6">
+              <button
+                type="button"
+                onClick={handleRequestContinue}
+                disabled={requestTotal <= 0 || requestParticipants.length === 0}
+                className={`flex w-full items-center justify-between rounded-full px-5 py-3 text-[12px] font-bold transition-all ${
+                  requestTotal > 0 && requestParticipants.length > 0
+                    ? 'bg-[#0F1218] text-white hover:bg-slate-800'
+                    : 'bg-slate-200 text-slate-400'
+                }`}
+              >
+                Continue
+                <span>${requestTotal.toFixed(2)} →</span>
               </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="mt-6 px-4 pb-6">
-          <button type="button" className="flex w-full items-center justify-between rounded-full bg-[#0F1218] px-5 py-3 text-[12px] font-bold text-white">
-            Continue
-            <span>$150.00 →</span>
-          </button>
-        </div>
+            </div>
+          </>
+        )}
       </SheetLayer>
 
       {/* PROFILE */}
@@ -1089,7 +1289,6 @@ function Sheet({
 
 // ---------------------------------------------------------------------------
 // Bottom quick action bar (Home, Cards, Send, Profile)
-// On Cards the white sheet shrinks into exactly this shape; on Home and Send it floats above the sheet.
 // ---------------------------------------------------------------------------
 
 const BAR_SELECTED: Record<number, string> = { 0: 'home', 1: 'cards', 3: 'send', 7: 'profile' };
@@ -1185,9 +1384,14 @@ function PhoneDemo({
   onKey,
   onSend,
   onDone,
+  selectedRecipient,
+  onSelectRecipient,
+  sentMode,
+  sentAmount,
+  onRequestSent,
   isMobile = false,
 }: {
-  scene: number; // -1 = not started yet (sheet waits below the screen)
+  scene: number;
   digits: string;
   pressedKey: string | null;
   tap: TapStage;
@@ -1196,6 +1400,11 @@ function PhoneDemo({
   onKey: (key: string) => void;
   onSend: () => void;
   onDone: () => void;
+  selectedRecipient: Recipient;
+  onSelectRecipient: (r: Recipient) => void;
+  sentMode: 'send' | 'request';
+  sentAmount: string;
+  onRequestSent: (amount: string) => void;
   isMobile?: boolean;
 }) {
   return (
@@ -1220,9 +1429,20 @@ function PhoneDemo({
         {/* Dark-area content for each scene */}
         <HomeTop active={scene === 0} go={go} />
         <CardsTop active={scene === 1} />
-        <RecipientsTop active={scene === 2} pavloPressed={tap === 'tap'} go={go} />
-        <SendTop active={scene === 3} />
-        <SentLayer active={scene === 4} digits={digits} onDone={onDone} />
+        <RecipientsTop
+          active={scene === 2}
+          pavloPressed={tap === 'tap'}
+          go={go}
+          onSelectRecipient={onSelectRecipient}
+        />
+        <SendTop active={scene === 3} recipientName={selectedRecipient.name} recipientSrc={selectedRecipient.src} />
+        <SentLayer
+          active={scene === 4}
+          amount={sentMode === 'request' ? sentAmount : digits}
+          recipientName={selectedRecipient.name}
+          mode={sentMode}
+          onDone={onDone}
+        />
         <AddRecipientTop active={scene === 6} go={go} />
 
         {/* The white sheet that pulls up, shrinks to a quick action bar, and slides away */}
@@ -1234,6 +1454,9 @@ function PhoneDemo({
           go={go}
           onKey={onKey}
           onSend={onSend}
+          selectedRecipient={selectedRecipient}
+          onSelectRecipient={onSelectRecipient}
+          onRequestSent={onRequestSent}
         />
 
         <QuickBar scene={scene} go={go} />
@@ -1324,11 +1547,10 @@ function CanvasChrome() {
 
 export default function CanvasSection() {
   const [openStep, setOpenStep] = useState<number | null>(1);
-  // Tracks the mouse position for the custom "Your team" cursor over the canvas
   const [cursorPos, setCursorPos] = useState<{ x: number; y: number } | null>(null);
 
   // Animation state
-  const [t, setT] = useState(0); // position on the timeline (autoplay)
+  const [t, setT] = useState(0);
   const [hovered, setHovered] = useState(false);
   const [manualScene, setManualScene] = useState(0);
   const [manualDigits, setManualDigits] = useState('');
@@ -1338,7 +1560,17 @@ export default function CanvasSection() {
   // Mobile vs desktop mode
   const [isMobile, setIsMobile] = useState(false);
 
-  // Scale the fixed-size stage to fit its container
+  // Selected recipient (dynamic)
+  const [selectedRecipient, setSelectedRecipient] = useState<Recipient>({
+    name: 'Pavlo',
+    src: PHOTOS.pavlo,
+    handle: '@designwitha...',
+  });
+
+  // Sent mode (send vs request) + request amount
+  const [sentMode, setSentMode] = useState<'send' | 'request'>('send');
+  const [requestSentAmount, setRequestSentAmount] = useState('');
+
   const canvasRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(0.8);
 
@@ -1349,8 +1581,6 @@ export default function CanvasSection() {
       const mobile = window.innerWidth < 1024;
       setIsMobile(mobile);
       if (mobile) {
-        // On mobile, scale the phone itself to fill the container width/height,
-        // leaving a small padding, so the phone appears large and centered.
         const scaleForWidth = (el.clientWidth - 16) / PHONE_W;
         const scaleForHeight = (el.clientHeight - 16) / PHONE_H;
         setScale(Math.min(scaleForWidth, scaleForHeight));
@@ -1364,7 +1594,6 @@ export default function CanvasSection() {
     return () => observer.disconnect();
   }, []);
 
-  // Only play while the canvas is on screen (so the first pull-up is actually seen)
   useEffect(() => {
     const el = canvasRef.current;
     if (!el) return;
@@ -1381,7 +1610,6 @@ export default function CanvasSection() {
     return () => clearTimeout(id);
   }, [inView, started]);
 
-  // Autoplay: advance the timeline unless the user is hovering
   useEffect(() => {
     if (hovered || !inView || !started) return;
     const id = setInterval(() => setT((prev) => (prev + TICK_MS) % TOTAL_MS), TICK_MS);
@@ -1396,15 +1624,24 @@ export default function CanvasSection() {
   const tap: TapStage = hovered ? 'hidden' : auto.tap;
   const sendPressed = hovered ? false : auto.sendPressed;
 
+  // During autoplay, keep the sent recipient locked to Pavlo so the demo is consistent
+  useEffect(() => {
+    if (!hovered && started && auto.scene === 2 && auto.tap === 'tap') {
+      setSelectedRecipient({ name: 'Pavlo', src: PHOTOS.pavlo, handle: '@designwitha...' });
+      setSentMode('send');
+    }
+    if (!hovered && started && auto.scene === 4) {
+      setSentMode('send');
+    }
+  }, [hovered, started, auto.scene, auto.tap]);
+
   const handleEnter = () => {
-    // Freeze on whatever the animation is showing right now
     setManualScene(auto.scene);
     setManualDigits(auto.digits);
     setHovered(true);
   };
 
   const handleLeave = () => {
-    // Resume the animation from the start of the screen the user ended on
     setT(SCENE_START[manualScene] || 0);
     setHovered(false);
     setCursorPos(null);
@@ -1422,11 +1659,21 @@ export default function CanvasSection() {
     });
   };
 
-  const handleSend = () => setManualScene(4);
+  const handleSend = () => {
+    setSentMode('send');
+    setManualScene(4);
+  };
+
+  const handleRequestSent = (amount: string) => {
+    setSentMode('request');
+    setRequestSentAmount(amount);
+    setManualScene(4);
+  };
 
   const handleDone = () => {
     setManualDigits('');
     setManualScene(0);
+    setSentMode('send');
   };
 
   const toggleStep = (id: number) => {
@@ -1450,7 +1697,7 @@ export default function CanvasSection() {
           </p>
         </div>
 
-        {/* SPLIT GRID: TIMELINE ACCORDION (LEFT) & CANVAS GRAPHIC ASSET (RIGHT) */}
+        {/* SPLIT GRID */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-start pt-4">
 
           {/* LEFT COLUMN: INTERACTIVE ACCORDION STEPS */}
@@ -1487,7 +1734,6 @@ export default function CanvasSection() {
                       )}
                     </button>
 
-                    {/* Accordion Description Content */}
                     {isOpen && (
                       <div className="pl-10 pt-2 pb-1">
                         <p className="text-xs sm:text-sm text-slate-500 font-normal leading-relaxed">
@@ -1500,7 +1746,6 @@ export default function CanvasSection() {
               })}
             </div>
 
-            {/* ACTION BUTTONS */}
             <div className="pt-6 flex flex-wrap items-center gap-4">
               <button
                 type="button"
@@ -1518,7 +1763,6 @@ export default function CanvasSection() {
           </div>
 
           {/* RIGHT COLUMN: ANIMATED CANVAS */}
-          {/* The native pointer is hidden everywhere inside so the custom "Your team" cursor takes over */}
           <div
             ref={canvasRef}
             className={`order-1 lg:order-2 lg:col-span-7 relative w-full select-none overflow-hidden cursor-none [&_*]:!cursor-none h-[560px] sm:h-[620px] lg:h-auto lg:aspect-[1000/720] ${
@@ -1543,7 +1787,6 @@ export default function CanvasSection() {
             aria-label="Animated mobile app demo. Hover to pause and interact."
           >
             {isMobile ? (
-              /* Mobile: show just the phone, scaled up to fill the container */
               <div className="absolute inset-0 flex items-center justify-center">
                 <div style={{ width: PHONE_W, height: PHONE_H, transform: `scale(${scale})` }}>
                   <PhoneDemo
@@ -1556,12 +1799,16 @@ export default function CanvasSection() {
                     onKey={handleKey}
                     onSend={handleSend}
                     onDone={handleDone}
+                    selectedRecipient={selectedRecipient}
+                    onSelectRecipient={setSelectedRecipient}
+                    sentMode={sentMode}
+                    sentAmount={requestSentAmount}
+                    onRequestSent={handleRequestSent}
                     isMobile
                   />
                 </div>
               </div>
             ) : (
-              /* Desktop: full canvas with rulers, toolbar, and checkered background */
               <div
                 className="absolute top-1/2 left-1/2 origin-center"
                 style={{ width: STAGE_W, height: STAGE_H, transform: `translate(-50%, -50%) scale(${scale})` }}
@@ -1577,18 +1824,21 @@ export default function CanvasSection() {
                   onKey={handleKey}
                   onSend={handleSend}
                   onDone={handleDone}
+                  selectedRecipient={selectedRecipient}
+                  onSelectRecipient={setSelectedRecipient}
+                  sentMode={sentMode}
+                  sentAmount={requestSentAmount}
+                  onRequestSent={handleRequestSent}
                 />
               </div>
             )}
 
-            {/* Custom collaborative-style cursor: blue arrow + "Your team" pill (desktop only) */}
             {!isMobile && cursorPos && (
               <div
                 className="pointer-events-none absolute z-40 flex items-start gap-1 will-change-transform"
                 style={{ left: cursorPos.x, top: cursorPos.y }}
                 aria-hidden
               >
-                {/* Arrow tip sits exactly on the mouse position */}
                 <svg
                   width="22"
                   height="22"
@@ -1598,7 +1848,6 @@ export default function CanvasSection() {
                 >
                   <path d="M5.5 3.21V20.8c0 .45.54.67.85.35l4.86-4.86a.5.5 0 0 1 .35-.15h6.87a.5.5 0 0 0 .35-.85L6.35 2.85a.5.5 0 0 0-.85.36Z" />
                 </svg>
-                {/* Name tag pill, aligned to the top of the arrow like the reference */}
                 <span className="whitespace-nowrap rounded-full bg-blue-600 px-4 py-1.5 text-[13px] font-medium leading-none text-white shadow-lg shadow-blue-600/30">
                   Your team
                 </span>
