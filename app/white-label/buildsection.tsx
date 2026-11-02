@@ -8,6 +8,13 @@ import {
   Sliders, Smartphone, Sparkles, Sun, SunMoon, Trash2, Undo2, User, Users, Wifi, X, Zap,
   PenTool, Coffee, ArrowLeftRight,
 } from 'lucide-react';
+import {
+  NetWorthHeroCard, BillOptimizationCard, QuickTransferFavoritesCard, BillsScheduledCard,
+  PrimaryCardCard, MonthlyPaceBudgetCard, ActivePerksCard, SendMoneyHeroCard, SelectRecipientCard,
+  SetTransferAmountCard, SelectTransferMethodCard, TransferBreakdownCard, RecentActivityCard,
+  ActiveCardPreviewCard, CardControlsCard, TitaniumDeliveryCard, MonthlySpendingLimitCard,
+  SecurityPermissionsCard, RecentCardActivityCard
+} from './desktopcomponents1';
 
 const outfit = Outfit({ subsets: ['latin'], weight: ['400', '500', '600', '700'], display: 'swap' });
 const INK = '#0F1729';
@@ -27,7 +34,11 @@ type ModuleId =
   | 'auditLedgerActivity'
   | 'alertCenter' | 'preferencesDeliveryChannels'
   | 'identityCard' | 'securityBaseline' | 'activeSessions'
-  | 'brandOnboarding' | 'welcomeHero' | 'stepCarousel';
+  | 'brandOnboarding' | 'welcomeHero' | 'stepCarousel'
+  // New Modules
+  | 'netWorthHero' | 'billOptimization' | 'quickTransferFavorites' | 'billsScheduled' | 'primaryCard' | 'monthlyPaceBudget' | 'activePerks'
+  | 'sendMoneyHero' | 'selectRecipient' | 'setTransferAmount' | 'selectTransferMethod' | 'transferBreakdown' | 'recentActivity'
+  | 'activeCardPreview' | 'cardControls' | 'titaniumDelivery' | 'monthlySpendingLimit' | 'securityPermissions' | 'recentCardActivity';
 type RadiusMode = 'rounded' | 'sharp' | 'pill';
 type CodeLang = 'swiftui' | 'typescript' | 'reactnative' | 'kotlin';
 type Density = 'compact' | 'spacious';
@@ -89,7 +100,32 @@ const availableModules: ModuleAsset[] = [
   { id: 'brandOnboarding', title: 'Brand Onboarding', subtitle: 'Dark launch screen', category: 'onboarding', badge: 'Brand', badgeColor: 'bg-slate-100 text-slate-600 border border-slate-200', wide: true, code: C(`BrandOnboarding(brand: "Apex Bank")`, `<BrandOnboarding brand="Apex Bank" />`, `<BrandOnboarding brand="Apex Bank" />`, `BrandOnboarding(brand = "Apex Bank")`) },
   { id: 'welcomeHero', title: 'Welcome Hero', subtitle: 'Zero-fee banking CTA', category: 'onboarding', badge: 'Brand', badgeColor: 'bg-slate-100 text-slate-600 border border-slate-200', code: C(`WelcomeHero(onGetStarted: goNext)`, `<WelcomeHero onNext={goNext} />`, `<WelcomeHero onNext={goNext} />`, `WelcomeHero(onNext = ::goNext)`) },
   { id: 'stepCarousel', title: 'Step Carousel', subtitle: 'Onboarding progress', category: 'onboarding', badge: 'Brand', badgeColor: 'bg-slate-100 text-slate-600 border border-slate-200', code: C(`StepCarousel(current: 1, total: 3)`, `<StepCarousel current={1} total={3} />`, `<StepCarousel current={1} total={3} />`, `StepCarousel(current = 1, total = 3)`) },
+  // Home Components
+  { id: 'netWorthHero', title: 'Total Portfolio Net Worth', subtitle: 'Hero balance with inflow/outflow', category: 'dashboard', badge: 'Core', badgeColor: 'bg-blue-50 text-blue-600 border border-blue-100', wide: true, code: C(`NetWorthHero(total: 124892.65)`, `<NetWorthHero total={124892.65} />`, `<NetWorthHero total={124892.65} />`, `NetWorthHero(total = 124892.65)`) },
+  { id: 'billOptimization', title: 'Bill Optimization Detected', subtitle: 'AI agent savings suggestion', category: 'dashboard', badge: 'AI', badgeColor: 'bg-indigo-50 text-indigo-600 border border-indigo-100', wide: true, code: C(`BillOptimization(savings: 144, provider: "AT&T")`, `<BillOptimization savings={144} />`, `<BillOptimization savings={144} />`, `BillOptimization(savings = 144.0)`) },
+  { id: 'quickTransferFavorites', title: 'Quick Transfer & Favorites', subtitle: 'Avatar shortcuts and presets', category: 'send', badge: 'Flow', badgeColor: 'bg-emerald-50 text-emerald-600 border border-emerald-100', code: C(`QuickTransferFavorites(contacts: favorites)`, `<QuickTransferFavorites contacts={favorites} />`, `<QuickTransferFavorites contacts={favorites} />`, `QuickTransferFavorites(contacts = favorites)`) },
+  { id: 'billsScheduled', title: 'Bills & Scheduled Payments', subtitle: 'Upcoming utility and service bills', category: 'dashboard', badge: 'Bills', badgeColor: 'bg-amber-50 text-amber-600 border border-amber-100', code: C(`BillsScheduled(bills: store.bills)`, `<BillsScheduled bills={bills} />`, `<BillsScheduled bills={bills} />`, `BillsScheduled(bills = store.bills)`) },
+  { id: 'primaryCard', title: 'Primary Card', subtitle: 'Visa Platinum with quick actions', category: 'cards', badge: 'Card', badgeColor: 'bg-emerald-50 text-emerald-600 border border-emerald-100', code: C(`PrimaryCard(last4: "4829")`, `<PrimaryCard last4="4829" />`, `<PrimaryCard last4="4829" />`, `PrimaryCard(last4 = "4829")`) },
+  { id: 'monthlyPaceBudget', title: 'Monthly Pace & Budget', subtitle: 'Category breakdown and pace', category: 'dashboard', badge: 'Budget', badgeColor: 'bg-purple-50 text-purple-600 border border-purple-100', code: C(`MonthlyPaceBudget(spent: 3842.50, limit: 5000)`, `<MonthlyPaceBudget spent={3842.50} />`, `<MonthlyPaceBudget spent={3842.50} />`, `MonthlyPaceBudget(spent = 3842.5)`) },
+  { id: 'activePerks', title: 'Active Perks & Status', subtitle: 'Cashback and security perks', category: 'dashboard', badge: 'Perks', badgeColor: 'bg-rose-50 text-rose-600 border border-rose-100', code: C(`ActivePerks(perks: store.perks)`, `<ActivePerks perks={perks} />`, `<ActivePerks perks={perks} />`, `ActivePerks(perks = store.perks)`) },
+  
+  // Transfer & Send Components
+  { id: 'sendMoneyHero', title: 'Transfer & Send Hero', subtitle: 'Real-time rails banner', category: 'transfers', badge: 'Hero', badgeColor: 'bg-blue-50 text-blue-600 border border-blue-100', wide: true, code: C(`SendMoneyHero(limitLeft: 48250)`, `<SendMoneyHero limitLeft={48250} />`, `<SendMoneyHero limitLeft={48250} />`, `SendMoneyHero(limitLeft = 48250.0)`) },
+  { id: 'selectRecipient', title: 'Select Recipient', subtitle: 'Step 1: Choose contact', category: 'send', badge: 'Flow', badgeColor: 'bg-emerald-50 text-emerald-600 border border-emerald-100', wide: true, code: C(`SelectRecipient(contacts: store.recent)`, `<SelectRecipient contacts={recent} />`, `<SelectRecipient contacts={recent} />`, `SelectRecipient(contacts = store.recent)`) },
+  { id: 'setTransferAmount', title: 'Set Transfer Amount', subtitle: 'Step 2: Enter amount', category: 'send', badge: 'Flow', badgeColor: 'bg-emerald-50 text-emerald-600 border border-emerald-100', code: C(`SetTransferAmount(amount: 250)`, `<SetTransferAmount amount={250} />`, `<SetTransferAmount amount={250} />`, `SetTransferAmount(amount = 250.0)`) },
+  { id: 'selectTransferMethod', title: 'Select Transfer Method', subtitle: 'Step 3: Choose rail', category: 'send', badge: 'Flow', badgeColor: 'bg-emerald-50 text-emerald-600 border border-emerald-100', code: C(`SelectTransferMethod(method: .ach)`, `<SelectTransferMethod method="ach" />`, `<SelectTransferMethod method="ach" />`, `SelectTransferMethod(method = Method.ACH)`) },
+  { id: 'transferBreakdown', title: 'Transfer Breakdown', subtitle: 'Summary with fees and security', category: 'transfers', badge: 'Flow', badgeColor: 'bg-emerald-50 text-emerald-600 border border-emerald-100', code: C(`TransferBreakdown(amount: 250, fee: 0)`, `<TransferBreakdown amount={250} fee={0} />`, `<TransferBreakdown amount={250} fee={0} />`, `TransferBreakdown(amount = 250.0, fee = 0.0)`) },
+  { id: 'recentActivity', title: 'Recent Activity', subtitle: 'Latest transfers list', category: 'transfers', badge: 'Data', badgeColor: 'bg-amber-50 text-amber-600 border border-amber-100', code: C(`RecentActivity(transactions: store.latest(3))`, `<RecentActivity transactions={latest} />`, `<RecentActivity transactions={latest} />`, `RecentActivity(transactions = store.latest(3))`) },
+  
+  // Cards Components
+  { id: 'activeCardPreview', title: 'Active Card Preview', subtitle: 'Card visual with selector', category: 'cards', badge: 'Card', badgeColor: 'bg-emerald-50 text-emerald-600 border border-emerald-100', code: C(`ActiveCardPreview(card: primary)`, `<ActiveCardPreview card={primary} />`, `<ActiveCardPreview card={primary} />`, `ActiveCardPreview(card = primary)`) },
+  { id: 'cardControls', title: 'Card Controls', subtitle: 'Freeze, PIN, replace, sync', category: 'cards', badge: 'Card', badgeColor: 'bg-emerald-50 text-emerald-600 border border-emerald-100', code: C(`CardControls(onFreeze: card.freeze)`, `<CardControls onFreeze={freeze} />`, `<CardControls onFreeze={freeze} />`, `CardControls(onFreeze = card::freeze)`) },
+  { id: 'titaniumDelivery', title: 'Titanium Delivery', subtitle: 'Physical card shipping status', category: 'cards', badge: 'Card', badgeColor: 'bg-emerald-50 text-emerald-600 border border-emerald-100', wide: true, code: C(`TitaniumDelivery(status: "onTheWay")`, `<TitaniumDelivery status="onTheWay" />`, `<TitaniumDelivery status="onTheWay" />`, `TitaniumDelivery(status = "onTheWay")`) },
+  { id: 'monthlySpendingLimit', title: 'Monthly Spending Limit', subtitle: 'Usage thresholds and projections', category: 'cards', badge: 'Card', badgeColor: 'bg-emerald-50 text-emerald-600 border border-emerald-100', code: C(`MonthlySpendingLimit(spent: 2450, limit: 8000)`, `<MonthlySpendingLimit spent={2450} limit={8000} />`, `<MonthlySpendingLimit spent={2450} limit={8000} />`, `MonthlySpendingLimit(spent = 2450.0, limit = 8000.0)`) },
+  { id: 'securityPermissions', title: 'Security & Permissions', subtitle: 'Access toggles and perks', category: 'cards', badge: 'Card', badgeColor: 'bg-emerald-50 text-emerald-600 border border-emerald-100', code: C(`SecurityPermissions(state: $state)`, `<SecurityPermissions state={state} />`, `<SecurityPermissions state={state} />`, `SecurityPermissions(state = state)`) },
+  { id: 'recentCardActivity', title: 'Recent Card Activity', subtitle: 'Ledger of card transactions', category: 'cards', badge: 'Card', badgeColor: 'bg-emerald-50 text-emerald-600 border border-emerald-100', code: C(`RecentCardActivity(transactions: card.latest(4))`, `<RecentCardActivity transactions={latest} />`, `<RecentCardActivity transactions={latest} />`, `RecentCardActivity(transactions = card.latest(4))`) },
 ];
+
 
 const APP_KINDS: { id: AppKind; label: string }[] = [
   { id: 'banking', label: 'Banking app' },
@@ -101,12 +137,32 @@ const APP_KINDS: { id: AppKind; label: string }[] = [
 
 const INITIAL_PAGES: PageDef[] = [
   { id: 'signin', label: 'Sign In', blurb: 'Auth, OTP verification and biometric unlock', kit: ['loginScreen', 'signInWithGoogle', 'otpVerification', 'biometricUnlock'] },
-  { id: 'home', label: 'Home', blurb: 'Quick access to all the functionality and an overview of your account', kit: ['heroBalance', 'activeCard', 'earningsChannels', 'quickTransfer', 'activityFeed', 'savingsTargets'] },
+  { id: 'home', label: 'Home', blurb: 'Quick access to all the functionality and an overview of your account', 
+    kit: [
+      'netWorthHero', 'billOptimization', 'quickTransferFavorites', 'billsScheduled', 'primaryCard', 'monthlyPaceBudget', 'activePerks', 
+      'heroBalance', 'activeCard', 'earningsChannels', 'quickTransfer', 'activityFeed', 'savingsTargets'
+    ] 
+  },
   { id: 'accounts', label: 'Accounts', blurb: 'Accounts, routing and statement files', kit: ['accountsPortfolio', 'routingWire', 'monthlyAuditFile'] },
-  { id: 'transfers', label: 'Transfers', blurb: 'Direct transfers, FX swaps, standing orders', kit: ['directTransferEngine', 'multiMarketFX', 'recurringStanding', 'authorizationModal'] },
-  { id: 'send', label: 'Send', blurb: 'Recipients, validation, invoice and receipt', kit: ['recentRecipients', 'beneficiaryValidation', 'sendMoneyInvoice', 'transferDispatched'] },
+  { id: 'transfers', label: 'Transfers', blurb: 'Direct transfers, FX swaps, standing orders', 
+    kit: [
+      'sendMoneyHero', 'selectRecipient', 'setTransferAmount', 'selectTransferMethod', 'transferBreakdown', 'recentActivity', 
+      'directTransferEngine', 'multiMarketFX', 'recurringStanding', 'authorizationModal'
+    ] 
+  },
+  { id: 'send', label: 'Send', blurb: 'Recipients, validation, invoice and receipt', 
+    kit: [
+      'sendMoneyHero', 'selectRecipient', 'setTransferAmount', 'selectTransferMethod', 'transferBreakdown', 'recentActivity', 
+      'recentRecipients', 'beneficiaryValidation', 'sendMoneyInvoice', 'transferDispatched'
+    ] 
+  },
   { id: 'request', label: 'Request', blurb: 'Invoicing, QR, splitting and receivables', kit: ['peerInvoicing', 'qrPaymentRequest', 'splitPayment', 'outstandingReceivables'] },
-  { id: 'cards', label: 'Cards', blurb: 'Virtual debit, security controls and PIN vault', kit: ['virtualDebitCard', 'securityDashboard', 'pinVault'] },
+  { id: 'cards', label: 'Cards', blurb: 'Virtual debit, security controls and PIN vault', 
+    kit: [
+      'activeCardPreview', 'cardControls', 'titaniumDelivery', 'monthlySpendingLimit', 'securityPermissions', 'recentCardActivity',
+      'virtualDebitCard', 'securityDashboard', 'pinVault'
+    ] 
+  },
   { id: 'history', label: 'Transaction history', blurb: 'Full-filterable ledger of all activity', kit: ['auditLedgerActivity', 'monthlyAuditFile'] },
   { id: 'notifications', label: 'Notifications', blurb: 'Alert center and channel preferences', kit: ['alertCenter', 'preferencesDeliveryChannels'] },
   { id: 'profile', label: 'Profile and security', blurb: 'Identity, security baseline and sessions', kit: ['identityCard', 'securityBaseline', 'activeSessions'] },
@@ -246,9 +302,7 @@ function HeroBalanceCard({ ctx }: { ctx: ViewCtx }) {
   return (
     <div className={`relative flex h-full min-h-[240px] flex-col overflow-hidden p-6 text-white ${ctx.radius.card}`} style={{ background: gradient }}>
       <svg aria-hidden viewBox="0 0 600 240" preserveAspectRatio="none" className="absolute inset-0 h-full w-full">
-        <path d="M0,168 C130,110 250,208 380,148 C470,106 540,150 600,118" fill="none" stroke="#F5B921" strokeOpacity="0.75" strokeWidth="26" strokeLinecap="round" />
-        <path d="M0,196 C150,140 260,232 400,170 C490,130 550,176 600,150" fill="none" stroke="#3B82F6" strokeOpacity="0.9" strokeWidth="34" strokeLinecap="round" />
-        <path d="M0,150 C120,96 260,190 390,132 C480,92 545,136 600,104" fill="none" stroke="#93C5FD" strokeOpacity="0.5" strokeWidth="10" strokeLinecap="round" />
+        
       </svg>
       <div className="relative flex items-center justify-between">
         <span className="flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-[0.18em] text-white/60"><span className="h-1.5 w-1.5 rounded-full bg-white/60" /> Total Net Balance</span>
@@ -288,7 +342,7 @@ function ActiveCardWidget({ ctx }: { ctx: ViewCtx }) {
       </div>
 
       <div
-        className={`mt-3 relative flex min-h-[180px] flex-col justify-between overflow-hidden p-5 text-white ${ctx.radius.tile}`}
+        className={`mt-3 relative flex min-h-[250px] flex-col justify-between overflow-hidden p-5 text-white ${ctx.radius.tile}`}
         style={{ background: cardGradient }}
       >
         {/* Top row: brand + contactless */}
@@ -917,6 +971,28 @@ function ModuleView({ id, ctx }: { id: ModuleId; ctx: ViewCtx }) {
     case 'brandOnboarding': return <BrandOnboardingCard ctx={ctx} />;
     case 'welcomeHero': return <WelcomeHeroCard ctx={ctx} />;
     case 'stepCarousel': return <StepCarouselCard ctx={ctx} />;
+    // Add these new cases:
+    case 'netWorthHero': return <NetWorthHeroCard ctx={ctx} />;
+    case 'billOptimization': return <BillOptimizationCard ctx={ctx} />;
+    case 'quickTransferFavorites': return <QuickTransferFavoritesCard ctx={ctx} />;
+    case 'billsScheduled': return <BillsScheduledCard ctx={ctx} />;
+    case 'primaryCard': return <PrimaryCardCard ctx={ctx} />;
+    case 'monthlyPaceBudget': return <MonthlyPaceBudgetCard ctx={ctx} />;
+    case 'activePerks': return <ActivePerksCard ctx={ctx} />;
+    
+    case 'sendMoneyHero': return <SendMoneyHeroCard ctx={ctx} />;
+    case 'selectRecipient': return <SelectRecipientCard ctx={ctx} />;
+    case 'setTransferAmount': return <SetTransferAmountCard ctx={ctx} />;
+    case 'selectTransferMethod': return <SelectTransferMethodCard ctx={ctx} />;
+    case 'transferBreakdown': return <TransferBreakdownCard ctx={ctx} />;
+    case 'recentActivity': return <RecentActivityCard ctx={ctx} />;
+    
+    case 'activeCardPreview': return <ActiveCardPreviewCard ctx={ctx} />;
+    case 'cardControls': return <CardControlsCard ctx={ctx} />;
+    case 'titaniumDelivery': return <TitaniumDeliveryCard ctx={ctx} />;
+    case 'monthlySpendingLimit': return <MonthlySpendingLimitCard ctx={ctx} />;
+    case 'securityPermissions': return <SecurityPermissionsCard ctx={ctx} />;
+    case 'recentCardActivity': return <RecentCardActivityCard ctx={ctx} />;
     default: return null;
   }
 }
