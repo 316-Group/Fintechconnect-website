@@ -55,33 +55,86 @@ const features: ApiFeature[] = [
 const sandboxSteps: SandboxStep[] = [
   {
     stepNumber: 1,
-    title: "Create an account",
+    title: "Define the financial event",
     description:
-      "Fapshi was birthed from frustration with existing solutions in the market, so we know your pain. Our APIs are straight to the point and well documented so that you can get started in minutes, not days.",
+      "Start with a representative event and identify the parties, accounts, references, expected states, and financial impact. Record who owns each decision and avoid assuming an approved integration or accounting treatment.",
   },
   {
     stepNumber: 2,
-    title: "Get your API keys",
+    title: "Map postings and responsibilities",
     description:
-      "Generate your test API credentials directly from your developer dashboard to start authenticating your requests immediately without waiting for approval.",
+      "Translate the event into debit and credit postings, account relationships, timing rules, and dependencies. Define accounting policies, operational responsibilities, external-provider coordination and exceptions.",
   },
   {
     stepNumber: 3,
-    title: "Test in sandbox",
+    title: "Validate the integration contract",
     description:
-      "Simulate payment flows, webhook responses, and error handling in a fully isolated test environment with zero financial risk.",
+      "Review the expected commands, queries, events, identifiers, errors, and retry or idempotency behavior. Define how status changes and data are communicated, what is retained, and how missing information is handled.",
   },
   {
     stepNumber: 4,
-    title: "Go live",
+    title: "Prepare controlled verification",
     description:
-      "Complete your account verification, swap your test keys for live credentials, and start processing real-time production transactions seamlessly.",
+      "Define scenarios for release testing, including expected postings, balance calculations, reversals, exceptions, reconciliation checks, and permitted adjustments. Establish evidence capture, acceptance ownership, availability, and verification requirements.",
   },
 ];
+
+function GettingStartedSection() {
+  return (
+    <div className="max-w-full mx-auto">
+      {/* Header Block */}
+      <div className="max-w-6xl mb-12 md:mb-16 space-y-3">
+        <p className="text-blue-600 font-bold text-sm tracking-wider uppercase">
+          START EXPLORING OUR SANDBOX
+        </p>
+        <h2 className="text-3xl md:text-4xl font-bold text-slate-900 tracking-tight leading-tight">
+          Plan a ledger integration in four deliberate steps.
+        </h2>
+      </div>
+
+      {/* Steps Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 md:gap-10">
+        {sandboxSteps.map((step) => (
+          <div key={step.stepNumber} className="flex flex-col">
+            <span className="w-8 h-8 rounded-full bg-blue-600 text-white text-sm font-semibold flex items-center justify-center mb-5">
+              {step.stepNumber}
+            </span>
+            <h3 className="text-slate-900 text-base md:text-lg font-bold tracking-tight mb-2">
+              {step.title}
+            </h3>
+            <p className="text-slate-500 text-sm leading-relaxed font-normal">
+              {step.description}
+            </p>
+          </div>
+        ))}
+      </div>
+
+      {/* CTA Buttons */}
+      <div className="flex flex-wrap items-center gap-4 mt-10 md:mt-12">
+        <button
+          type="button"
+          className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition-colors"
+        >
+          Book Demo Now
+        </button>
+        <button
+          type="button"
+          className="bg-white hover:bg-slate-50 text-slate-900 text-sm font-semibold px-5 py-2.5 rounded-lg border border-slate-300 transition-colors"
+        >
+          Get Started
+        </button>
+      </div>
+    </div>
+  );
+}
 
 export default function NewApiSection() {
   return (
     <section className="bg-white py-16 md:py-24 px-6 md:px-12 lg:px-20 font-sans space-y-24">
+      {/* Getting Started Steps Section */}
+      <GettingStartedSection />
+
+      {/* API Features Section */}
       <div className="max-w-full mx-auto">
         {/* Header Block */}
         <div className="max-w-6xl mb-12 md:mb-16 space-y-3">
@@ -101,36 +154,36 @@ export default function NewApiSection() {
         </div>
 
         {/* Asymmetric Feature Cards Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-12 gap-6 md:gap-8 items-stretch">
-                  {features.map((feature) => (
-                    <div
-                      key={feature.id}
-                      className={`flex flex-col bg-[#f5f7fa] p-5 md:p-6 rounded-[28px] transition-all ${feature.id % 2 === 1 ? "md:col-span-7" : "md:col-span-5"}`}
-                    >
-                      {/* Image Preview Container */}
-                      <div
-                        className={`w-full ${feature.imageHeight} bg-white rounded-2xl overflow-hidden shadow-sm flex items-top justify-center mb-6 border border-slate-100`}
-                      >
-                        <img
-                          src={getPath(feature.imagePath)}
-                          alt={feature.title}
-                          className="w-full h-full object-cover object-top"
-                        />
-                      </div>
-        
-                      {/* Card Text Content */}
-                      <div className="px-1 pb-2 space-y-2.5 flex-1 flex flex-col justify-start">
-                        <h3 className="text-slate-900 text-xl md:text-2xl font-bold tracking-tight leading-snug">
-                          {feature.title}
-                        </h3>
-                        <p className="text-slate-600 text-sm md:text-base leading-relaxed font-normal">
-                          {feature.description}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-6 md:gap-8 items-stretch">
+          {features.map((feature) => (
+            <div
+              key={feature.id}
+              className={`flex flex-col bg-[#f5f7fa] p-5 md:p-6 rounded-[28px] transition-all ${feature.id % 2 === 1 ? "md:col-span-7" : "md:col-span-5"}`}
+            >
+              {/* Image Preview Container */}
+              <div
+                className={`w-full ${feature.imageHeight} bg-white rounded-2xl overflow-hidden shadow-sm flex items-top justify-center mb-6 border border-slate-100`}
+              >
+                <img
+                  src={getPath(feature.imagePath)}
+                  alt={feature.title}
+                  className="w-full h-full object-cover object-top"
+                />
               </div>
-            </section>
-          );
-        }
+
+              {/* Card Text Content */}
+              <div className="px-1 pb-2 space-y-2.5 flex-1 flex flex-col justify-start">
+                <h3 className="text-slate-900 text-xl md:text-2xl font-bold tracking-tight leading-snug">
+                  {feature.title}
+                </h3>
+                <p className="text-slate-600 text-sm md:text-base leading-relaxed font-normal">
+                  {feature.description}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}

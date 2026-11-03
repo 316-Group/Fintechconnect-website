@@ -11,6 +11,7 @@ import OnboardingStep5 from "@/components/onboarding/OnboardingStep5";
 import OnboardingStep6 from "@/components/onboarding/OnboardingStep6";
 import OnboardingLoading from "@/components/onboarding/OnboardingLoading";
 
+
 function DashboardContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -18,7 +19,6 @@ function DashboardContent() {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
 
-  // Distinct state for each step's selections
   const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
   const [selectedGoals, setSelectedGoals] = useState<string[]>([]);
   const [selectedIndustries, setSelectedIndustries] = useState<string[]>([]);
@@ -37,19 +37,11 @@ function DashboardContent() {
         .then((data) => {
           if (data?.onboarding) {
             const profile = data.onboarding;
-            if (profile.businessType) {
-              setSelectedRoles([profile.businessType]);
-            }
-            if (profile.goals && profile.goals.length > 0) {
-              setSelectedGoals(profile.goals);
-            }
-            if (profile.industries && profile.industries.length > 0) {
-              setSelectedIndustries(profile.industries);
-            }
-            if (profile.buildOption) {
-              setSelectedBuildOption(profile.buildOption);
-            }
-            if (profile.currentStep && profile.currentStep >= 1 && profile.currentStep <= 5) {
+            if (profile.businessType) setSelectedRoles([profile.businessType]);
+            if (profile.goals?.length > 0) setSelectedGoals(profile.goals);
+            if (profile.industries?.length > 0) setSelectedIndustries(profile.industries);
+            if (profile.buildOption) setSelectedBuildOption(profile.buildOption);
+            if (profile.currentStep >= 1 && profile.currentStep <= 5) {
               setCurrentStep(profile.currentStep);
             }
           }
@@ -85,37 +77,25 @@ function DashboardContent() {
   const handleStep2Next = (roles: string[]) => {
     setSelectedRoles(roles);
     setCurrentStep(3);
-    saveOnboardingData({
-      businessType: roles[0] || "startup",
-      currentStep: 3,
-    });
+    saveOnboardingData({ businessType: roles[0] || "startup", currentStep: 3 });
   };
 
   const handleStep3Next = (goals: string[]) => {
     setSelectedGoals(goals);
     setCurrentStep(4);
-    saveOnboardingData({
-      goals,
-      currentStep: 4,
-    });
+    saveOnboardingData({ goals, currentStep: 4 });
   };
 
   const handleStep4Next = (industries: string[]) => {
     setSelectedIndustries(industries);
     setCurrentStep(5);
-    saveOnboardingData({
-      industries,
-      currentStep: 5,
-    });
+    saveOnboardingData({ industries, currentStep: 5 });
   };
 
   const handleStep5Next = (buildOption: string) => {
     setSelectedBuildOption(buildOption);
-    setCurrentStep(6); // Move to Loading Screen
-    saveOnboardingData({
-      buildOption,
-      currentStep: 5,
-    });
+    setCurrentStep(6);
+    saveOnboardingData({ buildOption, currentStep: 5 });
   };
 
   const handleFinalFinish = () => {
@@ -143,69 +123,64 @@ function DashboardContent() {
     router.replace("/dashboard/organization", { scroll: false });
   };
 
-  return (
-    <div className="min-h-screen bg-slate-900 text-white p-8">
-      {/* Background Dashboard UI */}
-      <img
-        src={getPath("/surveybackground.png")}
-        alt="Dashboard Background"
-        className="fixed inset-0 w-full h-full object-fill opacity-60 pointer-events-none"
-      />
-
-      {/* Conditional Onboarding Steps */}
-      {showOnboarding && currentStep === 1 && (
-        <OnboardingStep1 onNext={handleStep1Next} onSkip={handleSkip} />
-      )}
-
-      {showOnboarding && currentStep === 2 && (
-        <OnboardingStep2
-          initialSelection={selectedRoles[0]}
-          onNext={handleStep2Next}
-          onBack={handleBack}
+  if (showOnboarding) {
+    return (
+      <div className="min-h-screen bg-slate-900 text-white p-8">
+        <img
+          src={getPath("/surveybackground.png")}
+          alt="Dashboard Background"
+          className="fixed inset-0 w-full h-full object-fill opacity-60 pointer-events-none"
         />
-      )}
 
-      {showOnboarding && currentStep === 3 && (
-        <OnboardingStep3
-          initialSelections={selectedGoals}
-          onNext={handleStep3Next}
-          onBack={handleBack}
-        />
-      )}
+        {currentStep === 1 && (
+          <OnboardingStep1 onNext={handleStep1Next} onSkip={handleSkip} />
+        )}
 
-      {showOnboarding && currentStep === 4 && (
-        <OnboardingStep4
-          initialSelections={selectedIndustries}
-          onNext={handleStep4Next}
-          onBack={handleBack}
-        />
-      )}
+        {currentStep === 2 && (
+          <OnboardingStep2
+            initialSelection={selectedRoles[0]}
+            onNext={handleStep2Next}
+            onBack={handleBack}
+          />
+        )}
 
-      {/* Step 5 */}
-      {showOnboarding && currentStep === 5 && (
-        <OnboardingStep5
-          initialSelection={selectedBuildOption}
-          onNext={handleStep5Next}
-          onBack={handleBack}
-        />
-      )}
+        {currentStep === 3 && (
+          <OnboardingStep3
+            initialSelections={selectedGoals}
+            onNext={handleStep3Next}
+            onBack={handleBack}
+          />
+        )}
 
-      {/* Loading Screen */}
-      {showOnboarding && currentStep === 6 && (
-        <OnboardingLoading
-          duration={12000}
-          onComplete={() => {
-            setCurrentStep(7); // Transition to Step 6 (Final Screen)
-          }}
-        />
-      )}
+        {currentStep === 4 && (
+          <OnboardingStep4
+            initialSelections={selectedIndustries}
+            onNext={handleStep4Next}
+            onBack={handleBack}
+          />
+        )}
 
-      {/* Step 6: Final Completion Screen */}
-      {showOnboarding && currentStep === 7 && (
-        <OnboardingStep6 onContinue={handleFinalFinish} />
-      )}
-    </div>
-  );
+        {currentStep === 5 && (
+          <OnboardingStep5
+            initialSelection={selectedBuildOption}
+            onNext={handleStep5Next}
+            onBack={handleBack}
+          />
+        )}
+
+        {currentStep === 6 && (
+          <OnboardingLoading
+            duration={12000}
+            onComplete={() => setCurrentStep(7)}
+          />
+        )}
+
+        {currentStep === 7 && <OnboardingStep6 onContinue={handleFinalFinish} />}
+      </div>
+    );
+  }
+
+  return;
 }
 
 export default function DashboardPage() {

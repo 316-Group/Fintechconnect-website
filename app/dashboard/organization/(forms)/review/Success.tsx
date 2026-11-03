@@ -101,7 +101,7 @@ export default function ApplicationSuccess({
       {/* Action Buttons */}
       <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mt-6 w-full">
         <Link
-          href="/dashboard"
+          href="/userdashboard"
           className="w-full sm:w-auto px-6 py-2.5 bg-[#0A63F8] hover:bg-blue-700 text-white rounded-lg text-xs font-semibold flex items-center justify-center gap-2 shadow-sm transition-all"
         >
           Go To Dashboard <ArrowRight className="w-3.5 h-3.5" />
