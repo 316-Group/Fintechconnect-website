@@ -26,7 +26,7 @@ type Archetype = {
   isCustom?: boolean;
 };
 
-const archetypes: Archetype[] = [
+export const archetypes: Archetype[] = [
   {
     id: "digital-banking",
     title: "Digital Banking",

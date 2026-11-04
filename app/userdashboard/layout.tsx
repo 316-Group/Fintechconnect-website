@@ -216,6 +216,11 @@ function Topbar({ collapsed, onOpenSidebar, onToggleCollapse }: { collapsed: boo
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
+  const pathname = usePathname();
+
+  if (pathname.replace(/\/+$/, "") === "/userdashboard/studio") {
+    return <>{children}</>;
+  }
 
   return (
     <div className="min-h-screen w-full bg-slate-50 font-sans flex">

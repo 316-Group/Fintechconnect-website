@@ -44,7 +44,7 @@ function BuildOptionsView({ onClose, onSelectGuided }: { onClose: () => void; on
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 flex-1">
         {/* Guided Builder Card */}
-        <div className="border border-slate-200 rounded-xl p-6 flex flex-col hover:border-slate-300 transition-colors bg-white">
+        <div className="border border-slate-200 rounded-xl p-6 flex flex-col hover:border-slate-300 transition-colors bg-#6941C61F">
           <div className="flex items-center justify-between mb-4">
             <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700 text-[10px] font-bold uppercase tracking-wide">
               <Sparkles className="w-3 h-3" /> Recommended for Teams
@@ -82,7 +82,7 @@ function BuildOptionsView({ onClose, onSelectGuided }: { onClose: () => void; on
         </div>
 
         {/* Custom Builder Card */}
-        <div className="border border-slate-200 rounded-xl p-6 flex flex-col hover:border-slate-300 transition-colors bg-white">
+        <div className="border border-slate-200 rounded-xl p-6 flex flex-col hover:border-slate-300 transition-colors bg-#6941C61F">
           <div className="flex items-center justify-between mb-4">
             <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700 text-[10px] font-bold uppercase tracking-wide">
               <Settings2 className="w-3 h-3" /> Advanced Architects
@@ -140,6 +140,7 @@ function BuildOptionsView({ onClose, onSelectGuided }: { onClose: () => void; on
 export default function MyProductsPage() {
   // 'list' = default empty state, 'options' = Let's build something, 'form' = Guided builder form
   const [view, setView] = useState<"list" | "options" | "archetype" | "details" | "preferences">("list");
+  const [selectedArchetypeId, setSelectedArchetypeId] = useState("");
 
   return (
     <div className="w-full h-full">
@@ -232,13 +233,17 @@ export default function MyProductsPage() {
       {view === "archetype" && (
         <ArchetypeSelectionForm 
           onBack={() => setView("options")} 
-          onContinue={(selectedId) => setView("details")} 
+          onContinue={(selectedId) => {
+            setSelectedArchetypeId(selectedId);
+            setView("details");
+          }}
         />
       )}
 
       {view === "details" && (
         <ProjectDetailsForm 
           onBack={() => setView("archetype")} 
+          initialArchetypeId={selectedArchetypeId}
           onContinue={() => setView("preferences")}
         />
       )}

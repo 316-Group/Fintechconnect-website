@@ -1,26 +1,101 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import {
   Building2,
   ChevronDown,
-  Plus,
   Upload,
   Info,
   ArrowRight,
   ArrowLeft,
   Layers,
-  Globe,
   Check,
 } from "lucide-react";
+import { archetypes } from "./archetypeselectionform";
+
+const jurisdictions = [
+  { value: "us", label: "United States (US - OCC / FDIC Sponsor Partner)" },
+  { value: "uk", label: "United Kingdom (FCA)" },
+  { value: "eu", label: "European Union (EBA)" },
+];
+
+const currencies = [
+  { code: "USD", name: "US Dollar", symbol: "$" },
+  { code: "EUR", name: "Euro", symbol: "€" },
+  { code: "GBP", name: "British Pound", symbol: "£" },
+  { code: "NGN", name: "Nigerian Naira", symbol: "₦" },
+];
+
+const targetCustomers = [
+  { value: "individuals", label: "Individuals", description: "Retail / B2C" },
+  { value: "businesses", label: "Businesses", description: "Commercial / B2B" },
+  { value: "hybrid", label: "Both (Hybrid)", description: "Omnichannel Program" },
+] as const;
+
+type TargetCustomer = (typeof targetCustomers)[number]["value"];
 
 export default function ProjectDetailsForm({
   onBack,
   onContinue,
+  initialArchetypeId,
 }: {
   onBack: () => void;
   onContinue: () => void;
+  initialArchetypeId: string;
 }) {
+  const [projectName, setProjectName] = useState("");
+  const [description, setDescription] = useState("");
+  const [organization, setOrganization] = useState("");
+  const [archetypeId, setArchetypeId] = useState(initialArchetypeId);
+  const [jurisdiction, setJurisdiction] = useState("");
+  const [supportedCurrencies, setSupportedCurrencies] = useState<string[]>([]);
+  const [targetCustomer, setTargetCustomer] = useState<TargetCustomer>("hybrid");
+  const [brandMark, setBrandMark] = useState<File | null>(null);
+  const [brandMarkError, setBrandMarkError] = useState("");
+
+  const selectedArchetype = archetypes.find((item) => item.id === archetypeId);
+  const selectedOrganization =
+    organization === "apex" ? "Apex Global Finance Team" : "";
+  const selectedJurisdiction = jurisdictions.find(
+    (item) => item.value === jurisdiction,
+  )?.label;
+  const selectedTargetCustomer = targetCustomers.find(
+    (item) => item.value === targetCustomer,
+  )?.label;
+
+  const toggleCurrency = (code: string) => {
+    setSupportedCurrencies((current) =>
+      current.includes(code)
+        ? current.filter((currency) => currency !== code)
+        : [...current, code],
+    );
+  };
+
+  const handleBrandMarkChange = (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const supportedTypes = ["image/png", "image/svg+xml", "image/webp"];
+    if (!supportedTypes.includes(file.type)) {
+      setBrandMark(null);
+      setBrandMarkError("Choose a PNG, SVG, or WebP image.");
+      event.target.value = "";
+      return;
+    }
+
+    if (file.size > 2 * 1024 * 1024) {
+      setBrandMark(null);
+      setBrandMarkError("The brand mark must be 2 MB or smaller.");
+      event.target.value = "";
+      return;
+    }
+
+    setBrandMark(file);
+    setBrandMarkError("");
+  };
+
   return (
     <div className="max-w-7xl mx-auto w-full">
       {/* Breadcrumb & Header */}
@@ -44,16 +119,19 @@ export default function ProjectDetailsForm({
           
           {/* Project Name */}
           <div className="space-y-2">
-            <label className="text-sm font-semibold text-slate-900 flex items-center gap-1">
+            <label htmlFor="project-name" className="text-sm font-semibold text-slate-900 flex items-center gap-1">
               Project Name <span className="text-red-500">*</span>
             </label>
             <div className="relative">
               <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
               <input
+                id="project-name"
                 type="text"
                 placeholder="e.g. Apex Digital Banking"
                 className="w-full pl-10 pr-4 py-2.5 text-sm bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400"
                 maxLength={64}
+                value={projectName}
+                onChange={(event) => setProjectName(event.target.value)}
               />
             </div>
             <p className="text-xs text-slate-500">
@@ -64,23 +142,31 @@ export default function ProjectDetailsForm({
           {/* Project Description */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <label className="text-sm font-semibold text-slate-900">Project Description</label>
+              <label htmlFor="project-description" className="text-sm font-semibold text-slate-900">Project Description</label>
               <span className="text-[11px] text-slate-400">Optional specification</span>
             </div>
             <textarea
+              id="project-description"
               placeholder="Describe the purpose, target audience, and scope of this financial program..."
               rows={3}
               className="w-full px-4 py-3 text-sm bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 resize-none"
+              value={description}
+              onChange={(event) => setDescription(event.target.value)}
             />
           </div>
 
           {/* Organization & Archetype */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <label className="text-sm font-semibold text-slate-900">Organization</label>
+              <label htmlFor="project-organization" className="text-sm font-semibold text-slate-900">Organization</label>
               <div className="relative">
                 <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                <select className="w-full pl-10 pr-10 py-2.5 text-sm bg-white border border-slate-200 rounded-lg appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 cursor-pointer">
+                <select
+                  id="project-organization"
+                  value={organization}
+                  onChange={(event) => setOrganization(event.target.value)}
+                  className="w-full pl-10 pr-10 py-2.5 text-sm bg-white border border-slate-200 rounded-lg appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 cursor-pointer"
+                >
                   <option value="">Select organization...</option>
                   <option value="apex">Apex Global Finance Team</option>
                 </select>
@@ -88,12 +174,21 @@ export default function ProjectDetailsForm({
               </div>
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-semibold text-slate-900">Product Archetype</label>
+              <label htmlFor="product-archetype" className="text-sm font-semibold text-slate-900">Product Archetype</label>
               <div className="relative">
                 <Layers className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                <select className="w-full pl-10 pr-10 py-2.5 text-sm bg-white border border-slate-200 rounded-lg appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 cursor-pointer">
+                <select
+                  id="product-archetype"
+                  value={archetypeId}
+                  onChange={(event) => setArchetypeId(event.target.value)}
+                  className="w-full pl-10 pr-10 py-2.5 text-sm bg-white border border-slate-200 rounded-lg appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 cursor-pointer"
+                >
                   <option value="">Select archetype...</option>
-                  <option value="card">Card Issuing (Virtual & Physical)</option>
+                  {archetypes.map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.title}
+                    </option>
+                  ))}
                 </select>
                 <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
               </div>
@@ -102,15 +197,22 @@ export default function ProjectDetailsForm({
 
           {/* Market & Jurisdiction */}
           <div className="space-y-2">
-            <label className="text-sm font-semibold text-slate-900 flex items-center gap-1">
+            <label htmlFor="project-jurisdiction" className="text-sm font-semibold text-slate-900 flex items-center gap-1">
               Primary Market & Jurisdiction <span className="text-red-500">*</span>
             </label>
             <div className="relative">
-              <select className="w-full px-4 py-2.5 text-sm bg-white border border-slate-200 rounded-lg appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 cursor-pointer">
+              <select
+                id="project-jurisdiction"
+                value={jurisdiction}
+                onChange={(event) => setJurisdiction(event.target.value)}
+                className="w-full px-4 py-2.5 text-sm bg-white border border-slate-200 rounded-lg appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 cursor-pointer"
+              >
                 <option value="">Select jurisdiction...</option>
-                <option value="us">United States (US - OCC / FDIC Sponsor Partner)</option>
-                <option value="uk">United Kingdom (FCA)</option>
-                <option value="eu">European Union (EBA)</option>
+                {jurisdictions.map((item) => (
+                  <option key={item.value} value={item.value}>
+                    {item.label}
+                  </option>
+                ))}
               </select>
               <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
             </div>
@@ -125,21 +227,32 @@ export default function ProjectDetailsForm({
               Supported Currencies <span className="text-red-500">*</span>
             </label>
             <div className="flex flex-wrap items-center gap-2">
-              <button className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-100 rounded-md transition-colors">
-                <Plus className="w-3.5 h-3.5" /> Add Currency
-              </button>
-              <div className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-slate-700 bg-slate-100 border border-slate-200 rounded-md">
-                <span className="w-4 h-4 bg-blue-600 rounded-full flex items-center justify-center text-white text-[9px]">$</span>
-                US Dollar
-              </div>
-              <div className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-slate-700 bg-slate-100 border border-slate-200 rounded-md">
-                <span className="w-4 h-4 bg-red-500 rounded-full flex items-center justify-center text-white text-[9px]">£</span>
-                British Pound
-              </div>
-              <div className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-slate-700 bg-slate-100 border border-slate-200 rounded-md">
-                <span className="w-4 h-4 bg-green-500 rounded-full flex items-center justify-center text-white text-[9px]">₦</span>
-                Nigerian Naira
-              </div>
+              {currencies.map((currency) => {
+                const isSelected = supportedCurrencies.includes(currency.code);
+
+                return (
+                  <button
+                    key={currency.code}
+                    type="button"
+                    aria-pressed={isSelected}
+                    onClick={() => toggleCurrency(currency.code)}
+                    className={`flex items-center gap-2 px-3 py-1.5 text-xs font-medium border rounded-md transition-colors ${
+                      isSelected
+                        ? "text-blue-700 bg-blue-50 border-blue-200"
+                        : "text-slate-700 bg-white border-slate-200 hover:bg-slate-50"
+                    }`}
+                  >
+                    <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] ${
+                      isSelected
+                        ? "bg-blue-600 text-white"
+                        : "bg-slate-200 text-slate-600"
+                    }`}>
+                      {currency.symbol}
+                    </span>
+                    {currency.name}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
@@ -149,32 +262,69 @@ export default function ProjectDetailsForm({
               Target Customers <span className="text-red-500">*</span>
             </label>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-              <button className="flex flex-col items-center justify-center py-3 px-4 bg-slate-50 border border-slate-200 rounded-lg hover:border-slate-300 transition-colors">
-                <span className="text-sm font-semibold text-slate-900">Individuals</span>
-                <span className="text-[10px] text-slate-500">Retail / B2C</span>
-              </button>
-              <button className="flex flex-col items-center justify-center py-3 px-4 bg-slate-50 border border-slate-200 rounded-lg hover:border-slate-300 transition-colors">
-                <span className="text-sm font-semibold text-slate-900">Businesses</span>
-                <span className="text-[10px] text-slate-500">Commercial / B2B</span>
-              </button>
-              <button className="flex flex-col items-center justify-center py-3 px-4 bg-blue-50 border-2 border-blue-200 rounded-lg relative overflow-hidden">
-                <span className="text-sm font-semibold text-blue-700">Both (Hybrid)</span>
-                <span className="text-[10px] text-blue-600">Omnichannel Program</span>
-                <div className="absolute top-2 right-2 text-blue-600">
-                  <Check className="w-3.5 h-3.5" />
-                </div>
-              </button>
+              {targetCustomers.map((customer) => {
+                const isSelected = targetCustomer === customer.value;
+
+                return (
+                  <button
+                    key={customer.value}
+                    type="button"
+                    aria-pressed={isSelected}
+                    onClick={() => setTargetCustomer(customer.value)}
+                    className={`relative flex flex-col items-center justify-center py-3 px-4 border rounded-lg transition-colors ${
+                      isSelected
+                        ? "bg-blue-50 border-2 border-blue-200"
+                        : "bg-slate-50 border border-slate-200 hover:border-slate-300"
+                    }`}
+                  >
+                    <span className={`text-sm font-semibold ${isSelected ? "text-blue-700" : "text-slate-900"}`}>
+                      {customer.label}
+                    </span>
+                    <span className={`text-[10px] ${isSelected ? "text-blue-600" : "text-slate-500"}`}>
+                      {customer.description}
+                    </span>
+                    {isSelected && (
+                      <>
+                        <Check className="absolute top-2 right-2 w-3.5 h-3.5 text-blue-600" />
+                        <span className="sr-only">Selected</span>
+                      </>
+                    )}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
           {/* Upload */}
           <div className="space-y-2">
-            <label className="text-sm font-semibold text-slate-900">Program Brand Mark & Icon (Optional)</label>
-            <div className="w-full py-8 border-2 border-dashed border-slate-200 rounded-xl flex flex-col items-center justify-center bg-slate-50/50 hover:bg-slate-50 transition-colors cursor-pointer">
+            <p className="text-sm font-semibold text-slate-900">Program Brand Mark & Icon (Optional)</p>
+            <label
+              htmlFor="brand-mark-upload"
+              className="w-full py-8 border-2 border-dashed border-slate-200 rounded-xl flex flex-col items-center justify-center bg-slate-50/50 hover:bg-slate-50 transition-colors cursor-pointer"
+            >
               <Upload className="w-5 h-5 text-blue-600 mb-2" />
-              <span className="text-sm font-semibold text-blue-600">Upload Logo</span>
-              <span className="text-[11px] text-slate-500 mt-1">Recommended: 512x512 PNG, SVG, or high-density WebP (max 2MB)</span>
-            </div>
+              <span className="text-sm font-semibold text-blue-600">
+                {brandMark ? "Change Logo" : "Upload Logo"}
+              </span>
+              <span className="text-[11px] text-slate-500 mt-1">
+                {brandMark
+                  ? brandMark.name
+                  : "Recommended: 512x512 PNG, SVG, or high-density WebP (max 2MB)"}
+              </span>
+            </label>
+            <input
+              id="brand-mark-upload"
+              type="file"
+              accept="image/png,image/svg+xml,image/webp"
+              onChange={handleBrandMarkChange}
+              aria-describedby={brandMarkError ? "brand-mark-error" : undefined}
+              className="sr-only"
+            />
+            {brandMarkError && (
+              <p id="brand-mark-error" role="alert" className="text-xs text-red-600">
+                {brandMarkError}
+              </p>
+            )}
           </div>
         </div>
 
@@ -189,39 +339,59 @@ export default function ProjectDetailsForm({
             <div className="space-y-4 text-xs">
               <div>
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Program Name</p>
-                <p className="font-semibold text-slate-900 truncate">Apex Digital Banking</p>
+                <p className="font-semibold text-slate-900 truncate">
+                  {projectName || "Not provided"}
+                </p>
+              </div>
+              <div>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Project Description</p>
+                <p className="font-medium text-slate-700 break-words">
+                  {description || "Not provided"}
+                </p>
               </div>
               <div>
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Host Organization</p>
                 <p className="font-medium text-slate-700 flex items-center gap-1.5">
-                  <Building2 className="w-3.5 h-3.5 text-slate-400" /> Apex Global Finance Team
+                  <Building2 className="w-3.5 h-3.5 text-slate-400" />
+                  {selectedOrganization || "Not selected"}
                 </p>
               </div>
               <div>
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Product Archetype</p>
-                <p className="font-medium text-slate-700">Card Issuing (Virtual & Physical)</p>
+                <p className="font-medium text-slate-700">
+                  {selectedArchetype?.title || "Not selected"}
+                </p>
               </div>
               <div>
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Primary Market & Sponsor</p>
-                <p className="font-medium text-slate-700">United States (OCC / FDIC Sponsor)</p>
+                <p className="font-medium text-slate-700">
+                  {selectedJurisdiction || "Not selected"}
+                </p>
               </div>
               <div>
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Settlement Currencies</p>
-                <div className="flex gap-1.5 mt-1">
-                  <span className="bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded text-[10px] font-bold">USD</span>
-                  <span className="bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded text-[10px] font-bold">EUR</span>
-                  <span className="bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded text-[10px] font-bold">GBP</span>
-                  <span className="bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded text-[10px] font-bold">NGN</span>
+                <div className="flex flex-wrap gap-1.5 mt-1">
+                  {supportedCurrencies.length > 0 ? (
+                    supportedCurrencies.map((code) => (
+                      <span key={code} className="bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded text-[10px] font-bold">
+                        {code}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="font-medium text-slate-700">None selected</span>
+                  )}
                 </div>
               </div>
               <div>
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Target Demographics</p>
-                <p className="font-medium text-slate-700">Hybrid (Individual & Corporate)</p>
+                <p className="font-medium text-slate-700">
+                  {selectedTargetCustomer || "Not selected"}
+                </p>
               </div>
               <div>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Initial Target Mode</p>
-                <p className="font-medium text-slate-700 flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-blue-600"></span> Isolated Sandbox Mock Ledger
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Program Brand Mark</p>
+                <p className="font-medium text-slate-700 break-all">
+                  {brandMark?.name || "Not uploaded"}
                 </p>
               </div>
             </div>

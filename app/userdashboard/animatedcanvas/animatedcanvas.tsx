@@ -1,0 +1,1566 @@
+'use client';
+
+import React, { useEffect, useRef, useState } from 'react';
+import {
+  ChevronDown,
+  ChevronRight,
+  ArrowRight,
+  Bell,
+  ArrowUpRight,
+  Home,
+  CreditCard,
+  ListFilter,
+  Search,
+  Send as SendIcon,
+  Apple,
+  Snowflake,
+  Settings,
+  Wifi,
+  Delete,
+  Check,
+  ChevronLeft,
+  ScanFace,
+  User,
+  Building2,
+  ShieldCheck,
+  SlidersHorizontal,
+  HelpCircle,
+  LogOut,
+  QrCode,
+  Edit2,
+} from 'lucide-react';
+
+// ---------------------------------------------------------------------------
+// Timeline: Home -> Cards -> Recipients -> Send -> Sent (about 10 seconds)
+// ---------------------------------------------------------------------------
+
+const SCENE_MS = [2000, 2100, 2000, 2700, 1600];
+const SCENE_START = SCENE_MS.reduce<number[]>((acc, ms, i) => {
+  acc.push(i === 0 ? 0 : acc[i - 1] + SCENE_MS[i - 1]);
+  return acc;
+}, []);
+const TOTAL_MS = SCENE_MS.reduce((a, b) => a + b, 0);
+const TICK_MS = 50;
+const AUTO_AMOUNT = '286';
+
+// Phone size
+const PHONE_W = 340;
+const PHONE_H = 660;
+
+// Motion curves
+const EASE = 'cubic-bezier(0.32, 0.72, 0, 1)';
+const SPRING = 'cubic-bezier(0.34, 1.4, 0.64, 1)';
+
+type TapStage = 'hidden' | 'in' | 'move' | 'tap';
+
+interface AutoState {
+  scene: number;
+  digits: string;
+  pressedKey: string | null;
+  tap: TapStage;
+  sendPressed: boolean;
+}
+
+// Works out what the demo should show at a given point on the timeline
+function getAutoState(t: number): AutoState {
+  let scene = 0;
+  SCENE_START.forEach((start, i) => {
+    if (t >= start) scene = i;
+  });
+  const local = t - SCENE_START[scene];
+
+  let digits = '';
+  let pressedKey: string | null = null;
+  let tap: TapStage = 'hidden';
+  let sendPressed = false;
+
+  if (scene === 2) {
+    tap = local < 400 ? 'hidden' : local < 500 ? 'in' : local < 1300 ? 'move' : 'tap';
+  }
+
+  if (scene === 3) {
+    if (local >= 1600) {
+      digits = '286';
+      if (local < 1750) pressedKey = '6';
+    } else if (local >= 1250) {
+      digits = '28';
+      if (local < 1400) pressedKey = '8';
+    } else if (local >= 900) {
+      digits = '2';
+      if (local < 1050) pressedKey = '2';
+    }
+    sendPressed = local >= 2350 && local < 2600;
+  }
+
+  if (scene === 4) digits = AUTO_AMOUNT;
+
+  return { scene, digits, pressedKey, tap, sendPressed };
+}
+
+function formatAmount(raw: string) {
+  if (raw === '') return '0.00';
+  const [intPart, decPart] = raw.split('.');
+  const intFormatted = Number(intPart || '0').toLocaleString('en-US');
+  return decPart !== undefined ? `${intFormatted}.${decPart}` : intFormatted;
+}
+
+// ---------------------------------------------------------------------------
+// Small shared pieces
+// ---------------------------------------------------------------------------
+
+const AVATAR_GRADIENTS = [
+  'from-amber-300 to-orange-500',
+  'from-sky-300 to-indigo-500',
+  'from-rose-300 to-pink-500',
+  'from-emerald-300 to-teal-500',
+  'from-violet-300 to-purple-500',
+  'from-slate-300 to-slate-500',
+];
+
+const PHOTOS = {
+  me: 'https://randomuser.me/api/portraits/women/79.jpg',
+  sarah: 'https://randomuser.me/api/portraits/women/44.jpg',
+  pavlo: 'https://randomuser.me/api/portraits/men/32.jpg',
+  jordan: 'https://randomuser.me/api/portraits/men/75.jpg',
+  chris: 'https://randomuser.me/api/portraits/men/46.jpg',
+  emily: 'https://randomuser.me/api/portraits/women/65.jpg',
+  taylor: 'https://randomuser.me/api/portraits/women/12.jpg',
+  gigi: 'https://randomuser.me/api/portraits/women/68.jpg',
+  bella: 'https://randomuser.me/api/portraits/women/33.jpg',
+};
+
+type Recipient = { name: string; src: string; handle?: string };
+
+function Avatar({
+  name,
+  initials,
+  size,
+  gradient = 0,
+  dot,
+  src,
+  ring = 'dark',
+}: {
+  name?: string;
+  initials: string;
+  size: number;
+  gradient?: number;
+  dot?: string;
+  src?: string;
+  ring?: 'dark' | 'light';
+}) {
+  const [failed, setFailed] = useState(false);
+  const ringColor = ring === 'light' ? '#CBD5E1' : 'rgba(255,255,255,0.85)';
+
+  return (
+    <div className="relative shrink-0" style={{ width: size, height: size }}>
+      <div
+        className="h-full w-full overflow-hidden rounded-full"
+        style={{ padding: 2, border: `1.5px solid ${ringColor}` }}
+      >
+        {src && !failed ? (
+          <img
+            src={src}
+            alt={name ?? initials}
+            draggable={false}
+            onError={() => setFailed(true)}
+            className="h-full w-full rounded-full object-cover"
+          />
+        ) : (
+          <div
+            className={`flex h-full w-full items-center justify-center rounded-full bg-gradient-to-br font-semibold text-white ${
+              AVATAR_GRADIENTS[gradient % AVATAR_GRADIENTS.length]
+            }`}
+            style={{ fontSize: size * 0.34 }}
+          >
+            {initials}
+          </div>
+        )}
+      </div>
+      {dot && (
+        <span
+          className="absolute bottom-0 right-0 h-[7px] w-[7px] rounded-full ring-2 ring-white"
+          style={{ backgroundColor: dot }}
+        />
+      )}
+    </div>
+  );
+}
+
+function TopLayer({
+  active,
+  delay = 0,
+  lift = 10,
+  children,
+}: {
+  active: boolean;
+  delay?: number;
+  lift?: number;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      className={`absolute inset-0 ${active ? '' : 'pointer-events-none'}`}
+      style={{
+        opacity: active ? 1 : 0,
+        transform: active ? 'translateY(0)' : `translateY(${-lift}px)`,
+        transition: active
+          ? `opacity 450ms ease ${delay}ms, transform 700ms ${EASE} ${delay}ms`
+          : 'opacity 220ms ease, transform 300ms ease',
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+function SheetLayer({
+  active,
+  height,
+  children,
+  scrollable = false,
+}: {
+  active: boolean;
+  height: number;
+  children: React.ReactNode;
+  scrollable?: boolean;
+}) {
+  return (
+    <div
+      className={`absolute inset-x-0 top-0 ${active ? '' : 'pointer-events-none'} ${
+        scrollable ? 'overflow-y-auto [&::-webkit-scrollbar]:hidden' : ''
+      }`}
+      style={{
+        height,
+        opacity: active ? 1 : 0,
+        transition: active ? 'opacity 350ms ease 380ms' : 'opacity 160ms ease',
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Scene content
+// ---------------------------------------------------------------------------
+
+const TRANSACTIONS = [
+  { name: 'Apple', amount: '-60 $', icon: 'apple', dot: '#2DD4BF', positive: false },
+  { name: 'Threads', amount: '-300 $', icon: 'threads', dot: '#FACC15', positive: false },
+  { name: 'Apple', amount: '2 000 $', icon: 'apple', dot: '#3B82F6', positive: true },
+  { name: 'Exoplan', amount: '-20 $', icon: 'exoplan', dot: '#2DD4BF', positive: false },
+  { name: 'Clubhouse', amount: '-140 $', icon: 'club', dot: '#2DD4BF', positive: false },
+];
+
+function TxIcon({ kind }: { kind: string }) {
+  if (kind === 'threads')
+    return <div className="grid h-[26px] w-[26px] place-items-center rounded-full bg-black text-[11px] font-bold text-white">@</div>;
+  if (kind === 'exoplan')
+    return <div className="grid h-[26px] w-[26px] place-items-center rounded-full bg-slate-700 text-[9px] font-bold text-white">31</div>;
+  if (kind === 'club')
+    return <div className="grid h-[26px] w-[26px] place-items-center rounded-full bg-orange-50 text-[12px] text-black">♣</div>;
+  return (
+    <div className="grid h-[26px] w-[26px] place-items-center rounded-full bg-slate-100 text-black">
+      <Apple className="h-3 w-3" fill="currentColor" />
+    </div>
+  );
+}
+
+function HomeTop({ active, go }: { active: boolean; go: (scene: number) => void }) {
+  const strips = ['#FBD32A', '#2DD4A0', '#0A84FF'];
+  return (
+    <TopLayer active={active} delay={150} lift={0}>
+      <div className="relative h-full w-full text-white">
+        <div className="absolute left-4 right-4 top-[46px] flex items-center justify-between">
+          <button type="button" onClick={() => go(7)} aria-label="Open profile">
+            <Avatar name="Alex" initials="AL" size={28} gradient={2} src={PHOTOS.me} />
+          </button>
+          <Bell className="h-3.5 w-3.5 text-slate-300" />
+        </div>
+
+        <div className="absolute left-4 top-[92px]">
+          <p className="text-[9px] text-slate-400">Total balance</p>
+          <p className="mt-0.5 flex items-baseline gap-1">
+            <span className="text-[15px] font-semibold">$</span>
+            <span className="text-[27px] font-bold leading-none tracking-tight">7,854</span>
+            <span className="text-[10px] text-slate-400">.43</span>
+          </p>
+        </div>
+
+        <div className="absolute left-4 top-[146px] flex gap-2">
+          <button
+            type="button"
+            onClick={() => go(3)}
+            className="flex h-6 items-center gap-1.5 rounded-full border border-white/20 bg-[#1B1F27] pl-1.5 pr-3 text-[9px] font-semibold transition-colors hover:bg-[#252A34]"
+          >
+            <span className="grid h-3.5 w-3.5 place-items-center rounded-full bg-white text-black">
+              <ArrowUpRight className="h-2.5 w-2.5" />
+            </span>
+            Send
+          </button>
+          <button
+            type="button"
+            onClick={() => go(5)}
+            className="flex h-6 items-center rounded-full border border-white/10 bg-[#1B1F27] px-3 text-[9px] font-medium text-slate-200 transition-colors hover:bg-[#252A34]"
+          >
+            Request
+          </button>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => go(1)}
+          tabIndex={active ? 0 : -1}
+          aria-label="Open cards"
+          className="absolute right-0 top-[94px] h-[75px] w-[60px] overflow-hidden transition-[filter] duration-200 hover:brightness-110"
+        >
+          {strips.map((color, i) => (
+            <div
+              key={color}
+              className="absolute top-0 h-full w-[28px] rounded-l-lg"
+              style={{
+                right: (2 - i) * 13 + (i === 0 ? 0 : 0),
+                backgroundColor: color,
+                transform: active ? 'translateX(0)' : 'translateX(70px)',
+                transition: active
+                  ? `transform 700ms ${EASE} ${350 + i * 110}ms`
+                  : 'transform 250ms ease',
+              }}
+            />
+          ))}
+        </button>
+
+        <div className="absolute left-3 right-3 top-[178px] flex items-center justify-between rounded-xl border border-white/5 bg-[#161A22] px-3 py-2.5">
+          <div>
+            <p className="text-[8px] text-slate-400">Spending</p>
+            <p className="mt-0.5 text-[12px] font-bold">$1,385</p>
+          </div>
+          <div className="flex -space-x-1.5">
+            {['#16A34A', '#F97316', '#64748B', '#000000', '#FFFFFF', '#C2410C'].map((c, i) => (
+              <span
+                key={i}
+                className="h-[14px] w-[14px] rounded-full ring-1 ring-[#161A22]"
+                style={{ backgroundColor: c }}
+              />
+            ))}
+          </div>
+        </div>
+      </div>
+    </TopLayer>
+  );
+}
+
+const CARD_STYLES = [
+  { number: '7642', gradient: 'linear-gradient(135deg,#F5BE0B 0%,#F7D24B 55%,#F2D36B 100%)' },
+  { number: '5123', gradient: 'linear-gradient(135deg,#1FC2AE 0%,#46D0BD 55%,#6FDACB 100%)' },
+  { number: '3413', gradient: 'linear-gradient(135deg,#2788EE 0%,#4AA6F0 55%,#7CCBF2 100%)' },
+];
+
+function CardsTop({ active }: { active: boolean }) {
+  return (
+    <div
+      className={`absolute inset-0 text-white ${active ? '' : 'pointer-events-none'}`}
+      style={{
+        opacity: active ? 1 : 0,
+        transition: active ? 'opacity 200ms ease' : 'opacity 250ms ease 50ms',
+      }}
+    >
+      <div
+        className="absolute left-4 right-4 top-[56px] flex items-center justify-between"
+        style={{
+          opacity: active ? 1 : 0,
+          transform: active ? 'translateY(0)' : 'translateY(-12px)',
+          transition: active ? `all 600ms ${EASE} 150ms` : 'all 200ms ease',
+        }}
+      >
+        <h4 className="text-[19px] font-bold tracking-tight">Cards</h4>
+        <button
+          type="button"
+          className="rounded-full bg-white px-2.5 py-1 text-[8px] font-bold text-black transition-opacity hover:opacity-90"
+        >
+          Order a card
+        </button>
+      </div>
+
+      <div className="absolute inset-x-3 top-[92px] flex flex-col gap-[10px]">
+        {CARD_STYLES.map((card, i) => (
+          <div
+            key={card.number}
+            className="relative h-[113px] overflow-hidden rounded-xl text-white shadow-lg"
+            style={{
+              background: card.gradient,
+              opacity: active ? 1 : 0,
+              transform: active ? 'translateY(0) scale(1)' : 'translateY(-260px) scale(0.96)',
+              transition: active
+                ? `transform 850ms ${SPRING} ${250 + i * 150}ms, opacity 300ms ease ${250 + i * 150}ms`
+                : 'transform 300ms ease, opacity 200ms ease',
+            }}
+          >
+            <div className="absolute left-3 top-2.5 text-[8px] font-bold">Digital card</div>
+            <div className="absolute right-3 top-2.5 text-[8px] font-bold tracking-widest">
+              •••• {card.number}
+            </div>
+            <div className="absolute bottom-2.5 left-3 flex gap-1.5">
+              {[Snowflake, CreditCard, Settings].map((Icon, j) => (
+                <span key={j} className="grid h-[22px] w-[22px] place-items-center rounded-full bg-white/30">
+                  <Icon className="h-2.5 w-2.5" />
+                </span>
+              ))}
+            </div>
+            <div className="absolute bottom-2.5 right-3 flex -space-x-2">
+              <span className="h-[18px] w-[18px] rounded-full bg-black/25" />
+              <span className="h-[18px] w-[18px] rounded-full bg-black/20" />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+const RECIPIENTS = [
+  { name: 'Sarah', handle: '@sarahsdesi...', src: PHOTOS.sarah },
+  { name: 'Pavlo', handle: '@designwitha...', src: PHOTOS.pavlo },
+  { name: 'Jordan', handle: '@jordan.creat...', src: PHOTOS.jordan },
+  { name: 'Chris', handle: '@chrisgraph...', src: PHOTOS.chris },
+  { name: 'Emily', handle: '@emilyartis...', src: PHOTOS.emily },
+  { name: 'Taylor', handle: '@taylorcrea...', src: PHOTOS.taylor },
+];
+
+function RecipientsTop({
+  active,
+  pavloPressed,
+  go,
+  onSelectRecipient,
+}: {
+  active: boolean;
+  pavloPressed: boolean;
+  go: (scene: number) => void;
+  onSelectRecipient: (r: Recipient) => void;
+}) {
+  return (
+    <div
+      className={`absolute inset-0 text-white ${active ? '' : 'pointer-events-none'}`}
+      style={{
+        opacity: active ? 1 : 0,
+        transition: active ? 'opacity 250ms ease 100ms' : 'opacity 250ms ease',
+      }}
+    >
+      <div className="absolute left-4 right-4 top-[56px] flex items-center justify-between">
+        <h4 className="text-[19px] font-bold tracking-tight">Recipients</h4>
+        <button type="button" onClick={() => go(6)} className="rounded-full bg-white px-3 py-1 text-[8px] font-bold text-black">
+          Add
+        </button>
+      </div>
+
+      <div className="absolute inset-x-4 top-[98px] grid grid-cols-3 gap-y-3">
+        {RECIPIENTS.map((r, i) => {
+          const pressed = r.name === 'Pavlo' && pavloPressed;
+          return (
+            <button
+              key={r.name}
+              type="button"
+              onClick={() => {
+                onSelectRecipient({ name: r.name, src: r.src, handle: r.handle });
+                go(3);
+              }}
+              className="flex flex-col items-center"
+              style={{
+                opacity: active ? 1 : 0,
+                transform: pressed ? 'scale(0.92)' : active ? 'translateY(0)' : 'translateY(14px)',
+                transition: pressed
+                  ? 'transform 150ms ease'
+                  : active
+                  ? `transform 600ms ${EASE} ${250 + i * 60}ms, opacity 400ms ease ${250 + i * 60}ms`
+                  : 'transform 200ms ease, opacity 200ms ease',
+              }}
+            >
+              <span
+                className="rounded-full transition-shadow duration-200"
+                style={{ boxShadow: pressed ? '0 0 0 3px rgba(255,255,255,0.7)' : '0 0 0 0 rgba(255,255,255,0)' }}
+              >
+                <Avatar name={r.name} initials={r.name[0]} size={44} gradient={i} src={r.src} />
+              </span>
+              <span className="mt-1 text-[9px] font-medium">{r.name}</span>
+              <span className="text-[6.5px] text-slate-500">{r.handle}</span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function SendTop({ active, recipientName, recipientSrc }: { active: boolean; recipientName: string; recipientSrc: string }) {
+  return (
+    <div
+      className="pointer-events-none absolute inset-0 text-white"
+      style={{
+        opacity: active ? 1 : 0,
+        transition: active ? 'opacity 250ms ease 150ms' : 'opacity 200ms ease',
+      }}
+    >
+      <div
+        className="absolute left-1/2 top-[36px] flex -translate-x-1/2 flex-col items-center"
+        style={{
+          transform: `translateX(-50%) scale(${active ? 1 : 0.4})`,
+          transition: active ? `transform 700ms ${SPRING} 250ms` : 'transform 200ms ease',
+        }}
+      >
+        <Avatar name={recipientName} initials={recipientName[0]} size={30} gradient={1} src={recipientSrc} />
+        <span className="mt-1 text-[8px] font-medium text-slate-300">{recipientName}</span>
+      </div>
+    </div>
+  );
+}
+
+function AddRecipientTop({ active, go }: { active: boolean; go: (scene: number) => void }) {
+  return (
+    <TopLayer active={active} delay={150} lift={0}>
+      <div className="relative h-full w-full bg-[#141414] text-white px-4 pt-[46px]">
+        <div className="flex items-center justify-between">
+          <button type="button" onClick={() => go(2)} className="grid h-8 w-8 place-items-center rounded-full bg-white/10">
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+          <span className="text-[13px] font-semibold">Add Recipient</span>
+          <button type="button" className="grid h-8 w-8 place-items-center rounded-full bg-white/10">
+            <ScanFace className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="mt-6 space-y-4 text-[11px]">
+          <div>
+            <label className="text-slate-400 mb-1.5 block">Full Legal Name</label>
+            <div className="flex items-center rounded-xl bg-[#1C1C1E] border border-white/5 px-3 py-2.5">
+              <input type="text" placeholder="e.g. Alex Morgan" className="flex-1 bg-transparent outline-none placeholder:text-slate-600" />
+              <User className="h-4 w-4 text-slate-500" />
+            </div>
+          </div>
+
+          <div>
+            <label className="text-slate-400 mb-1.5 block">Username, Tag, or Mobile</label>
+            <div className="flex items-center rounded-xl bg-[#1C1C1E] border border-white/5 px-3 py-2.5">
+              <input type="text" placeholder="@ username or phone" className="flex-1 bg-transparent outline-none placeholder:text-slate-600" />
+            </div>
+          </div>
+
+          <div>
+            <label className="text-slate-400 mb-1.5 block">Select Bank or Card Provider</label>
+            <div className="flex items-center justify-between rounded-xl bg-[#1C1C1E] border border-white/5 px-3 py-2.5">
+              <div className="flex items-center gap-2">
+                <div className="h-5 w-5 rounded-full bg-blue-900 flex items-center justify-center">
+                  <span className="text-[8px] text-blue-400 font-bold">C</span>
+                </div>
+                <span className="font-medium">Chase Bank</span>
+              </div>
+              <div className="flex items-center gap-2 text-slate-500">
+                <span className="text-[9px]">Routing 021000021</span>
+                <ChevronDown className="h-3 w-3" />
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <label className="text-slate-400 mb-1.5 block">Account Number / IBAN</label>
+            <div className="flex items-center justify-between rounded-xl bg-[#1C1C1E] border border-white/5 px-3 py-2.5">
+              <input type="text" value="•••• •••• •••• 2983" readOnly className="flex-1 bg-transparent outline-none text-slate-300" />
+              <span className="rounded bg-orange-500/20 px-1.5 py-0.5 text-[8px] font-bold text-orange-400">INSTANT</span>
+            </div>
+          </div>
+
+          <div>
+            <label className="text-slate-400 mb-1.5 block">Category (Optional)</label>
+            <div className="flex gap-2">
+              {['Friend', 'Family', 'Work', 'Services'].map((cat, i) => (
+                <button
+                  key={cat}
+                  type="button"
+                  className={`rounded-full px-3 py-1.5 text-[10px] font-medium transition-colors ${
+                    i === 0 ? 'bg-white text-black' : 'bg-[#1C1C1E] border border-white/5 text-slate-300'
+                  }`}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="absolute bottom-6 left-4 right-4">
+          <div className="mb-4 flex items-center gap-2 rounded-xl bg-[#1C1C1E] border border-white/5 p-3">
+            <ShieldCheck className="h-5 w-5 text-orange-500 shrink-0" />
+            <p className="text-[9px] text-slate-400 leading-tight">
+              Encrypted and validated through <span className="text-white font-medium">Chase & Partner</span> clearing network for immediate settlements.
+            </p>
+          </div>
+          <button type="button" onClick={() => go(2)} className="flex w-full items-center justify-center gap-2 rounded-full bg-white py-3 text-[12px] font-bold text-black">
+            Add Recipient <ArrowRight className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+    </TopLayer>
+  );
+}
+
+function SentLayer({
+  active,
+  amount,
+  recipientName,
+  mode,
+  onDone,
+}: {
+  active: boolean;
+  amount: string;
+  recipientName: string;
+  mode: 'send' | 'request';
+  onDone: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onDone}
+      tabIndex={active ? 0 : -1}
+      className={`absolute inset-0 flex flex-col items-center justify-center pb-12 text-white ${
+        active ? '' : 'pointer-events-none'
+      }`}
+      style={{
+        opacity: active ? 1 : 0,
+        transition: active ? 'opacity 300ms ease 250ms' : 'opacity 200ms ease',
+      }}
+    >
+      <span
+        style={{
+          transform: active ? 'scale(1)' : 'scale(0.3)',
+          transition: active ? `transform 600ms ${SPRING} 450ms` : 'transform 200ms ease',
+        }}
+      >
+        <Check className="h-9 w-9" strokeWidth={4} />
+      </span>
+      <p
+        className="mt-5 text-[34px] font-bold leading-none tracking-tight"
+        style={{
+          transform: active ? 'translateY(0)' : 'translateY(14px)',
+          opacity: active ? 1 : 0,
+          transition: active ? `all 600ms ${EASE} 600ms` : 'all 200ms ease',
+        }}
+      >
+        $ {formatAmount(amount || AUTO_AMOUNT)}
+      </p>
+      <p
+        className="mt-2 text-[11px] font-medium"
+        style={{
+          transform: active ? 'translateY(0)' : 'translateY(14px)',
+          opacity: active ? 1 : 0,
+          transition: active ? `all 600ms ${EASE} 750ms` : 'all 200ms ease',
+        }}
+      >
+        {mode === 'request' ? 'Requested from' : 'Sent to'} {recipientName}
+      </p>
+    </button>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// The white sheet that morphs between scenes
+// ---------------------------------------------------------------------------
+
+interface SheetGeometry {
+  top: number;
+  left: number;
+  right: number;
+  height: number;
+  radius: number;
+  shadow: string;
+}
+
+const NO_SHADOW = '0 0 0 rgba(0,0,0,0)';
+const OFFSCREEN: SheetGeometry = { top: 700, left: 0, right: 0, height: 480, radius: 22, shadow: NO_SHADOW };
+
+const SHEET_GEOMETRY: SheetGeometry[] = [
+  { top: 275, left: 0, right: 0, height: 385, radius: 22, shadow: NO_SHADOW },
+  { top: 560, left: 16, right: 16, height: 50, radius: 25, shadow: NO_SHADOW },
+  { top: 370, left: 0, right: 0, height: 290, radius: 22, shadow: NO_SHADOW },
+  { top: 95, left: 0, right: 0, height: 565, radius: 22, shadow: NO_SHADOW },
+  OFFSCREEN,
+  { top: 95, left: 0, right: 0, height: 565, radius: 22, shadow: NO_SHADOW },
+  OFFSCREEN,
+  { top: 30, left: 0, right: 0, height: 630, radius: 37, shadow: NO_SHADOW },
+];
+
+const QUICK_ACTIONS = [
+  { key: 'home', label: 'Home', Icon: Home, target: 0 },
+  { key: 'cards', label: 'Cards', Icon: CreditCard, target: 1 },
+  { key: 'send', label: 'Send', Icon: SendIcon, target: 3 },
+  { key: 'profile', label: 'Profile', Icon: User, target: 7 },
+];
+
+const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '0', 'back'];
+
+const RECIPIENT_ROWS = [
+  { name: 'Gigi Hadid', account: 'Chase 2983', dot: '#2DD4BF', src: PHOTOS.gigi },
+  { name: 'Bella Hadid', account: 'Mastercard 9283', dot: '#D9F100', src: PHOTOS.bella },
+  { name: 'Bella Hadid', account: 'Mastercard 9283', dot: '#D9F100', src: PHOTOS.bella },
+  { name: 'Bella Hadid', account: 'Mastercard 9283', dot: '#D9F100', src: PHOTOS.bella },
+];
+
+const PROFILE_MENU = [
+  { icon: User, label: 'Personal Details', sub: 'Legal name, DOB, tax ID, phone', badge: '' },
+  { icon: Building2, label: 'Bank Accounts & Cards', sub: '2 active cards linked', badge: 'Primary' },
+  { icon: ShieldCheck, label: 'Security & Privacy', sub: 'Face ID active, 2FA enabled', badge: '🔒' },
+  { icon: SlidersHorizontal, label: 'Limits & Monthly Budgets', sub: '$1,385 spent of $4,000 budget', badge: '34.6%' },
+  { icon: Bell, label: 'Notifications & Statements', sub: 'Monthly PDF exports', badge: '' },
+  { icon: HelpCircle, label: 'Help & Support', sub: '24/7 Priority Concierge', badge: 'Live' },
+];
+
+function Sheet({
+  scene,
+  digits,
+  pressedKey,
+  sendPressed,
+  go,
+  onKey,
+  onSend,
+  selectedRecipient,
+  onSelectRecipient,
+  onRequestSent,
+}: {
+  scene: number;
+  digits: string;
+  pressedKey: string | null;
+  sendPressed: boolean;
+  go: (scene: number) => void;
+  onKey: (key: string) => void;
+  onSend: () => void;
+  selectedRecipient: Recipient;
+  onSelectRecipient: (r: Recipient) => void;
+  onRequestSent: (amount: string) => void;
+}) {
+  const g = scene >= 0 ? SHEET_GEOMETRY[scene] : OFFSCREEN;
+  const hasAmount = digits !== '' && parseFloat(digits) > 0;
+
+  const [requestAmount, setRequestAmount] = useState('');
+  const [requestParticipants, setRequestParticipants] = useState<{ name: string; src: string }[]>([
+    { name: 'Sarah', src: PHOTOS.sarah },
+    { name: 'Jordan', src: PHOTOS.jordan },
+    { name: 'Pavlo', src: PHOTOS.pavlo },
+  ]);
+  const [requestSplitMode, setRequestSplitMode] = useState<'equal' | 'custom'>('equal');
+  const [requestKeypadOpen, setRequestKeypadOpen] = useState(false);
+  const [requestSearch, setRequestSearch] = useState('');
+
+  useEffect(() => {
+    if (scene !== 5) {
+      setRequestKeypadOpen(false);
+      setRequestAmount('');
+      setRequestParticipants([
+        { name: 'Sarah', src: PHOTOS.sarah },
+        { name: 'Jordan', src: PHOTOS.jordan },
+        { name: 'Pavlo', src: PHOTOS.pavlo },
+      ]);
+      setRequestSplitMode('equal');
+      setRequestSearch('');
+    }
+  }, [scene]);
+
+  const handleRequestKey = (key: string) => {
+    setRequestAmount((d) => {
+      if (key === 'back') return d.slice(0, -1);
+      if (key === '.') return d.includes('.') ? d : d === '' ? '0.' : d + '.';
+      if (d.length >= 8) return d;
+      if (d.includes('.') && d.split('.')[1].length >= 2) return d;
+      return d === '0' ? key : d + key;
+    });
+  };
+
+  const handleRequestClearAll = () => setRequestParticipants([]);
+  const handleRequestRemove = (name: string) =>
+    setRequestParticipants((p) => p.filter((x) => x.name !== name));
+  const handleRequestAddNext = () => {
+    const next = RECIPIENTS.find((r) => !requestParticipants.some((p) => p.name === r.name));
+    if (next) setRequestParticipants((p) => [...p, { name: next.name, src: next.src }]);
+  };
+  const handleRequestToggleRecent = (r: { name: string; src: string }) => {
+    if (requestParticipants.some((p) => p.name === r.name)) {
+      handleRequestRemove(r.name);
+    } else {
+      setRequestParticipants((p) => [...p, { name: r.name, src: r.src }]);
+    }
+  };
+  const handleRequestContinue = () => {
+    const amount = parseFloat(requestAmount);
+    if (!amount || amount <= 0 || requestParticipants.length === 0) return;
+    onRequestSent(requestAmount);
+    go(4);
+  };
+
+  const requestTotal = parseFloat(requestAmount) || 0;
+  const perPerson = requestParticipants.length > 0 ? requestTotal / requestParticipants.length : 0;
+  const filteredRecipients = RECIPIENTS.filter(
+    (r) =>
+      !requestSearch ||
+      r.name.toLowerCase().includes(requestSearch.toLowerCase()) ||
+      r.handle.toLowerCase().includes(requestSearch.toLowerCase())
+  );
+
+  return (
+    <div
+      className="absolute z-10 overflow-hidden bg-white text-slate-900"
+      style={{
+        top: g.top,
+        left: g.left,
+        right: g.right,
+        height: g.height,
+        borderRadius: g.radius,
+        boxShadow: g.shadow,
+        transitionProperty: 'top, left, right, height, border-radius, box-shadow',
+        transitionDuration: '850ms',
+        transitionTimingFunction: EASE,
+      }}
+    >
+      <SheetLayer active={scene === 0} height={385}>
+        <div className="mx-auto mt-2 h-[3px] w-8 rounded-full bg-slate-200" />
+        <div className="mt-3 flex items-center justify-between px-4 text-slate-400">
+          <ListFilter className="h-3 w-3" />
+          <span className="text-[8px] font-bold tracking-wide text-slate-800">TRANSACTIONS</span>
+          <Search className="h-3 w-3" />
+        </div>
+        <div className="mt-2 px-4">
+          {TRANSACTIONS.map((tx, i) => (
+            <div key={i} className="flex h-[36px] items-center gap-2.5">
+              <div className="relative">
+                <TxIcon kind={tx.icon} />
+                <span
+                  className="absolute bottom-0 right-0 h-[6px] w-[6px] rounded-full ring-2 ring-white"
+                  style={{ backgroundColor: tx.dot }}
+                />
+              </div>
+              <span className="flex-1 text-[10px] font-semibold">{tx.name}</span>
+              <span
+                className={`text-[9px] font-semibold ${tx.positive ? 'text-emerald-500' : 'text-slate-800'}`}
+              >
+                {tx.amount}
+              </span>
+            </div>
+          ))}
+        </div>
+      </SheetLayer>
+
+      <SheetLayer active={scene === 2} height={290}>
+        <div className="mx-auto mt-2 h-[3px] w-8 rounded-full bg-slate-200" />
+        <div className="mt-3 flex items-center justify-between px-4">
+          <div className="flex rounded-full bg-slate-100 p-[3px] text-[8px]">
+            <span className="rounded-full bg-white px-2.5 py-1 font-bold shadow-sm">All</span>
+            <span className="px-2.5 py-1 text-slate-400">My accounts</span>
+          </div>
+          <span className="grid h-5 w-5 place-items-center rounded-full bg-slate-100 text-slate-500">
+            <Search className="h-2.5 w-2.5" />
+          </span>
+        </div>
+        <div className="mt-2 px-4">
+          {RECIPIENT_ROWS.map((row, i) => (
+            <button
+              key={i}
+              type="button"
+              onClick={() => {
+                onSelectRecipient({ name: row.name, src: row.src });
+                go(3);
+              }}
+              className="flex h-[42px] w-full items-center gap-2.5 text-left transition-colors hover:bg-slate-50"
+            >
+              <Avatar name={row.name} initials={row.name[0]} size={28} gradient={i + 2} dot={row.dot} src={row.src} ring="light" />
+              <span className="flex-1 text-[10px] font-bold">{row.name}</span>
+              <span className="text-[8px] text-slate-400">{row.account}</span>
+            </button>
+          ))}
+        </div>
+      </SheetLayer>
+
+      <SheetLayer active={scene === 3} height={565}>
+        <div className="mx-auto mt-2 h-[3px] w-8 rounded-full bg-slate-200" />
+
+        <div className="mx-auto mt-3 flex w-[150px] rounded-full bg-slate-100 p-[3px] text-[9px]">
+          <span className="flex-1 rounded-full bg-white py-1.5 text-center font-bold shadow-sm">Send</span>
+          <button type="button" onClick={() => go(5)} className="flex-1 py-1.5 text-center text-slate-400">Request</button>
+        </div>
+
+        <p className="mt-4 flex items-center justify-center gap-1 text-[8px] text-slate-400">
+          {selectedRecipient.name} • 7642 USD <ChevronDown className="h-2.5 w-2.5" />
+        </p>
+
+        <p
+          className={`mt-2 text-center text-[40px] font-semibold leading-none tracking-tight transition-colors duration-200 ${
+            digits === '' ? 'text-slate-300' : 'text-[#0F1218]'
+          }`}
+        >
+          <span className="mr-1.5">$</span>
+          {formatAmount(digits)}
+        </p>
+        <p className="mt-2 text-center text-[8px] text-slate-400">
+          Available <span className="font-semibold underline">$ 7,854.43</span>
+        </p>
+
+        <div className="mt-2 flex h-[26px] justify-center">
+          <button
+            type="button"
+            onClick={onSend}
+            tabIndex={hasAmount ? 0 : -1}
+            className={`rounded-full bg-[#0F1218] px-5 text-[9px] font-bold text-white ${
+              hasAmount ? '' : 'pointer-events-none'
+            }`}
+            style={{
+              opacity: hasAmount ? 1 : 0,
+              transform: sendPressed ? 'scale(0.92)' : hasAmount ? 'scale(1)' : 'scale(0.8)',
+              transition: sendPressed ? 'transform 120ms ease' : `all 350ms ${SPRING}`,
+            }}
+          >
+            Send ${formatAmount(digits)}
+          </button>
+        </div>
+
+        <div className="mt-2 flex justify-around px-8 text-[15px] text-slate-300">
+          <span>+</span>
+          <span>−</span>
+          <span>×</span>
+          <span>÷</span>
+        </div>
+
+        <div className="mx-3 mt-3 grid grid-cols-3 gap-1.5 rounded-2xl bg-slate-100 p-2">
+          {KEYS.map((k) => (
+            <button
+              key={k}
+              type="button"
+              onClick={() => onKey(k)}
+              aria-label={k === 'back' ? 'Delete' : k}
+              className={`grid h-[38px] place-items-center rounded-xl text-[18px] font-medium text-slate-700 transition-all duration-150 active:scale-95 ${
+                pressedKey === k ? 'scale-90 bg-slate-300' : 'bg-white hover:bg-slate-50'
+              }`}
+            >
+              {k === 'back' ? <Delete className="h-5 w-5" /> : k}
+            </button>
+          ))}
+        </div>
+      </SheetLayer>
+
+      <SheetLayer active={scene === 5} height={565} scrollable={!requestKeypadOpen}>
+        <div className="mx-auto mt-2 h-[3px] w-8 rounded-full bg-slate-200" />
+        <div className="mx-auto mt-3 flex w-[150px] rounded-full bg-slate-100 p-[3px] text-[9px]">
+          <button type="button" onClick={() => go(3)} className="flex-1 py-1.5 text-center text-slate-400">Send</button>
+          <span className="flex-1 rounded-full bg-white py-1.5 text-center font-bold shadow-sm">Request</span>
+        </div>
+
+        {requestKeypadOpen ? (
+          <>
+            <p
+              className={`mt-5 text-center text-[40px] font-semibold leading-none tracking-tight ${
+                requestAmount === '' ? 'text-slate-300' : 'text-[#0F1218]'
+              }`}
+            >
+              <span className="mr-1.5">$</span>
+              {formatAmount(requestAmount)}
+            </p>
+            <p className="mt-2 text-center text-[8px] text-slate-400">
+              Available <span className="font-semibold underline">$ 7,854.43</span>
+            </p>
+
+            <div className="mx-3 mt-4 grid grid-cols-3 gap-1.5 rounded-2xl bg-slate-100 p-2">
+              {KEYS.map((k) => (
+                <button
+                  key={k}
+                  type="button"
+                  onClick={() => handleRequestKey(k)}
+                  aria-label={k === 'back' ? 'Delete' : k}
+                  className="grid h-[38px] place-items-center rounded-xl bg-white text-[18px] font-medium text-slate-700 transition-all duration-150 hover:bg-slate-50 active:scale-95"
+                >
+                  {k === 'back' ? <Delete className="h-5 w-5" /> : k}
+                </button>
+              ))}
+            </div>
+
+            <div className="mt-4 px-4">
+              <button
+                type="button"
+                onClick={() => setRequestKeypadOpen(false)}
+                className="w-full rounded-full bg-[#0F1218] py-3 text-[12px] font-bold text-white transition-transform active:scale-95"
+              >
+                Done
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <button
+              type="button"
+              onClick={() => setRequestKeypadOpen(true)}
+              className={`mt-4 block w-full text-center text-[40px] font-semibold leading-none tracking-tight ${
+                requestAmount === '' ? 'text-slate-300' : 'text-[#0F1218]'
+              }`}
+            >
+              <span className="mr-1.5">$</span>
+              {formatAmount(requestAmount)}
+            </button>
+            <p className="mt-2 text-center text-[8px] text-slate-400">
+              Available <span className="font-semibold underline">$ 7,854.43</span>
+            </p>
+
+            <div className="mt-4 px-4">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-semibold text-slate-600">
+                  Selected Participants ({requestParticipants.length})
+                </span>
+                <button
+                  type="button"
+                  onClick={handleRequestClearAll}
+                  className="text-[9px] text-slate-400 hover:text-slate-700"
+                >
+                  Clear all
+                </button>
+              </div>
+              <div className="mt-2 flex gap-2 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden">
+                {requestParticipants.map((p) => (
+                  <div key={p.name} className="flex items-center gap-1.5 rounded-full bg-slate-100 py-1 pl-1 pr-2.5">
+                    <Avatar name={p.name} initials={p.name[0]} size={20} src={p.src} ring="light" />
+                    <span className="text-[9px] font-medium text-slate-700">{p.name}</span>
+                    <button
+                      type="button"
+                      onClick={() => handleRequestRemove(p.name)}
+                      className="grid h-3.5 w-3.5 place-items-center rounded-full bg-slate-300 text-white hover:bg-slate-400"
+                      aria-label={`Remove ${p.name}`}
+                    >
+                      <span className="text-[8px] leading-none">×</span>
+                    </button>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={handleRequestAddNext}
+                  className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-slate-100 text-slate-400 hover:bg-slate-200"
+                  aria-label="Add participant"
+                >
+                  +
+                </button>
+              </div>
+            </div>
+
+            <div className="mt-4 px-4">
+              <div className="flex items-center justify-between text-[9px]">
+                <span className="font-semibold text-slate-600">Split Breakdown</span>
+                <span className="text-slate-400">{requestSplitMode === 'equal' ? 'Automatic' : 'Manual'}</span>
+              </div>
+              <div className="mt-2 flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setRequestSplitMode('equal')}
+                  className={`flex flex-1 items-center justify-center gap-1.5 rounded-full py-2 text-[10px] font-medium transition-colors ${
+                    requestSplitMode === 'equal' ? 'bg-[#0F1218] text-white' : 'bg-slate-100 text-slate-500'
+                  }`}
+                >
+                  <svg viewBox="0 0 24 24" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" />
+                  </svg>
+                  Equal Split
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRequestSplitMode('custom')}
+                  className={`flex flex-1 items-center justify-center gap-1.5 rounded-full py-2 text-[10px] font-medium transition-colors ${
+                    requestSplitMode === 'custom' ? 'bg-[#0F1218] text-white' : 'bg-slate-100 text-slate-500'
+                  }`}
+                >
+                  <svg viewBox="0 0 24 24" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                  </svg>
+                  Custom Amounts
+                </button>
+              </div>
+              <div className="mt-3 flex items-center justify-between rounded-xl bg-[#E8F4FF] px-3 py-2.5">
+                <div className="flex items-center gap-2 text-[10px] font-semibold text-blue-600">
+                  <span className="grid h-4 w-4 place-items-center rounded-full bg-blue-100 text-[10px]">+</span>
+                  ${requestTotal.toFixed(2)} + {requestParticipants.length} {requestParticipants.length === 1 ? 'person' : 'people'}
+                </div>
+                <span className="text-[10px] font-bold text-blue-600">
+                  ${perPerson.toFixed(2)}/each
+                </span>
+              </div>
+            </div>
+
+            <div className="mt-4 px-4">
+              <div className="flex items-center gap-2 rounded-full bg-slate-100 px-3 py-2 text-slate-400">
+                <Search className="h-3 w-3" />
+                <input
+                  type="text"
+                  value={requestSearch}
+                  onChange={(e) => setRequestSearch(e.target.value)}
+                  placeholder="Search name, @tag, or phone"
+                  className="flex-1 bg-transparent text-[10px] text-slate-700 outline-none placeholder:text-slate-400"
+                />
+              </div>
+              <div className="mt-3 flex items-center justify-between">
+                <span className="text-[10px] font-semibold text-slate-700">Recent & Suggested</span>
+                <span className="text-[9px] text-slate-400">Tap to select</span>
+              </div>
+              <div className="mt-2 grid grid-cols-3 gap-y-2">
+                {filteredRecipients.slice(0, 6).map((r, i) => {
+                  const isSelected = requestParticipants.some((p) => p.name === r.name);
+                  return (
+                    <button
+                      key={r.name}
+                      type="button"
+                      onClick={() => handleRequestToggleRecent({ name: r.name, src: r.src })}
+                      className={`flex flex-col items-center rounded-xl py-1 transition-colors hover:bg-slate-50 ${
+                        isSelected ? 'opacity-60' : ''
+                      }`}
+                    >
+                      <span
+                        className="rounded-full transition-shadow"
+                        style={{ boxShadow: isSelected ? '0 0 0 2px #0F1218' : 'none' }}
+                      >
+                        <Avatar name={r.name} initials={r.name[0]} size={36} gradient={i} src={r.src} ring="light" />
+                      </span>
+                      <span className="mt-1 text-[9px] font-medium">{r.name}</span>
+                      <span className="text-[6.5px] text-slate-400">{r.handle}</span>
+                    </button>
+                  );
+                })}
+                {filteredRecipients.length === 0 && (
+                  <div className="col-span-3 py-4 text-center text-[9px] text-slate-400">
+                    No contacts match "{requestSearch}"
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="mt-6 px-4 pb-6">
+              <button
+                type="button"
+                onClick={handleRequestContinue}
+                disabled={requestTotal <= 0 || requestParticipants.length === 0}
+                className={`flex w-full items-center justify-between rounded-full px-5 py-3 text-[12px] font-bold transition-all ${
+                  requestTotal > 0 && requestParticipants.length > 0
+                    ? 'bg-[#0F1218] text-white hover:bg-slate-800'
+                    : 'bg-slate-200 text-slate-400'
+                }`}
+              >
+                Continue
+                <span>${requestTotal.toFixed(2)} →</span>
+              </button>
+            </div>
+          </>
+        )}
+      </SheetLayer>
+
+      <SheetLayer active={scene === 7} height={630} scrollable>
+        <div className="mx-auto mt-2 h-[3px] w-8 rounded-full bg-slate-200 shrink-0" />
+        <div className="flex flex-col items-center pt-4 pb-6">
+          <div className="relative">
+            <Avatar name="Pavlo" initials="P" size={68} src={PHOTOS.pavlo} ring="light" />
+            <span className="absolute bottom-1 right-1 grid h-4 w-4 place-items-center rounded-full bg-blue-500 text-white ring-2 ring-white">
+              <Check className="h-2.5 w-2.5" />
+            </span>
+          </div>
+          <h3 className="mt-2 text-[16px] font-bold text-slate-900">Pavlo Kovalenko</h3>
+          <p className="text-[10px] text-slate-500">@pavlo_k • Pro Member</p>
+
+          <div className="mt-3 flex gap-2">
+            <button type="button" className="flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1.5 text-[10px] font-medium text-slate-700">
+              <Edit2 className="h-3 w-3" /> Edit Profile
+            </button>
+            <button type="button" className="flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1.5 text-[10px] font-medium text-slate-700">
+              <QrCode className="h-3 w-3" /> Share QR
+            </button>
+          </div>
+        </div>
+
+        <div className="mx-4 rounded-2xl bg-[#2C2C2E] p-4 text-white">
+          <p className="text-[9px] text-slate-400">PRIMARY BALANCE</p>
+          <div className="mt-1 flex items-end justify-between">
+            <p className="text-[24px] font-bold tracking-tight">
+              $7,854<span className="text-[14px] text-slate-400">.43</span>
+            </p>
+            <div className="flex -space-x-3">
+              <div className="h-7 w-5 rounded bg-[#FBD32A] rotate-[-10deg]" />
+              <div className="h-7 w-5 rounded bg-[#2DD4A0] rotate-[-5deg]" />
+              <div className="h-7 w-5 rounded bg-[#0A84FF]" />
+            </div>
+          </div>
+          <div className="mt-3 flex items-center gap-2 rounded-full bg-black/20 px-2.5 py-1 w-fit">
+            <span className="text-[9px] text-slate-300">DE89 •••• 7642</span>
+          </div>
+        </div>
+
+        <div className="mt-6 px-4">
+          <p className="mb-3 text-[9px] font-bold tracking-widest text-slate-400 uppercase">Account & Preferences</p>
+          <div className="space-y-1">
+            {PROFILE_MENU.map((item, i) => (
+              <button key={i} type="button" className="flex w-full items-center gap-3 rounded-xl py-2.5 transition-colors hover:bg-slate-50">
+                <div className="grid h-8 w-8 place-items-center rounded-full bg-slate-100 text-slate-600">
+                  <item.icon className="h-4 w-4" />
+                </div>
+                <div className="flex-1 text-left">
+                  <p className="text-[11px] font-semibold text-slate-900">{item.label}</p>
+                  <p className="text-[9px] text-slate-400">{item.sub}</p>
+                </div>
+                {item.badge && (
+                  <span className={`rounded-full px-2 py-0.5 text-[8px] font-bold ${
+                    item.badge === 'Primary' ? 'bg-slate-100 text-slate-600' :
+                    item.badge === 'Live' ? 'bg-orange-100 text-orange-600' :
+                    'text-slate-400'
+                  }`}>
+                    {item.badge}
+                  </span>
+                )}
+                {item.badge !== '34.6%' && <ChevronRight className="h-4 w-4 text-slate-300" />}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="mt-4 px-4 pb-8">
+          <button type="button" className="flex w-full items-center justify-center gap-2 rounded-full bg-slate-100 py-3 text-[11px] font-semibold text-red-500">
+            <LogOut className="h-4 w-4" /> Log Out
+          </button>
+          <p className="mt-4 text-center text-[8px] text-slate-400">Fintech App v3.4.1 (Build 8902)</p>
+        </div>
+      </SheetLayer>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Bottom quick action bar
+// ---------------------------------------------------------------------------
+
+const BAR_SELECTED: Record<number, string> = { 0: 'home', 1: 'cards', 3: 'send', 7: 'profile' };
+
+function QuickBar({ scene, go }: { scene: number; go: (scene: number) => void }) {
+  const visible = scene === 0 || scene === 1 || scene === 3;
+  const selectedKey = BAR_SELECTED[scene];
+
+  return (
+    <div
+      className={`absolute z-20 flex items-center justify-around rounded-full border border-slate-200 bg-white px-2 ${
+        visible ? '' : 'pointer-events-none'
+      }`}
+      style={{
+        left: 16,
+        right: 16,
+        top: 560,
+        height: 50,
+        boxShadow: '0 8px 24px rgba(15,23,42,0.22)',
+        opacity: visible ? 1 : 0,
+        transition: visible ? 'opacity 350ms ease 550ms' : 'opacity 150ms ease',
+      }}
+    >
+      {QUICK_ACTIONS.map(({ key, label, Icon, target }) => {
+        const selected = key === selectedKey;
+        return (
+          <button
+            key={key}
+            type="button"
+            onClick={() => go(target)}
+            tabIndex={visible ? 0 : -1}
+            aria-label={label}
+            className={`flex h-[38px] w-[54px] flex-col items-center justify-center gap-0.5 rounded-2xl transition-colors duration-300 ${
+              selected ? 'bg-slate-100 text-slate-900' : 'text-slate-400 hover:text-slate-700'
+            }`}
+          >
+            <Icon className="h-3.5 w-3.5" />
+            <span className="text-[7px] font-semibold">{label}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Touch indicator
+// ---------------------------------------------------------------------------
+
+const TAP_START = { x: 215, y: 300 };
+const TAP_TARGET = { x: 170, y: 120 };
+
+function TouchIndicator({ stage }: { stage: TapStage }) {
+  const atTarget = stage === 'move' || stage === 'tap';
+  const pos = atTarget ? TAP_TARGET : TAP_START;
+  const visible = stage !== 'hidden';
+  return (
+    <div
+      className="pointer-events-none absolute left-0 top-0 z-40"
+      style={{
+        transform: `translate(${pos.x - 15}px, ${pos.y - 15}px)`,
+        opacity: visible ? 1 : 0,
+        transition: `transform 800ms ${EASE}, opacity 250ms ease`,
+      }}
+      aria-hidden
+    >
+      <div
+        className="relative h-[30px] w-[30px] rounded-full border border-white/70 bg-white/30 shadow-lg backdrop-blur-[1px]"
+        style={{
+          transform: stage === 'tap' ? 'scale(0.75)' : 'scale(1)',
+          transition: 'transform 150ms ease',
+        }}
+      >
+        {stage === 'tap' && (
+          <span className="absolute inset-0 animate-ping rounded-full bg-white/60" />
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Phone frame
+// ---------------------------------------------------------------------------
+
+function PhoneDemo({
+  scene,
+  digits,
+  pressedKey,
+  tap,
+  sendPressed,
+  go,
+  onKey,
+  onSend,
+  onDone,
+  selectedRecipient,
+  onSelectRecipient,
+  sentMode,
+  sentAmount,
+  onRequestSent,
+}: {
+  scene: number;
+  digits: string;
+  pressedKey: string | null;
+  tap: TapStage;
+  sendPressed: boolean;
+  go: (scene: number) => void;
+  onKey: (key: string) => void;
+  onSend: () => void;
+  onDone: () => void;
+  selectedRecipient: Recipient;
+  onSelectRecipient: (r: Recipient) => void;
+  sentMode: 'send' | 'request';
+  sentAmount: string;
+  onRequestSent: (amount: string) => void;
+}) {
+  return (
+    <div
+      className="relative rounded-[46px] bg-[#141B3A] p-[9px] shadow-[0_30px_60px_-20px_rgba(15,23,42,0.35)]"
+      style={{ width: PHONE_W, height: PHONE_H }}
+    >
+      <div className="relative h-full w-full overflow-hidden rounded-[37px]">
+        <div
+          className="absolute inset-0"
+          style={{
+            backgroundColor: scene === 4 ? '#00D90B' : (scene === 6 ? '#141414' : '#0F1218'),
+            transition: 'background-color 700ms ease',
+          }}
+        />
+
+        <HomeTop active={scene === 0} go={go} />
+        <CardsTop active={scene === 1} />
+        <RecipientsTop
+          active={scene === 2}
+          pavloPressed={tap === 'tap'}
+          go={go}
+          onSelectRecipient={onSelectRecipient}
+        />
+        <SendTop active={scene === 3} recipientName={selectedRecipient.name} recipientSrc={selectedRecipient.src} />
+        <SentLayer
+          active={scene === 4}
+          amount={sentMode === 'request' ? sentAmount : digits}
+          recipientName={selectedRecipient.name}
+          mode={sentMode}
+          onDone={onDone}
+        />
+        <AddRecipientTop active={scene === 6} go={go} />
+
+        <Sheet
+          scene={scene}
+          digits={digits}
+          pressedKey={pressedKey}
+          sendPressed={sendPressed}
+          go={go}
+          onKey={onKey}
+          onSend={onSend}
+          selectedRecipient={selectedRecipient}
+          onSelectRecipient={onSelectRecipient}
+          onRequestSent={onRequestSent}
+        />
+
+        <QuickBar scene={scene} go={go} />
+
+        {scene === 2 && <TouchIndicator stage={tap} />}
+
+        {/* Status bar + dynamic island */}
+        <div className="pointer-events-none absolute inset-x-0 top-0 z-50 flex h-[34px] items-center justify-between px-5 text-[9px] font-semibold text-white">
+          <span>09:41</span>
+          <span className="absolute left-1/2 top-[9px] h-[15px] w-[64px] -translate-x-1/2 rounded-full bg-black" />
+          <span className="flex items-center gap-1">
+            <span className="flex items-end gap-[1.5px]">
+              <i className="h-[3px] w-[2px] bg-white" />
+              <i className="h-[5px] w-[2px] bg-white" />
+              <i className="h-[7px] w-[2px] bg-white" />
+            </span>
+            <Wifi className="h-2.5 w-2.5" />
+            <span className="h-[7px] w-[12px] rounded-[2px] bg-white" />
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// The animated canvas (standalone)
+// ---------------------------------------------------------------------------
+
+export default function AnimatedCanvas({ className = '' }: { className?: string }) {
+  // Animation state
+  const [t, setT] = useState(0);
+  const [hovered, setHovered] = useState(false);
+  const [manualScene, setManualScene] = useState(0);
+  const [manualDigits, setManualDigits] = useState('');
+  const [inView, setInView] = useState(false);
+  const [started, setStarted] = useState(false);
+
+  // Selected recipient (dynamic)
+  const [selectedRecipient, setSelectedRecipient] = useState<Recipient>({
+    name: 'Pavlo',
+    src: PHOTOS.pavlo,
+    handle: '@designwitha...',
+  });
+
+  // Sent mode (send vs request) + request amount
+  const [sentMode, setSentMode] = useState<'send' | 'request'>('send');
+  const [requestSentAmount, setRequestSentAmount] = useState('');
+
+  const canvasRef = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(0.8);
+
+  // Fit the phone inside whatever container we're given
+  useEffect(() => {
+    const el = canvasRef.current;
+    if (!el) return;
+    const update = () => {
+      const scaleForWidth = (el.clientWidth - 16) / PHONE_W;
+      const scaleForHeight = (el.clientHeight - 16) / PHONE_H;
+      setScale(Math.min(scaleForWidth, scaleForHeight, 1));
+    };
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    const el = canvasRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(([entry]) => setInView(entry.isIntersecting), {
+      threshold: 0.35,
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (!inView || started) return;
+    const id = setTimeout(() => setStarted(true), 150);
+    return () => clearTimeout(id);
+  }, [inView, started]);
+
+  useEffect(() => {
+    if (hovered || !inView || !started) return;
+    const id = setInterval(() => setT((prev) => (prev + TICK_MS) % TOTAL_MS), TICK_MS);
+    return () => clearInterval(id);
+  }, [hovered, inView, started]);
+
+  const auto = getAutoState(t);
+  const rawScene = hovered ? manualScene : auto.scene;
+  const scene = started ? rawScene : -1;
+  const digits = hovered ? manualDigits : auto.digits;
+  const pressedKey = hovered ? null : auto.pressedKey;
+  const tap: TapStage = hovered ? 'hidden' : auto.tap;
+  const sendPressed = hovered ? false : auto.sendPressed;
+
+  useEffect(() => {
+    if (!hovered && started && auto.scene === 2 && auto.tap === 'tap') {
+      setSelectedRecipient({ name: 'Pavlo', src: PHOTOS.pavlo, handle: '@designwitha...' });
+      setSentMode('send');
+    }
+    if (!hovered && started && auto.scene === 4) {
+      setSentMode('send');
+    }
+  }, [hovered, started, auto.scene, auto.tap]);
+
+  const handleEnter = () => {
+    setManualScene(auto.scene);
+    setManualDigits(auto.digits);
+    setHovered(true);
+  };
+
+  const handleLeave = () => {
+    setT(SCENE_START[manualScene] || 0);
+    setHovered(false);
+  };
+
+  const go = (target: number) => setManualScene(target);
+
+  const handleKey = (key: string) => {
+    setManualDigits((d) => {
+      if (key === 'back') return d.slice(0, -1);
+      if (key === '.') return d.includes('.') ? d : d === '' ? '0.' : d + '.';
+      if (d.length >= 8) return d;
+      if (d.includes('.') && d.split('.')[1].length >= 2) return d;
+      return d === '0' ? key : d + key;
+    });
+  };
+
+  const handleSend = () => {
+    setSentMode('send');
+    setManualScene(4);
+  };
+
+  const handleRequestSent = (amount: string) => {
+    setSentMode('request');
+    setRequestSentAmount(amount);
+    setManualScene(4);
+  };
+
+  const handleDone = () => {
+    setManualDigits('');
+    setManualScene(0);
+    setSentMode('send');
+  };
+
+  return (
+    <div className={`w-full ${className}`}>
+      <div
+        ref={canvasRef}
+        className="relative w-full h-[560px] sm:h-[620px] max-h-full flex items-center justify-center select-none overflow-hidden cursor-none [&_*]:!cursor-none"
+        onMouseEnter={handleEnter}
+        onMouseLeave={handleLeave}
+        aria-label="Animated mobile app demo. Hover to pause and interact."
+      >
+        <div style={{ width: PHONE_W, height: PHONE_H, transform: `scale(${scale})` }}>
+          <PhoneDemo
+            scene={scene}
+            digits={digits}
+            pressedKey={pressedKey}
+            tap={tap}
+            sendPressed={sendPressed}
+            go={go}
+            onKey={handleKey}
+            onSend={handleSend}
+            onDone={handleDone}
+            selectedRecipient={selectedRecipient}
+            onSelectRecipient={setSelectedRecipient}
+            sentMode={sentMode}
+            sentAmount={requestSentAmount}
+            onRequestSent={handleRequestSent}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
