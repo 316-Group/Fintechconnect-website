@@ -21,6 +21,7 @@ import {
 import ProjectDetailsForm from "./projectdetailsform";
 import ArchetypeSelectionForm from "./archetypeselectionform";
 import PlatformConfigurationForm from "./platformconfigurationform";
+import { getPath } from "@/utils/helper";
 
 /* --------------------------- Full Screen Build Options --------------------------- */
 
@@ -61,7 +62,7 @@ function BuildOptionsView({ onClose, onSelectGuided }: { onClose: () => void; on
 
           {/* ---- Guided Builder image placeholder ---- */}
           <div className="relative w-full h-[190px] rounded-lg border border-slate-200 bg-slate-50 flex items-center justify-center mb-6 overflow-hidden">
-            <img src="/dashboard/guidedbuilderimg.png" alt="" className="w-full h-full object-contain" />
+            <img src={getPath("/dashboard/guidedbuilderimg.png")} alt="" className="w-full h-full object-contain" />
             
           </div>
 
@@ -105,7 +106,7 @@ function BuildOptionsView({ onClose, onSelectGuided }: { onClose: () => void; on
 
           {/* ---- Custom Builder image placeholder ---- */}
           <div className="relative w-full h-[190px] rounded-lg border border-slate-200 bg-slate-50 flex items-center justify-center mb-6 overflow-hidden">
-            <img src="/dashboard/custombuilderimg.png" alt="" className="w-full h-full object-contain" />
+            <img src={getPath("/dashboard/custombuilderimg.png")} alt="" className="w-full h-full object-contain" />
           </div>
 
           <ul className="space-y-3 mb-8 flex-1">

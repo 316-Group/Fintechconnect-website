@@ -25,6 +25,7 @@ import {
   ExternalLink,
 } from "lucide-react";
 import AnimatedCanvas from "@/app/userdashboard/animatedcanvas/animatedcanvas";
+import { getPath } from "@/utils/helper";
 
 /* --------------------------- Welcome Modal --------------------------- */
 
@@ -354,7 +355,7 @@ export default function DashboardHome() {
                 {/* ---- Image ---- */}
                 <div className="relative h-58 bg-slate-50 border-b border-slate-100 flex items-center justify-center">
                 <img
-                    src={step.image}
+                    src={getPath(step.image)}
                     alt={step.title}
                     className="w-full h-full object-cover"
                  />
@@ -410,7 +411,7 @@ export default function DashboardHome() {
           <div className="lg:col-span-2 relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#EEF0FF] via-[#F5F2FF] to-white border border-slate-200/70 min-h-[240px]">
             {/* ---- Background image placeholder on the right ---- */}
             <div className="absolute inset-y-0 right-0 w-[55%] flex items-center justify-center pointer-events-none">
-              {<img src="/dashboard/connectors.png" alt="" className="w-full h-full object-contain" /> }
+              {<img src={getPath("/dashboard/connectors.png")} alt="" className="w-full h-full object-contain" /> }
               
             </div>
 
@@ -500,7 +501,7 @@ export default function DashboardHome() {
                 {/* ---- Image placeholder — drop your own image here ---- */}
                 <div className="relative h-50 bg-gradient-to-br from-blue-50 via-slate-50 to-blue-100 border-b border-slate-200 flex items-center justify-center">
                   <img
-                    src="/dashboard/templateimage.png"
+                    src={getPath("/dashboard/templateimage.png")}
                     alt="Template placeholder"
                     className="w-full h-full object-cover"
                   />
