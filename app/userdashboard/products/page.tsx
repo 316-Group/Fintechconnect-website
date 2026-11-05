@@ -55,11 +55,17 @@ function BuildOptionsView({ onClose, onSelectGuided }: { onClose: () => void; on
           </div>
 
           <h3 className="text-lg font-bold text-slate-900 mb-2">Guided Builder</h3>
-          <p className="text-sm text-slate-500 mb-6 flex-1">
+          <p className="text-sm text-slate-500 mb-6">
             Build faster with a recommended architecture tailored to your financial product. We'll walk you through the setup.
           </p>
 
-          <ul className="space-y-3 mb-8">
+          {/* ---- Guided Builder image placeholder ---- */}
+          <div className="relative w-full h-[190px] rounded-lg border border-slate-200 bg-slate-50 flex items-center justify-center mb-6 overflow-hidden">
+            <img src="/dashboard/guidedbuilderimg.png" alt="" className="w-full h-full object-contain" />
+            
+          </div>
+
+          <ul className="space-y-3 mb-8 flex-1">
             {[
               "Recommended modules and automated dependencies",
               "Preconfigured financial ledger & settlement flows",
@@ -73,7 +79,7 @@ function BuildOptionsView({ onClose, onSelectGuided }: { onClose: () => void; on
             ))}
           </ul>
 
-          <button 
+          <button
             onClick={onSelectGuided}
             className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold transition-colors flex items-center justify-center gap-2"
           >
@@ -93,11 +99,16 @@ function BuildOptionsView({ onClose, onSelectGuided }: { onClose: () => void; on
           </div>
 
           <h3 className="text-lg font-bold text-slate-900 mb-2">Custom Builder</h3>
-          <p className="text-sm text-slate-500 mb-6 flex-1">
+          <p className="text-sm text-slate-500 mb-6">
             Take complete control of your architecture. Select, connect, and configure infrastructure modules yourself.
           </p>
 
-          <ul className="space-y-3 mb-8">
+          {/* ---- Custom Builder image placeholder ---- */}
+          <div className="relative w-full h-[190px] rounded-lg border border-slate-200 bg-slate-50 flex items-center justify-center mb-6 overflow-hidden">
+            <img src="/dashboard/custombuilderimg.png" alt="" className="w-full h-full object-contain" />
+          </div>
+
+          <ul className="space-y-3 mb-8 flex-1">
             {[
               "Complete 40+ modular financial primitives catalog",
               "Unconstrained visual node canvas & routing mesh",

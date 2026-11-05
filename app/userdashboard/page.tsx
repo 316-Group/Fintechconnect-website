@@ -17,6 +17,12 @@ import {
   ShieldCheck,
   Landmark,
   CreditCard,
+  Users,
+  UserCheck,
+  SearchCheck,
+  FileText,
+  CirclePlus,
+  ExternalLink,
 } from "lucide-react";
 import AnimatedCanvas from "@/app/userdashboard/animatedcanvas/animatedcanvas";
 
@@ -200,24 +206,63 @@ function WelcomeModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => voi
 /** Replace this with the path (or imported image src) you want to use as the banner background. */
 const BANNER_IMAGE = "/dashboard/bannerbackground.jpg";
 
-const NEXT_STEPS = [
+const NEXT_STEPS: {
+  title: string;
+  description: string;
+  type: "guided" | "modules" | "launch";
+  image: string;
+}[] = [
   {
-    icon: LayoutGrid,
-    title: "Explore Templates",
-    description: "Browse pre-validated blueprints and launch a product in minutes.",
-    cta: "Browse templates",
+    title: "Create your first Product",
+    description:
+      "Define the pages and flow of the financial product you want to launch. Use a guided starting point or build your own.",
+    type: "guided",
+    image: "/dashboard/homecard1.png",
   },
   {
-    icon: Building2,
-    title: "Build from Scratch",
-    description: "Configure primitives and orchestrate your stack from the ground up.",
-    cta: "Open builder",
+    title: "Connect your infrastructure",
+    description:
+      "Add the banking, ledger and payments modules your product runs on.",
+    type: "modules",
+    image: "/dashboard/homecard2.png",
   },
   {
-    icon: MessageCircle,
-    title: "Talk to an Expert",
-    description: "Get architectural guidance from our solutions engineering team.",
-    cta: "Book a call",
+    title: "Design your experience",
+    description:
+      "Shape how customers see and use your product in White-label Studio.",
+    type: "launch",
+    image: "/dashboard/homecard3.png",
+  },
+];
+
+const AML_SETUP = [
+  {
+    icon: Users,
+    title: "Sanction Screening",
+    description: "Check customers against the lists you choose.",
+    color: "text-blue-600",
+    bg: "bg-blue-50",
+  },
+  {
+    icon: UserCheck,
+    title: "PEP Checks",
+    description: "Flag politically exposed persons.",
+    color: "text-blue-600",
+    bg: "bg-blue-50",
+  },
+  {
+    icon: SearchCheck,
+    title: "Transaction Monitoring",
+    description: "Alert on thresholds, velocity and patterns.",
+    color: "text-pink-500",
+    bg: "bg-pink-50",
+  },
+  {
+    icon: FileText,
+    title: "Case review",
+    description: "Route alerts to reviewers with recorded decisions.",
+    color: "text-orange-500",
+    bg: "bg-orange-50",
   },
 ];
 
@@ -296,147 +341,141 @@ export default function DashboardHome() {
 
         {/* --------------------------- Your Next Steps --------------------------- */}
         <section>
-          <div className="flex items-end justify-between mb-4">
-            <div>
-              <h2 className="text-base font-bold text-slate-900">Your Next Steps</h2>
-              <p className="text-xs text-slate-500 mt-1">
-                Pick a path to get your product off the ground.
-              </p>
-            </div>
-          </div>
+          <h2 className="text-lg font-bold text-slate-900 mb-4">
+            Your next steps
+          </h2>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {NEXT_STEPS.map((step) => {
-              const Icon = step.icon;
-              return (
-                <button
-                  key={step.title}
-                  className="group text-left p-5 rounded-xl border border-slate-200 bg-white hover:border-blue-300 hover:shadow-sm transition-all"
-                >
-                  <div className="w-9 h-9 rounded-lg bg-blue-50 border border-blue-100 flex items-center justify-center mb-3 group-hover:bg-blue-600 transition-colors">
-                    <Icon className="w-4 h-4 text-blue-600 group-hover:text-white transition-colors" />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            {NEXT_STEPS.map((step) => (
+              <div
+                key={step.title}
+                className="group rounded-xl border border-slate-200 bg-white overflow-hidden flex flex-col hover:border-slate-300 hover:shadow-sm transition-all"
+              >
+                {/* ---- Image ---- */}
+                <div className="relative h-58 bg-slate-50 border-b border-slate-100 flex items-center justify-center">
+                <img
+                    src={step.image}
+                    alt={step.title}
+                    className="w-full h-full object-cover"
+                 />
+                </div>
+
+                <div className="p-5 flex flex-col flex-1">
+                  <h3 className="text-lg font-bold text-slate-900">
+                    {step.title}
+                  </h3>
+                  <p className="text-sm text-slate-500 mt-2 leading-relaxed flex-1">
+                    {step.description}
+                  </p>
+
+                  {/* ---- Actions ---- */}
+                  <div className="mt-5">
+                    {step.type === "guided" && (
+                      <div className="flex items-center gap-2">
+                        <button className="flex-[1.3] inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold transition-colors">
+                          <Plus className="w-3.5 h-3.5" /> Use Guided Flow
+                        </button>
+                        <button className="flex-1 inline-flex items-center justify-center px-4 py-2.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-lg text-xs font-semibold transition-colors">
+                          Start from scratch
+                        </button>
+                      </div>
+                    )}
+
+                    {step.type === "modules" && (
+                      <div className="flex justify-end">
+                        <button className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-lg text-xs font-semibold transition-colors">
+                          <CirclePlus className="w-3.5 h-3.5" /> Browse Modules
+                        </button>
+                      </div>
+                    )}
+
+                    {step.type === "launch" && (
+                      <div className="flex justify-end">
+                        <button className="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-700 transition-colors">
+                          Launch White label studio
+                          <ExternalLink className="w-3 h-3" />
+                        </button>
+                      </div>
+                    )}
                   </div>
-                  <h3 className="text-sm font-bold text-slate-900">{step.title}</h3>
-                  <p className="text-xs text-slate-500 mt-1 leading-relaxed">{step.description}</p>
-                  <div className="flex items-center gap-1 mt-3 text-[11px] font-semibold text-blue-600">
-                    {step.cta}
-                    <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
-                  </div>
-                </button>
-              );
-            })}
+                </div>
+              </div>
+            ))}
           </div>
         </section>
 
-        {/* Pre-integrated Connectors & Design Kit Sections */}
-          
-            <section className="space-y-2">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                <div>
-                  <h2 className="text-2xl sm:text-2xl font-bold text-slate-900">
-                    Pre-integrated Connectors
-                  </h2>
-                  <p className="text-xs sm:text-sm text-slate-500 mt-1">
-                    Instantly deploy infrastructure with over 50+ pre-built partner integrations
-                  </p>
-                </div>
-                <a
-                  href="/connectors"
-                  className="inline-flex items-center gap-1 text-xs sm:text-sm font-bold text-blue-600 hover:text-blue-700 transition-colors"
-                >
-                  See more connectors <ArrowRight className="w-3.5 h-3.5" />
-                </a>
+        {/* ------------- Pre-integrated Connectors + AML Setup ------------- */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Connectors — single card, spans 2 columns */}
+          <div className="lg:col-span-2 relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#EEF0FF] via-[#F5F2FF] to-white border border-slate-200/70 min-h-[240px]">
+            {/* ---- Background image placeholder on the right ---- */}
+            <div className="absolute inset-y-0 right-0 w-[55%] flex items-center justify-center pointer-events-none">
+              {<img src="/dashboard/connectors.png" alt="" className="w-full h-full object-contain" /> }
+              
+            </div>
+
+            {/* Content on the left */}
+            <div className="relative p-7 sm:p-9 max-w-[55%]">
+              <h2 className="text-xl sm:text-2xl font-bold text-slate-900 pt-10">
+                Pre-integrated Connectors
+              </h2>
+              <p className="text-lg max-w-md text-slate-600 pt-2.5 leading-relaxed">
+                Connect user bank accounts for identity verification, transaction
+                history, and real-time balance checks.
+              </p>
+              <a
+                href="/connectors"
+                className="inline-flex items-center gap-1 text-xl font-semibold text-blue-600 hover:text-blue-700 mt-5 transition-colors"
+              >
+                Browse Integrators <ArrowRight className="w-3.5 h-3.5" />
+              </a>
+            </div>
+          </div>
+
+          {/* AML setup — right column */}
+          <div className="rounded-2xl bg-white border border-slate-200/80 p-6 flex flex-col">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h3 className="text-base font-bold text-slate-900">AML setup</h3>
+                <p className="text-[13px] text-slate-500 mt-1 leading-relaxed">
+                  Tools to screen, monitor and review activity on your platform.
+                </p>
               </div>
+              <a
+                href="/compliance"
+                className="text-[11px] font-semibold text-blue-600 hover:text-blue-700 whitespace-nowrap shrink-0 mt-0.5"
+              >
+                Open Compliance →
+              </a>
+            </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {/* Plaid */}
-                <div className="p-5 sm:p-6 bg-white border border-slate-200/80 rounded-2xl flex flex-col justify-between space-y-8 sm:space-y-10 hover:shadow-sm transition-all">
-                  <div className="space-y-5 sm:space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div className="w-10 h-10 rounded-xl bg-slate-900 flex items-center justify-center text-white">
-                        <CreditCard className="w-5 h-5" />
-                      </div>
-                      <span className="px-2.5 py-0.5 bg-emerald-50 text-emerald-600 rounded-full text-[10px] font-bold tracking-wider">
-                        ENABLED
-                      </span>
+            <div className="mt-4 divide-y divide-slate-100">
+              {AML_SETUP.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <div
+                    key={item.title}
+                    className="flex items-start gap-3 py-3 first:pt-0 last:pb-0"
+                  >
+                    <div
+                      className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${item.bg}`}
+                    >
+                      <Icon className={`w-4 h-4 ${item.color}`} />
                     </div>
-                    <div>
-                      <h3 className="text-base sm:text-lg font-bold text-slate-900 mb-2 sm:mb-1.5">
-                        Plaid
-                      </h3>
-                      <p className="text-xs sm:text-sm text-slate-500 leading-relaxed">
-                        Connect user bank accounts for identity verification, transaction
-                        history, and real-time balance checks.
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[13px] font-semibold text-slate-900">
+                        {item.title}
+                      </p>
+                      <p className="text-[12px] text-slate-500 leading-snug mt-0.5">
+                        {item.description}
                       </p>
                     </div>
                   </div>
-
-                  <div className="flex justify-end pt-0">
-                    <button className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold transition-colors">
-                      Configure
-                    </button>
-                  </div>
-                </div>
-
-                {/* Banking Circle */}
-                <div className="p-5 sm:p-6 bg-white border border-slate-200/80 rounded-2xl flex flex-col justify-between space-y-8 sm:space-y-16 hover:shadow-sm transition-all">
-                  <div className="space-y-5 sm:space-y-7">
-                    <div className="flex items-center justify-between">
-                      <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600">
-                        <Landmark className="w-5 h-5" />
-                      </div>
-                      <span className="px-2.5 py-0.5 bg-blue-50 text-blue-600 rounded-full text-[10px] font-bold tracking-wider">
-                        AVAILABLE
-                      </span>
-                    </div>
-                    <div>
-                      <h3 className="text-base sm:text-lg font-bold text-slate-900 mb-2 sm:mb-1.5">
-                        Banking Circle
-                      </h3>
-                      <p className="text-xs sm:text-sm text-slate-500 leading-relaxed">
-                        Next-gen financial utility for cross-border payments, multi-currency
-                        accounts, and clearing for global markets.
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex justify-end pt-0">
-                    <button className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold transition-colors">
-                      Enable
-                    </button>
-                  </div>
-                </div>
-
-                {/* Sumsub */}
-                <div className="p-5 sm:p-6 bg-white border border-slate-200/80 rounded-2xl flex flex-col justify-between space-y-8 sm:space-y-16 hover:shadow-sm transition-all">
-                  <div className="space-y-5 sm:space-y-7">
-                    <div className="flex items-center justify-between">
-                      <div className="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center text-white">
-                        <ShieldCheck className="w-5 h-5" />
-                      </div>
-                      <span className="px-2.5 py-0.5 bg-emerald-50 text-emerald-600 rounded-full text-[10px] font-bold tracking-wider">
-                        ENABLED
-                      </span>
-                    </div>
-                    <div>
-                      <h3 className="text-base sm:text-lg font-bold text-slate-900 mb-2 sm:mb-1.5">
-                        Sumsub
-                      </h3>
-                      <p className="text-xs sm:text-sm text-slate-500 leading-relaxed">
-                        AI-powered identity verification, KYC/AML compliance, and fraud
-                        prevention for global onboarding orchestration.
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex justify-end pt-0">
-                    <button className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold transition-colors">
-                      Configure
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </section>
+                );
+              })}
+            </div>
+          </div>
+        </div>
 
         {/* ------------------------ Start with a Template ------------------------ */}
         <section>

@@ -1,0 +1,214 @@
+White-label Studio: Builder Brief
+A build brief, written from the White-label Studio screenshot. Anything marked (inferred) is not visible in the image and is a sensible default to confirm.
+1. What to build
+Build a browser-based visual studio where a bank or fintech configures its own white-label banking app. The user assembles screens from prebuilt banking components, themes them, wires behaviour (navigation, KYC rules, webhooks), binds components to live core-banking data, previews the result and publishes it. Think Figma plus Framer plus a workflow editor, specialised for banking.
+The studio works on one app project at a time. The screenshot shows the project Apex Digital Bank (US Core BaaS, Sandbox) with the Consumer DDA app flow open on the Home Dashboard screen, and the BalanceCardComponent selected.
+Core principles:
+Components are prebuilt banking components, not drawn from scratch. Users configure them.
+A Master Component is the source of truth. Edits cascade to every linked instance across screens.
+Selecting any object exposes five views of it: Design, Layout, Logic, Data and Code.
+Work autosaves. Projects have environments (Sandbox, Production) and publishing is gated by validation.
+2. Stack and visual language (inferred)
+React, TypeScript, Next.js (app router), Tailwind CSS, lucide-react icons.
+Zustand (or similar) for editor state, Immer for immutable updates, with an undo/redo history stack. dnd-kit for drag and drop.
+The phone preview is rendered with real React components inside a scaled device frame, never screenshots, so that selection, data binding and triggers work.
+Brand: primary blue #0040DF (hover #0036BF), light blue tint #E8EEFF, white chrome with 1px slate-200 borders, canvas background #F3F4F8 with a faint dotted grid. Font: Urbanist with a system sans fallback.
+Dense UI: 10 to 12px text, rounded-lg controls, small pill badges. Badge styles: Master (lavender), Screen (blue tint), Rule (blue outline), New Step (green tint), WS Active (green).
+Semantic colour: green means live or success, orange means trigger or warning dot, red means notification, purple means measurement and inspect overlays.
+3. Page layout
+Full viewport, no page scroll. Each panel scrolls on its own.
+Region	Size	Contents
+Top bar	56px high, full width	Logo, project switcher, save status, undo/redo, mode switcher, device, zoom, share, Publish
+Icon rail	56px wide, far left	Tool areas (Navigator, Components, Flow, Theme, Compliance) and Settings
+Left panel	280px, collapsible	Tabs: Navigator, Comps, Assets
+Canvas	Flexible	Zoomable, pannable workspace with the device frame
+Right panel	340px, collapsible	Tabs: Design, Layout, Logic, Data, Code, plus Preview footer
+Floating toolbar	Bottom centre of canvas	Select, Hand, Insert, Interactions, Snap
+4. Top bar: every control
+Control	What it should do
+Fintec Connect logo	Returns to the dashboard (My Products). Asks to save or confirms if there are unsaved changes.
+Project switcher (Apex Digital Bank, US Core BaaS, Sandbox)	Dropdown listing the organisation's projects. Lets the user switch project, switch environment (Sandbox or Production), create a new project, and open project settings. The subtitle shows the core engine and current environment.
+Saved 12s ago (blue dot)	Autosave status. States: Saving, Saved Ns ago, Unsaved changes (orange), Offline, Conflict. Clicking opens version history with restore.
+Undo and Redo arrows	Step backward and forward through the edit history. Shortcuts: Cmd+Z and Shift+Cmd+Z. Disabled when there is nothing to undo or redo.
+Design / Prototype / Workflows / Code (centre switch)	Design: edit mode with handles and panels. Prototype: canvas becomes interactive, triggers fire, selection handles hidden. Workflows: full-screen node graph of every trigger, rule and webhook across all screens. Code: generated code and schema for the current screen or selection.
+Device selector (iPhone 15 Pro, Pixel 8, tablet icon)	Swaps the device frame, viewport size, status bar and safe areas. Components reflow and keep their variants. The active device has a filled pill.
+Zoom (minus, 100%, plus, fit icon)	Zoom 25 to 400 percent. Clicking the percentage opens presets (50, 100, 200, Fit). The fit icon frames the device. Shortcuts: Cmd+plus, Cmd+minus, Cmd+0.
+Preview-on-device icon (phone and monitor)	Opens a QR code and link to run the current build on a real device or the web preview. (inferred)
+Share icon	Invite collaborators with roles (Viewer, Editor, Admin) and create a view-only prototype link.
+Publish App (primary button)	Opens the publish dialog: validation checklist (compliance, KYC rules, missing data bindings, contrast and accessibility), target environment, build targets (iOS, Android, Web), release notes, then Publish. Blocking errors disable the final button and explain why. Shows a progress state and a success state with the build link.
+5. Left icon rail
+Top to bottom:
+Layers (active): shows the Navigator tab.
+Components: shows the Comps tab.
+App flow: full-screen map of all screens and the navigation arrows between them.
+Theme (palette icon): design tokens editor for colours, typography, radius and spacing. Token changes apply to every screen instantly.
+Compliance (shield with tick): validation report covering KYC gates, accessibility, data privacy and regional regulatory presets. Shows an error and warning count badge.
+Settings (gear, bottom): project settings for environments, core connection, bundle IDs, team.
+Green dot (bottom): core engine connection health. On hover it shows engine name, status and latency. It turns orange or red when the connection degrades.
+6. Left panel
+Tabs
+NAVIGATOR (active): the layer tree described below.
+COMPS: library of prebuilt banking components, grouped as Balance and Accounts, Payments, Cards, Savings Vaults, Activity lists, Onboarding and KYC, Navigation, and Layout primitives. Each item has a thumbnail, variant list and required data bindings. Drag onto the canvas or onto a tree row. Includes search.
+ASSETS: logos, app icon, splash screen, fonts, images and illustrations. Upload and drag onto image slots. Shows where each asset is used.
+Search field
+Placeholder: Search layers, props. Filters the tree by layer name, component type or property. Matches are highlighted and parent rows auto-expand. Cmd+K focuses it.
+App flow header
+The label APP FLOW, CONSUMER DDA names the active flow. The icon at the right expands or collapses all rows (and can open a flow switcher).
+Layer tree
+Visible in the screenshot:
+Home Dashboard with a Screen badge (expanded)
+HeaderGreetingBar (collapsed)
+BalanceCardComponent with a Master badge (selected: solid blue row)
+MeshGradientBackdrop (shape)
+AmountDisplay ($25,000) (text)
+MyWalletButton (button)
+QuickActionsGrid (4)
+SavingsVaultsRow
+RecentActivityFeed
+BottomDockTabBar
+Other screens, collapsed with component counts: Accounts and Vaults (3 comps), Send and FedNow Rails (4 comps), Card Management (3 comps), KYC and Tier 1 Onboarding (2 comps).
+Behaviour:
+Click a row to select it. The canvas selection and right panel update, and the reverse is also true (click on canvas selects the row).
+Hovering a row outlines the component on canvas.
+Chevron expands or collapses children. Icons show type: diamond for master component, T for text, box for container, pointer for button.
+Drag to reorder or re-parent, with a blue drop indicator and an invalid-drop state.
+Double-click to rename. Right-click menu: Rename, Duplicate, Group, Detach instance, Hide, Lock, Delete, Copy as code.
+Clicking a screen row shows that screen on the canvas.
+Master Component callout (bottom of panel)
+Shown when the selection is a master component. Reads Master Component, v2.1, and: Changes to BalanceCard cascade across all 6 linked white-label screens. It links to a list of linked instances and offers Publish master update. Instances can be detached from the right panel or the context menu.
+Add New Screen (button)
+Opens a dialog to create a screen: blank, from a template (Home, Accounts, Send, Cards, KYC, Settings), or duplicate an existing screen. The new screen appears in the tree and in the flow map.
+7. Canvas
+Dotted-grid background. Pan with Space plus drag, the Hand tool or trackpad. Zoom with Cmd plus scroll or pinch.
+Hint chip (top left): Hold Opt to inspect spacing and padding. Double-click component to isolate. Dismissible, and remembers dismissal.
+Opt inspect: while Opt is held, show purple distance labels from the selection to its parent and siblings.
+Isolate mode: double-click a component to dim everything else and show a breadcrumb. Esc or the breadcrumb exits.
+Selection label (above the selection): component name, then the primary trigger summary (On Tap: /wallet/details, click opens the Logic tab), then the data status (ws:live, green dot, click opens the Data tab), then Duplicate and Delete icons.
+Selection frame: eight resize handles. Dragging sets Fixed size, with snap guides. Hug and Fill are set in the right panel.
+Dimension pill under the selection, for example 361 x 168 pt, Pad 20px. Updates live while resizing or editing padding.
+Small red badge on the left edge of the selected card: a validation or annotation marker (inferred; the text is unreadable in the image).
+Device frame: iPhone 15 Pro with dynamic island, status bar (09:41), and the screen content rendered live from Sandbox data. The screen content scrolls inside the frame. Clicking selects the top-most component, and clicking again drills into a child.
+Components visible on the Home Dashboard screen:
+HeaderGreetingBar: avatar, Good morning plus the customer name, notification bell with a red unread dot.
+BalanceCardComponent: mesh-gradient backdrop (dark blue, green and orange blurred shapes), Total Balance label, AmountDisplay with large dollars and smaller cents ($25,000 .40), a Tier 1 BaaS chip, money-in and money-out figures (green arrow down $20,000, red arrow up $17,000), and a My Wallet button with an arrow.
+QuickActionsGrid: four tiles: Send, Request, Pay Bill, Top Up.
+SavingsVaultsRow: title, See All (4) link, and two vault cards with name, amount and progress bar (iPhone 15 Pro $699, blue bar; MacBook M3 Max $1,499, green bar).
+RecentActivityFeed: title, View History link, and rows with merchant icon, name, category and time, amount and card tail (Apple Flagship Store -$149.00, Visa 4022; Stumptown Coffee -$8.40, Debit 8019).
+BottomDockTabBar: Home (active, with dot), Cards, Insights, Profile.
+8. Floating toolbar (bottom of canvas)
+Control	What it should do
+Select (arrow, active)	Default tool. Click to select, drag to marquee-select. Shortcut V.
+Hand	Pan the canvas. Shortcut H (or hold Space).
+Insert component (plus in a square)	Opens a quick component picker, then places the chosen component into the selected container or screen. Shortcut C.
+Interactions (lightning)	Trigger tool. Click a component, then click a target screen or component to create a navigation trigger. Draws a connector arrow in Prototype and flow views. Shortcut I.
+Snap 16px (grid icon pill)	Toggles snapping to the grid. Click the label to choose 4, 8, 16 or Off. Applies to move, resize, padding and gap.
+9. Right panel
+Tabs: DESIGN (active), LAYOUT, LOGIC, DATA, CODE. The panel always reflects the current selection. With nothing selected it shows screen settings.
+9.1 DESIGN tab (as in the screenshot, top to bottom)
+A. Component header and variants
+Shows the component name and a Master badge (or Instance badge with a link to its master).
+VARIANT STATE with a 3 variants link that opens the variants manager (add, rename, delete, edit per-variant overrides).
+Segmented control: Default, Masked, Negative. Switching previews instantly on the canvas. Masked hides the balance (for example dots). Negative shows overdrawn styling in red.
+B. LAYOUT AND BOX MODEL (label at right shows the mode, Flex Col)
+The Flex Col label is clickable to switch between Flex Row, Flex Col, Grid and Stack.
+Icon row: direction, wrap, and distribution or alignment (left, centre, right or stretch).
+Padding and gap diagram: four inputs (Top, Right, Bottom, Left) with a px unit, and a gap input. Values map to the spacing scale, so a value of 2 resolves to 20px as shown in the canvas pill. A link toggle edits all sides together.
+The centre chip, 361 x 168 (Fill Container), toggles the sizing mode: Fill, Hug or Fixed.
+C. WORKFLOW TRIGGERS (with a + Add Action link)
+A trigger group: WHEN: On Tap (BalanceCard), with an orange status dot.
+Ordered step cards inside it:
+Step 1: Validate KYC Status (Passkey), with a Rule badge. A guard that must pass.
+Step 2: Open BottomSheet: /wallet/details, with a Spring (250ms) motion badge.
+Click a step to edit it, drag to reorder, hover to show delete. A failed rule routes to a fallback path (for example the KYC onboarding screen).
+D. Add Action Trigger card (appears inline after clicking + Add Action; carries a New Step 3 badge and a close X)
+Helper text: Attach banking events or routing to BalanceCardComponent.
+TRIGGER EVENT: segmented control with On Tap (active), Hold, Swipe. Add Double Tap and On Appear (inferred).
+ACTION CATEGORY tabs change the fields below:
+Navigation: Target Destination Screen (select; screens and deep links such as apex://wallet/details), Transition Motion (Spring 250ms, Ease, Slide, Fade, Sheet, Instant), Passing Params (token input accepting variables such as {account.id}, with autocomplete from the data context).
+Banking Core: choose an operation (get balance, initiate transfer, freeze card, fetch transactions, open dispute), map parameters, define success and error paths.
+Security: require passkey or biometrics, step-up authentication, session check, KYC tier gate.
+Webhook: URL, method, payload mapping, signing secret, retries.
+Biometric Step-Up Guard (checkbox, checked): description Tier 1 KYC and Passkey check. When on, a guard step is inserted before the action. Failing the guard routes to the fallback.
+Cancel: discards the draft and closes the card.
+Attach Action (primary): validates required fields, adds the step as Step 3, closes the card, refreshes the trigger summary chip on the canvas and marks the project as changed.
+E. LIVE CORE DATA BINDING (with a green WS Active pill)
+WS Active means a live websocket subscription to the core engine. Other states: Connecting, Disconnected, Mock data.
+Financial Core Engine select (Apex Banking Core, DDA Ledger). Other options: other connected cores and a Sandbox mock.
+Bounded Entity Variable: a code-style field showing {{account.available_balance}}, with a braces icon that opens a variable picker (entity tree of account, customer, card, transaction, vault; each variable shows its type and a sample value). Validate that the type fits the target (currency for AmountDisplay) and show a formatting option.
+The Design tab continues below with styling controls (fill, typography, corner radius, shadow, token links), not shown in the screenshot. (inferred)
+Footer (pinned)
+Preview (primary, play icon): previews the current screen with live Sandbox data in a modal, starting from the selected screen.
+Code icon button (angle brackets): jumps to the Code tab or copies the generated component code.
+9.2 Other tabs (inferred)
+LAYOUT: full auto-layout controls: width and height with Fill, Hug or Fixed, min and max, constraints, padding and gap, alignment, overflow, safe-area handling, z-order, and per-device overrides.
+LOGIC: every trigger on the selection, screen-level conditions and rules (KYC tier, feature flags, region), state variables and animations, shown as a readable list with an option to open the Workflows graph.
+DATA: table of properties and their bindings (property, variable or expression, format, fallback), data sources, mock data toggle and refresh policy.
+CODE: generated output for the selection (React Native, Swift or Kotlin, plus the JSON component schema). Read-only by default with Copy, and a diff against the last published version.
+10. Data model (starting point)
+type Environment = 'sandbox' | 'production';
+
+interface Project {
+  id: string;
+  name: string;            // Apex Digital Bank
+  coreEngine: string;      // US Core BaaS
+  environment: Environment;
+  flows: Flow[];
+  tokens: DesignTokens;
+}
+
+interface Flow { id: string; name: string; screens: Screen[] }   // Consumer DDA
+
+interface Screen { id: string; name: string; children: ComponentNode[] }
+
+interface ComponentNode {
+  id: string;
+  type: string;                  // BalanceCard, QuickActionsGrid, ...
+  name: string;
+  masterId?: string;             // set when this is an instance
+  isMaster?: boolean;
+  masterVersion?: string;        // v2.1
+  variants: Record<string, Partial<Props>>;   // default, masked, negative
+  activeVariant: string;
+  layout: { mode: 'row' | 'col' | 'grid' | 'stack'; padding: Sides; gap: number; sizing: 'fill' | 'hug' | 'fixed' };
+  triggers: Trigger[];
+  bindings: Binding[];
+  children: ComponentNode[];
+}
+
+interface Trigger {
+  event: 'tap' | 'hold' | 'swipe' | 'doubleTap' | 'appear';
+  steps: Step[];                 // rules, navigation, banking, security, webhook
+}
+
+interface Binding { prop: string; variable: string; engine: string; format?: string }
+11. Key flows to implement
+Select and inspect: click a tree row or canvas component, the right panel updates, Opt shows spacing, double-click isolates.
+Add an action: + Add Action, choose event and category, fill fields, optionally keep the Biometric Step-Up Guard, Attach Action, see Step 3 appear and the canvas chip update.
+Master cascade: edit the master, instances update, the callout shows how many screens are linked, Publish master update commits it.
+Variants: switch Default, Masked and Negative and see the canvas change at once.
+Data binding: change the bound variable, the AmountDisplay re-renders from live data, WS Active shows the connection state.
+Prototype: switch mode, tap the balance card, the guard runs, the bottom sheet opens at /wallet/details.
+Publish: run validation, resolve blockers, choose environment, publish, show success.
+12. Seed data
+Project: Apex Digital Bank, US Core BaaS, Sandbox. Flow: Consumer DDA. Customer: Krishnan. Balance: $25,000.40. Money in $20,000, money out $17,000. Tier: Tier 1 BaaS.
+Screens: Home Dashboard (6 top-level components), Accounts and Vaults (3), Send and FedNow Rails (4), Card Management (3), KYC and Tier 1 Onboarding (2).
+Triggers on BalanceCardComponent: On Tap, Step 1 Validate KYC Status (Passkey) as a Rule, Step 2 Open BottomSheet /wallet/details with Spring 250ms.
+Binding: Apex Banking Core, DDA Ledger, {{account.available_balance}}, status WS Active.
+13. States, accessibility and quality
+Empty, loading and error states for every panel (no components, no triggers, core engine disconnected, save failed).
+Keyboard: V, H, C, I tool shortcuts, Cmd+Z and Shift+Cmd+Z, Cmd+K, arrow keys nudge the selection (Shift for larger steps), Delete removes, Esc exits isolate mode and closes cards.
+Accessibility: every icon button has an accessible name and visible focus ring, tabs use proper tab roles, colour is never the only status signal, and the contrast checker runs on themed components.
+Performance: virtualise the layer tree, memoise canvas components, debounce autosave, and keep drag at 60fps.
+Safety: Production publishing requires confirmation, and destructive actions (delete screen, detach master) are undoable.
+14. Suggested build order
+App shell: top bar, rail, panels, canvas, resizable and collapsible panels.
+Editor state, selection model and undo/redo.
+Device frame and the six Home Dashboard components, rendered from seed data.
+Navigator tree with selection sync, search and drag and drop.
+Right panel Design tab: variants, layout and box model.
+Workflow triggers and the Add Action Trigger card.
+Live data binding with a mocked websocket and the variable picker.
+Prototype mode, Workflows graph and Preview.
+Comps and Assets tabs, Add New Screen, Master Component cascade.
+Theme tokens, Compliance report, Publish flow and project switcher.
+Done when: a user can open the project, select BalanceCardComponent, change its variant and padding, attach a third action with the biometric guard, see the canvas chip update, preview the tap flow with live data, and pass validation to publish.

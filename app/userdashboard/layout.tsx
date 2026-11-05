@@ -96,7 +96,7 @@ function Sidebar({ collapsed = false, onClose }: { collapsed?: boolean; onClose?
         <Link href="/userdashboard" className="flex items-center gap-0">
           {!collapsed && (
             <svg
-              width="150"
+              width="100"
               height="50"
               viewBox="100 0 150 201"
               fill="none"
@@ -186,15 +186,17 @@ function Topbar({ collapsed, onOpenSidebar, onToggleCollapse }: { collapsed: boo
         <Menu className="w-5 h-5" />
       </button>
 
-      <div className="flex-1 max-w-xl">
-        <div className="relative">
+      {/* Search — flex-1 fills the middle; input capped + centered inside */}
+      <div className="flex-1 flex justify-center">
+        <div className="relative w-full max-w-xl">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <input type="text" placeholder="Search accounts, transactions, rails..." className="w-full h-9 pl-9 pr-16 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 placeholder:text-slate-400" />
           <kbd className="absolute right-2 top-1/2 -translate-y-1/2 hidden sm:flex items-center gap-0.5 px-1.5 py-0.5 border border-slate-200 bg-white rounded text-[10px] text-slate-400 font-medium">⌘ K</kbd>
         </div>
       </div>
 
-      <div className="flex items-center gap-3">
+      {/* Right cluster — ml-auto pins it to the top-right */}
+      <div className="flex items-center gap-3 ml-auto">
         <button className="relative w-8 h-8 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-500">
           <Bell className="w-4 h-4" />
           <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-red-500 rounded-full" />

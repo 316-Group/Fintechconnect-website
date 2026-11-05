@@ -19,6 +19,79 @@ import {
   Fingerprint,
 } from "lucide-react";
 
+type RegionId = "us" | "eu" | "uk" | "wa";
+
+function starPoints(cx: number, cy: number, outerRadius: number, innerRadius: number) {
+  return Array.from({ length: 10 }, (_, index) => {
+    const angle = (index * Math.PI) / 5 - Math.PI / 2;
+    const radius = index % 2 === 0 ? outerRadius : innerRadius;
+    return `${cx + Math.cos(angle) * radius},${cy + Math.sin(angle) * radius}`;
+  }).join(" ");
+}
+
+function RegionFlag({ region }: { region: RegionId }) {
+  if (region === "us") {
+    const starRows = [6, 5, 6, 5, 6, 5, 6, 5, 6];
+    let starIndex = 0;
+
+    return (
+      <svg viewBox="0 0 100 60" aria-hidden="true" className="h-7 w-10 shrink-0 overflow-hidden rounded-sm shadow-sm ring-1 ring-black/10">
+        <rect width="100" height="60" fill="white" />
+        {Array.from({ length: 7 }, (_, index) => (
+          <rect key={index} y={index * (60 / 13) * 2} width="100" height={60 / 13} fill="#B22234" />
+        ))}
+        <rect width="40" height={(60 / 13) * 7} fill="#3C3B6E" />
+        {starRows.map((count, row) =>
+          Array.from({ length: count }, (_, column) => {
+            const index = starIndex++;
+            const x = count === 6 ? 3.3 + column * 6.6 : 6.6 + column * 6.6;
+            const y = 1.8 + row * 3.4;
+            return <polygon key={index} points={starPoints(x, y, 1.05, 0.45)} fill="white" />;
+          }),
+        )}
+      </svg>
+    );
+  }
+
+  if (region === "eu") {
+    return (
+      <svg viewBox="0 0 100 60" aria-hidden="true" className="h-7 w-10 shrink-0 overflow-hidden rounded-sm shadow-sm ring-1 ring-black/10">
+        <rect width="100" height="60" fill="#003399" />
+        {Array.from({ length: 12 }, (_, index) => {
+          const angle = (index * 2 * Math.PI) / 12 - Math.PI / 2;
+          return (
+            <polygon
+              key={index}
+              points={starPoints(50 + Math.cos(angle) * 14, 30 + Math.sin(angle) * 14, 3.2, 1.35)}
+              fill="#FFCC00"
+            />
+          );
+        })}
+      </svg>
+    );
+  }
+
+  if (region === "uk") {
+    return (
+      <svg viewBox="0 0 100 60" aria-hidden="true" className="h-7 w-10 shrink-0 overflow-hidden rounded-sm shadow-sm ring-1 ring-black/10">
+        <rect width="100" height="60" fill="#012169" />
+        <path d="M0 0 100 60M100 0 0 60" stroke="white" strokeWidth="12" />
+        <path d="M0 0 100 60M100 0 0 60" stroke="#C8102E" strokeWidth="5" />
+        <path d="M50 0v60M0 30h100" stroke="white" strokeWidth="20" />
+        <path d="M50 0v60M0 30h100" stroke="#C8102E" strokeWidth="10" />
+      </svg>
+    );
+  }
+
+  return (
+    <svg viewBox="0 0 100 60" aria-hidden="true" className="h-7 w-10 shrink-0 overflow-hidden rounded-sm shadow-sm ring-1 ring-black/10">
+      <rect width="100" height="60" fill="white" />
+      <rect width="33.33" height="60" fill="#008751" />
+      <rect x="66.67" width="33.33" height="60" fill="#008751" />
+    </svg>
+  );
+}
+
 export default function PlatformConfigurationForm({
   onBack,
   onComplete,
@@ -52,7 +125,11 @@ export default function PlatformConfigurationForm({
 
   // --- Handlers ---
   const toggleCurrency = (id: string) => {
-    setCurrencies(currencies.map((c) => (c.id === id ? { ...c, enabled: !c.enabled } : c)));
+    setCurrencies((currentCurrencies) =>
+      currentCurrencies.map((currency) =>
+        currency.id === id ? { ...currency, enabled: !currency.enabled } : currency,
+      ),
+    );
   };
 
   const toggleCapability = (id: string) => {
@@ -62,10 +139,10 @@ export default function PlatformConfigurationForm({
   const selectedCapCount = capabilities.filter((c) => c.selected).length;
 
   const regions = [
-    { id: "us", flag: "🇺🇸", title: "United States", badge: "FINCEN / OCC / FedNow Ready", desc: "Includes automated routing for NACHA, RTP direct routing, and federal CFTI reporting hooks." },
-    { id: "eu", flag: "🇪🇺", title: "European Union", badge: "SEPA / EBA / PSD2 Compliant", desc: "Instant Euro transfers via TIPS, Open Banking SCA authentication, and GDPR data residency." },
-    { id: "uk", flag: "🇬🇧", title: "United Kingdom", badge: "FCA / PRA / FPS Ready", desc: "FPS sub-second settlement, BACS direct debiting facilities, and UK Open Banking routes." },
-    { id: "wa", flag: "🌍", title: "West Africa", badge: "CBN / NIBSS / NIP Clearing", desc: "NIP instant clearing, Bank Verification Number (BVN) integrations, and eNaira rails." },
+    { id: "us" as const, title: "United States", badge: "FINCEN / OCC / FedNow Ready", desc: "Includes automated routing for NACHA, RTP direct routing, and federal CFTI reporting hooks." },
+    { id: "eu" as const, title: "European Union", badge: "SEPA / EBA / PSD2 Compliant", desc: "Instant Euro transfers via TIPS, Open Banking SCA authentication, and GDPR data residency." },
+    { id: "uk" as const, title: "United Kingdom", badge: "FCA / PRA / FPS Ready", desc: "FPS sub-second settlement, BACS direct debiting facilities, and UK Open Banking routes." },
+    { id: "wa" as const, title: "West Africa", badge: "CBN / NIBSS / NIP Clearing", desc: "NIP instant clearing, Bank Verification Number (BVN) integrations, and eNaira rails." },
   ];
 
   return (
@@ -123,7 +200,7 @@ export default function PlatformConfigurationForm({
                     isSelected ? "bg-slate-50 border-blue-500 shadow-sm" : "bg-white border-slate-200 hover:border-slate-300"
                   }`}
                 >
-                  <div className="text-2xl leading-none shrink-0">{region.flag}</div>
+                  <RegionFlag region={region.id} />
                   <div className="flex-1">
                     <div className="flex items-center justify-between mb-1">
                       <h3 className="text-sm font-bold text-slate-900">{region.title}</h3>
@@ -184,14 +261,19 @@ export default function PlatformConfigurationForm({
                   <span className="text-[10px] text-slate-400">{curr.rail}</span>
                   {!curr.isBase && (
                     <button
+                      type="button"
+                      role="switch"
+                      aria-checked={curr.enabled}
+                      aria-label={`${curr.enabled ? "Disable" : "Enable"} ${curr.code} settlement`}
+                      title={`${curr.enabled ? "Disable" : "Enable"} ${curr.code} settlement`}
                       onClick={() => toggleCurrency(curr.id)}
-                      className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors ${
-                        curr.enabled ? "bg-blue-600" : "bg-slate-200"
+                      className={`group relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full p-0.5 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 ${
+                        curr.enabled ? "bg-blue-600" : "bg-slate-300"
                       }`}
                     >
                       <span
-                        className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform shadow-sm ${
-                          curr.enabled ? "translate-x-[18px]" : "translate-x-1"
+                        className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform duration-200 ease-in-out ${
+                          curr.enabled ? "translate-x-5" : "translate-x-0"
                         }`}
                       />
                     </button>
