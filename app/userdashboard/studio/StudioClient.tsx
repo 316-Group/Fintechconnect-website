@@ -8,6 +8,7 @@ import {
   Layers, Box, Workflow, Palette, ShieldCheck, Settings, Plus, PlusCircle,
   Trash2, Undo2, Home, Wallet,
   BarChart3, User, Play, Code2, Check, Braces, X, Diamond, CreditCard,
+  Search,
 } from 'lucide-react';
 import {
   PAGES, APP_KINDS, PAGE_TO_TAB, TAB_TO_PAGE, SINGLE_SLOT,
@@ -17,6 +18,7 @@ import {
   type RadiusMode, type Radius, type ViewCtx, type ViewActions,
   RADII, INITIAL_BALANCE, INITIAL_INCOME, INITIAL_OUTCOME,
   INITIAL_TRANSACTIONS, INITIAL_SAVINGS, HISTORY_LIMIT,
+  noopActions,
 } from './phone-cards';
 
 const urbanist = Urbanist({ subsets: ['latin'], weight: ['400', '500', '600', '700', '800'], display: 'swap' });
@@ -236,36 +238,165 @@ function LeftPanel({
   onEndDrag: () => void;
   onAddModule: (id: ModuleId) => void; onRemoveModule: (id: ModuleId) => void;
 }) {
-  return (
-    <aside className="flex w-[280px] shrink-0 flex-col border-r border-slate-200 bg-[#EDEFFC]">
-      <div className="space-y-3 px-4 pb-2 pt-5">
-        
+  const [tab, setTab] = useState<'navigator' | 'comps' | 'assets'>('navigator');
+  const [query, setQuery] = useState('');
 
-        <div className="flex items-center justify-between pt-1">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-600">App Flow · Consumer DDA</span>
+  const previewCtx: ViewCtx = {
+    radius: RADII.rounded,
+    accent,
+    isDark: false,
+    interactive: false,
+    balance: INITIAL_BALANCE,
+    income: INITIAL_INCOME,
+    outcome: INITIAL_OUTCOME,
+    savings: INITIAL_SAVINGS,
+    transactions: INITIAL_TRANSACTIONS,
+    faceId: true,
+    isCardFrozen: false,
+    actions: noopActions,
+  };
+
+  const allMods = allModulesFor();
+  const filteredMods = allMods.filter(
+    (m) =>
+      query === '' ||
+      m.title.toLowerCase().includes(query.toLowerCase()) ||
+      m.subtitle.toLowerCase().includes(query.toLowerCase())
+  );
+
+  return (
+    <aside className="flex w-[340px] shrink-0 flex-col border-r border-slate-200 bg-[#EDEFFC]">
+      {/* Tab bar */}
+      <div className="flex items-center border-b border-slate-200 px-2 pt-2">
+        <button
+          onClick={() => setTab('navigator')}
+          className={`flex flex-1 items-center justify-center gap-1 rounded-t-md px-1 py-1.5 text-[12px] font-bold uppercase tracking-wider transition-colors ${
+            tab === 'navigator'
+              ? 'border border-b-0 border-slate-200 bg-white text-[#0040DF]'
+              : 'text-slate-500 hover:text-slate-800'
+          }`}
+        >
+          <Layers className="h-3 w-3" /> Navigator
+        </button>
+        <button
+          onClick={() => setTab('comps')}
+          className={`flex flex-1 items-center justify-center gap-1 rounded-t-md px-1 py-1.5 text-[12px] font-bold uppercase tracking-wider transition-colors ${
+            tab === 'comps'
+              ? 'border border-b-0 border-slate-200 bg-white text-[#0040DF]'
+              : 'text-slate-500 hover:text-slate-800'
+          }`}
+        >
+          <Box className="h-3 w-3" /> Comps
+        </button>
+        <button
+          onClick={() => setTab('assets')}
+          className={`flex flex-1 items-center justify-center gap-1 rounded-t-md px-1 py-1.5 text-[12px] font-bold uppercase tracking-wider transition-colors ${
+            tab === 'assets'
+              ? 'border border-b-0 border-slate-200 bg-white text-[#0040DF]'
+              : 'text-slate-500 hover:text-slate-800'
+          }`}
+        >
+          <Palette className="h-3 w-3" /> Assets
+        </button>
+      </div>
+
+      {/* Search */}
+      <div className="px-3 pt-2 pb-1">
+        <div className="flex items-center gap-1.5 rounded-md border border-slate-200 bg-white px-2 py-1.5">
+          <Search className="h-3 w-3 shrink-0 text-slate-400" />
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search layers, props…"
+            className="w-full bg-transparent text-[10px] outline-none placeholder:text-slate-400"
+          />
         </div>
       </div>
 
-      <ul className="m-0 min-h-0 flex-1 space-y-0.5 overflow-y-auto px-3 pb-3">
-        {PAGES.map((p) => (
-          <PageMenuItem key={p.id} pageId={p.id} label={p.label}
-            count={pageModulesFor(p.id, appKind).length}
-            active={activePage === p.id} expanded={expandedPage === p.id}
-            accent={accent} singleSlot={!!SINGLE_SLOT[p.id]}
-            canvasModules={pageModules[p.id] ?? []} appKind={appKind}
-            onSelect={() => onSelectPage(p.id)}
-            onToggleExpand={() => onToggleExpand(p.id)}
-            onAddModule={onAddModule} onRemoveModule={onRemoveModule}
-            onStartDrag={onStartDrag} onEndDrag={onEndDrag} drag={drag}
-          />
-        ))}
-      </ul>
+      {/* Navigator tab */}
+      {tab === 'navigator' && (
+        <>
+          <div className="space-y-3 px-4 pb-2 pt-2">
+            <div className="flex items-center justify-between pt-1">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-600">
+                App Flow · Consumer DDA
+              </span>
+            </div>
+          </div>
+          <ul className="m-0 min-h-0 flex-1 space-y-0.5 overflow-y-auto px-3 pb-3">
+            {PAGES.map((p) => (
+              <PageMenuItem
+                key={p.id}
+                pageId={p.id}
+                label={p.label}
+                count={pageModulesFor(p.id, appKind).length}
+                active={activePage === p.id}
+                expanded={expandedPage === p.id}
+                accent={accent}
+                singleSlot={!!SINGLE_SLOT[p.id]}
+                canvasModules={pageModules[p.id] ?? []}
+                appKind={appKind}
+                onSelect={() => onSelectPage(p.id)}
+                onToggleExpand={() => onToggleExpand(p.id)}
+                onAddModule={onAddModule}
+                onRemoveModule={onRemoveModule}
+                onStartDrag={onStartDrag}
+                onEndDrag={onEndDrag}
+                drag={drag}
+              />
+            ))}
+          </ul>
+          <div className="border-t border-slate-200 p-2">
+            <button className="flex w-full items-center justify-center gap-1.5 rounded-md border border-dashed border-slate-300 py-1.5 text-[10px] font-semibold text-slate-600 hover:border-[#0040DF] hover:text-[#0040DF]">
+              <PlusCircle className="h-3 w-3" /> Add New Screen
+            </button>
+          </div>
+        </>
+      )}
 
-      <div className="border-t border-slate-200 p-2">
-        <button className="flex w-full items-center justify-center gap-1.5 rounded-md border border-dashed border-slate-300 py-1.5 text-[10px] font-semibold text-slate-600 hover:border-[#0040DF] hover:text-[#0040DF]">
-          <PlusCircle className="h-3 w-3" /> Add New Screen
-        </button>
-      </div>
+      {/* Comps tab */}
+      {tab === 'comps' && (
+        <div className="min-h-0 flex-1 space-y-2 overflow-y-auto px-3 pb-3 pt-2">
+          {filteredMods.length === 0 && (
+            <p className="py-6 text-center text-[10px] text-slate-400">No components found.</p>
+          )}
+          {filteredMods.map((mod) => {
+            const isAdded = (pageModules[activePage] ?? []).includes(mod.id);
+            return (
+              <div key={mod.id} className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+                <div className="flex items-center justify-between border-b border-slate-100 px-2 py-1.5">
+                  <div className="flex min-w-0 items-center gap-1.5">
+                    <span className="truncate text-[9px] font-bold text-slate-800">{mod.title}</span>
+                    <span className={`shrink-0 rounded px-1 py-0.5 text-[7px] font-bold ${mod.badgeColor}`}>
+                      {mod.badge}
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => (isAdded ? onRemoveModule(mod.id) : onAddModule(mod.id))}
+                    className={`grid h-4 w-4 shrink-0 place-items-center rounded hover:bg-slate-200 ${
+                      isAdded ? 'text-emerald-600' : 'text-slate-400'
+                    }`}
+                  >
+                    {isAdded ? <Check className="h-3 w-3" /> : <Plus className="h-3 w-3" />}
+                  </button>
+                </div>
+                <div className="relative overflow-hidden bg-[#F7F8FF] p-2" style={{ height: 140 }}>
+                  <div className="pointer-events-none origin-top-left" style={{ transform: 'scale(0.75)', width: '133%' }}>
+                    <ModuleView id={mod.id} ctx={previewCtx} />
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Assets tab */}
+      {tab === 'assets' && (
+        <div className="flex flex-1 items-center justify-center px-4 text-center">
+          <p className="text-[10px] text-slate-400">Assets library coming soon.</p>
+        </div>
+      )}
     </aside>
   );
 }
@@ -313,7 +444,9 @@ function DropLine({ side, accent }: { side: 'top' | 'bottom'; accent: string }) 
 
 function ToolbarButton({
   label, onClick, disabled, danger, children,
-}: { label: string; onClick: () => void; disabled?: boolean; danger?: boolean; children: React.ReactNode }) {
+}: {
+  label: string; onClick: () => void; disabled?: boolean; danger?: boolean; children: React.ReactNode;
+}) {
   return (
     <button type="button" aria-label={label} title={label} disabled={disabled}
       onClick={(e) => { e.stopPropagation(); onClick(); }}
@@ -354,18 +487,7 @@ function PageCanvas({
         <div className={`grid h-12 w-12 place-items-center text-white shadow-sm ${radius.icon}`} style={{ background: accent }}><Plus className="h-6 w-6" /></div>
         <div className="space-y-1">
           <h4 className="text-xs font-bold">{drag ? 'Drop to add it here' : `Build the ${pageLabel} page`}</h4>
-          <p className="text-[11px] text-slate-500">Drag tiles from the left panel, or tap a suggestion below.</p>
-        </div>
-        <div className="flex flex-wrap justify-center gap-1.5 pt-1">
-          {suggestions.map((id) => {
-            const label = moduleFor(id)?.title ?? id;
-            return (
-              <button key={id} type="button" onClick={() => onQuickAdd(id)}
-                className={`rounded-full px-2.5 py-1 text-[10px] font-semibold shadow-sm ${isDark ? 'bg-slate-800 text-slate-200' : 'bg-white text-slate-600 ring-1 ring-slate-200'}`}>
-                + {label}
-              </button>
-            );
-          })}
+          <p className="text-[11px] text-slate-500">Drag tiles from the left panel.</p>
         </div>
       </div>
     );
