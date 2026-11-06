@@ -21,6 +21,71 @@ import {
 
 type RegionId = "us" | "eu" | "uk" | "wa";
 
+export type PlatformCurrency = {
+  id: string;
+  symbol: string;
+  code: string;
+  name: string;
+  isBase: boolean;
+  enabled: boolean;
+  rail: string;
+};
+
+export type PlatformCapability = {
+  id: string;
+  title: string;
+  desc: string;
+  icon: React.ElementType;
+  selected: boolean;
+};
+
+export type PlatformConfigurationData = {
+  selectedRegion: string;
+  currencies: PlatformCurrency[];
+  selectedChannel: string;
+  capabilities: PlatformCapability[];
+};
+
+export type PersistedPlatformConfigurationData = Omit<PlatformConfigurationData, "capabilities"> & {
+  capabilities: Array<Omit<PlatformCapability, "icon">>;
+};
+
+const DEFAULT_CURRENCIES: PlatformCurrency[] = [
+  { id: "usd", symbol: "$", code: "USD", name: "US Dollar", isBase: true, enabled: true, rail: "Core Clearing / ACH" },
+  { id: "eur", symbol: "€", code: "EUR", name: "Euro", isBase: false, enabled: true, rail: "SEPA / TARGET2 Ready" },
+  { id: "gbp", symbol: "£", code: "GBP", name: "British Pound", isBase: false, enabled: true, rail: "CHAPS & FPS Ready" },
+  { id: "ngn", symbol: "₦", code: "NGN", name: "Nigerian Naira", isBase: false, enabled: true, rail: "Direct FX Corridor" },
+];
+
+const DEFAULT_CAPABILITIES: PlatformCapability[] = [
+  { id: "accounts", title: "Account management", desc: "Multi-currency balances, virtual ledger accounts", icon: Wallet, selected: true },
+  { id: "payments", title: "Payments and transfers", desc: "ACH, FedNow, SEPA and wire routing engines", icon: ArrowRight, selected: true },
+  { id: "cards", title: "Card issuing", desc: "Physical or virtual Apple Pay / IP processing", icon: CreditCard, selected: true },
+  { id: "lending", title: "Lending & credit", desc: "Automated underwriting, loan amortization schedules", icon: Percent, selected: true },
+  { id: "identity", title: "Identity verification", desc: "KYC, KYB, OFAC, ID document verification & biometrics", icon: Fingerprint, selected: true },
+  { id: "wallets", title: "Digital wallets", desc: "Stored value balances, sub-wallets, peer transfers", icon: LayoutGrid, selected: true },
+  { id: "compliance", title: "Compliance", desc: "Automated sanctions screening, PEP check, SAR filing triggers", icon: ShieldCheck, selected: true },
+  { id: "monitoring", title: "Transaction monitoring", desc: "Real-time AML rule engine & fraud heuristics", icon: Users, selected: true },
+  { id: "treasury", title: "Treasury management", desc: "Yield routing and automated sweep parameters", icon: Building2, selected: false },
+];
+
+export function restorePlatformConfigurationData(
+  data: PersistedPlatformConfigurationData,
+): PlatformConfigurationData {
+  return {
+    ...data,
+    capabilities: data.capabilities.map((capability) => {
+      const defaultCapability = DEFAULT_CAPABILITIES.find(
+        (item) => item.id === capability.id,
+      );
+      if (!defaultCapability) {
+        throw new Error(`Unknown saved platform capability: ${capability.id}`);
+      }
+      return { ...capability, icon: defaultCapability.icon };
+    }),
+  };
+}
+
 function starPoints(cx: number, cy: number, outerRadius: number, innerRadius: number) {
   return Array.from({ length: 10 }, (_, index) => {
     const angle = (index * Math.PI) / 5 - Math.PI / 2;
@@ -95,33 +160,30 @@ function RegionFlag({ region }: { region: RegionId }) {
 export default function PlatformConfigurationForm({
   onBack,
   onComplete,
+  initialValues,
+  isEditing = false,
 }: {
   onBack: () => void;
-  onComplete: () => void;
+  onComplete: (data: PlatformConfigurationData) => void;
+  initialValues?: Partial<PlatformConfigurationData>;
+  isEditing?: boolean;
 }) {
   // --- State Management ---
-  const [selectedRegion, setSelectedRegion] = useState("us");
+  const [selectedRegion, setSelectedRegion] = useState(
+    initialValues?.selectedRegion ?? "us",
+  );
 
-  const [currencies, setCurrencies] = useState([
-    { id: "usd", symbol: "$", code: "USD", name: "US Dollar", isBase: true, enabled: true, rail: "Core Clearing / ACH" },
-    { id: "eur", symbol: "€", code: "EUR", name: "Euro", isBase: false, enabled: true, rail: "SEPA / TARGET2 Ready" },
-    { id: "gbp", symbol: "£", code: "GBP", name: "British Pound", isBase: false, enabled: true, rail: "CHAPS & FPS Ready" },
-    { id: "ngn", symbol: "₦", code: "NGN", name: "Nigerian Naira", isBase: false, enabled: true, rail: "Direct FX Corridor" },
-  ]);
+  const [currencies, setCurrencies] = useState<PlatformCurrency[]>(
+    initialValues?.currencies ?? DEFAULT_CURRENCIES,
+  );
 
-  const [selectedChannel, setSelectedChannel] = useState("both");
+  const [selectedChannel, setSelectedChannel] = useState(
+    initialValues?.selectedChannel ?? "both",
+  );
 
-  const [capabilities, setCapabilities] = useState([
-    { id: "accounts", title: "Account management", desc: "Multi-currency balances, virtual ledger accounts", icon: Wallet, selected: true },
-    { id: "payments", title: "Payments and transfers", desc: "ACH, FedNow, SEPA and wire routing engines", icon: ArrowRight, selected: true },
-    { id: "cards", title: "Card issuing", desc: "Physical or virtual Apple Pay / IP processing", icon: CreditCard, selected: true },
-    { id: "lending", title: "Lending & credit", desc: "Automated underwriting, loan amortization schedules", icon: Percent, selected: true },
-    { id: "identity", title: "Identity verification", desc: "KYC, KYB, OFAC, ID document verification & biometrics", icon: Fingerprint, selected: true },
-    { id: "wallets", title: "Digital wallets", desc: "Stored value balances, sub-wallets, peer transfers", icon: LayoutGrid, selected: true },
-    { id: "compliance", title: "Compliance", desc: "Automated sanctions screening, PEP check, SAR filing triggers", icon: ShieldCheck, selected: true },
-    { id: "monitoring", title: "Transaction monitoring", desc: "Real-time AML rule engine & fraud heuristics", icon: Users, selected: true },
-    { id: "treasury", title: "Treasury management", desc: "Yield routing and automated sweep parameters", icon: Building2, selected: false },
-  ]);
+  const [capabilities, setCapabilities] = useState<PlatformCapability[]>(
+    initialValues?.capabilities ?? DEFAULT_CAPABILITIES,
+  );
 
   // --- Handlers ---
   const toggleCurrency = (id: string) => {
@@ -133,7 +195,13 @@ export default function PlatformConfigurationForm({
   };
 
   const toggleCapability = (id: string) => {
-    setCapabilities(capabilities.map((c) => (c.id === id ? { ...c, selected: !c.selected } : c)));
+    setCapabilities(
+      capabilities.map((c) => (c.id === id ? { ...c, selected: !c.selected } : c)),
+    );
+  };
+
+  const handleComplete = () => {
+    onComplete({ selectedRegion, currencies, selectedChannel, capabilities });
   };
 
   const selectedCapCount = capabilities.filter((c) => c.selected).length;
@@ -256,7 +324,7 @@ export default function PlatformConfigurationForm({
                   )}
                 </div>
                 <p className="text-xs text-slate-500 mb-4 flex-1">{curr.name}</p>
-                
+
                 <div className="flex items-center justify-between mt-auto pt-3 border-t border-slate-100">
                   <span className="text-[10px] text-slate-400">{curr.rail}</span>
                   {!curr.isBase && (
@@ -327,7 +395,7 @@ export default function PlatformConfigurationForm({
                       Recommended
                     </span>
                   )}
-                  
+
                   <div className="flex items-center gap-2 mb-3">
                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isSelected ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-500'}`}>
                         <Icon className="w-4 h-4" />
@@ -336,7 +404,7 @@ export default function PlatformConfigurationForm({
 
                   <h3 className="text-sm font-bold text-slate-900 mb-1">{channel.title}</h3>
                   <p className="text-xs text-slate-500 leading-relaxed mb-6 flex-1">{channel.desc}</p>
-                  
+
                   <div className="mt-auto flex items-center justify-between pt-3 border-t border-slate-200/60 w-full">
                     <span className="text-[10px] font-medium text-slate-500">{channel.sub}</span>
                     <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${isSelected ? "border-blue-600 bg-blue-600" : "border-slate-300"}`}>
@@ -370,19 +438,19 @@ export default function PlatformConfigurationForm({
                   key={cap.id}
                   onClick={() => toggleCapability(cap.id)}
                   className={`flex items-start gap-3 p-3 rounded-lg border text-left transition-all duration-200 ${
-                    cap.selected 
-                      ? "bg-slate-50 border-slate-200" 
+                    cap.selected
+                      ? "bg-slate-50 border-slate-200"
                       : "bg-white border-transparent hover:bg-slate-50 opacity-70"
                   }`}
                 >
                   <div className={`w-5 h-5 rounded flex items-center justify-center shrink-0 mt-0.5 border transition-colors ${
-                    cap.selected ? "bg-blue-600 border-blue-600" : "bg-white border-slate-300"
+                    cap.selected ? "bg-blue-600 border-blue-600" : "bg-white border-slate-900"
                   }`}>
                     {cap.selected && <Check className="w-3.5 h-3.5 text-white" />}
                   </div>
                   <div>
-                    <h4 className={`text-sm font-bold mb-0.5 ${cap.selected ? 'text-slate-900' : 'text-slate-600'}`}>{cap.title}</h4>
-                    <p className="text-[11px] text-slate-500 leading-snug">{cap.desc}</p>
+                    <h4 className={`text-sm font-bold mb-0.5 ${cap.selected ? 'text-slate-900' : 'text-slate-900'}`}>{cap.title}</h4>
+                    <p className="text-[11px] text-slate-900 leading-snug">{cap.desc}</p>
                   </div>
                 </button>
               );
@@ -399,12 +467,12 @@ export default function PlatformConfigurationForm({
         >
           <ArrowLeft className="w-4 h-4" /> Back to Project Identity
         </button>
-        
+
         <button
-          onClick={onComplete}
+          onClick={handleComplete}
           className="w-full sm:w-auto px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold shadow-sm transition-colors flex items-center justify-center gap-2"
         >
-          Create Project <ArrowRight className="w-4 h-4" />
+          {isEditing ? "Save Changes" : "Create Project"} <ArrowRight className="w-4 h-4" />
         </button>
       </div>
     </div>

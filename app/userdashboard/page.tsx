@@ -302,14 +302,10 @@ export default function DashboardHome() {
         <div className="relative overflow-hidden rounded-2xl border border-slate-200">
           {/* Background image layer */}
           <div
-            className="absolute inset-0"
-            style={{
-              backgroundImage: `url(${BANNER_IMAGE})`,
-              backgroundSize: "cover",
-              backgroundPosition: "center",
-            }}
+            className="absolute inset-0 bg-cover bg-center"
+            style={{ backgroundImage: `url("${getPath(BANNER_IMAGE)}")` }}
             aria-hidden
-          />
+           />
           {/* Readability overlay — lightens the left side where the text lives */}
           <div className="absolute inset-0 bg-gradient-to-r from-white/95 via-white/80 to-white/30" aria-hidden />
 

@@ -161,7 +161,7 @@ export default function ArchetypeSelectionForm({
                 className={`w-10 h-10 rounded-lg flex items-center justify-center mb-4 transition-colors ${
                   isSelected
                     ? "bg-blue-600 text-white"
-                    : "bg-slate-100 text-slate-500 group-hover:bg-slate-200"
+                    : "bg-blue-200 text-slate-900 group-hover:bg-blue-500"
                 }`}
               >
                 <Icon className="w-5 h-5" />

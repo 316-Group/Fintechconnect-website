@@ -1,7 +1,7 @@
-// /client/app/userdashboard/studio/StudioClient.tsx
+﻿// /client/app/userdashboard/studio/StudioClient.tsx
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Urbanist, Outfit } from 'next/font/google';
 import {
   ChevronDown, ChevronUp, ChevronsUpDown, GripVertical,
@@ -23,12 +23,23 @@ import {
 
 const urbanist = Urbanist({ subsets: ['latin'], weight: ['400', '500', '600', '700', '800'], display: 'swap' });
 const outfit = Outfit({ subsets: ['latin'], weight: ['400', '500', '600', '700'], display: 'swap' });
+const RESIZE_HANDLES = [
+  { k: 'nw', cls: 'top-0 left-0 -translate-x-1/2 -translate-y-1/2 cursor-nwse-resize' },
+  { k: 'n',  cls: 'top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 cursor-ns-resize' },
+  { k: 'ne', cls: 'top-0 right-0 translate-x-1/2 -translate-y-1/2 cursor-nesw-resize' },
+  { k: 'w',  cls: 'top-1/2 left-0 -translate-x-1/2 -translate-y-1/2 cursor-ew-resize' },
+  { k: 'e',  cls: 'top-1/2 right-0 translate-x-1/2 -translate-y-1/2 cursor-ew-resize' },
+  { k: 'sw', cls: 'bottom-0 left-0 -translate-x-1/2 translate-y-1/2 cursor-nesw-resize' },
+  { k: 's',  cls: 'bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 cursor-ns-resize' },
+  { k: 'se', cls: 'bottom-0 right-0 translate-x-1/2 translate-y-1/2 cursor-nwse-resize' },
+] as const;
 
 type DeviceType = 'iphone' | 'pixel' | 'tablet';
 type StudioMode = 'design' | 'prototype' | 'workflows' | 'code';
 type RightTab = 'design' | 'layout' | 'logic' | 'data' | 'code';
 type SaveState = 'saving' | 'saved' | 'unsaved';
 type DragState = { id: ModuleId; from: 'library' | 'canvas' } | null;
+type ModuleBox = { w?: number; h?: number; x?: number; y?: number };
 
 /* ═══════════════════════════ TopBar ═══════════════════════════ */
 
@@ -456,10 +467,152 @@ function ToolbarButton({
   );
 }
 
+function ModuleWrapper({
+  id, index, total, selected, drag, dropIndex, accent, isDark, radius, ctx,
+  box, onSelect, onStartDrag, onEndDrag, onItemDragOver, onDrop, onMove, onRemove,
+  onMeasure, onBoxChange,
+}: {
+  id: ModuleId; index: number; total: number;
+  selected: boolean; drag: DragState; dropIndex: number | null;
+  accent: string; isDark: boolean; radius: Radius; ctx: ViewCtx;
+  box: ModuleBox;
+  onSelect: (id: ModuleId) => void;
+  onStartDrag: (e: React.DragEvent, id: ModuleId, from: 'library' | 'canvas') => void;
+  onEndDrag: () => void;
+  onItemDragOver: (e: React.DragEvent, index: number) => void;
+  onDrop: (e: React.DragEvent) => void;
+  onMove: (id: ModuleId, dir: -1 | 1) => void;
+  onRemove: (id: ModuleId) => void;
+  onMeasure: (id: ModuleId, size: { w: number; h: number }) => void;
+  onBoxChange: (id: ModuleId, patch: ModuleBox) => void;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const isSource = drag?.from === 'canvas' && drag.id === id;
+
+  /* Report natural size to the right panel whenever it changes */
+  useEffect(() => {
+    if (!ref.current) return;
+    const ro = new ResizeObserver(([entry]) => {
+      onMeasure(id, {
+        w: Math.round(entry.contentRect.width),
+        h: Math.round(entry.contentRect.height),
+      });
+    });
+    ro.observe(ref.current);
+    return () => ro.disconnect();
+  }, [id, onMeasure]);
+
+  /* Drag a handle → compute deltas and update w/h/x/y */
+  const startResize = (e: React.MouseEvent, handle: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!ref.current) return;
+
+    const rect = ref.current.getBoundingClientRect();
+    const startW = rect.width;
+    const startH = rect.height;
+    const startClientX = e.clientX;
+    const startClientY = e.clientY;
+    const baseX = box.x ?? 0;
+    const baseY = box.y ?? 0;
+
+    const onMove = (ev: MouseEvent) => {
+      const dx = ev.clientX - startClientX;
+      const dy = ev.clientY - startClientY;
+      const patch: ModuleBox = {};
+
+      if (handle.includes('e')) patch.w = Math.max(40, Math.round(startW + dx));
+      if (handle.includes('w')) {
+        patch.w = Math.max(40, Math.round(startW - dx));
+        patch.x = Math.round(baseX + dx);
+      }
+      if (handle.includes('s')) patch.h = Math.max(20, Math.round(startH + dy));
+      if (handle.includes('n')) {
+        patch.h = Math.max(20, Math.round(startH - dy));
+        patch.y = Math.round(baseY + dy);
+      }
+      onBoxChange(id, patch);
+    };
+    const onUp = () => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  };
+
+  const wrapperStyle: React.CSSProperties = {
+    ['--tw-ring-color' as string]: accent,
+    outline: selected ? '2px solid #0040DF' : undefined,
+    outlineOffset: 4,
+    borderRadius: 0,
+    width: box.w !== undefined ? box.w : undefined,
+    height: box.h !== undefined ? box.h : undefined,
+    transform:
+      box.x !== undefined || box.y !== undefined
+        ? `translate(${box.x ?? 0}px, ${box.y ?? 0}px)`
+        : undefined,
+  };
+
+  return (
+    <div
+      ref={ref}
+      data-module-id={id}
+      draggable
+      onDragStart={(e) => onStartDrag(e, id, 'canvas')}
+      onDragEnd={onEndDrag}
+      onDragOver={(e) => onItemDragOver(e, index)}
+      onDrop={onDrop}
+      onClick={(e) => {
+        e.stopPropagation();
+        onSelect(id);
+      }}
+      style={wrapperStyle}
+      className={`group relative cursor-grab active:cursor-grabbing ${radius.card} ${
+        isDark ? 'ring-offset-slate-950' : 'ring-offset-[#F7F8FF]'
+      } ${isSource ? 'opacity-40' : ''}`}
+    >
+      {drag && dropIndex === index && <DropLine side="top" accent={accent} />}
+      {drag && dropIndex === total && index === total - 1 && <DropLine side="bottom" accent={accent} />}
+
+      {/* Hover toolbar */}
+      <div className="absolute -top-3.5 right-2 z-20 flex items-center gap-0.5 rounded-full bg-white p-0.5 opacity-0 shadow-md ring-1 ring-slate-200 transition group-hover:opacity-100">
+        <GripVertical className="h-3.5 w-3.5 text-slate-400" aria-hidden />
+        <ToolbarButton label="Move up" disabled={index === 0} onClick={() => onMove(id, -1)}>
+          <ChevronUp className="h-3.5 w-3.5" />
+        </ToolbarButton>
+        <ToolbarButton label="Move down" disabled={index === total - 1} onClick={() => onMove(id, 1)}>
+          <ChevronDown className="h-3.5 w-3.5" />
+        </ToolbarButton>
+        <ToolbarButton label="Remove" danger onClick={() => onRemove(id)}>
+          <Trash2 className="h-3.5 w-3.5" />
+        </ToolbarButton>
+      </div>
+
+      <div className={drag ? 'pointer-events-none' : ''}>
+        <ModuleView id={id} ctx={ctx} />
+      </div>
+
+      {/* 8 resize handles — shown only when selected & not dragging */}
+      {selected && !drag && (
+        <div className="pointer-events-none absolute z-30" style={{ inset: -4 }}>
+          {RESIZE_HANDLES.map((h) => (
+            <span
+              key={h.k}
+              onMouseDown={(e) => startResize(e, h.k)}
+              className={`pointer-events-auto absolute h-2 w-2 rounded-full border-2 border-[#0040DF] bg-white shadow-sm ${h.cls}`}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function PageCanvas({
   page, pageLabel, modules, ctx, drag, dropIndex, accent, isDark, radius,
   onStartDrag, onEndDrag, onItemDragOver, onDrop, onMove, onRemove, onQuickAdd,
-  selectedId, onSelect,
+  selectedId, onSelect, boxes, onMeasure, onBoxChange,
 }: {
   page: PageId; pageLabel: string; modules: ModuleId[];
   ctx: ViewCtx; drag: DragState; dropIndex: number | null; accent: string;
@@ -473,8 +626,10 @@ function PageCanvas({
   onQuickAdd: (id: ModuleId) => void;
   selectedId: ModuleId | null;
   onSelect: (id: ModuleId | null) => void;
+  boxes: Record<string, ModuleBox>;
+  onMeasure: (id: ModuleId, size: { w: number; h: number }) => void;
+  onBoxChange: (id: ModuleId, patch: ModuleBox) => void;
 }) {
-  const suggestions = pageModulesFor(page, 'banking').slice(0, 3);
   const empty = modules.length === 0;
 
   if (empty) {
@@ -493,7 +648,7 @@ function PageCanvas({
     );
   }
 
-  return (
+   return (
     <div className="space-y-3">
       {modules.map((id, i) => {
         const isSource = drag?.from === 'canvas' && drag.id === id;
@@ -536,7 +691,7 @@ function Canvas({
   device, zoom, pageModules, activePage, pageLabel, drag, dropIndex,
   ctx, accent, isDark, radius, selectedId, onSelect,
   onStartDrag, onEndDrag, onItemDragOver, onDrop, onMove, onRemove, onQuickAdd,
-  onNavTab,
+  onNavTab, boxes, onMeasure, onBoxChange,
 }: {
   device: DeviceType; zoom: number;
   pageModules: Record<PageId, ModuleId[]>;
@@ -552,8 +707,11 @@ function Canvas({
   onRemove: (id: ModuleId) => void;
   onQuickAdd: (id: ModuleId) => void;
   onNavTab: (tab: TabId) => void;
+  boxes: Record<string, ModuleBox>;
+  onMeasure: (id: ModuleId, size: { w: number; h: number }) => void;
+  onBoxChange: (id: ModuleId, patch: ModuleBox) => void;
 }) {
-  const dims = device === 'iphone' ? { w: 320, h: 600 } : device === 'pixel' ? { w: 340, h: 620 } : { w: 700, h: 680 };
+  const dims = device === 'iphone' ? { w: 320, h: 640 } : device === 'pixel' ? { w: 340, h: 640 } : { w: 700, h: 680 };
   const frameRadius = device === 'iphone' ? 'rounded-[42px]' : device === 'pixel' ? 'rounded-[32px]' : 'rounded-[24px]';
   const screenRadius = device === 'iphone' ? 'rounded-[32px]' : device === 'pixel' ? 'rounded-[24px]' : 'rounded-[18px]';
 
@@ -610,15 +768,16 @@ function Canvas({
             onClick={(e) => { if (e.target === e.currentTarget) onSelect(null); }}
             className="flex min-h-0 flex-1 flex-col overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden px-3 pb-20 pt-1">
             <PageCanvas
-              page={activePage} pageLabel={pageLabel}
-              modules={pageModules[activePage] ?? []}
-              ctx={ctx} drag={drag} dropIndex={dropIndex} accent={accent}
-              isDark={isDark} radius={radius}
-              onStartDrag={onStartDrag} onEndDrag={onEndDrag}
-              onItemDragOver={onItemDragOver} onDrop={onDrop}
-              onMove={onMove} onRemove={onRemove} onQuickAdd={onQuickAdd}
-              selectedId={selectedId} onSelect={onSelect}
-            />
+    page={activePage} pageLabel={pageLabel}
+    modules={pageModules[activePage] ?? []}
+    ctx={ctx} drag={drag} dropIndex={dropIndex} accent={accent}
+    isDark={isDark} radius={radius}
+    onStartDrag={onStartDrag} onEndDrag={onEndDrag}
+    onItemDragOver={onItemDragOver} onDrop={onDrop}
+    onMove={onMove} onRemove={onRemove} onQuickAdd={onQuickAdd}
+    selectedId={selectedId} onSelect={onSelect}
+    boxes={boxes} onMeasure={onMeasure} onBoxChange={onBoxChange}
+  />
           </div>
 
           <BottomDockTabBar activePage={activePage} isDark={isDark} onNavTab={onNavTab} />
@@ -632,11 +791,16 @@ function Canvas({
 
 function RightPanel({
   tab, onTab, selectedId, accent, wsStatus, workflowOpen, onToggleWorkflow,
+  box, measured, onBoxChange, onResetBox,
 }: {
   tab: RightTab; onTab: (t: RightTab) => void;
   selectedId: ModuleId | null; accent: string;
   wsStatus: 'active' | 'connecting' | 'disconnected';
   workflowOpen: boolean; onToggleWorkflow: () => void;
+  box: ModuleBox;
+  measured: { w: number; h: number } | null;
+  onBoxChange: (id: ModuleId, patch: ModuleBox) => void;
+  onResetBox: (id: ModuleId) => void;
 }) {
   const tabs: { id: RightTab; label: string }[] = [
     { id: 'design', label: 'Design' }, { id: 'layout', label: 'Layout' },
@@ -667,17 +831,115 @@ function RightPanel({
           </div>
         ) : (
           <>
+            {/* Component header — matches reference: name + Master badge */}
             <div className="border-b border-slate-200 px-3 py-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-1.5">
                   <Diamond className="h-3 w-3 text-indigo-500" />
                   <p className="text-[11px] font-bold">{mod.title}</p>
-                  <span className="rounded bg-indigo-100 px-1 py-0.5 text-[7px] font-bold text-indigo-700">{mod.badge}</span>
                 </div>
+                <span className="rounded-md bg-indigo-100 px-2 py-0.5 text-[8px] font-bold text-indigo-700">Master</span>
               </div>
               <p className="mt-0.5 text-[9px] text-slate-500">{mod.subtitle}</p>
             </div>
 
+            {/* Variant State */}
+            <section className="border-b border-slate-200 px-3 py-3">
+              <div className="mb-2 flex items-center justify-between">
+                <span className="text-[8px] font-bold uppercase tracking-wider text-slate-400">Variant State</span>
+                <span className="text-[8px] font-semibold text-slate-400">3 variants</span>
+              </div>
+              <div className="flex gap-1.5">
+                {(['Default', 'Masked', 'Negative'] as const).map((v) => (
+                  <button key={v}
+                    className={`flex-1 rounded-md py-1.5 text-[9px] font-bold transition ${
+                      v === 'Default'
+                        ? 'bg-[#0040DF] text-white shadow-sm'
+                        : 'border border-slate-200 bg-white text-slate-500 hover:border-slate-300 hover:text-slate-700'
+                    }`}>
+                    {v}
+                  </button>
+                ))}
+              </div>
+            </section>
+
+            {/* Layout & Box Model — matches reference image */}
+            <section className="border-b border-slate-200 px-3 py-3">
+              <div className="mb-2 flex items-center justify-between">
+                <span className="text-[8px] font-bold uppercase tracking-wider text-slate-400">Layout &amp; Box Model</span>
+                <span className="text-[9px] font-semibold text-[#0040DF]">Flex Col</span>
+              </div>
+
+              {/* W / H / X / Y inputs */}
+              <div className="mb-3 grid grid-cols-2 gap-1.5">
+                {([
+                  { key: 'w' as const, label: 'W', value: box.w ?? measured?.w ?? '' },
+                  { key: 'h' as const, label: 'H', value: box.h ?? measured?.h ?? '' },
+                  { key: 'x' as const, label: 'X', value: box.x ?? 0 },
+                  { key: 'y' as const, label: 'Y', value: box.y ?? 0 },
+                ]).map(({ key, label, value }) => (
+                  <label key={key} className="flex items-center gap-1.5 rounded-md border border-slate-200 bg-slate-50 px-2 py-1.5">
+                    <span className="text-[8px] font-bold text-slate-400">{label}</span>
+                    <input
+                      type="number"
+                      value={value}
+                      onChange={(e) => onBoxChange(selectedId!, {
+                        [key]: e.target.value === '' ? undefined : Number(e.target.value),
+                      } as ModuleBox)}
+                      className="w-full bg-transparent text-[10px] font-semibold text-slate-800 outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
+                    />
+                  </label>
+                ))}
+              </div>
+
+              {/* Padding / Gap box-model diagram */}
+              <p className="mb-1.5 text-[8px] font-bold uppercase tracking-wider text-slate-400">Padding / Gap</p>
+              <div className="relative rounded-md border border-dashed border-slate-300 p-3">
+                {/* Top */}
+                <div className="mb-1 flex justify-center">
+                  <div className="flex items-center gap-1 rounded border border-slate-200 bg-white px-2 py-0.5">
+                    <span className="text-[8px] text-slate-400">Top</span>
+                    <input type="number" defaultValue={2} className="w-6 bg-transparent text-center text-[8px] font-semibold text-slate-700 outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none" />
+                    <span className="text-[7px] text-slate-400">px</span>
+                  </div>
+                </div>
+                {/* Middle row: Left + center label + Right */}
+                <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-1 rounded border border-slate-200 bg-white px-2 py-0.5">
+                    <span className="text-[8px] font-semibold text-slate-500">L</span>
+                    <input type="number" defaultValue={2} className="w-5 bg-transparent text-center text-[8px] font-semibold text-slate-700 outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none" />
+                  </div>
+                  <div className="flex flex-1 items-center justify-center rounded-md border border-[#0040DF] bg-blue-50 py-2">
+                    <span className="text-center font-mono text-[8px] font-semibold text-[#0040DF]">
+                      {box.w ?? measured?.w ?? 361} × {box.h ?? measured?.h ?? 168}
+                      <br />
+                      <span className="text-[7px] font-normal text-slate-400">(Fill Container)</span>
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1 rounded border border-slate-200 bg-white px-2 py-0.5">
+                    <input type="number" defaultValue={2} className="w-5 bg-transparent text-center text-[8px] font-semibold text-slate-700 outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none" />
+                    <span className="text-[8px] font-semibold text-slate-500">R</span>
+                  </div>
+                </div>
+                {/* Bottom */}
+                <div className="mt-1 flex justify-center">
+                  <div className="flex items-center gap-1 rounded border border-slate-200 bg-white px-2 py-0.5">
+                    <span className="text-[8px] text-slate-400">Bottom</span>
+                    <input type="number" defaultValue={2} className="w-6 bg-transparent text-center text-[8px] font-semibold text-slate-700 outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none" />
+                    <span className="text-[7px] text-slate-400">px</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-1.5 flex items-center justify-between">
+                <span className="text-[8px] font-semibold text-slate-400">Flex col</span>
+                <span className="font-mono text-[8px] text-slate-400">
+                  {box.w ?? measured?.w ?? '—'} × {box.h ?? measured?.h ?? '—'}
+                </span>
+              </div>
+            </section>
+
+            {/* Workflow Triggers */}
             <section className="border-b border-slate-200 px-3 py-3">
               <div className="mb-2 flex items-center justify-between">
                 <span className="text-[8px] font-bold uppercase tracking-wider text-slate-400">Workflow Triggers</span>
@@ -704,6 +966,7 @@ function RightPanel({
               )}
             </section>
 
+            {/* Live Core Data Binding */}
             <section className="px-3 py-3">
               <div className="mb-2 flex items-center justify-between">
                 <span className="text-[8px] font-bold uppercase tracking-wider text-slate-400">Live Core Data Binding</span>
@@ -759,6 +1022,33 @@ export default function StudioClient() {
   const [selectedId, setSelectedId] = useState<ModuleId | null>(null);
   const [drag, setDrag] = useState<DragState>(null);
   const [dropIndex, setDropIndex] = useState<number | null>(null);
+
+  /* NEW — per-module box overrides & measured natural sizes */
+  const [boxes, setBoxes] = useState<Record<string, ModuleBox>>({});
+  const [measured, setMeasured] = useState<Record<string, { w: number; h: number }>>({});
+
+  const onBoxChange = React.useCallback((id: ModuleId, patch: ModuleBox) => {
+    setBoxes((prev) => ({ ...prev, [id]: { ...(prev[id] ?? {}), ...patch } }));
+  }, []);
+
+  const onResetBox = React.useCallback((id: ModuleId) => {
+    setBoxes((prev) => {
+      if (!prev[id]) return prev;
+      const { [id]: _drop, ...rest } = prev;
+      return rest;
+    });
+  }, []);
+
+  const onMeasure = React.useCallback(
+    (id: ModuleId, size: { w: number; h: number }) => {
+      setMeasured((prev) => {
+        const cur = prev[id];
+        if (cur && cur.w === size.w && cur.h === size.h) return prev;
+        return { ...prev, [id]: size };
+      });
+    },
+    []
+  );
 
   /* theme */
   const [accentColor] = useState('#0040DF');
@@ -901,11 +1191,18 @@ export default function StudioClient() {
           onItemDragOver={handleItemDragOver} onDrop={handleDrop}
           onMove={moveModule} onRemove={removeModule} onQuickAdd={quickAdd}
           onNavTab={handleNavTab}
+          boxes={boxes}
+          onMeasure={onMeasure}
+          onBoxChange={onBoxChange}
         />
         <RightPanel
           tab={rightTab} onTab={setRightTab}
           selectedId={selectedId} accent={accentColor} wsStatus={wsStatus}
           workflowOpen={workflowOpen} onToggleWorkflow={() => setWorkflowOpen((v) => !v)}
+          box={selectedId ? boxes[selectedId] ?? {} : {}}
+          measured={selectedId ? measured[selectedId] ?? null : null}
+          onBoxChange={onBoxChange}
+          onResetBox={onResetBox}
         />
       </div>
     </div>
