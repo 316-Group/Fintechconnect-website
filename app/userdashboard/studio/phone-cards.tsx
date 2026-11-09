@@ -540,7 +540,7 @@ export const ringVar = (color: string) => ({ ['--tw-ring-color' as string]: colo
 
 export const buildInitialPages = (): Record<PageId, ModuleId[]> => {
   const out = {} as Record<PageId, ModuleId[]>;
-  for (const p of PAGES) out[p.id] = [];
+  for (const p of PAGES) out[p.id] = [...p.modules];
   return out;
 };
 
