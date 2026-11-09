@@ -30,6 +30,7 @@ import PlatformConfigurationForm, {
   restorePlatformConfigurationData,
   type PersistedPlatformConfigurationData,
 } from "./platformconfigurationform";
+import TeamsForm, { type TeamsFormData } from "./teamsform";
 import { getPath } from "@/utils/helper";
 import StudioLoadingScreen from "./StudioLoadingScreen";
 
@@ -171,6 +172,12 @@ type Project = {
   createdAt: string;
   details: ProjectDetailsData;
   preferences: PlatformConfigurationData;
+  /**
+   * Optional because projects saved before the teams step existed won't have it.
+   * On open/edit, an undefined value causes TeamsForm to fall back to its own
+   * internal defaults (owner + sample collaborators), which is what we want.
+   */
+  teams?: TeamsFormData;
 };
 
 type PersistedProject = Omit<Project, "details" | "preferences"> & {
@@ -212,6 +219,8 @@ function fileToDataUrl(file: File) {
 async function serializeProject(project: Project): Promise<PersistedProject> {
   const { brandMark, ...details } = project.details;
   return {
+    // `...project` carries `teams` through untouched — every field on
+    // TeamsFormData/Collaborator is JSON-safe.
     ...project,
     details: {
       ...details,
@@ -253,6 +262,7 @@ function deserializeProject(project: PersistedProject): Project {
     ...project,
     details: { ...details, brandMark: restoredBrandMark },
     preferences: restorePlatformConfigurationData(project.preferences),
+    // `teams` passes through as-is; undefined for older saved projects.
   };
 }
 
@@ -337,9 +347,17 @@ function ProjectCard({
 
 export default function MyProductsPage() {
   const router = useRouter();
-  // 'list' = default, 'options' = build options, 'archetype' → 'details' → 'preferences' = guided flow
+  // 'list' = default, 'options' = build options,
+  // 'archetype' → 'details' → 'preferences' → 'teams' = guided flow,
+  // then 'loading' → studio.
   const [view, setView] = useState<
-    "list" | "options" | "archetype" | "details" | "preferences" | "loading"
+    | "list"
+    | "options"
+    | "archetype"
+    | "details"
+    | "preferences"
+    | "teams"
+    | "loading"
   >("list");
 
   const [projects, setProjects] = useState<Project[]>([]);
@@ -401,7 +419,26 @@ export default function MyProductsPage() {
     setView("preferences");
   };
 
-  const handlePreferencesComplete = async (preferencesData: PlatformConfigurationData) => {
+  /**
+   * Preferences step no longer persists the project — it just stages the
+   * data on the draft and moves forward into the teams step, where the user
+   * confirms collaborators and the project is finally saved.
+   */
+  const handlePreferencesNext = (preferencesData: PlatformConfigurationData) => {
+    setDraft((prev) => ({ ...prev, preferences: preferencesData }));
+    setView("teams");
+  };
+
+  const handleTeamsBack = () => {
+    setView("preferences");
+  };
+
+  /**
+   * Final save of the whole guided flow — combines the staged draft data
+   * with whatever the teams form returned, persists, and sends the user to
+   * the studio via the loading screen.
+   */
+  const handleTeamsComplete = async (teamsData: TeamsFormData) => {
     if (savingProject.current) return;
     if (!projectsLoaded) {
       setProjectStorageError("Projects are still loading. Please try again in a moment.");
@@ -411,8 +448,14 @@ export default function MyProductsPage() {
       setProjectStorageError("Project details are missing. Return to the details step and try again.");
       return;
     }
+    if (!draft.preferences) {
+      setProjectStorageError("Platform configuration is missing. Return to the configuration step and try again.");
+      return;
+    }
 
     savingProject.current = true;
+    const preferencesData = draft.preferences;
+
     const updatedProjects = editingProjectId
       ? projects.map((project) =>
           project.id === editingProjectId
@@ -420,6 +463,7 @@ export default function MyProductsPage() {
                 ...project,
                 details: draft.details ?? project.details,
                 preferences: preferencesData,
+                teams: teamsData,
               }
             : project,
         )
@@ -431,6 +475,7 @@ export default function MyProductsPage() {
         createdAt: new Date().toISOString(),
         details: draft.details,
         preferences: preferencesData,
+        teams: teamsData,
       };
       updatedProjects.push(newProject);
     }
@@ -594,13 +639,28 @@ export default function MyProductsPage() {
         />
       )}
 
-
       {view === "preferences" && (
         <PlatformConfigurationForm
           onBack={() => setView("details")}
           isEditing={!!editingProjectId}
           initialValues={draft.preferences}
-          onComplete={handlePreferencesComplete}
+          // Both callbacks route to the teams step — the project is only
+          // persisted after the user confirms collaborators. Passing onNext
+          // also relabels the CTA to "Continue".
+          onComplete={handlePreferencesNext}
+          onNext={handlePreferencesNext}
+        />
+      )}
+
+      {view === "teams" && (
+        <TeamsForm
+          onBack={handleTeamsBack}
+          // Passing undefined (new project / old project without teams)
+          // lets TeamsForm fall back to its internal defaults, which is the
+          // nicer starting point than an empty list.
+          initialCollaborators={draft.teams?.collaborators}
+          initialPending={draft.teams?.pendingInvites}
+          onComplete={handleTeamsComplete}
         />
       )}
 

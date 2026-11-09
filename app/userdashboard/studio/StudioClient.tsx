@@ -1,4 +1,4 @@
-﻿// /client/app/userdashboard/studio/StudioClient.tsx
+// /client/app/userdashboard/studio/StudioClient.tsx
 'use client';
 
 import React, { useEffect, useState, useRef } from 'react';
@@ -20,6 +20,9 @@ import {
   INITIAL_TRANSACTIONS, INITIAL_SAVINGS, HISTORY_LIMIT,
   noopActions,
 } from './phone-cards';
+
+import { EditProvider, useEditOverrides } from './edit-context';
+import { EDITABLE_SCHEMA } from './editable-schema';
 
 const urbanist = Urbanist({ subsets: ['latin'], weight: ['400', '500', '600', '700', '800'], display: 'swap' });
 const outfit = Outfit({ subsets: ['latin'], weight: ['400', '500', '600', '700'], display: 'swap' });
@@ -276,7 +279,7 @@ function LeftPanel({
   );
 
   return (
-    <aside className="flex w-[340px] shrink-0 flex-col border-r border-slate-200 bg-[#EDEFFC]">
+    <aside className="flex w-[340px] shrink-0 flex-col border-r border-slate-200 bg-[#EDEFFC] scrollbar-thin-blue">
       {/* Tab bar */}
       <div className="flex items-center border-b border-slate-200 px-2 pt-2">
         <button
@@ -334,7 +337,7 @@ function LeftPanel({
               </span>
             </div>
           </div>
-          <ul className="m-0 min-h-0 flex-1 space-y-0.5 overflow-y-auto px-3 pb-3">
+          <ul className="m-0 min-h-0 flex-1 space-y-0.5 overflow-y-auto px-3 pb-3 scrollbar-thin-blue [scrollbar-width:thin] [scrollbar-color:#0040DF_transparent] [&::-webkit-scrollbar]:w-[5px] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-[#0040DF] [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-[#002db3]">
             {PAGES.map((p) => (
               <PageMenuItem
                 key={p.id}
@@ -367,7 +370,7 @@ function LeftPanel({
 
       {/* Comps tab */}
       {tab === 'comps' && (
-        <div className="min-h-0 flex-1 space-y-2 overflow-y-auto px-3 pb-3 pt-2">
+        <div className="min-h-0 flex-1 space-y-2 overflow-y-auto px-3 pb-3 pt-2 scrollbar-thin-blue [scrollbar-width:thin] [scrollbar-color:#0040DF_transparent] [&::-webkit-scrollbar]:w-[5px] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-[#0040DF] [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-[#002db3]">
           {filteredMods.length === 0 && (
             <p className="py-6 text-center text-[10px] text-slate-400">No components found.</p>
           )}
@@ -405,7 +408,7 @@ function LeftPanel({
       </div>
       <div className="relative overflow-hidden bg-[#F7F8FF] p-2" style={{ height: 140 }}>
         <div className="pointer-events-none origin-top-left" style={{ transform: 'scale(0.75)', width: '133%' }}>
-          <ModuleView id={mod.id} ctx={previewCtx} />
+          <ModuleView id={mod.id} ctx={previewCtx} passive />
         </div>
       </div>
     </div>
@@ -666,8 +669,8 @@ function PageCanvas({
         const isSource = drag?.from === 'canvas' && drag.id === id;
         const isSelected = selectedId === id;
         return (
-          <div key={id} data-module-id={id} draggable
-            onDragStart={(e) => onStartDrag(e, id, 'canvas')}
+          <div key={id} data-module-id={id} draggable={!isSelected}
+            onDragStart={(e) => { if (isSelected) { e.preventDefault(); return; } onStartDrag(e, id, 'canvas'); }}
             onDragEnd={onEndDrag}
             onDragOver={(e) => onItemDragOver(e, i)}
             onDrop={onDrop}
@@ -835,6 +838,7 @@ function Canvas({
 function RightPanel({
   tab, onTab, selectedId, accent, wsStatus, workflowOpen, onToggleWorkflow,
   box, measured, onBoxChange, onResetBox,
+  overrides, setText, setColor, onResetModuleOverrides,
 }: {
   tab: RightTab; onTab: (t: RightTab) => void;
   selectedId: ModuleId | null; accent: string;
@@ -844,12 +848,19 @@ function RightPanel({
   measured: { w: number; h: number } | null;
   onBoxChange: (id: ModuleId, patch: ModuleBox) => void;
   onResetBox: (id: ModuleId) => void;
+  overrides: Record<string, { text: Record<string, string>; colors: Record<string, string> }>;
+  setText: (moduleId: ModuleId, slot: string, value: string | null) => void;
+  setColor: (moduleId: ModuleId, slot: string, value: string | null) => void;
+  onResetModuleOverrides: (moduleId: ModuleId) => void;
 }) {
   const tabs: { id: RightTab; label: string }[] = [
     { id: 'design', label: 'Design' }, { id: 'layout', label: 'Layout' },
     { id: 'logic', label: 'Logic' }, { id: 'data', label: 'Data' }, { id: 'code', label: 'Code' },
   ];
   const mod = selectedId ? moduleFor(selectedId) : null;
+  const schema = selectedId ? EDITABLE_SCHEMA[selectedId] : undefined;
+  const mOver = selectedId ? overrides[selectedId] : undefined;
+  const hasOverrides = !!mOver && (Object.keys(mOver.text).length > 0 || Object.keys(mOver.colors).length > 0);
 
   return (
     <aside className="flex w-[340px] shrink-0 flex-col border-l border-slate-200 bg-white">
@@ -885,6 +896,78 @@ function RightPanel({
               </div>
               <p className="mt-0.5 text-[9px] text-slate-500">{mod.subtitle}</p>
             </div>
+
+            {/* Content — schema-driven text slots */}
+            {schema?.text && schema.text.length > 0 && (
+              <section className="border-b border-slate-200 px-3 py-3">
+                <div className="mb-2 flex items-center justify-between">
+                  <span className="text-[8px] font-bold uppercase tracking-wider text-slate-400">Content</span>
+                  {hasOverrides && (
+                    <button onClick={() => onResetModuleOverrides(selectedId!)} className="text-[9px] font-semibold text-slate-400 hover:text-rose-500">
+                      Reset all
+                    </button>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  {schema.text.map((s) => (
+                    <label key={s.slot} className="block">
+                      <span className="mb-0.5 block text-[9px] font-semibold uppercase tracking-wider text-slate-400">{s.label}</span>
+                      <div className="flex items-center gap-1">
+                        <input
+                          value={mOver?.text[s.slot] ?? ''}
+                          placeholder={s.defaultValue}
+                          onChange={(e) => setText(selectedId!, s.slot, e.target.value || null)}
+                          className="flex-1 rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-[11px] outline-none focus:border-[#0040DF] focus:bg-white"
+                        />
+                        {mOver?.text[s.slot] && (
+                          <button onClick={() => setText(selectedId!, s.slot, null)} className="text-slate-400 hover:text-rose-500" aria-label={`Reset ${s.label}`}>
+                            <X className="h-3 w-3" />
+                          </button>
+                        )}
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {/* Colors — schema-driven color slots */}
+            {schema?.colors && schema.colors.length > 0 && (
+              <section className="border-b border-slate-200 px-3 py-3">
+                <span className="mb-2 block text-[8px] font-bold uppercase tracking-wider text-slate-400">Colors</span>
+                <div className="space-y-2">
+                  {schema.colors.map((c) => {
+                    const current = mOver?.colors[c.slot] ?? c.defaultValue;
+                    const overridden = !!mOver?.colors[c.slot];
+                    return (
+                      <div key={c.slot} className="flex items-center gap-2">
+                        <span className="w-24 truncate text-[10px] text-slate-500">{c.label}</span>
+                        <label className="relative h-7 w-7 shrink-0 cursor-pointer overflow-hidden rounded-md ring-1 ring-slate-200">
+                          <span className="absolute inset-0" style={{ background: current }} />
+                          <input
+                            type="color"
+                            value={current}
+                            onChange={(e) => setColor(selectedId!, c.slot, e.target.value)}
+                            className="absolute inset-0 cursor-pointer opacity-0"
+                          />
+                        </label>
+                        <input
+                          type="text"
+                          value={current}
+                          onChange={(e) => setColor(selectedId!, c.slot, e.target.value)}
+                          className="w-20 rounded border border-slate-200 px-1.5 py-0.5 font-mono text-[10px] outline-none focus:border-[#0040DF]"
+                        />
+                        {overridden && (
+                          <button onClick={() => setColor(selectedId!, c.slot, null)} className="text-slate-400 hover:text-rose-500" aria-label={`Reset ${c.label}`}>
+                            <X className="h-3 w-3" />
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+            )}
 
             {/* Variant State */}
             <section className="border-b border-slate-200 px-3 py-3">
@@ -1066,9 +1149,21 @@ export default function StudioClient() {
   const [drag, setDrag] = useState<DragState>(null);
   const [dropIndex, setDropIndex] = useState<number | null>(null);
 
-  /* NEW — per-module box overrides & measured natural sizes */
+  /* per-module box overrides & measured natural sizes */
   const [boxes, setBoxes] = useState<Record<string, ModuleBox>>({});
   const [measured, setMeasured] = useState<Record<string, { w: number; h: number }>>({});
+
+  /* edit store — text & color overrides per module */
+  const { overrides, setText, setColor, reset: resetOverrides } = useEditOverrides();
+
+  const editState = {
+    mode: (mode === 'design' ? 'edit' : 'view') as 'view' | 'edit',
+    selectedId,
+    overrides,
+    setText,
+    setColor,
+    reset: resetOverrides,
+  };
 
   const onBoxChange = React.useCallback((id: ModuleId, patch: ModuleBox) => {
     setBoxes((prev) => ({ ...prev, [id]: { ...(prev[id] ?? {}), ...patch } }));
@@ -1211,43 +1306,49 @@ export default function StudioClient() {
   };
 
   return (
-    <div className={`${urbanist.className} flex h-screen w-full flex-col overflow-hidden bg-[#F3F4F8] text-slate-900`}>
-      <TopBar mode={mode} onMode={setMode} device={device} onDevice={setDevice}
-        zoom={zoom} onZoom={setZoom} saveState={saveState} onPublish={() => {}} />
-      <div className="flex min-h-0 flex-1">
-        <IconRail />
-        <LeftPanel
-          appKind={appKind} onAppKind={setAppKind}
-          activePage={activePage} onSelectPage={(p) => { setActivePage(p); setSelectedId(null); }}
-          expandedPage={expandedPage} onToggleExpand={(p) => setExpandedPage((v) => (v === p ? null : p))}
-          pageModules={pageModules} accent={accentColor}
-          onStartDrag={startDrag} onEndDrag={endDrag} drag={drag}
-          onAddModule={addModule} onRemoveModule={removeModule}
-        />
-        <Canvas
-  device={device} zoom={zoom} onZoom={setZoom}
-  pageModules={pageModules} activePage={activePage} pageLabel={currentPageLabel}
-  drag={drag} dropIndex={dropIndex}
-  ctx={liveCtx} accent={accentColor} isDark={isDark} radius={radius}
-  selectedId={selectedId} onSelect={setSelectedId}
-  onStartDrag={startDrag} onEndDrag={endDrag}
-  onItemDragOver={handleItemDragOver} onDrop={handleDrop}
-  onMove={moveModule} onRemove={removeModule} onQuickAdd={quickAdd}
-  onNavTab={handleNavTab}
-  boxes={boxes}
-  onMeasure={onMeasure}
-  onBoxChange={onBoxChange}
-/>
-        <RightPanel
-          tab={rightTab} onTab={setRightTab}
-          selectedId={selectedId} accent={accentColor} wsStatus={wsStatus}
-          workflowOpen={workflowOpen} onToggleWorkflow={() => setWorkflowOpen((v) => !v)}
-          box={selectedId ? boxes[selectedId] ?? {} : {}}
-          measured={selectedId ? measured[selectedId] ?? null : null}
-          onBoxChange={onBoxChange}
-          onResetBox={onResetBox}
-        />
+    <EditProvider value={editState}>
+      <div className={`${urbanist.className} flex h-screen w-full flex-col overflow-hidden bg-[#F3F4F8] text-slate-900`}>
+        <TopBar mode={mode} onMode={setMode} device={device} onDevice={setDevice}
+          zoom={zoom} onZoom={setZoom} saveState={saveState} onPublish={() => {}} />
+        <div className="flex min-h-0 flex-1">
+          <IconRail />
+          <LeftPanel
+            appKind={appKind} onAppKind={setAppKind}
+            activePage={activePage} onSelectPage={(p) => { setActivePage(p); setSelectedId(null); }}
+            expandedPage={expandedPage} onToggleExpand={(p) => setExpandedPage((v) => (v === p ? null : p))}
+            pageModules={pageModules} accent={accentColor}
+            onStartDrag={startDrag} onEndDrag={endDrag} drag={drag}
+            onAddModule={addModule} onRemoveModule={removeModule}
+          />
+          <Canvas
+            device={device} zoom={zoom} onZoom={setZoom}
+            pageModules={pageModules} activePage={activePage} pageLabel={currentPageLabel}
+            drag={drag} dropIndex={dropIndex}
+            ctx={liveCtx} accent={accentColor} isDark={isDark} radius={radius}
+            selectedId={selectedId} onSelect={setSelectedId}
+            onStartDrag={startDrag} onEndDrag={endDrag}
+            onItemDragOver={handleItemDragOver} onDrop={handleDrop}
+            onMove={moveModule} onRemove={removeModule} onQuickAdd={quickAdd}
+            onNavTab={handleNavTab}
+            boxes={boxes}
+            onMeasure={onMeasure}
+            onBoxChange={onBoxChange}
+          />
+          <RightPanel
+            tab={rightTab} onTab={setRightTab}
+            selectedId={selectedId} accent={accentColor} wsStatus={wsStatus}
+            workflowOpen={workflowOpen} onToggleWorkflow={() => setWorkflowOpen((v) => !v)}
+            box={selectedId ? boxes[selectedId] ?? {} : {}}
+            measured={selectedId ? measured[selectedId] ?? null : null}
+            onBoxChange={onBoxChange}
+            onResetBox={onResetBox}
+            overrides={overrides}
+            setText={setText}
+            setColor={setColor}
+            onResetModuleOverrides={resetOverrides}
+          />
+        </div>
       </div>
-    </div>
+    </EditProvider>
   );
 }

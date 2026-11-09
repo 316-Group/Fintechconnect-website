@@ -267,21 +267,29 @@ const AML_SETUP = [
   },
 ];
 
-const TEMPLATES = [
+const TEMPLATES: {
+  title: string;
+  description: string;
+  tags: string[];
+  image: string;
+}[] = [
   {
     title: "Digital Checking Account",
     description: "Full checking account stack with virtual cards, ledger, and KYC onboarding.",
     tags: ["Banking", "Ledger", "Cards"],
+    image: "/dashboard/template1.png",
   },
   {
     title: "High-Yield Savings",
     description: "Configurable savings product with yield tiers and automated treasury sweep.",
     tags: ["Savings", "Treasury"],
+    image: "/dashboard/template2.png",
   },
   {
     title: "Card Issuing Program",
     description: "Launch a card program with spend controls, rewards, and compliance rules.",
     tags: ["Cards", "Payments", "Compliance"],
+    image: "/dashboard/template3.png",
   },
 ];
 
@@ -306,8 +314,8 @@ export default function DashboardHome() {
             style={{ backgroundImage: `url("${getPath(BANNER_IMAGE)}")` }}
             aria-hidden
            />
-          {/* Readability overlay — lightens the left side where the text lives */}
-          <div className="absolute inset-0 bg-gradient-to-r from-white/95 via-white/80 to-white/30" aria-hidden />
+          {/* Readability overlay — lightens only the left side where the text lives */}
+<div className="absolute inset-0 bg-gradient-to-r from-white/85 via-white/40 to-transparent" aria-hidden />
 
           <div className="relative px-6 md:px-10 py-8 md:py-12">
             <div className="flex items-center gap-2 mb-3">
@@ -349,13 +357,13 @@ export default function DashboardHome() {
                 className="group rounded-xl border border-slate-200 bg-white overflow-hidden flex flex-col hover:border-slate-300 hover:shadow-sm transition-all"
               >
                 {/* ---- Image ---- */}
-                <div className="relative h-58 bg-slate-50 border-b border-slate-100 flex items-center justify-center">
-                <img
-                    src={getPath(step.image)}
-                    alt={step.title}
-                    className="w-full h-full object-cover"
-                 />
-                </div>
+<div className="relative h-44 border-b border-slate-100">
+  <img
+    src={getPath(step.image)}
+    alt={step.title}
+    className="w-full h-full object-contain"
+  />
+</div>
 
                 <div className="p-5 flex flex-col flex-1">
                   <h3 className="text-lg font-bold text-slate-900">
@@ -406,10 +414,14 @@ export default function DashboardHome() {
           {/* Connectors — single card, spans 2 columns */}
           <div className="lg:col-span-2 relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#EEF0FF] via-[#F5F2FF] to-white border border-slate-200/70 min-h-[240px]">
             {/* ---- Background image placeholder on the right ---- */}
-            <div className="absolute inset-y-0 right-0 w-[55%] flex items-center justify-center pointer-events-none">
-              {<img src={getPath("/dashboard/connectors.png")} alt="" className="w-full h-full object-contain" /> }
-              
-            </div>
+            {/* ---- Background image on the right ---- */}
+<div className="absolute inset-y-0 right-0 w-[55%] pointer-events-none">
+  <img
+    src={getPath("/dashboard/connectors.png")}
+    alt=""
+    className="w-full h-full object-cover"
+  />
+</div>
 
             {/* Content on the left */}
             <div className="relative p-7 sm:p-9 max-w-[55%]">
@@ -474,7 +486,7 @@ export default function DashboardHome() {
           </div>
         </div>
 
-        {/* ------------------------ Start with a Template ------------------------ */}
+                {/* ------------------------ Start with a Template ------------------------ */}
         <section>
           <div className="flex items-end justify-between mb-4">
             <div>
@@ -494,11 +506,11 @@ export default function DashboardHome() {
                 key={tpl.title}
                 className="group rounded-xl border border-slate-200 bg-white overflow-hidden hover:border-blue-300 hover:shadow-sm transition-all cursor-pointer flex flex-col"
               >
-                {/* ---- Image placeholder — drop your own image here ---- */}
-                <div className="relative h-50 bg-gradient-to-br from-blue-50 via-slate-50 to-blue-100 border-b border-slate-200 flex items-center justify-center">
+                {/* ---- Per-template image ---- */}
+                <div className="relative h-64 bg-gradient-to-br from-blue-50 via-slate-50 to-blue-100 border-b border-slate-200 flex items-center justify-center">
                   <img
-                    src={getPath("/dashboard/templateimage.png")}
-                    alt="Template placeholder"
+                    src={getPath(tpl.image)}
+                    alt={tpl.title}
                     className="w-full h-full object-cover"
                   />
                 </div>

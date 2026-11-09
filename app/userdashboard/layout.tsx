@@ -136,7 +136,7 @@ function Sidebar({ collapsed = false, onClose }: { collapsed?: boolean; onClose?
       </div>
 
       {/* Nav sections */}
-      <nav className={`flex-1 overflow-y-auto pb-4 space-y-4 ${collapsed ? "px-2 pt-3" : "px-3 pt-3"}`}>
+      <nav className={`flex-1 overflow-y-auto pb-4 space-y-4 scrollbar-thin-blue [scrollbar-width:thin] [scrollbar-color:#0040DF_transparent] [&::-webkit-scrollbar]:w-[5px] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-[#0040DF] [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-[#002db3] ${collapsed ? "px-2 pt-3" : "px-3 pt-3"}`}>
         {navSections.map((section) => (
           <div key={section.title}>
             {!collapsed ? (

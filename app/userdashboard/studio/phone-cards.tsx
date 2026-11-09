@@ -29,6 +29,11 @@ import {
   type CryptoModuleId,
 } from '@/app/products/mobile-app/crypto-modules';
 
+import {
+  EditableText, useModuleColor, useModuleText,
+} from './edit-context';
+
+import { ModuleScope } from './edit-context';
 /* ─────────────────────────── constants ─────────────────────────── */
 
 export const INK = '#1B1B1F';
@@ -585,15 +590,23 @@ export interface ViewCtx {
 }
 
 export function HeaderGreetingBar({ ctx }: { ctx: ViewCtx }) {
+  const avatarBg = useModuleColor('avatarBg', ctx.accent);
+  const greeting = useModuleText('greeting', 'Good morning');
+  const name     = useModuleText('name', 'Krishnan');
+  const avatar   = useModuleText('avatar', 'K');
+
   return (
     <div className="flex items-center justify-between px-1 pb-2 pt-1.5">
       <div className="flex items-center gap-2">
-        <div className="grid h-7 w-7 place-items-center rounded-full text-[10px] font-bold text-white" style={{ background: ctx.accent }}>
-          K
+        <div className="grid h-7 w-7 place-items-center rounded-full text-[10px] font-bold text-white"
+             style={{ background: avatarBg }}>
+          {avatar}
         </div>
         <div className="leading-tight">
-          <p className="text-[8px] text-slate-400">Good morning</p>
-          <p className={`text-[11px] font-semibold ${ctx.isDark ? 'text-slate-100' : 'text-slate-900'}`}>Krishnan</p>
+          <EditableText slot="greeting" fallback={greeting}
+            className="block text-[8px] text-slate-400" />
+          <EditableText slot="name" fallback={name}
+            className={`block text-[11px] font-semibold ${ctx.isDark ? 'text-slate-100' : 'text-slate-900'}`} />
         </div>
       </div>
       <button className={`relative grid h-6 w-6 place-items-center rounded-full ${ctx.isDark ? 'text-slate-300' : 'text-slate-700'}`}>
@@ -665,34 +678,55 @@ export function ModuleHeader({ ctx, code, title }: { ctx: ViewCtx; code: string;
 /* ─────────────────────────── modules ─────────────────────────── */
 
 export function BalanceCard({ ctx }: { ctx: ViewCtx }) {
+  const bg     = useModuleColor('bg', INK);
+  const accent = useModuleColor('accent', ctx.accent);
+  const ctaBg  = useModuleColor('ctaBg', '#FFFFFF');
+
   return (
     <div className={`relative h-[132px] overflow-hidden p-5 text-white ${ctx.radius.card} ${ctx.isDark ? 'ring-1 ring-white/10' : 'shadow-[0_10px_28px_rgba(20,20,40,0.22)]'}`}
-      style={{ background: INK }}>
-      <span aria-hidden className="absolute -right-7 -top-7 h-[84px] w-[84px] rounded-full" style={{ background: ctx.accent }} />
+         style={{ background: bg }}>
+      <span aria-hidden className="absolute -right-7 -top-7 h-[84px] w-[84px] rounded-full" style={{ background: accent }} />
       <div className="relative">
-        <p className="text-[10px] text-white/60">Total Balance</p>
-        <p className="mt-1 text-[26px] font-bold leading-none tracking-tight">{usd(ctx.balance)}</p>
+        <EditableText slot="label" fallback="Total Balance" className="block text-[10px] text-white/60" />
+        <EditableText slot="balance" fallback={usd(ctx.balance)}
+          className="mt-1 block text-[26px] font-bold leading-none tracking-tight" />
       </div>
-      <Tap ctx={ctx} onClick={ctx.actions.openWallet} label="Open wallet" className="absolute bottom-4 right-4 flex items-center gap-2 text-[10px] font-semibold">
-        My Wallet
-        <span className="grid h-7 w-7 place-items-center rounded-full bg-white" style={{ color: INK }}><ArrowRight className="h-3.5 w-3.5" /></span>
+      <Tap ctx={ctx} onClick={ctx.actions.openWallet} label="Open wallet"
+           className="absolute bottom-4 right-4 flex items-center gap-2 text-[10px] font-semibold">
+        <EditableText slot="cta" fallback="My Wallet" />
+        <span className="grid h-7 w-7 place-items-center rounded-full" style={{ background: ctaBg, color: INK }}>
+          <ArrowRight className="h-3.5 w-3.5" />
+        </span>
       </Tap>
     </div>
   );
 }
 
 export function CashflowStrip({ ctx }: { ctx: ViewCtx }) {
+  const bg          = useModuleColor('bg', INK);
+  const incomeTint  = useModuleColor('incomeTint', '#10B981');
+  const outcomeTint = useModuleColor('outcomeTint', '#F43F5E');
   return (
-    <div className={`relative grid grid-cols-2 overflow-hidden text-white ${ctx.radius.card} ${ctx.isDark ? 'ring-1 ring-white/10' : 'shadow-[0_8px_22px_rgba(20,20,40,0.18)]'}`} style={{ background: INK }}>
+    <div className={`relative grid grid-cols-2 overflow-hidden text-white ${ctx.radius.card} ${ctx.isDark ? 'ring-1 ring-white/10' : 'shadow-[0_8px_22px_rgba(20,20,40,0.18)]'}`} style={{ background: bg }}>
       <span aria-hidden className="absolute -left-4 -top-4 h-10 w-10 rounded-full bg-violet-500/30" />
       <span aria-hidden className="absolute -bottom-4 -right-4 h-10 w-10 rounded-full bg-amber-700/40" />
       <div className="relative flex items-center gap-2.5 px-4 py-3.5">
-        <span className="grid h-8 w-8 place-items-center rounded-full bg-emerald-500/15 text-emerald-400"><ArrowDown className="h-4 w-4" /></span>
-        <div><p className="text-[9px] text-white/50">Income</p><p className="text-[12px] font-semibold">{whole(ctx.income)}</p></div>
+        <span className="grid h-8 w-8 place-items-center rounded-full" style={{ background: `${incomeTint}22`, color: incomeTint }}>
+          <ArrowDown className="h-4 w-4" />
+        </span>
+        <div>
+          <EditableText slot="incomeLabel" fallback="Income" className="block text-[9px] text-white/50" />
+          <EditableText slot="incomeValue" fallback={whole(ctx.income)} className="text-[12px] font-semibold" />
+        </div>
       </div>
       <div className="relative flex items-center gap-2.5 border-l border-white/10 px-4 py-3.5">
-        <span className="grid h-8 w-8 place-items-center rounded-full bg-rose-500/15 text-rose-400"><ArrowUp className="h-4 w-4" /></span>
-        <div><p className="text-[9px] text-white/50">Outcome</p><p className="text-[12px] font-semibold">{whole(ctx.outcome)}</p></div>
+        <span className="grid h-8 w-8 place-items-center rounded-full" style={{ background: `${outcomeTint}22`, color: outcomeTint }}>
+          <ArrowUp className="h-4 w-4" />
+        </span>
+        <div>
+          <EditableText slot="outcomeLabel" fallback="Outcome" className="block text-[9px] text-white/50" />
+          <EditableText slot="outcomeValue" fallback={whole(ctx.outcome)} className="text-[12px] font-semibold" />
+        </div>
       </div>
     </div>
   );
@@ -1535,7 +1569,15 @@ export function FreezeCard({ ctx }: { ctx: ViewCtx }) {
 
 /* ─────────────────────────── dispatcher ─────────────────────────── */
 
-export function ModuleView({ id, ctx }: { id: ModuleId; ctx: ViewCtx }) {
+export function ModuleView({ id, ctx, passive }: { id: ModuleId; ctx: ViewCtx; passive?: boolean }) {
+  return (
+    <ModuleScope moduleId={id} passive={passive}>
+      <ModuleViewInner id={id} ctx={ctx} />
+    </ModuleScope>
+  );
+}
+
+function ModuleViewInner({ id, ctx }: { id: ModuleId; ctx: ViewCtx }) {
   if (CRYPTO_MODULE_IDS.has(id)) return <CryptoModuleView id={id} ctx={ctx} />;
   if (BANKING_WALLET_MODULE_IDS.has(id)) return <BankingWalletModuleView id={id} ctx={ctx} />;
 

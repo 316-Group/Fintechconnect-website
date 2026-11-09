@@ -160,11 +160,13 @@ function RegionFlag({ region }: { region: RegionId }) {
 export default function PlatformConfigurationForm({
   onBack,
   onComplete,
+  onNext,                                    // ← NEW
   initialValues,
   isEditing = false,
 }: {
   onBack: () => void;
   onComplete: (data: PlatformConfigurationData) => void;
+  onNext?: (data: PlatformConfigurationData) => void;   // ← NEW
   initialValues?: Partial<PlatformConfigurationData>;
   isEditing?: boolean;
 }) {
@@ -201,8 +203,18 @@ export default function PlatformConfigurationForm({
   };
 
   const handleComplete = () => {
-    onComplete({ selectedRegion, currencies, selectedChannel, capabilities });
+  const data: PlatformConfigurationData = {
+    selectedRegion,
+    currencies,
+    selectedChannel,
+    capabilities,
   };
+  if (onNext) {
+    onNext(data);          // ← routes forward (teams step)
+  } else {
+    onComplete(data);      // ← legacy behaviour
+  }
+};
 
   const selectedCapCount = capabilities.filter((c) => c.selected).length;
 
@@ -469,11 +481,12 @@ export default function PlatformConfigurationForm({
         </button>
 
         <button
-          onClick={handleComplete}
-          className="w-full sm:w-auto px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold shadow-sm transition-colors flex items-center justify-center gap-2"
-        >
-          {isEditing ? "Save Changes" : "Create Project"} <ArrowRight className="w-4 h-4" />
-        </button>
+            onClick={handleComplete}
+            className="w-full sm:w-auto px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold shadow-sm transition-colors flex items-center justify-center gap-2"
+            >
+            {isEditing ? "Save Changes" : onNext ? "Continue" : "Create Project"}
+            <ArrowRight className="w-4 h-4" />
+            </button>
       </div>
     </div>
   );
