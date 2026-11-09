@@ -372,33 +372,45 @@ function LeftPanel({
             <p className="py-6 text-center text-[10px] text-slate-400">No components found.</p>
           )}
           {filteredMods.map((mod) => {
-            const isAdded = (pageModules[activePage] ?? []).includes(mod.id);
-            return (
-              <div key={mod.id} className="overflow-hidden rounded-lg border border-slate-200 bg-white">
-                <div className="flex items-center justify-between border-b border-slate-100 px-2 py-1.5">
-                  <div className="flex min-w-0 items-center gap-1.5">
-                    <span className="truncate text-[9px] font-bold text-slate-800">{mod.title}</span>
-                    <span className={`shrink-0 rounded px-1 py-0.5 text-[7px] font-bold ${mod.badgeColor}`}>
-                      {mod.badge}
-                    </span>
-                  </div>
-                  <button
-                    onClick={() => (isAdded ? onRemoveModule(mod.id) : onAddModule(mod.id))}
-                    className={`grid h-4 w-4 shrink-0 place-items-center rounded hover:bg-slate-200 ${
-                      isAdded ? 'text-emerald-600' : 'text-slate-400'
-                    }`}
-                  >
-                    {isAdded ? <Check className="h-3 w-3" /> : <Plus className="h-3 w-3" />}
-                  </button>
-                </div>
-                <div className="relative overflow-hidden bg-[#F7F8FF] p-2" style={{ height: 140 }}>
-                  <div className="pointer-events-none origin-top-left" style={{ transform: 'scale(0.75)', width: '133%' }}>
-                    <ModuleView id={mod.id} ctx={previewCtx} />
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+  const isAdded = (pageModules[activePage] ?? []).includes(mod.id);
+  const isDragging = drag?.id === mod.id && drag.from === 'library';
+  return (
+    <div
+      key={mod.id}
+      draggable
+      onDragStart={(e) => onStartDrag(e, mod.id, 'library')}
+      onDragEnd={onEndDrag}
+      className={`overflow-hidden rounded-lg border border-slate-200 bg-white cursor-grab active:cursor-grabbing ${
+        isDragging ? 'opacity-50' : ''
+      }`}
+    >
+      <div className="flex items-center justify-between border-b border-slate-100 px-2 py-1.5">
+        <div className="flex min-w-0 items-center gap-1.5">
+          <GripVertical className="h-3 w-3 shrink-0 text-slate-300" />
+          <span className="truncate text-[9px] font-bold text-slate-800">{mod.title}</span>
+          <span className={`shrink-0 rounded px-1 py-0.5 text-[7px] font-bold ${mod.badgeColor}`}>
+            {mod.badge}
+          </span>
+        </div>
+        <button
+          draggable={false}
+          onDragStart={(e) => e.stopPropagation()}
+          onClick={() => (isAdded ? onRemoveModule(mod.id) : onAddModule(mod.id))}
+          className={`grid h-4 w-4 shrink-0 place-items-center rounded hover:bg-slate-200 ${
+            isAdded ? 'text-emerald-600' : 'text-slate-400'
+          }`}
+        >
+          {isAdded ? <Check className="h-3 w-3" /> : <Plus className="h-3 w-3" />}
+        </button>
+      </div>
+      <div className="relative overflow-hidden bg-[#F7F8FF] p-2" style={{ height: 140 }}>
+        <div className="pointer-events-none origin-top-left" style={{ transform: 'scale(0.75)', width: '133%' }}>
+          <ModuleView id={mod.id} ctx={previewCtx} />
+        </div>
+      </div>
+    </div>
+  );
+})}
         </div>
       )}
 
@@ -688,12 +700,12 @@ function PageCanvas({
 }
 
 function Canvas({
-  device, zoom, pageModules, activePage, pageLabel, drag, dropIndex,
+  device, zoom, onZoom, pageModules, activePage, pageLabel, drag, dropIndex,
   ctx, accent, isDark, radius, selectedId, onSelect,
   onStartDrag, onEndDrag, onItemDragOver, onDrop, onMove, onRemove, onQuickAdd,
   onNavTab, boxes, onMeasure, onBoxChange,
 }: {
-  device: DeviceType; zoom: number;
+  device: DeviceType; zoom: number; onZoom: (z: number) => void;
   pageModules: Record<PageId, ModuleId[]>;
   activePage: PageId; pageLabel: string;
   drag: DragState; dropIndex: number | null;
@@ -711,11 +723,32 @@ function Canvas({
   onMeasure: (id: ModuleId, size: { w: number; h: number }) => void;
   onBoxChange: (id: ModuleId, patch: ModuleBox) => void;
 }) {
-  const dims = device === 'iphone' ? { w: 320, h: 640 } : device === 'pixel' ? { w: 340, h: 640 } : { w: 700, h: 680 };
-  const frameRadius = device === 'iphone' ? 'rounded-[42px]' : device === 'pixel' ? 'rounded-[32px]' : 'rounded-[24px]';
+  const dims = device === 'iphone' ? { w: 320, h: 640 }
+    : device === 'pixel' ? { w: 340, h: 640 }
+    : { w: 700, h: 680 };
+  const frameRadius  = device === 'iphone' ? 'rounded-[42px]' : device === 'pixel' ? 'rounded-[32px]' : 'rounded-[24px]';
   const screenRadius = device === 'iphone' ? 'rounded-[32px]' : device === 'pixel' ? 'rounded-[24px]' : 'rounded-[18px]';
 
   const bodyRef = React.useRef<HTMLDivElement>(null);
+  const mainRef = React.useRef<HTMLElement>(null);
+  const zoomRef = React.useRef(zoom);
+  zoomRef.current = zoom;
+
+  /* Ctrl/⌘ + wheel → zoom only the phone canvas. React's onWheel is passive,
+     so attach a native listener with `passive: false` to allow preventDefault. */
+  React.useEffect(() => {
+    const el = mainRef.current;
+    if (!el) return;
+    const handler = (e: WheelEvent) => {
+      if (!e.ctrlKey && !e.metaKey) return;
+      e.preventDefault();
+      const delta = e.deltaY < 0 ? 10 : -10;
+      onZoom(Math.max(25, Math.min(400, zoomRef.current + delta)));
+    };
+    el.addEventListener('wheel', handler, { passive: false });
+    return () => el.removeEventListener('wheel', handler);
+  }, [onZoom]);
+
   const autoScroll = (clientY: number) => {
     const el = bodyRef.current;
     if (!el) return;
@@ -725,62 +758,72 @@ function Canvas({
   };
 
   return (
-    <main className="relative flex min-w-0 flex-1 flex-col items-center overflow-hidden bg-gradient-to-b from-[#EEF0FB] via-[#F6F7FE] to-[#EEF0FB] pb-4">
+    <main ref={mainRef} className="relative flex min-w-0 flex-1 flex-col items-center overflow-hidden bg-gradient-to-b from-[#EEF0FB] via-[#F6F7FE] to-[#EEF0FB] pb-4">
       <p className="flex items-center gap-1.5 py-3 text-[10px] font-medium text-slate-500">
         <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" /> Live Sandbox · {zoom}%
+        <span className="text-slate-400">· Ctrl+Scroll to zoom</span>
       </p>
 
-      {/* FIXED PROPORTION PHONE FRAME */}
-      <div className={`relative mx-auto shrink-0 border-[3px] border-[#1d2b52] bg-[#101c3a] p-[9px] shadow-2xl ring-1 ring-white/10 ${frameRadius}`} style={{ width: dims.w + 18 }}>
-        {device === 'iphone' ? (
-          <div className="absolute left-1/2 top-[16px] z-30 h-[22px] w-[84px] -translate-x-1/2 rounded-full bg-black" />
-        ) : device === 'pixel' ? (
-          <div className="absolute left-1/2 top-[16px] z-30 h-2.5 w-2.5 -translate-x-1/2 rounded-full bg-black" />
-        ) : null}
+      {/* Wrapper applies the zoom only to the phone frame */}
+      <div
+        className="relative mx-auto shrink-0"
+        style={{
+          transform: `scale(${zoom / 100})`,
+          transformOrigin: 'top center',
+          willChange: 'transform',
+        }}
+      >
+        <div className={`relative border-[3px] border-[#1d2b52] bg-[#101c3a] p-[9px] shadow-2xl ring-1 ring-white/10 ${frameRadius}`} style={{ width: dims.w + 18 }}>
+          {device === 'iphone' ? (
+            <div className="absolute left-1/2 top-[16px] z-30 h-[22px] w-[84px] -translate-x-1/2 rounded-full bg-black" />
+          ) : device === 'pixel' ? (
+            <div className="absolute left-1/2 top-[16px] z-30 h-2.5 w-2.5 -translate-x-1/2 rounded-full bg-black" />
+          ) : null}
 
-        <div className={`${outfit.className} relative flex w-full flex-col overflow-hidden transition-colors duration-300 ${screenRadius} ${isDark ? 'bg-slate-950 text-slate-100' : 'bg-[#F7F8FF] text-slate-900'}`}
-          style={{ height: dims.h }}>
+          <div className={`${outfit.className} relative flex w-full flex-col overflow-hidden transition-colors duration-300 ${screenRadius} ${isDark ? 'bg-slate-950 text-slate-100' : 'bg-[#F7F8FF] text-slate-900'}`}
+            style={{ height: dims.h }}>
 
-          {/* Status bar */}
-          <div className={`flex h-8 shrink-0 items-end justify-between px-6 pb-1 text-[8px] font-semibold ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
-            <span>09:41</span>
-            <span className="flex items-center gap-0.5">
-              <span className={`h-2 w-2 rounded-sm border ${isDark ? 'border-slate-300' : 'border-slate-700'}`} />
-              <span className={`h-2 w-2 rounded-sm border ${isDark ? 'border-slate-300' : 'border-slate-700'}`} />
-              <span className={`h-2 w-3 rounded-sm border ${isDark ? 'border-slate-300' : 'border-slate-700'}`} />
-            </span>
+            {/* Status bar */}
+            <div className={`flex h-8 shrink-0 items-end justify-between px-6 pb-1 text-[8px] font-semibold ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
+              <span>09:41</span>
+              <span className="flex items-center gap-0.5">
+                <span className={`h-2 w-2 rounded-sm border ${isDark ? 'border-slate-300' : 'border-slate-700'}`} />
+                <span className={`h-2 w-2 rounded-sm border ${isDark ? 'border-slate-300' : 'border-slate-700'}`} />
+                <span className={`h-2 w-3 rounded-sm border ${isDark ? 'border-slate-300' : 'border-slate-700'}`} />
+              </span>
+            </div>
+
+            {/* Page canvas */}
+            <div
+              ref={bodyRef}
+              onDragOver={(e) => {
+                const hasDrag = e.dataTransfer.types.includes('application/x-pf-module-id');
+                if (!drag && !hasDrag) return;
+                e.preventDefault();
+                e.dataTransfer.dropEffect = drag?.from === 'library' ? 'copy' : 'move';
+                if (drag) autoScroll(e.clientY);
+              }}
+              onDragLeave={(e) => {
+                if (!e.currentTarget.contains(e.relatedTarget as Node | null)) onEndDrag();
+              }}
+              onDrop={onDrop}
+              onClick={(e) => { if (e.target === e.currentTarget) onSelect(null); }}
+              className="flex min-h-0 flex-1 flex-col overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden px-3 pb-20 pt-1">
+              <PageCanvas
+                page={activePage} pageLabel={pageLabel}
+                modules={pageModules[activePage] ?? []}
+                ctx={ctx} drag={drag} dropIndex={dropIndex} accent={accent}
+                isDark={isDark} radius={radius}
+                onStartDrag={onStartDrag} onEndDrag={onEndDrag}
+                onItemDragOver={onItemDragOver} onDrop={onDrop}
+                onMove={onMove} onRemove={onRemove} onQuickAdd={onQuickAdd}
+                selectedId={selectedId} onSelect={onSelect}
+                boxes={boxes} onMeasure={onMeasure} onBoxChange={onBoxChange}
+              />
+            </div>
+
+            <BottomDockTabBar activePage={activePage} isDark={isDark} onNavTab={onNavTab} />
           </div>
-
-          {/* Page canvas — where drag/drop and modules live */}
-          <div
-            ref={bodyRef}
-            onDragOver={(e) => {
-              const hasDrag = e.dataTransfer.types.includes('application/x-pf-module-id');
-              if (!drag && !hasDrag) return;
-              e.preventDefault();
-              e.dataTransfer.dropEffect = drag?.from === 'library' ? 'copy' : 'move';
-              if (drag) autoScroll(e.clientY);
-            }}
-            onDragLeave={(e) => {
-              if (!e.currentTarget.contains(e.relatedTarget as Node | null)) onEndDrag();
-            }}
-            onDrop={onDrop}
-            onClick={(e) => { if (e.target === e.currentTarget) onSelect(null); }}
-            className="flex min-h-0 flex-1 flex-col overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden px-3 pb-20 pt-1">
-            <PageCanvas
-    page={activePage} pageLabel={pageLabel}
-    modules={pageModules[activePage] ?? []}
-    ctx={ctx} drag={drag} dropIndex={dropIndex} accent={accent}
-    isDark={isDark} radius={radius}
-    onStartDrag={onStartDrag} onEndDrag={onEndDrag}
-    onItemDragOver={onItemDragOver} onDrop={onDrop}
-    onMove={onMove} onRemove={onRemove} onQuickAdd={onQuickAdd}
-    selectedId={selectedId} onSelect={onSelect}
-    boxes={boxes} onMeasure={onMeasure} onBoxChange={onBoxChange}
-  />
-          </div>
-
-          <BottomDockTabBar activePage={activePage} isDark={isDark} onNavTab={onNavTab} />
         </div>
       </div>
     </main>
@@ -1182,19 +1225,19 @@ export default function StudioClient() {
           onAddModule={addModule} onRemoveModule={removeModule}
         />
         <Canvas
-          device={device} zoom={zoom}
-          pageModules={pageModules} activePage={activePage} pageLabel={currentPageLabel}
-          drag={drag} dropIndex={dropIndex}
-          ctx={liveCtx} accent={accentColor} isDark={isDark} radius={radius}
-          selectedId={selectedId} onSelect={setSelectedId}
-          onStartDrag={startDrag} onEndDrag={endDrag}
-          onItemDragOver={handleItemDragOver} onDrop={handleDrop}
-          onMove={moveModule} onRemove={removeModule} onQuickAdd={quickAdd}
-          onNavTab={handleNavTab}
-          boxes={boxes}
-          onMeasure={onMeasure}
-          onBoxChange={onBoxChange}
-        />
+  device={device} zoom={zoom} onZoom={setZoom}
+  pageModules={pageModules} activePage={activePage} pageLabel={currentPageLabel}
+  drag={drag} dropIndex={dropIndex}
+  ctx={liveCtx} accent={accentColor} isDark={isDark} radius={radius}
+  selectedId={selectedId} onSelect={setSelectedId}
+  onStartDrag={startDrag} onEndDrag={endDrag}
+  onItemDragOver={handleItemDragOver} onDrop={handleDrop}
+  onMove={moveModule} onRemove={removeModule} onQuickAdd={quickAdd}
+  onNavTab={handleNavTab}
+  boxes={boxes}
+  onMeasure={onMeasure}
+  onBoxChange={onBoxChange}
+/>
         <RightPanel
           tab={rightTab} onTab={setRightTab}
           selectedId={selectedId} accent={accentColor} wsStatus={wsStatus}
