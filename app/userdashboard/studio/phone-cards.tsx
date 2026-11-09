@@ -13,7 +13,6 @@ import {
   User, Wallet, Wifi, X,
 } from 'lucide-react';
 
-/* NOTE: adjust these two paths to wherever your buildsection's sibling modules live. */
 import {
   BANKING_WALLET_MODULES,
   BANKING_WALLET_PAGE_PREPEND,
@@ -30,10 +29,9 @@ import {
 } from '@/app/products/mobile-app/crypto-modules';
 
 import {
-  EditableText, useModuleColor, useModuleText,
+  EditableText, useModuleColor, useModuleText, ModuleScope,
 } from './edit-context';
 
-import { ModuleScope } from './edit-context';
 /* ─────────────────────────── constants ─────────────────────────── */
 
 export const INK = '#1B1B1F';
@@ -540,7 +538,7 @@ export const ringVar = (color: string) => ({ ['--tw-ring-color' as string]: colo
 
 export const buildInitialPages = (): Record<PageId, ModuleId[]> => {
   const out = {} as Record<PageId, ModuleId[]>;
-  for (const p of PAGES) out[p.id] = [...p.modules];
+  for (const p of PAGES) out[p.id] = [];
   return out;
 };
 
@@ -589,33 +587,7 @@ export interface ViewCtx {
   actions: ViewActions;
 }
 
-export function HeaderGreetingBar({ ctx }: { ctx: ViewCtx }) {
-  const avatarBg = useModuleColor('avatarBg', ctx.accent);
-  const greeting = useModuleText('greeting', 'Good morning');
-  const name     = useModuleText('name', 'Krishnan');
-  const avatar   = useModuleText('avatar', 'K');
-
-  return (
-    <div className="flex items-center justify-between px-1 pb-2 pt-1.5">
-      <div className="flex items-center gap-2">
-        <div className="grid h-7 w-7 place-items-center rounded-full text-[10px] font-bold text-white"
-             style={{ background: avatarBg }}>
-          {avatar}
-        </div>
-        <div className="leading-tight">
-          <EditableText slot="greeting" fallback={greeting}
-            className="block text-[8px] text-slate-400" />
-          <EditableText slot="name" fallback={name}
-            className={`block text-[11px] font-semibold ${ctx.isDark ? 'text-slate-100' : 'text-slate-900'}`} />
-        </div>
-      </div>
-      <button className={`relative grid h-6 w-6 place-items-center rounded-full ${ctx.isDark ? 'text-slate-300' : 'text-slate-700'}`}>
-        <Bell className="h-[14px] w-[14px]" />
-        <span className={`absolute right-0.5 top-0.5 h-1.5 w-1.5 rounded-full bg-rose-500 ring-2 ${ctx.isDark ? 'ring-slate-950' : 'ring-[#F7F8FF]'}`} />
-      </button>
-    </div>
-  );
-}
+/* ─────────────────────────── shared UI primitives ─────────────────────────── */
 
 const noop = () => {};
 export const noopActions: ViewActions = {
@@ -623,8 +595,6 @@ export const noopActions: ViewActions = {
   openHistory: noop, seeAllSavings: noop, deposit: noop, toggleFaceId: noop, openAlerts: noop,
   signIn: noop, skipSignIn: noop, quickSignIn: noop, toggleFreeze: noop,
 };
-
-/* ─────────────────────────── shared UI ─────────────────────────── */
 
 export function Tap({ ctx, onClick, label, className = '', children }: { ctx: ViewCtx; onClick: () => void; label: string; className?: string; children: React.ReactNode }) {
   if (!ctx.interactive) return <div className={className}>{children}</div>;
@@ -653,7 +623,7 @@ export function Switch({ checked, onChange, label, accent, interactive = true }:
 export function SectionHeader({ ctx, title, action, onAction }: { ctx: ViewCtx; title: string; action?: React.ReactNode; onAction?: () => void }) {
   return (
     <div className="mb-2.5 flex items-center justify-between px-0.5">
-      <h3 className="text-[13px] font-semibold">{title}</h3>
+      <EditableText slot="sectionTitle" fallback={title} className="text-[13px] font-semibold" />
       {action && (
         <Tap ctx={ctx} onClick={onAction ?? noop} label={title} className="flex items-center text-[11px] font-semibold">
           <span className="flex items-center" style={{ color: ctx.accent }}>{action}</span>
@@ -667,20 +637,44 @@ export function ModuleHeader({ ctx, code, title }: { ctx: ViewCtx; code: string;
   return (
     <>
       <div className="flex items-center justify-between">
-        <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: ctx.accent }}>{code}</p>
+        <EditableText slot="code" fallback={code} className="block text-[10px] font-bold uppercase tracking-wider" style={{ color: ctx.accent }} />
         <GripVertical className="h-3.5 w-3.5 text-slate-300" aria-hidden />
       </div>
-      <p className="text-[14px] font-bold">{title}</p>
+      {title ? <EditableText slot="title" fallback={title} className="block text-[14px] font-bold" /> : null}
     </>
   );
 }
 
 /* ─────────────────────────── modules ─────────────────────────── */
 
+/* Header greeting */
+export function HeaderGreetingBar({ ctx }: { ctx: ViewCtx }) {
+  const avatarBg = useModuleColor('avatarBg', ctx.accent);
+  return (
+    <div className="flex items-center justify-between px-1 pb-2 pt-1.5">
+      <div className="flex items-center gap-2">
+        <div className="grid h-7 w-7 place-items-center rounded-full text-[10px] font-bold text-white" style={{ background: avatarBg }}>
+          <EditableText slot="avatar" fallback="K" />
+        </div>
+        <div className="leading-tight">
+          <EditableText slot="greeting" fallback="Good morning" className="block text-[8px] text-slate-400" />
+          <EditableText slot="name" fallback="Krishnan"
+            className={`block text-[11px] font-semibold ${ctx.isDark ? 'text-slate-100' : 'text-slate-900'}`} />
+        </div>
+      </div>
+      <button className={`relative grid h-6 w-6 place-items-center rounded-full ${ctx.isDark ? 'text-slate-300' : 'text-slate-700'}`}>
+        <Bell className="h-[14px] w-[14px]" />
+        <span className={`absolute right-0.5 top-0.5 h-1.5 w-1.5 rounded-full bg-rose-500 ring-2 ${ctx.isDark ? 'ring-slate-950' : 'ring-[#F7F8FF]'}`} />
+      </button>
+    </div>
+  );
+}
+
+/* Balance card */
 export function BalanceCard({ ctx }: { ctx: ViewCtx }) {
-  const bg     = useModuleColor('bg', INK);
+  const bg = useModuleColor('bg', INK);
   const accent = useModuleColor('accent', ctx.accent);
-  const ctaBg  = useModuleColor('ctaBg', '#FFFFFF');
+  const ctaBg = useModuleColor('ctaBg', '#FFFFFF');
 
   return (
     <div className={`relative h-[132px] overflow-hidden p-5 text-white ${ctx.radius.card} ${ctx.isDark ? 'ring-1 ring-white/10' : 'shadow-[0_10px_28px_rgba(20,20,40,0.22)]'}`}
@@ -702,12 +696,15 @@ export function BalanceCard({ ctx }: { ctx: ViewCtx }) {
   );
 }
 
+/* Cashflow strip */
 export function CashflowStrip({ ctx }: { ctx: ViewCtx }) {
-  const bg          = useModuleColor('bg', INK);
-  const incomeTint  = useModuleColor('incomeTint', '#10B981');
+  const bg = useModuleColor('bg', INK);
+  const incomeTint = useModuleColor('incomeTint', '#10B981');
   const outcomeTint = useModuleColor('outcomeTint', '#F43F5E');
+
   return (
-    <div className={`relative grid grid-cols-2 overflow-hidden text-white ${ctx.radius.card} ${ctx.isDark ? 'ring-1 ring-white/10' : 'shadow-[0_8px_22px_rgba(20,20,40,0.18)]'}`} style={{ background: bg }}>
+    <div className={`relative grid grid-cols-2 overflow-hidden text-white ${ctx.radius.card} ${ctx.isDark ? 'ring-1 ring-white/10' : 'shadow-[0_8px_22px_rgba(20,20,40,0.18)]'}`}
+         style={{ background: bg }}>
       <span aria-hidden className="absolute -left-4 -top-4 h-10 w-10 rounded-full bg-violet-500/30" />
       <span aria-hidden className="absolute -bottom-4 -right-4 h-10 w-10 rounded-full bg-amber-700/40" />
       <div className="relative flex items-center gap-2.5 px-4 py-3.5">
@@ -732,44 +729,61 @@ export function CashflowStrip({ ctx }: { ctx: ViewCtx }) {
   );
 }
 
+/* Quick actions */
 export function QuickActions({ ctx }: { ctx: ViewCtx }) {
+  const sendTint = useModuleColor('sendTint', ctx.accent);
+  const paymentsTint = useModuleColor('paymentsTint', GREEN);
+  const payBillTint = useModuleColor('payBillTint', YELLOW);
+  const topUpTint = useModuleColor('topUpTint', PINK);
+
   const items = [
-    { label: 'Send', Icon: Send, color: ctx.accent, run: ctx.actions.send },
-    { label: 'Payments', Icon: ArrowDownLeft, color: GREEN, run: ctx.actions.payments },
-    { label: 'Pay Bill', Icon: Receipt, color: YELLOW, run: ctx.actions.payBill },
-    { label: 'Top Up', Icon: PlusCircle, color: PINK, run: ctx.actions.topUp },
+    { slot: 'sendLabel', label: 'Send', Icon: Send, color: sendTint, run: ctx.actions.send },
+    { slot: 'paymentsLabel', label: 'Payments', Icon: ArrowDownLeft, color: paymentsTint, run: ctx.actions.payments },
+    { slot: 'payBillLabel', label: 'Pay Bill', Icon: Receipt, color: payBillTint, run: ctx.actions.payBill },
+    { slot: 'topUpLabel', label: 'Top Up', Icon: PlusCircle, color: topUpTint, run: ctx.actions.topUp },
   ];
   return (
     <div className="grid grid-cols-4 gap-2.5">
-      {items.map(({ label, Icon, color, run }) => (
-        <Tap key={label} ctx={ctx} onClick={run} label={label} className={`flex w-full flex-col items-center gap-2 py-3.5 ${ctx.radius.tile} ${surface(ctx.isDark)}`}>
+      {items.map(({ slot, label, Icon, color, run }) => (
+        <Tap key={slot} ctx={ctx} onClick={run} label={label}
+             className={`flex w-full flex-col items-center gap-2 py-3.5 ${ctx.radius.tile} ${surface(ctx.isDark)}`}>
           <Icon className="h-[18px] w-[18px]" style={{ color }} strokeWidth={1.75} />
-          <span className="text-[10px] font-semibold">{label}</span>
+          <EditableText slot={slot} fallback={label} className="text-[10px] font-semibold" />
         </Tap>
       ))}
     </div>
   );
 }
 
+/* Savings cards */
 export function SavingsCards({ ctx }: { ctx: ViewCtx }) {
   return (
     <section>
-      <SectionHeader ctx={ctx} title="Savings" action="See All" onAction={ctx.actions.seeAllSavings} />
+      <SectionHeader ctx={ctx} title="Savings"
+        action={<EditableText slot="sectionAction" fallback="See All" />}
+        onAction={ctx.actions.seeAllSavings} />
       <div className="grid grid-cols-2 gap-3">
-        {ctx.savings.map((g) => (
-          <Tap key={g.id} ctx={ctx} onClick={() => ctx.actions.deposit(g.id)} label={`Add $100 to ${g.name}`} className={`w-full p-3.5 ${ctx.radius.card} ${surface(ctx.isDark)}`}>
-            <div className="flex items-center justify-between text-[10px] text-slate-400">
-              <span className="truncate">{g.name}</span><ChevronRight className="h-3 w-3 shrink-0" />
-            </div>
-            <p className="mt-4 text-[15px] font-bold">${g.amount.toLocaleString('en-US')}</p>
-          </Tap>
-        ))}
+        {ctx.savings.slice(0, 2).map((g, i) => {
+          const idx = (i + 1) as 1 | 2;
+          return (
+            <Tap key={g.id} ctx={ctx} onClick={() => ctx.actions.deposit(g.id)} label={`Add $100 to ${g.name}`}
+                 className={`w-full p-3.5 ${ctx.radius.card} ${surface(ctx.isDark)}`}>
+              <div className="flex items-center justify-between text-[10px] text-slate-400">
+                <EditableText slot={`goal${idx}Name`} fallback={g.name} className="truncate" />
+                <ChevronRight className="h-3 w-3 shrink-0" />
+              </div>
+              <EditableText slot={`goal${idx}Amount`} fallback={`$${g.amount.toLocaleString('en-US')}`}
+                className="mt-4 block text-[15px] font-bold" />
+            </Tap>
+          );
+        })}
       </div>
     </section>
   );
 }
 
-export function TxRow({ tx, ctx }: { tx: Transaction; ctx: ViewCtx }) {
+/* Recent activity */
+export function TxRow({ tx, ctx, index }: { tx: Transaction; ctx: ViewCtx; index: number }) {
   const isIn = tx.kind === 'in';
   return (
     <div className={`flex items-center justify-between gap-3 p-3 ${ctx.radius.card} ${surface(ctx.isDark)}`}>
@@ -778,38 +792,52 @@ export function TxRow({ tx, ctx }: { tx: Transaction; ctx: ViewCtx }) {
           {isIn ? <ArrowDownLeft className="h-4 w-4" /> : <ShoppingCart className="h-4 w-4" />}
         </span>
         <div className="min-w-0">
-          <p className="truncate text-[12px] font-semibold">{tx.name}</p>
-          <p className="truncate text-[9px] text-slate-400">{tx.sub}</p>
+          <EditableText slot={`tx${index}Name`} fallback={tx.name} className="block truncate text-[12px] font-semibold" />
+          <EditableText slot={`tx${index}Sub`} fallback={tx.sub} className="block truncate text-[9px] text-slate-400" />
         </div>
       </div>
       <div className="shrink-0 text-right">
-        <p className={`text-[12px] font-bold ${isIn ? 'text-emerald-600' : ''}`}>{isIn ? '+' : '-'} {usd(tx.amount)}</p>
-        <p className="text-[9px] text-slate-400">{tx.method}</p>
+        <EditableText
+          slot={`tx${index}Amount`}
+          fallback={`${isIn ? '+' : '-'} ${usd(tx.amount)}`}
+          className={`block text-[12px] font-bold ${isIn ? 'text-emerald-600' : ''}`} />
+        <EditableText slot={`tx${index}Method`} fallback={tx.method} className="block text-[9px] text-slate-400" />
       </div>
     </div>
   );
 }
 
 export function RecentActivity({ ctx }: { ctx: ViewCtx }) {
-  const rows = ctx.transactions.slice(0, ctx.interactive ? 3 : 1);
+  const rows = ctx.transactions.slice(0, 3);
   return (
     <section>
-      <SectionHeader ctx={ctx} title="Recent Activity" action={<><span>View History</span><ChevronRight className="h-3 w-3" /></>} onAction={ctx.actions.openHistory} />
-      <div className="space-y-2.5">{rows.map((t) => <TxRow key={t.id} tx={t} ctx={ctx} />)}</div>
+      <SectionHeader ctx={ctx} title="Recent Activity"
+        action={<><EditableText slot="action" fallback="View History" /><ChevronRight className="h-3 w-3" /></>}
+        onAction={ctx.actions.openHistory} />
+      <div className="space-y-2.5">
+        {rows.map((t, i) => <TxRow key={t.id} tx={t} ctx={ctx} index={i + 1} />)}
+      </div>
     </section>
   );
 }
 
+/* FX wallets */
 export function FxWallets({ ctx }: { ctx: ViewCtx }) {
-  const wallets = [['USD', '$18.2k'], ['EUR', '€6.4k'], ['GBP', '£2.1k']];
   return (
     <section>
-      <SectionHeader ctx={ctx} title="Wallets" action="Convert" onAction={ctx.actions.openFx} />
+      <SectionHeader ctx={ctx} title="Wallets"
+        action={<EditableText slot="action" fallback="Convert" />}
+        onAction={ctx.actions.openFx} />
       <div className="grid grid-cols-3 gap-2.5">
-        {wallets.map(([code, value]) => (
-          <Tap key={code} ctx={ctx} onClick={ctx.actions.openFx} label={`Convert from ${code} wallet`} className={`w-full p-3 ${ctx.radius.tile} ${surface(ctx.isDark)}`}>
+        {[
+          { code: 'USD', slot: 'usdAmount', fallback: '$18.2k' },
+          { code: 'EUR', slot: 'eurAmount', fallback: '€6.4k' },
+          { code: 'GBP', slot: 'gbpAmount', fallback: '£2.1k' },
+        ].map(({ code, slot, fallback }) => (
+          <Tap key={code} ctx={ctx} onClick={ctx.actions.openFx} label={`Convert from ${code} wallet`}
+               className={`w-full p-3 ${ctx.radius.tile} ${surface(ctx.isDark)}`}>
             <p className="text-[9px] font-medium text-slate-400">{code}</p>
-            <p className="mt-1.5 text-[13px] font-bold">{value}</p>
+            <EditableText slot={slot} fallback={fallback} className="mt-1.5 block text-[13px] font-bold" />
           </Tap>
         ))}
       </div>
@@ -817,41 +845,68 @@ export function FxWallets({ ctx }: { ctx: ViewCtx }) {
   );
 }
 
+/* Spending card */
 export function SpendingCard({ ctx }: { ctx: ViewCtx }) {
+  const barAccent = useModuleColor('barAccent', ctx.accent);
   const bars = [40, 65, 48, 80, 55, 35];
   return (
     <div className={`p-4 ${ctx.radius.card} ${surface(ctx.isDark)}`}>
       <div className="flex items-start justify-between">
-        <div><p className="text-[10px] text-slate-400">Monthly spending</p><p className="mt-1 text-[18px] font-bold">$4,820</p></div>
-        <span className="rounded-full bg-emerald-50 px-2 py-1 text-[9px] font-semibold text-emerald-600">-12.4% vs last month</span>
+        <div>
+          <EditableText slot="label" fallback="Monthly spending" className="block text-[10px] text-slate-400" />
+          <EditableText slot="amount" fallback="$4,820" className="mt-1 block text-[18px] font-bold" />
+        </div>
+        <EditableText slot="delta" fallback="-12.4% vs last month"
+          className="block rounded-full bg-emerald-50 px-2 py-1 text-[9px] font-semibold text-emerald-600" />
       </div>
       <div className="mt-3 flex h-10 items-end gap-1.5" aria-hidden>
-        {bars.map((h, i) => <span key={i} className="flex-1 rounded-t-md" style={{ height: `${h}%`, background: i === bars.length - 1 ? ctx.accent : `${ctx.accent}33` }} />)}
+        {bars.map((h, i) => (
+          <span key={i} className="flex-1 rounded-t-md"
+                style={{ height: `${h}%`, background: i === bars.length - 1 ? barAccent : `${barAccent}33` }} />
+        ))}
       </div>
     </div>
   );
 }
 
+/* Security row */
 export function SecurityRow({ ctx }: { ctx: ViewCtx }) {
+  const iconBg = useModuleColor('iconBg', '#ECFDF5');
   return (
     <div className={`flex items-center justify-between p-3.5 ${ctx.radius.card} ${surface(ctx.isDark)}`}>
       <div className="flex items-center gap-3">
-        <span className={`grid h-9 w-9 place-items-center bg-emerald-50 text-emerald-600 ${ctx.radius.icon}`}><ShieldCheck className="h-4 w-4" /></span>
-        <div><p className="text-[12px] font-semibold">Face ID</p><p className="text-[9px] text-slate-400">{ctx.faceId ? 'Required for transfers' : 'Turned off'}</p></div>
+        <span className={`grid h-9 w-9 place-items-center text-emerald-600 ${ctx.radius.icon}`} style={{ background: iconBg }}>
+          <ShieldCheck className="h-4 w-4" />
+        </span>
+        <div>
+          <EditableText slot="title" fallback="Face ID" className="block text-[12px] font-semibold" />
+          <EditableText
+            slot={ctx.faceId ? 'subOn' : 'subOff'}
+            fallback={ctx.faceId ? 'Required for transfers' : 'Turned off'}
+            className="block text-[9px] text-slate-400" />
+        </div>
       </div>
       <Switch checked={ctx.faceId} onChange={ctx.actions.toggleFaceId} label="Face ID" accent={ctx.accent} interactive={ctx.interactive} />
     </div>
   );
 }
 
+/* Alerts row */
 export function AlertsRow({ ctx }: { ctx: ViewCtx }) {
+  const iconBg = useModuleColor('iconBg', '#FFFBEB');
+  const dotColor = useModuleColor('dotColor', PINK);
   return (
-    <Tap ctx={ctx} onClick={ctx.actions.openAlerts} label="Open alerts" className={`flex w-full items-center justify-between p-3.5 ${ctx.radius.card} ${surface(ctx.isDark)}`}>
+    <Tap ctx={ctx} onClick={ctx.actions.openAlerts} label="Open alerts"
+         className={`flex w-full items-center justify-between p-3.5 ${ctx.radius.card} ${surface(ctx.isDark)}`}>
       <div className="flex items-center gap-3">
-        <span className={`relative grid h-9 w-9 place-items-center bg-amber-50 text-amber-600 ${ctx.radius.icon}`}>
-          <Bell className="h-4 w-4" /><span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full ring-2 ring-white" style={{ background: PINK }} />
+        <span className={`relative grid h-9 w-9 place-items-center text-amber-600 ${ctx.radius.icon}`} style={{ background: iconBg }}>
+          <Bell className="h-4 w-4" />
+          <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full ring-2 ring-white" style={{ background: dotColor }} />
         </span>
-        <div><p className="text-[12px] font-semibold">3 new alerts</p><p className="text-[9px] text-slate-400">Stripe payout received</p></div>
+        <div>
+          <EditableText slot="title" fallback="3 new alerts" className="block text-[12px] font-semibold" />
+          <EditableText slot="sub" fallback="Stripe payout received" className="block text-[9px] text-slate-400" />
+        </div>
       </div>
       <ChevronRight className="h-3.5 w-3.5 text-slate-400" />
     </Tap>
@@ -884,39 +939,58 @@ function AppleSvg({ className = 'h-3.5 w-3.5' }: { className?: string }) {
   );
 }
 
+/* Sign-in card */
 export function SignInCard({ ctx }: { ctx: ViewCtx }) {
+  const cardBg = useModuleColor('cardBg', undefined as unknown as string);
+  const signinBtnBg = useModuleColor('signinBtnBg', '#111827');
   const fieldCls = `flex items-center gap-2 border px-3 py-2.5 ${ctx.radius.icon} ${ctx.isDark ? 'border-slate-700 bg-slate-800' : 'border-slate-200 bg-slate-50'}`;
+
   return (
-    <div className={`space-y-3 p-4 ${ctx.radius.card} ${surface(ctx.isDark)}`}>
+    <div className={`space-y-3 p-4 ${ctx.radius.card} ${cardBg ? '' : surface(ctx.isDark)}`}
+         style={cardBg ? { background: cardBg } : undefined}>
       <div>
-        <label className="mb-1 block text-[10px] font-semibold">Email</label>
-        <div className={fieldCls}><Mail className="h-3.5 w-3.5 text-slate-400" /><span className="text-[11px] text-slate-400">Enter Your Email</span></div>
+        <label className="mb-1 block text-[10px] font-semibold">
+          <EditableText slot="emailLabel" fallback="Email" />
+        </label>
+        <div className={fieldCls}>
+          <Mail className="h-3.5 w-3.5 text-slate-400" />
+          <EditableText slot="emailPh" fallback="Enter Your Email" className="text-[11px] text-slate-400" />
+        </div>
       </div>
       <div>
-        <label className="mb-1 block text-[10px] font-semibold">Password</label>
-        <div className={fieldCls}><Lock className="h-3.5 w-3.5 text-slate-400" /><span className="text-[11px] text-slate-400">Enter Your Password</span></div>
+        <label className="mb-1 block text-[10px] font-semibold">
+          <EditableText slot="pwdLabel" fallback="Password" />
+        </label>
+        <div className={fieldCls}>
+          <Lock className="h-3.5 w-3.5 text-slate-400" />
+          <EditableText slot="pwdPh" fallback="Enter Your Password" className="text-[11px] text-slate-400" />
+        </div>
       </div>
-      <p className="cursor-pointer text-[11px] font-bold underline">Forgot Password?</p>
+      <EditableText slot="forgot" fallback="Forgot Password?" className="block cursor-pointer text-[11px] font-bold underline" />
       <div className={`flex items-center justify-between border px-3 py-2.5 ${ctx.radius.icon} ${ctx.isDark ? 'border-slate-700 bg-slate-800' : 'border-slate-200 bg-slate-50'}`}>
         <div className="flex items-center gap-2 text-slate-500">
           <svg viewBox="0 0 24 24" className="h-4 w-4 fill-current" aria-hidden><path d="M4 2 19 12 12.5 13.5 9.5 20Z" /></svg>
-          <span className="text-[10px] font-medium">Click to start verification</span>
+          <EditableText slot="captcha" fallback="Click to start verification" className="text-[10px] font-medium" />
         </div>
         <div className="grid h-5 w-5 place-items-center rounded bg-black text-white"><Check className="h-3 w-3" /></div>
       </div>
       <Tap ctx={ctx} onClick={ctx.actions.signIn} label="Sign in" className="block w-full">
-        <span className={`block w-full py-2.5 text-center text-[11px] font-bold text-white ${ctx.radius.icon}`} style={{ background: 'linear-gradient(to bottom, #374151, #111827)' }}>Sign in</span>
+        <span className={`block w-full py-2.5 text-center text-[11px] font-bold text-white ${ctx.radius.icon}`} style={{ background: signinBtnBg }}>
+          <EditableText slot="signinBtn" fallback="Sign in" />
+        </span>
       </Tap>
       <Tap ctx={ctx} onClick={ctx.actions.skipSignIn} label="Skip for now" className="block w-full">
-        <span className={`block w-full border py-2.5 text-center text-[11px] font-bold ${ctx.radius.icon} ${ctx.isDark ? 'border-slate-700 text-slate-100' : 'border-slate-200 bg-white text-slate-900'}`}>Skip for now</span>
+        <span className={`block w-full border py-2.5 text-center text-[11px] font-bold ${ctx.radius.icon} ${ctx.isDark ? 'border-slate-700 text-slate-100' : 'border-slate-200 bg-white text-slate-900'}`}>
+          <EditableText slot="skipBtn" fallback="Skip for now" />
+        </span>
       </Tap>
       <div className={`flex items-end justify-between gap-2 border-t pt-3 ${ctx.isDark ? 'border-slate-700' : 'border-slate-200'}`}>
         <div>
-          <p className="text-[10px] text-slate-500">Don't have an account?</p>
-          <p className="cursor-pointer text-[11px] font-bold underline">Sign up</p>
+          <EditableText slot="noAccount" fallback="Don't have an account?" className="block text-[10px] text-slate-500" />
+          <EditableText slot="signup" fallback="Sign up" className="block cursor-pointer text-[11px] font-bold underline" />
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="text-[9px] text-slate-400">Quick Login:</span>
+          <EditableText slot="quickLogin" fallback="Quick Login:" className="text-[9px] text-slate-400" />
           <Tap ctx={ctx} onClick={() => ctx.actions.quickSignIn('google')} label="Continue with Google" className="grid h-7 w-7 place-items-center rounded-full border border-slate-200 bg-white"><GoogleSvg /></Tap>
           <Tap ctx={ctx} onClick={() => ctx.actions.quickSignIn('facebook')} label="Continue with Facebook" className="grid h-7 w-7 place-items-center rounded-full border border-slate-200 bg-white"><FacebookSvg /></Tap>
           <Tap ctx={ctx} onClick={() => ctx.actions.quickSignIn('apple')} label="Continue with Apple" className="grid h-7 w-7 place-items-center rounded-full border border-slate-200 bg-white text-slate-900"><AppleSvg /></Tap>
@@ -927,162 +1001,615 @@ export function SignInCard({ ctx }: { ctx: ViewCtx }) {
   );
 }
 
-export function AccountPortfolio({ ctx }: { ctx: ViewCtx }) {
+/* Accounts overview */
+export function AccountsOverview({ ctx }: { ctx: ViewCtx }) {
   const rows = [
-    { name: 'Everyday Checking', right: '··· 4912', bal: '$12,450.20', badge: 'Active', badgeColor: 'text-emerald-600' },
-    { name: 'High-Yield Savings', right: '4.85% APY', bal: '$11,200.00', badge: 'Tier 1 Pot', badgeColor: 'text-slate-500' },
-    { name: 'Euro Travel Wallet', right: 'EUR', bal: '€1,200.00', badge: 'IBAN DE89…', badgeColor: 'text-slate-500' },
+    { i: 1 as const, name: 'Everyday Checking', amt: '$12,480.20', ccy: 'USD' },
+    { i: 2 as const, name: 'High-Yield Savings', amt: '$8,920.00', ccy: 'USD' },
+    { i: 3 as const, name: 'Euro Travel Account', amt: '€3,410.55', ccy: 'EUR' },
   ];
   return (
-    <div className={`space-y-3 p-3.5 ${ctx.radius.card} ${surface(ctx.isDark)}`}>
-      <ModuleHeader ctx={ctx} code="3.1 My Accounts" title="Account Portfolio" />
+    <section>
+      <div className="mb-2.5 flex items-center justify-between px-0.5">
+        <EditableText slot="title" fallback="Your accounts" className="text-[13px] font-semibold" />
+        <EditableText slot="action" fallback="Manage" className="cursor-pointer text-[11px] font-semibold" style={{ color: ctx.accent }} />
+      </div>
       <div className="space-y-2">
-        {rows.map((r) => (
-          <div key={r.name} className={`p-3 ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800' : 'bg-slate-50'}`}>
-            <div className="flex items-center justify-between">
-              <p className="text-[11px] font-semibold">{r.name}</p>
-              <p className="text-[9px] text-slate-400">{r.right}</p>
+        {rows.map(({ i, name, amt, ccy }) => (
+          <div key={i} className={`flex items-center justify-between p-3 ${ctx.radius.tile} ${surface(ctx.isDark)}`}>
+            <div>
+              <EditableText slot={`a${i}Name`} fallback={name} className="block text-[11px] font-semibold" />
+              <EditableText slot={`a${i}Sub`} fallback={`Available · ${ccy}`} className="block text-[9px] text-slate-400" />
             </div>
-            <div className="mt-1 flex items-baseline justify-between">
-              <p className="text-[16px] font-bold">{r.bal}</p>
-              <p className={`text-[9px] font-semibold ${r.badgeColor}`}>{r.badge}</p>
-            </div>
+            <EditableText slot={`a${i}Amt`} fallback={amt} className="text-[12px] font-bold" />
           </div>
         ))}
       </div>
-      <button type="button" className={`w-full flex items-center justify-center gap-1 py-2.5 text-[11px] font-bold ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800 text-slate-200' : 'bg-slate-100 text-slate-800'}`}>
-        <Plus className="h-3 w-3" /> Open New Pocket
-      </button>
-    </div>
+    </section>
   );
 }
 
-export function RoutingWireData({ ctx }: { ctx: ViewCtx }) {
+/* Direct transfer engine */
+export function DirectTransferEngine({ ctx }: { ctx: ViewCtx }) {
+  const accentBorder = useModuleColor('accentBorder', ctx.accent);
+  const ctaBg = useModuleColor('ctaBg', NAVY);
+  const recipientBg = useModuleColor('recipientBg', '#3B82F6');
   return (
     <div className={`space-y-3 p-3.5 ${ctx.radius.card} ${surface(ctx.isDark)}`}>
-      <ModuleHeader ctx={ctx} code="3.2 Account Details" title="Routing & Wire Data" />
-      <div className={`p-3 ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800' : 'bg-slate-50'}`}>
-        <p className="text-[9px] text-slate-400">Account Holder</p>
-        <p className="mt-0.5 text-[11px] font-semibold">Alex Rivera · Apex Holdings LLC</p>
-      </div>
-      {[{ label: 'ACH Routing Number', value: '021000021' }, { label: 'Account Number', value: '884920194821' }].map((row) => (
-        <div key={row.label} className={`flex items-center justify-between p-3 ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800' : 'bg-slate-50'}`}>
-          <div>
-            <p className="text-[9px] text-slate-400">{row.label}</p>
-            <p className="mt-0.5 font-mono text-[11px] font-bold">{row.value}</p>
-          </div>
-          <button type="button" aria-label={`Copy ${row.label}`} className={`grid h-7 w-7 place-items-center ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-700 text-slate-200' : 'bg-white text-slate-600 shadow-sm'}`}>
-            <Copy className="h-3 w-3" />
-          </button>
-        </div>
-      ))}
-      <button type="button" className={`w-full flex items-center justify-center gap-1.5 py-2.5 text-[11px] font-bold text-white ${ctx.radius.icon}`} style={{ background: '#C026D3' }}>
-        <Share2 className="h-3 w-3" /> Share Bank Details
-      </button>
-    </div>
-  );
-}
-
-export function StatementsExport({ ctx }: { ctx: ViewCtx }) {
-  const [format, setFormat] = useState<'pdf' | 'csv'>('pdf');
-  return (
-    <div className={`space-y-3 p-3.5 ${ctx.radius.card} ${surface(ctx.isDark)}`}>
-      <ModuleHeader ctx={ctx} code="3.3 Statements Export" title="Monthly Audited Files" />
+      <ModuleHeader ctx={ctx} code="4.1 Transfer Form" title="Direct Transfer Engine" />
       <div>
-        <p className="text-[9px] text-slate-400 mb-1">Select Statement Cycle</p>
-        <div className={`flex items-center justify-between p-3 ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800' : 'bg-slate-50'}`}>
-          <span className="text-[11px]">October 2024 (Current)</span>
+        <EditableText slot="fromLabel" fallback="From Account" className="mb-1 block text-[9px] text-slate-400" />
+        <div className={`flex items-center justify-between px-3 py-2.5 ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800' : 'bg-slate-100'}`}>
+          <EditableText slot="fromAccount" fallback="Checking (··· 4912)" className="text-[11px] font-medium" />
+          <EditableText slot="fromBalance" fallback="$12,450.20" className="text-[11px] font-bold" />
+        </div>
+      </div>
+      <div>
+        <EditableText slot="toLabel" fallback="To Recipient" className="mb-1 block text-[9px] text-slate-400" />
+        <div className={`flex items-center justify-between px-3 py-2 ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800' : 'bg-slate-100'}`}>
+          <div className="flex items-center gap-2">
+            <span className="grid h-6 w-6 place-items-center rounded-full text-[9px] font-bold text-white" style={{ background: recipientBg }}>SJ</span>
+            <EditableText slot="toName" fallback="Sarah Jenkins (Chase)" className="text-[11px] font-medium" />
+          </div>
           <ChevronDown className="h-3 w-3 text-slate-400" />
         </div>
       </div>
       <div>
-        <p className="text-[9px] text-slate-400 mb-1">Format</p>
-        <div className="grid grid-cols-2 gap-2">
-          <button type="button" onClick={() => setFormat('pdf')}
-            className={`py-2 text-[11px] font-bold ${ctx.radius.icon} ${format === 'pdf' ? 'text-white' : ctx.isDark ? 'bg-slate-800 text-slate-200' : 'bg-slate-100 text-slate-700'}`}
-            style={format === 'pdf' ? { background: '#0284C7' } : undefined}>PDF Format</button>
-          <button type="button" onClick={() => setFormat('csv')}
-            className={`py-2 text-[11px] font-bold ${ctx.radius.icon} ${format === 'csv' ? 'text-white' : ctx.isDark ? 'bg-slate-800 text-slate-200' : 'bg-slate-100 text-slate-700'}`}
-            style={format === 'csv' ? { background: '#0284C7' } : undefined}>CSV Sheet</button>
+        <EditableText slot="amountLabel" fallback="Amount to Send" className="mb-1 block text-[9px] text-slate-400" />
+        <EditableText slot="amountValue" fallback="$ 500.00" className="block text-[22px] font-bold" />
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        <div className={`p-2 ${ctx.radius.icon} border-2`} style={{ borderColor: accentBorder, background: `${accentBorder}10` }}>
+          <EditableText slot="instantTitle" fallback="Instant FedNow" className="block text-[10px] font-bold" style={{ color: accentBorder }} />
+          <EditableText slot="instantSub" fallback="Free · Arrives Now" className="block text-[8px] text-slate-500" />
+        </div>
+        <div className={`p-2 ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800' : 'bg-slate-100'}`}>
+          <EditableText slot="achTitle" fallback="Standard ACH" className="block text-[10px] font-bold" />
+          <EditableText slot="achSub" fallback="1-2 Business Days" className="block text-[8px] text-slate-500" />
         </div>
       </div>
-      <div className={`flex items-start gap-2 p-3 ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800' : 'bg-blue-50'}`}>
-        <ShieldCheck className="h-4 w-4 shrink-0 text-blue-500" />
-        <p className="text-[9px] leading-relaxed text-slate-600 dark:text-slate-300">Cryptographically sealed with SHA-256 for tax filing</p>
-      </div>
-      <button type="button" className={`w-full flex items-center justify-center gap-1.5 py-2.5 text-[11px] font-bold ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800 text-slate-100' : 'bg-slate-100 text-slate-800'}`}>
-        <Download className="h-3 w-3" /> Download {format === 'pdf' ? 'PDF (1.2 MB)' : 'CSV'}
+      <button type="button" className={`w-full py-2.5 text-[11px] font-bold text-white ${ctx.radius.icon}`} style={{ background: ctaBg }}>
+        <EditableText slot="cta" fallback="Continue to Review" />
       </button>
     </div>
   );
 }
 
+/* Mid-market FX swap */
+export function MultiMarketFX({ ctx }: { ctx: ViewCtx }) {
+  const ctaBg = useModuleColor('ctaBg', '#F97316');
+  const recColor = useModuleColor('recValue', '#059669');
+  return (
+    <div className={`space-y-3 p-3.5 ${ctx.radius.card} ${surface(ctx.isDark)}`}>
+      <ModuleHeader ctx={ctx} code="4.2 Currency Exchange" title="Mid-Market FX Swap" />
+      <div className={`p-3 ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800' : 'bg-slate-100'}`}>
+        <div className="flex items-center justify-between mb-1">
+          <EditableText slot="sendLabel" fallback="You send exactly" className="text-[9px] text-slate-400" />
+          <EditableText slot="feeLabel" fallback="Fee: $0.00 USD" className="text-[9px] text-slate-400" />
+        </div>
+        <div className="flex items-center justify-between">
+          <EditableText slot="sendValue" fallback="1,000.00" className="text-[18px] font-bold" />
+          <div className="flex items-center gap-1 bg-white px-2 py-1 rounded-md ring-1 ring-slate-200">
+            <span className="text-[10px]">🇺🇸</span>
+            <EditableText slot="sendCcy" fallback="USD" className="text-[10px] font-bold" />
+            <ChevronDown className="h-2.5 w-2.5" />
+          </div>
+        </div>
+      </div>
+      <div className="flex items-center justify-between">
+        <span className="text-[9px] text-slate-500 flex items-center gap-1">
+          <Lock className="h-2.5 w-2.5" />
+          <EditableText slot="rateLabel" fallback="1 USD = 0.9214 EUR (1m)" />
+        </span>
+        <button aria-label="Swap currencies" className="grid h-6 w-6 place-items-center rounded-full" style={{ background: ctx.accent }}>
+          <RefreshCw className="h-3 w-3 text-white" />
+        </button>
+      </div>
+      <div className={`p-3 ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800' : 'bg-slate-100'}`}>
+        <div className="flex items-center justify-between mb-1">
+          <EditableText slot="recLabel" fallback="Recipient gets" className="text-[9px] text-slate-400" />
+          <span className="text-[9px] text-slate-400">Live Rate</span>
+        </div>
+        <div className="flex items-center justify-between">
+          <EditableText slot="recValue" fallback="921.40" className="text-[18px] font-bold" style={{ color: recColor }} />
+          <div className="flex items-center gap-1 bg-white px-2 py-1 rounded-md ring-1 ring-slate-200">
+            <span className="text-[10px]">🇪🇺</span>
+            <EditableText slot="recCcy" fallback="EUR" className="text-[10px] font-bold" />
+            <ChevronDown className="h-2.5 w-2.5" />
+          </div>
+        </div>
+      </div>
+      <button type="button" className={`w-full py-2.5 text-[11px] font-bold text-white ${ctx.radius.icon}`} style={{ background: ctaBg }}>
+        <EditableText slot="cta" fallback="Lock Rate & Exchange" />
+      </button>
+    </div>
+  );
+}
+
+/* Recurring standing order */
+export function RecurringStanding({ ctx }: { ctx: ViewCtx }) {
+  const payeeIconBg = useModuleColor('payeeIconBg', NAVY);
+  return (
+    <div className={`space-y-3 p-3.5 ${ctx.radius.card} ${surface(ctx.isDark)}`}>
+      <ModuleHeader ctx={ctx} code="4.3 Scheduled Transfer" title="Recurring Standing Order" />
+      <div className={`p-3 ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800' : 'bg-slate-100'}`}>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="grid h-8 w-8 place-items-center rounded-md text-white" style={{ background: payeeIconBg }}>
+              <Landmark className="h-4 w-4" />
+            </span>
+            <div>
+              <EditableText slot="payeeName" fallback="Prime Manhattan Realty" className="block text-[11px] font-bold" />
+              <EditableText slot="payeeSub" fallback="Monthly Rent · #402" className="block text-[8px] text-slate-500" />
+            </div>
+          </div>
+          <span className="h-3 w-3 rounded-sm" style={{ background: payeeIconBg }} />
+        </div>
+        <div className="mt-3 flex items-center justify-between border-t border-slate-200 pt-2 dark:border-slate-700">
+          <div>
+            <EditableText slot="amountLabel" fallback="Amount" className="block text-[8px] text-slate-400" />
+            <EditableText slot="amountValue" fallback="$2,100.00 / mo" className="block text-[11px] font-bold" />
+          </div>
+          <div className="text-right">
+            <EditableText slot="nextLabel" fallback="Next Run" className="block text-[8px] text-slate-400" />
+            <EditableText slot="nextValue" fallback="Nov 1, 2024" className="block text-[11px] font-bold" />
+          </div>
+        </div>
+      </div>
+      <span className="flex items-center gap-1 text-[9px] text-slate-500">
+        <Clock className="h-3 w-3" />
+        <EditableText slot="note" fallback="Automatic notification 24h prior" />
+      </span>
+      <button type="button" className={`w-full py-2.5 text-[11px] font-bold ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-700 text-slate-200' : 'bg-slate-200 text-slate-800'}`}>
+        <EditableText slot="cta" fallback="Modify Schedule Rules" />
+      </button>
+    </div>
+  );
+}
+
+/* Authorization modal */
+export function AuthorizationModal({ ctx }: { ctx: ViewCtx }) {
+  const ctaBg = useModuleColor('ctaBg', '#14B8A6');
+  return (
+    <div className={`space-y-3 p-3.5 ${ctx.radius.card} ${surface(ctx.isDark)}`}>
+      <ModuleHeader ctx={ctx} code="4.4 Authorization Modal" title="" />
+      <EditableText slot="reviewLabel" fallback="Payment Review" className="block text-center text-[10px] uppercase tracking-wider text-slate-400" />
+      <EditableText slot="amountValue" fallback="$500.00" className="block text-center text-[26px] font-bold" />
+      <EditableText slot="toLine" fallback="to Sarah Jenkins · Chase Bank" className="block text-center text-[10px] text-slate-400" />
+      <div className="space-y-1.5 border-t border-slate-200 pt-2 dark:border-slate-700">
+        <div className="flex justify-between text-[10px]">
+          <EditableText slot="feeLabel" fallback="Network Fee" className="text-slate-400" />
+          <EditableText slot="feeValue" fallback="Free (FedNow)" className="font-semibold text-emerald-600" />
+        </div>
+        <div className="flex justify-between text-[10px]">
+          <EditableText slot="deliveryLabel" fallback="Estimated Delivery" className="text-slate-400" />
+          <EditableText slot="deliveryValue" fallback="Within seconds" className="font-semibold" />
+        </div>
+        <div className="flex justify-between text-[10px]">
+          <EditableText slot="originLabel" fallback="Origin Account" className="text-slate-400" />
+          <EditableText slot="originValue" fallback="··· 4912" className="font-semibold" />
+        </div>
+      </div>
+      <button type="button" className={`w-full flex items-center justify-center gap-2 py-2.5 text-[11px] font-bold text-white ${ctx.radius.icon}`} style={{ background: ctaBg }}>
+        <Lock className="h-3 w-3" />
+        <EditableText slot="cta" fallback="Authorize Transfer ($500.00)" />
+      </button>
+      <EditableText slot="cancel" fallback="Cancel transaction" className="block text-center text-[9px] text-slate-400" />
+    </div>
+  );
+}
+
+/* Recent recipients */
+export function RecentRecipients({ ctx }: { ctx: ViewCtx }) {
+  const c1Bg = useModuleColor('c1Bg', '#3B82F6');
+  const c2Bg = useModuleColor('c2Bg', '#818CF8');
+  const c3Bg = useModuleColor('c3Bg', '#34D399');
+  const contacts = [
+    { slot: 'c1Name', name: 'Sarah J.', initials: 'SJ', color: c1Bg, ring: true },
+    { slot: 'c2Name', name: 'Marcus', initials: 'MC', color: c2Bg, ring: false },
+    { slot: 'c3Name', name: 'Elena', initials: 'ER', color: c3Bg, ring: false },
+  ];
+  return (
+    <div className={`space-y-3 p-3.5 ${ctx.radius.card} ${surface(ctx.isDark)}`}>
+      <ModuleHeader ctx={ctx} code="5.1 Recent Recipients" title="One-Tap Contacts Dock" />
+      <div className="grid grid-cols-4 items-start gap-2">
+        <div className="flex flex-col items-center gap-1.5">
+          <div className="grid h-11 w-11 place-items-center rounded-full border-2 border-dashed border-slate-300"><Plus className="h-4 w-4 text-slate-400" /></div>
+          <EditableText slot="addNew" fallback="Add New" className="text-[9px] text-slate-500" />
+        </div>
+        {contacts.map((c) => (
+          <div key={c.slot} className="flex flex-col items-center gap-1.5">
+            <div className={`grid h-11 w-11 place-items-center rounded-full text-[11px] font-bold text-white ${c.ring ? 'ring-2 ring-blue-600 ring-offset-2' : ''}`} style={{ background: c.color }}>{c.initials}</div>
+            <EditableText slot={c.slot} fallback={c.name} className="text-[9px] font-medium" />
+          </div>
+        ))}
+      </div>
+      <div className="flex justify-between border-t border-slate-200 pt-2 dark:border-slate-700">
+        <EditableText slot="footer" fallback="Synced with Device Contacts" className="text-[9px] text-slate-500" />
+        <EditableText slot="manage" fallback="Manage (24)" className="text-[9px] font-semibold" style={{ color: ctx.accent }} />
+      </div>
+    </div>
+  );
+}
+
+/* Beneficiary validation */
+export function BeneficiaryValidation({ ctx }: { ctx: ViewCtx }) {
+  const ctaBg = useModuleColor('ctaBg', NAVY);
+  return (
+    <div className={`space-y-3 p-3.5 ${ctx.radius.card} ${surface(ctx.isDark)}`}>
+      <ModuleHeader ctx={ctx} code="5.2 Add Recipient" title="Beneficiary Validation" />
+      <div>
+        <EditableText slot="nameLabel" fallback="Legal Full Name" className="mb-1 block text-[9px] text-slate-400" />
+        <div className={`px-3 py-2 ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800' : 'bg-slate-100'}`}>
+          <EditableText slot="namePh" fallback="e.g. Liam Gallagher" className="text-[11px] text-slate-400" />
+        </div>
+      </div>
+      <div>
+        <div className="flex justify-between mb-1">
+          <EditableText slot="routingLabel" fallback="Routing Number or SWIFT" className="text-[9px] text-slate-400" />
+          <EditableText slot="detected" fallback="Auto-detected: Chase" className="text-[9px] font-semibold text-emerald-600" />
+        </div>
+        <div className={`px-3 py-2 ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800' : 'bg-slate-100'}`}>
+          <EditableText slot="routingValue" fallback="021000021" className="text-[11px]" />
+        </div>
+      </div>
+      <button type="button" className={`w-full py-2.5 text-[11px] font-bold text-white ${ctx.radius.icon}`} style={{ background: ctaBg }}>
+        <EditableText slot="cta" fallback="Save Beneficiary" />
+      </button>
+    </div>
+  );
+}
+
+/* Send money amount */
+export function SendMoneyAmount({ ctx }: { ctx: ViewCtx }) {
+  const ctaBg = useModuleColor('ctaBg', NAVY);
+  return (
+    <div className={`space-y-3 p-3.5 ${ctx.radius.card} ${surface(ctx.isDark)}`}>
+      <ModuleHeader ctx={ctx} code="5.3 Send Money Focus" title="" />
+      <EditableText slot="label" fallback="Amount to Dispatch" className="block text-center text-[9px] uppercase tracking-wider text-slate-400" />
+      <EditableText slot="amountValue" fallback="$120.00" className="block text-center text-[36px] font-bold leading-none" />
+      <div className={`flex items-center gap-2 px-3 py-2.5 ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800' : 'bg-slate-100'}`}>
+        <Pencil className="h-3 w-3 text-slate-400" />
+        <EditableText slot="note" fallback="Dinner & drinks 🍕" className="text-[11px]" />
+      </div>
+      <button type="button" className={`flex w-full items-center justify-center gap-2 py-2.5 text-[11px] font-bold text-white ${ctx.radius.icon}`} style={{ background: ctaBg }}>
+        <ArrowRight className="h-3 w-3" />
+        <EditableText slot="cta" fallback="Review Payment" />
+      </button>
+    </div>
+  );
+}
+
+/* Transfer success */
+export function TransferSuccess({ ctx }: { ctx: ViewCtx }) {
+  const doneBg = useModuleColor('doneBg', '#3B82F6');
+  const iconBg = useModuleColor('iconBg', '#D1FAE5');
+  return (
+    <div className={`space-y-3 p-3.5 text-center ${ctx.radius.card} ${surface(ctx.isDark)}`}>
+      <ModuleHeader ctx={ctx} code="5.4 Transfer Success" title="" />
+      <div className="mx-auto grid h-12 w-12 place-items-center rounded-full" style={{ background: iconBg }}>
+        <div className="grid h-7 w-7 place-items-center rounded-full border-2 border-emerald-600"><Check className="h-4 w-4 text-emerald-600" /></div>
+      </div>
+      <EditableText slot="title" fallback="Transfer Dispatched!" className="block text-[16px] font-bold" />
+      <EditableText slot="sub" fallback="$120.00 sent to Sarah Jenkins" className="block text-[10px] text-slate-500" />
+      <EditableText slot="txid" fallback="TXID: #US-99214-88A" className="block font-mono text-[9px] text-slate-400" />
+      <div className="grid grid-cols-2 gap-2 pt-2">
+        <button type="button" className={`flex items-center justify-center gap-1.5 py-2.5 text-[11px] font-semibold ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-700 text-slate-100' : 'bg-slate-100 text-slate-800'}`}>
+          <Send className="h-3 w-3" />
+          <EditableText slot="share" fallback="Share" />
+        </button>
+        <button type="button" className={`py-2.5 text-[11px] font-bold text-white ${ctx.radius.icon}`} style={{ background: doneBg }}>
+          <EditableText slot="done" fallback="Done" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* Peer invoicing */
+export function PeerInvoicing({ ctx }: { ctx: ViewCtx }) {
+  const ctaBg = useModuleColor('ctaBg', NAVY);
+  return (
+    <div className={`space-y-3 p-3.5 ${ctx.radius.card} ${surface(ctx.isDark)}`}>
+      <ModuleHeader ctx={ctx} code="6.1 Request Money" title="Peer Invoicing" />
+      <div>
+        <EditableText slot="amountLabel" fallback="Requested Amount" className="mb-1 block text-[9px] text-slate-400" />
+        <div className={`flex items-baseline gap-2 px-3 py-2 ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800' : 'bg-slate-100'}`}>
+          <span className="text-[14px] text-slate-400">$</span>
+          <EditableText slot="amountValue" fallback="75.00" className="text-[18px] font-bold" />
+        </div>
+      </div>
+      <div>
+        <EditableText slot="noteLabel" fallback="Purpose Note" className="mb-1 block text-[9px] text-slate-400" />
+        <div className={`px-3 py-2 ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800' : 'bg-slate-100'}`}>
+          <EditableText slot="noteValue" fallback="Concert tickets 🎫" className="text-[11px]" />
+        </div>
+      </div>
+      <button type="button" className={`w-full py-2.5 text-[11px] font-bold text-white ${ctx.radius.icon}`} style={{ background: ctaBg }}>
+        <EditableText slot="cta" fallback="Send Request" />
+      </button>
+    </div>
+  );
+}
+
+/* Payment QR */
+export function PaymentQR({ ctx }: { ctx: ViewCtx }) {
+  const ringColor = useModuleColor('ringColor', ctx.accent);
+  const copyBg = useModuleColor('copyBg', '#1E40AF');
+  return (
+    <div className={`space-y-3 p-3.5 text-center ${ctx.radius.card} ${surface(ctx.isDark)}`}>
+      <ModuleHeader ctx={ctx} code="6.2 Payment QR" title="" />
+      <div className={`mx-auto grid h-32 w-32 place-items-center bg-white ring-2 ${ctx.radius.icon}`} style={{ '--tw-ring-color': ringColor } as React.CSSProperties}>
+        <QrCode className="h-24 w-24 text-slate-900" />
+      </div>
+      <EditableText slot="scan" fallback="Scan to pay Alex Rivera" className="block text-[11px] font-semibold" />
+      <EditableText slot="amount" fallback="Custom fixed amount: $75.00" className="block text-[9px] text-slate-400" />
+      <div className="grid grid-cols-2 gap-2">
+        <button type="button" className={`py-2 text-[10px] font-semibold ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-700 text-slate-100' : 'bg-slate-100 text-slate-800'}`}>
+          <EditableText slot="download" fallback="Download QR" />
+        </button>
+        <button type="button" className={`py-2 text-[10px] font-bold text-white ${ctx.radius.icon}`} style={{ background: copyBg }}>
+          <EditableText slot="copy" fallback="Copy Link" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* Split payment */
+export function SplitPayment({ ctx }: { ctx: ViewCtx }) {
+  const ctaBg = useModuleColor('ctaBg', NAVY);
+  const accent = useModuleColor('accent', ctx.accent);
+  const rows = [
+    { slot: 'youName', name: 'You (Alex)', labelSlot: 'youLabel', label: 'Paid ($60)', paid: true },
+    { slot: 'p2Name', name: 'Mike Henderson', labelSlot: 'p2Label', label: 'Request $60', paid: false },
+    { slot: 'p3Name', name: 'Jessica Taylor', labelSlot: 'p3Label', label: 'Request $60', paid: false },
+  ];
+  return (
+    <div className={`space-y-3 p-3.5 ${ctx.radius.card} ${surface(ctx.isDark)}`}>
+      <ModuleHeader ctx={ctx} code="6.3 Split Payment" title="" />
+      <div className="flex items-end justify-between">
+        <div>
+          <EditableText slot="totalLabel" fallback="Total Bill" className="block text-[9px] text-slate-400" />
+          <EditableText slot="totalValue" fallback="$180.00" className="block text-[20px] font-bold" />
+        </div>
+        <div className="text-right">
+          <EditableText slot="splitLabel" fallback="Split 3 ways" className="block text-[9px] text-slate-400" />
+          <EditableText slot="splitValue" fallback="$60.00 each" className="block text-[16px] font-bold" style={{ color: accent }} />
+        </div>
+      </div>
+      <div className="space-y-1.5">
+        {rows.map((p) => (
+          <div key={p.slot} className={`flex items-center justify-between px-3 py-2 ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800' : 'bg-slate-100'}`}>
+            <div className="flex items-center gap-2">
+              <span className={`h-2.5 w-2.5 rounded-full ${p.paid ? 'bg-emerald-500' : ''}`} style={!p.paid ? { background: accent } : undefined} />
+              <EditableText slot={p.slot} fallback={p.name} className="text-[11px] font-medium" />
+            </div>
+            <EditableText slot={p.labelSlot} fallback={p.label}
+              className={`text-[9px] ${p.paid ? 'text-slate-500' : 'font-semibold'}`}
+              style={!p.paid ? { color: accent } : undefined} />
+          </div>
+        ))}
+      </div>
+      <button type="button" className={`w-full py-2.5 text-[11px] font-bold text-white ${ctx.radius.icon}`} style={{ background: ctaBg }}>
+        <EditableText slot="cta" fallback="Send 2 Requests ($120.00)" />
+      </button>
+    </div>
+  );
+}
+
+/* Outstanding receivables */
+export function OutstandingReceivables({ ctx }: { ctx: ViewCtx }) {
+  return (
+    <div className={`space-y-3 p-3.5 ${ctx.radius.card} ${surface(ctx.isDark)}`}>
+      <ModuleHeader ctx={ctx} code="6.4 Pending Tracker" title="Outstanding Receivables" />
+      <div className={`p-3 ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800' : 'bg-slate-100'}`}>
+        <div className="flex items-center justify-between">
+          <div>
+            <EditableText slot="r1Name" fallback="Mike Henderson" className="block text-[11px] font-semibold" />
+            <EditableText slot="r1Sub" fallback="Pending 2 days · $45.00" className="block text-[9px] text-slate-500" />
+          </div>
+          <button className="rounded-md bg-white px-3 py-1 text-[9px] font-bold shadow-sm" style={{ color: ctx.accent }}>
+            <EditableText slot="r1Btn" fallback="Remind" />
+          </button>
+        </div>
+      </div>
+      <div className={`p-3 ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800' : 'bg-slate-100'}`}>
+        <div className="flex items-center justify-between">
+          <div>
+            <EditableText slot="r2Name" fallback="Jessica Taylor" className="block text-[11px] font-semibold" />
+            <EditableText slot="r2Sub" fallback="Paid today · $120.00" className="block text-[9px] text-emerald-600" />
+          </div>
+          <div className="grid h-6 w-6 place-items-center rounded-full border-2 border-emerald-500"><Check className="h-3 w-3 text-emerald-500" /></div>
+        </div>
+      </div>
+      <div className="flex justify-between border-t border-slate-200 pt-2 dark:border-slate-700">
+        <EditableText slot="total" fallback="Total outstanding: $45.00" className="text-[9px] text-slate-500" />
+        <EditableText slot="action" fallback="Clear Settled" className="text-[9px] font-semibold" style={{ color: ctx.accent }} />
+      </div>
+    </div>
+  );
+}
+
+/* History filters */
+export function HistoryFilters({ ctx }: { ctx: ViewCtx }) {
+  const activeChipBg = useModuleColor('activeChipBg', ctx.accent);
+  const chips = [
+    { slot: 'chip1', label: 'All', active: true },
+    { slot: 'chip2', label: 'Income', active: false },
+    { slot: 'chip3', label: 'Spending', active: false },
+    { slot: 'chip4', label: 'Pending', active: false },
+  ];
+  return (
+    <div className={`space-y-2 p-3 ${ctx.radius.card} ${surface(ctx.isDark)}`}>
+      <div className="flex items-center gap-2">
+        <Search className="h-3.5 w-3.5 text-slate-400" />
+        <EditableText slot="placeholder" fallback="Search transactions…" className="text-[10px] text-slate-400" />
+      </div>
+      <div className="flex gap-1.5 overflow-hidden">
+        {chips.map((c) => (
+          <span key={c.slot}
+                className={`rounded-full px-2.5 py-1 text-[9px] font-semibold ${c.active ? 'text-white' : 'text-slate-500'} ${c.active ? '' : ctx.isDark ? 'bg-slate-800' : 'bg-slate-100'}`}
+                style={c.active ? { background: activeChipBg } : undefined}>
+            <EditableText slot={c.slot} fallback={c.label} />
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* Splash screen */
+export function SplashCard({ ctx }: { ctx: ViewCtx }) {
+  const brandBg = useModuleColor('brandBg', '#0F172A');
+  const accent = useModuleColor('accent', ctx.accent);
+  return (
+    <div className={`flex h-[240px] flex-col items-center justify-center gap-3 ${ctx.radius.card} ${ctx.isDark ? 'ring-1 ring-white/10' : ''}`}
+         style={{ background: brandBg }}>
+      <span className="grid h-14 w-14 place-items-center rounded-2xl text-xl font-black text-white" style={{ background: accent }}>
+        <EditableText slot="letter" fallback="A" />
+      </span>
+      <EditableText slot="brand" fallback="APEX BANK" className="block text-[13px] font-bold tracking-wide text-white" />
+      <span className="h-1 w-16 overflow-hidden rounded-full bg-white/20">
+        <span className="block h-full w-1/2 rounded-full" style={{ background: accent }} />
+      </span>
+    </div>
+  );
+}
+
+/* Profile card */
+export function ProfileCard({ ctx }: { ctx: ViewCtx }) {
+  const avatarBg = useModuleColor('avatarBg', ctx.accent);
+  return (
+    <div className={`space-y-3 p-3.5 ${ctx.radius.card} ${surface(ctx.isDark)}`}>
+      <div className="flex items-center gap-3">
+        <span className="grid h-11 w-11 place-items-center rounded-full text-sm font-bold text-white" style={{ background: avatarBg }}>U</span>
+        <div>
+          <EditableText slot="name" fallback="User Name" className="block text-[12px] font-semibold" />
+          <EditableText slot="email" fallback="user@apex.bank" className="block text-[9px] text-slate-400" />
+        </div>
+      </div>
+      <div className="flex gap-1.5">
+        <EditableText slot="kyc" fallback="KYC Verified"
+          className="rounded-full bg-emerald-50 px-2 py-0.5 text-[9px] font-semibold text-emerald-600" />
+        <EditableText slot="tier" fallback="Tier 2"
+          className="rounded-full bg-blue-50 px-2 py-0.5 text-[9px] font-semibold text-blue-600" />
+      </div>
+    </div>
+  );
+}
+
+/* Freeze card */
+export function FreezeCard({ ctx }: { ctx: ViewCtx }) {
+  const iconBg = useModuleColor('iconBg', '#F0F9FF');
+  return (
+    <div className={`flex items-center justify-between p-3.5 ${ctx.radius.card} ${surface(ctx.isDark)}`}>
+      <div className="flex items-center gap-3">
+        <span className={`grid h-9 w-9 place-items-center text-sky-600 ${ctx.radius.icon}`} style={{ background: iconBg }}>
+          <Snowflake className="h-4 w-4" />
+        </span>
+        <div>
+          <EditableText slot="title" fallback="Freeze Card" className="block text-[12px] font-semibold" />
+          <EditableText
+            slot={ctx.isCardFrozen ? 'subOn' : 'subOff'}
+            fallback={ctx.isCardFrozen ? 'Card is frozen' : 'Block instant transactions'}
+            className="block text-[9px] text-slate-400" />
+        </div>
+      </div>
+      <Switch checked={ctx.isCardFrozen} onChange={ctx.actions.toggleFreeze} label="Freeze card" accent={ctx.accent} interactive={ctx.interactive} />
+    </div>
+  );
+}
+
+/* Card preview (separate module from accounts — own slot set) */
 export function CardPreview({ ctx }: { ctx: ViewCtx }) {
+  const bg = useModuleColor('bg', INK);
+  const accent = useModuleColor('accent', ctx.accent);
+  const ctaBg = useModuleColor('ctaBg', '#FFFFFF');
   return (
     <div className={`relative h-[132px] overflow-hidden p-5 text-white ${ctx.radius.card} ${ctx.isDark ? 'ring-1 ring-white/10' : 'shadow-[0_10px_28px_rgba(20,20,40,0.22)]'}`}
-      style={{ background: INK }}>
-      <span aria-hidden className="absolute -right-7 -top-7 h-[84px] w-[84px] rounded-full" style={{ background: ctx.accent }} />
+         style={{ background: bg }}>
+      <span aria-hidden className="absolute -right-7 -top-7 h-[84px] w-[84px] rounded-full" style={{ background: accent }} />
       <div className="relative">
-        <p className="text-[10px] text-white/60">Total Balance</p>
-        <p className="mt-1 text-[26px] font-bold leading-none tracking-tight">{usd(ctx.balance)}</p>
+        <EditableText slot="label" fallback="Total Balance" className="block text-[10px] text-white/60" />
+        <EditableText slot="balance" fallback={usd(ctx.balance)} className="mt-1 block text-[26px] font-bold leading-none tracking-tight" />
       </div>
       <Tap ctx={ctx} onClick={ctx.actions.openWallet} label="Open wallet" className="absolute bottom-4 right-4 flex items-center gap-2 text-[10px] font-semibold">
-        My Wallet
-        <span className="grid h-7 w-7 place-items-center rounded-full bg-white" style={{ color: INK }}><ArrowRight className="h-3.5 w-3.5" /></span>
+        <EditableText slot="cta" fallback="My Wallet" />
+        <span className="grid h-7 w-7 place-items-center rounded-full" style={{ background: ctaBg, color: INK }}>
+          <ArrowRight className="h-3.5 w-3.5" />
+        </span>
       </Tap>
     </div>
   );
 }
 
+/* Card controls */
 export function CardControls({ ctx }: { ctx: ViewCtx }) {
+  const barColor = useModuleColor('barColor', ctx.accent);
   const [frozen, setFrozen] = useState(false);
   const [online, setOnline] = useState(true);
   const [nfc, setNfc] = useState(true);
   const items = [
-    { key: 'freeze', label: 'Freeze Card', Icon: Snowflake, value: frozen, set: setFrozen },
-    { key: 'online', label: 'Online Payments', Icon: Globe, value: online, set: setOnline },
-    { key: 'nfc', label: 'Contactless (NFC)', Icon: Wifi, value: nfc, set: setNfc },
+    { key: 'freeze', slot: 'freezeLabel', label: 'Freeze Card', Icon: Snowflake, value: frozen, set: setFrozen },
+    { key: 'online', slot: 'onlineLabel', label: 'Online Payments', Icon: Globe, value: online, set: setOnline },
+    { key: 'nfc', slot: 'nfcLabel', label: 'Contactless (NFC)', Icon: Wifi, value: nfc, set: setNfc },
   ];
   return (
     <div className={`space-y-3 p-3.5 ${ctx.radius.card} ${surface(ctx.isDark)}`}>
       <ModuleHeader ctx={ctx} code="7.2 Card Controls" title="Security Switches" />
       <div className="space-y-2">
-        {items.map(({ key, label, Icon, value, set }) => (
+        {items.map(({ key, slot, label, Icon, value, set }) => (
           <div key={key} className={`flex items-center justify-between p-3 ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800' : 'bg-slate-50'}`}>
-            <div className="flex items-center gap-2"><Icon className="h-4 w-4" /><span className="text-[11px] font-medium">{label}</span></div>
+            <div className="flex items-center gap-2">
+              <Icon className="h-4 w-4" />
+              <EditableText slot={slot} fallback={label} className="text-[11px] font-medium" />
+            </div>
             <Switch checked={value} onChange={() => set(!value)} label={label} accent={ctx.accent} interactive={ctx.interactive} />
           </div>
         ))}
       </div>
       <div>
-        <div className="flex items-center justify-between text-[10px] mb-1"><span className="text-slate-500">Monthly Spend Limit</span><span className="font-semibold">$2,500 / $5,000</span></div>
-        <div className="h-2 overflow-hidden rounded-full bg-slate-200"><div className="h-full rounded-full" style={{ width: '50%', background: ctx.accent }} /></div>
+        <div className="flex items-center justify-between text-[10px] mb-1">
+          <EditableText slot="limitLabel" fallback="Monthly Spend Limit" className="text-slate-500" />
+          <EditableText slot="limitValue" fallback="$2,500 / $5,000" className="font-semibold" />
+        </div>
+        <div className="h-2 overflow-hidden rounded-full bg-slate-200">
+          <div className="h-full rounded-full" style={{ width: '50%', background: barColor }} />
+        </div>
       </div>
-      <p className="text-center text-[9px] text-slate-400">Limits reset in 8 days</p>
+      <EditableText slot="note" fallback="Limits reset in 8 days" className="block text-center text-[9px] text-slate-400" />
     </div>
   );
 }
 
+/* PIN vault */
 export function PinVault({ ctx }: { ctx: ViewCtx }) {
+  const reportBg = useModuleColor('reportBg', '#FEF2F2');
   return (
     <div className={`space-y-3 p-3.5 ${ctx.radius.card} ${surface(ctx.isDark)}`}>
       <ModuleHeader ctx={ctx} code="7.3 Card Security" title="PIN Vault & Replacement" />
       <div className="flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-300 p-6 text-center">
         <Fingerprint className="h-8 w-8 text-slate-600" />
-        <p className="text-[12px] font-semibold">Hold to View PIN</p>
-        <p className="text-[9px] text-slate-500">Reveals physical terminal code</p>
+        <EditableText slot="holdTitle" fallback="Hold to View PIN" className="block text-[12px] font-semibold" />
+        <EditableText slot="holdSub" fallback="Reveals physical terminal code" className="block text-[9px] text-slate-500" />
       </div>
       <button type="button" className={`w-full flex items-center justify-between p-3 ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800' : 'bg-slate-50'}`}>
-        <div className="flex items-center gap-2"><Lock className="h-4 w-4" /><span className="text-[11px] font-semibold">Change PIN</span></div>
+        <div className="flex items-center gap-2">
+          <Lock className="h-4 w-4" />
+          <EditableText slot="changeTitle" fallback="Change PIN" className="text-[11px] font-semibold" />
+        </div>
         <ChevronRight className="h-3 w-3 text-slate-400" />
       </button>
-      <button type="button" className={`w-full flex items-center justify-center gap-1.5 py-2.5 text-[11px] font-semibold text-rose-500 ${ctx.radius.icon} ${ctx.isDark ? 'bg-rose-900/20' : 'bg-rose-50'}`}>
-        <AlertCircle className="h-3.5 w-3.5" /> Report Lost or Stolen
+      <button type="button" className={`w-full flex items-center justify-center gap-1.5 py-2.5 text-[11px] font-semibold text-rose-500 ${ctx.radius.icon}`} style={{ background: reportBg }}>
+        <AlertCircle className="h-3.5 w-3.5" />
+        <EditableText slot="reportTitle" fallback="Report Lost or Stolen" />
       </button>
     </div>
   );
 }
 
+/* Dollar icon (for alert center) */
 function DollarIcon({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
@@ -1091,42 +1618,46 @@ function DollarIcon({ className }: { className?: string }) {
   );
 }
 
+/* Alert center */
 export function AlertCenter({ ctx }: { ctx: ViewCtx }) {
+  const a1IconBg = useModuleColor('a1IconBg', '#1D4ED8');
   const items = [
-    { title: 'Payment Received: $4,250.00', sub: 'Your employer deposited funds via FedACH.', time: '10m ago', tone: 'blue', Icon: DollarIcon },
-    { title: 'New Login from Chrome Mac', sub: 'New York, US · IP 192.88.21.0', time: '2h ago', tone: 'gray', Icon: ShieldCheck },
-    { title: 'October Statement Ready', sub: 'Your monthly checking statement is ready.', time: '1d ago', tone: 'gray', Icon: FileText },
-  ] as const;
+    { i: 1, title: 'Payment Received: $4,250.00', sub: 'Your employer deposited funds via FedACH.', time: '10m ago', Icon: DollarIcon, blue: true },
+    { i: 2, title: 'New Login from Chrome Mac', sub: 'New York, US · IP 192.88.21.0', time: '2h ago', Icon: ShieldCheck, blue: false },
+    { i: 3, title: 'October Statement Ready', sub: 'Your monthly checking statement is ready.', time: '1d ago', Icon: FileText, blue: false },
+  ];
   return (
     <div className={`space-y-3 p-3.5 ${ctx.radius.card} ${surface(ctx.isDark)}`}>
       <ModuleHeader ctx={ctx} code="9.1 Alert Feed" title="Alert Center" />
       <div className="space-y-2">
-        {items.map((item) => (
-          <div key={item.title} className={`flex items-start gap-2.5 p-3 ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800' : 'bg-slate-50'}`}>
-            <span className={`grid h-8 w-8 shrink-0 place-items-center ${ctx.radius.icon} ${item.tone === 'blue' ? 'bg-blue-700 text-white' : ctx.isDark ? 'bg-slate-700 text-slate-200' : 'bg-slate-200 text-slate-600'}`}>
-              <item.Icon className="h-3.5 w-3.5" />
+        {items.map(({ i, title, sub, time, Icon, blue }) => (
+          <div key={i} className={`flex items-start gap-2.5 p-3 ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800' : 'bg-slate-50'}`}>
+            <span className={`grid h-8 w-8 shrink-0 place-items-center ${ctx.radius.icon} ${blue ? 'text-white' : ctx.isDark ? 'bg-slate-700 text-slate-200' : 'bg-slate-200 text-slate-600'}`}
+                  style={blue ? { background: a1IconBg } : undefined}>
+              <Icon className="h-3.5 w-3.5" />
             </span>
             <div className="min-w-0">
-              <p className="text-[11px] font-semibold">{item.title}</p>
-              <p className="text-[9px] leading-snug text-slate-500">{item.sub}</p>
-              <p className="mt-0.5 text-[8px] text-slate-400">{item.time}</p>
+              <EditableText slot={`a${i}Title`} fallback={title} className="block text-[11px] font-semibold" />
+              <EditableText slot={`a${i}Sub`} fallback={sub} className="block text-[9px] leading-snug text-slate-500" />
+              <EditableText slot={`a${i}Time`} fallback={time} className="mt-0.5 block text-[8px] text-slate-400" />
             </div>
           </div>
         ))}
       </div>
-      <p className="text-center text-[11px] font-semibold" style={{ color: ctx.accent }}>Mark all as read</p>
+      <EditableText slot="markAll" fallback="Mark all as read" className="block text-center text-[11px] font-semibold" style={{ color: ctx.accent }} />
     </div>
   );
 }
 
+/* Delivery channels */
 export function DeliveryChannels({ ctx }: { ctx: ViewCtx }) {
   const [large, setLarge] = useState(true);
   const [weekly, setWeekly] = useState(true);
   const [security, setSecurity] = useState(true);
   const items = [
-    { key: 'large', title: 'Push Alerts for Large Payments', sub: 'Notify when debit exceeds $10.00', value: large, set: setLarge },
-    { key: 'weekly', title: 'Weekly Spending Digest', sub: 'Summary sent Sunday evening', value: weekly, set: setWeekly },
-    { key: 'security', title: 'Security & Anomaly Warnings', sub: 'Critical unblockable security emails', value: security, set: setSecurity },
+    { key: 'large', titleSlot: 'd1Title', subSlot: 'd1Sub', title: 'Push Alerts for Large Payments', sub: 'Notify when debit exceeds $10.00', value: large, set: setLarge },
+    { key: 'weekly', titleSlot: 'd2Title', subSlot: 'd2Sub', title: 'Weekly Spending Digest', sub: 'Summary sent Sunday evening', value: weekly, set: setWeekly },
+    { key: 'security', titleSlot: 'd3Title', subSlot: 'd3Sub', title: 'Security & Anomaly Warnings', sub: 'Critical unblockable security emails', value: security, set: setSecurity },
   ];
   return (
     <div className={`space-y-3 p-3.5 ${ctx.radius.card} ${surface(ctx.isDark)}`}>
@@ -1134,40 +1665,57 @@ export function DeliveryChannels({ ctx }: { ctx: ViewCtx }) {
       <div className="space-y-2">
         {items.map((item) => (
           <div key={item.key} className={`flex items-center justify-between p-3 ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800' : 'bg-slate-50'}`}>
-            <div className="min-w-0"><p className="text-[11px] font-semibold">{item.title}</p><p className="text-[9px] text-slate-500">{item.sub}</p></div>
+            <div className="min-w-0">
+              <EditableText slot={item.titleSlot} fallback={item.title} className="block text-[11px] font-semibold" />
+              <EditableText slot={item.subSlot} fallback={item.sub} className="block text-[9px] text-slate-500" />
+            </div>
             <Switch checked={item.value} onChange={() => item.set(!item.value)} label={item.title} accent={ctx.accent} interactive={ctx.interactive} />
           </div>
         ))}
       </div>
       <div className="flex items-center justify-between pt-2 border-t border-slate-200 dark:border-slate-700">
-        <span className="text-[9px] text-slate-500">Delivery via APNs & Webhook</span>
-        <span className="text-[9px] font-semibold" style={{ color: ctx.accent }}>Save Rule Set</span>
+        <EditableText slot="footer" fallback="Delivery via APNs & Webhook" className="text-[9px] text-slate-500" />
+        <EditableText slot="save" fallback="Save Rule Set" className="text-[9px] font-semibold" style={{ color: ctx.accent }} />
       </div>
     </div>
   );
 }
 
+/* Identity card */
 export function IdentityCard({ ctx }: { ctx: ViewCtx }) {
+  const avatarBg = useModuleColor('avatarBg', '#B45309');
   return (
     <div className={`space-y-3 p-3.5 ${ctx.radius.card} ${surface(ctx.isDark)}`}>
       <ModuleHeader ctx={ctx} code="10.1 Identity Card" title="" />
       <div className="flex items-center gap-3">
-        <div className="grid h-14 w-14 place-items-center rounded-2xl bg-amber-700 text-white text-lg font-bold">AR</div>
+        <div className="grid h-14 w-14 place-items-center rounded-2xl text-white text-lg font-bold" style={{ background: avatarBg }}>AR</div>
         <div className="min-w-0">
-          <div className="flex items-center gap-1.5"><p className="text-[14px] font-bold">Alex Rivera</p><ShieldCheck className="h-3.5 w-3.5 text-emerald-600" /></div>
-          <p className="text-[10px] text-slate-500">alex.rivera@fintech.io</p>
-          <p className="mt-0.5 text-[9px] font-bold text-amber-700">BLACK MEMBER</p>
+          <div className="flex items-center gap-1.5">
+            <EditableText slot="name" fallback="Alex Rivera" className="text-[14px] font-bold" />
+            <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
+          </div>
+          <EditableText slot="email" fallback="alex.rivera@fintech.io" className="block text-[10px] text-slate-500" />
+          <EditableText slot="tier" fallback="BLACK MEMBER" className="mt-0.5 block text-[9px] font-bold text-amber-700" />
         </div>
       </div>
       <div className="space-y-2 border-t border-slate-200 pt-3 dark:border-slate-700">
-        <div className="flex justify-between text-[10px]"><span className="text-slate-500">Tax ID (SSN)</span><span className="font-mono">••••••8921</span></div>
-        <div className="flex justify-between text-[10px]"><span className="text-slate-500">Residence</span><span>New York, United States</span></div>
+        <div className="flex justify-between text-[10px]">
+          <EditableText slot="taxLabel" fallback="Tax ID (SSN)" className="text-slate-500" />
+          <EditableText slot="taxValue" fallback="••••••8921" className="font-mono" />
+        </div>
+        <div className="flex justify-between text-[10px]">
+          <EditableText slot="resLabel" fallback="Residence" className="text-slate-500" />
+          <EditableText slot="resValue" fallback="New York, United States" />
+        </div>
       </div>
-      <button type="button" className={`w-full py-2.5 text-[11px] font-bold ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800 text-slate-100' : 'bg-slate-100 text-slate-800'}`}>Edit Account Identity</button>
+      <button type="button" className={`w-full py-2.5 text-[11px] font-bold ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800 text-slate-100' : 'bg-slate-100 text-slate-800'}`}>
+        <EditableText slot="cta" fallback="Edit Account Identity" />
+      </button>
     </div>
   );
 }
 
+/* Security baseline */
 export function SecurityBaseline({ ctx }: { ctx: ViewCtx }) {
   const [biometrics, setBiometrics] = useState(true);
   return (
@@ -1175,394 +1723,170 @@ export function SecurityBaseline({ ctx }: { ctx: ViewCtx }) {
       <ModuleHeader ctx={ctx} code="10.2 Security Settings" title="Security Baseline" />
       <div className="space-y-2">
         <div className={`flex items-center justify-between p-3 ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800' : 'bg-slate-50'}`}>
-          <div><p className="text-[11px] font-semibold">Password</p><p className="text-[9px] text-slate-500">Updated 3 mos ago</p></div>
-          <button type="button" className="text-[10px] font-semibold" style={{ color: ctx.accent }}>Update</button>
+          <div>
+            <EditableText slot="pwdTitle" fallback="Password" className="block text-[11px] font-semibold" />
+            <EditableText slot="pwdSub" fallback="Updated 3 mos ago" className="block text-[9px] text-slate-500" />
+          </div>
+          <EditableText slot="pwdBtn" fallback="Update" className="text-[10px] font-semibold" style={{ color: ctx.accent }} />
         </div>
         <div className={`flex items-center justify-between p-3 ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800' : 'bg-slate-50'}`}>
-          <div><p className="text-[11px] font-semibold">Biometrics (Face ID)</p><p className="text-[9px] text-emerald-600">Active & Enrolled</p></div>
+          <div>
+            <EditableText slot="bioTitle" fallback="Biometrics (Face ID)" className="block text-[11px] font-semibold" />
+            <EditableText slot="bioSub" fallback="Active & Enrolled" className="block text-[9px] text-emerald-600" />
+          </div>
           <Switch checked={biometrics} onChange={() => setBiometrics(!biometrics)} label="Biometrics" accent={ctx.accent} interactive={ctx.interactive} />
         </div>
         <div className={`flex items-center justify-between p-3 ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800' : 'bg-slate-50'}`}>
-          <div><p className="text-[11px] font-semibold">Hardware Authenticator</p><p className="text-[9px] text-slate-500">YubiKey 5C NFC</p></div>
+          <div>
+            <EditableText slot="hwTitle" fallback="Hardware Authenticator" className="block text-[11px] font-semibold" />
+            <EditableText slot="hwSub" fallback="YubiKey 5C NFC" className="block text-[9px] text-slate-500" />
+          </div>
           <ShieldCheck className="h-4 w-4 text-emerald-600" />
         </div>
       </div>
       <div className="flex justify-between border-t border-slate-200 pt-2 dark:border-slate-700">
-        <span className="text-[9px] text-slate-500">Security Score: 98%</span>
-        <span className="text-[9px] font-semibold text-emerald-600">Optimal</span>
+        <EditableText slot="score" fallback="Security Score: 98%" className="text-[9px] text-slate-500" />
+        <EditableText slot="status" fallback="Optimal" className="text-[9px] font-semibold text-emerald-600" />
       </div>
     </div>
   );
 }
 
+/* Connected devices */
 export function ConnectedDevices({ ctx }: { ctx: ViewCtx }) {
   const devices = [
-    { name: 'iPhone 15 Pro', sub: 'New York, US · This device', active: true, Icon: Smartphone },
-    { name: 'MacBook Pro 16"', sub: 'Chrome 128 · Active 2h ago', active: false, Icon: Monitor },
+    { i: 1, name: 'iPhone 15 Pro', sub: 'New York, US · This device', active: true, Icon: Smartphone },
+    { i: 2, name: 'MacBook Pro 16"', sub: 'Chrome 128 · Active 2h ago', active: false, Icon: Monitor },
   ];
   return (
     <div className={`space-y-3 p-3.5 ${ctx.radius.card} ${surface(ctx.isDark)}`}>
       <ModuleHeader ctx={ctx} code="10.3 Active Sessions" title="Connected Devices" />
       <div className="space-y-2">
         {devices.map((d) => (
-          <div key={d.name} className={`flex items-center justify-between p-3 ${ctx.radius.icon} ${d.active ? 'bg-indigo-50 dark:bg-indigo-900/20' : ctx.isDark ? 'bg-slate-800' : 'bg-slate-50'}`}>
+          <div key={d.i} className={`flex items-center justify-between p-3 ${ctx.radius.icon} ${d.active ? 'bg-indigo-50 dark:bg-indigo-900/20' : ctx.isDark ? 'bg-slate-800' : 'bg-slate-50'}`}>
             <div className="flex items-center gap-2">
               <d.Icon className="h-4 w-4" />
-              <div><p className="text-[11px] font-semibold">{d.name}</p><p className="text-[9px] text-slate-500">{d.sub}</p></div>
+              <div>
+                <EditableText slot={`d${d.i}Name`} fallback={d.name} className="block text-[11px] font-semibold" />
+                <EditableText slot={`d${d.i}Sub`} fallback={d.sub} className="block text-[9px] text-slate-500" />
+              </div>
             </div>
-            {d.active ? <span className="h-2.5 w-2.5 rounded-full bg-emerald-600" /> : <button type="button" className="text-[9px] font-semibold text-rose-500">Revoke</button>}
+            {d.active
+              ? <span className="h-2.5 w-2.5 rounded-full bg-emerald-600" />
+              : <EditableText slot="revoke" fallback="Revoke" className="text-[9px] font-semibold text-rose-500" />}
           </div>
         ))}
       </div>
-      <button type="button" className={`w-full py-2.5 text-[11px] font-semibold text-rose-500 ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800' : 'bg-slate-100'}`}>Log Out All Other Devices</button>
+      <button type="button" className={`w-full py-2.5 text-[11px] font-semibold text-rose-500 ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800' : 'bg-slate-100'}`}>
+        <EditableText slot="logOut" fallback="Log Out All Other Devices" />
+      </button>
     </div>
   );
 }
 
-export function AccountsOverview({ ctx }: { ctx: ViewCtx }) {
-  const rows = [['Everyday Checking', '$12,480.20', 'USD'], ['High-Yield Savings', '$8,920.00', 'USD'], ['Euro Travel Account', '€3,410.55', 'EUR']];
+/* Account portfolio */
+export function AccountPortfolio({ ctx }: { ctx: ViewCtx }) {
+  const rows = [
+    { i: 1 as const, name: 'Everyday Checking', right: '··· 4912', bal: '$12,450.20', badge: 'Active', badgeColor: 'text-emerald-600' },
+    { i: 2 as const, name: 'High-Yield Savings', right: '4.85% APY', bal: '$11,200.00', badge: 'Tier 1 Pot', badgeColor: 'text-slate-500' },
+    { i: 3 as const, name: 'Euro Travel Wallet', right: 'EUR', bal: '€1,200.00', badge: 'IBAN DE89…', badgeColor: 'text-slate-500' },
+  ];
   return (
-    <section>
-      <SectionHeader ctx={ctx} title="Your accounts" action="Manage" />
+    <div className={`space-y-3 p-3.5 ${ctx.radius.card} ${surface(ctx.isDark)}`}>
+      <ModuleHeader ctx={ctx} code="3.1 My Accounts" title="Account Portfolio" />
       <div className="space-y-2">
-        {rows.map(([name, amt, ccy]) => (
-          <div key={name} className={`flex items-center justify-between p-3 ${ctx.radius.tile} ${surface(ctx.isDark)}`}>
-            <div><p className="text-[11px] font-semibold">{name}</p><p className="text-[9px] text-slate-400">Available · {ccy}</p></div>
-            <p className="text-[12px] font-bold">{amt}</p>
+        {rows.map((r) => (
+          <div key={r.i} className={`p-3 ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800' : 'bg-slate-50'}`}>
+            <div className="flex items-center justify-between">
+              <EditableText slot={`a${r.i}Name`} fallback={r.name} className="text-[11px] font-semibold" />
+              <EditableText slot={`a${r.i}Right`} fallback={r.right} className="text-[9px] text-slate-400" />
+            </div>
+            <div className="mt-1 flex items-baseline justify-between">
+              <EditableText slot={`a${r.i}Bal`} fallback={r.bal} className="text-[16px] font-bold" />
+              <EditableText slot={`a${r.i}Badge`} fallback={r.badge} className={`text-[9px] font-semibold ${r.badgeColor}`} />
+            </div>
           </div>
         ))}
       </div>
-    </section>
+      <button type="button" className={`w-full flex items-center justify-center gap-1 py-2.5 text-[11px] font-bold ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800 text-slate-200' : 'bg-slate-100 text-slate-800'}`}>
+        <Plus className="h-3 w-3" />
+        <EditableText slot="cta" fallback="Open New Pocket" />
+      </button>
+    </div>
   );
 }
 
-export function DirectTransferEngine({ ctx }: { ctx: ViewCtx }) {
+/* Routing wire data */
+export function RoutingWireData({ ctx }: { ctx: ViewCtx }) {
+  const ctaBg = useModuleColor('ctaBg', '#C026D3');
   return (
     <div className={`space-y-3 p-3.5 ${ctx.radius.card} ${surface(ctx.isDark)}`}>
-      <ModuleHeader ctx={ctx} code="4.1 Transfer Form" title="Direct Transfer Engine" />
-      <div>
-        <p className="text-[9px] text-slate-400 mb-1">From Account</p>
-        <div className={`flex items-center justify-between px-3 py-2.5 ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800' : 'bg-slate-100'}`}>
-          <span className="text-[11px] font-medium">Checking (··· 4912)</span>
-          <span className="text-[11px] font-bold">$12,450.20</span>
-        </div>
+      <ModuleHeader ctx={ctx} code="3.2 Account Details" title="Routing & Wire Data" />
+      <div className={`p-3 ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800' : 'bg-slate-50'}`}>
+        <EditableText slot="holderLabel" fallback="Account Holder" className="block text-[9px] text-slate-400" />
+        <EditableText slot="holderValue" fallback="Alex Rivera · Apex Holdings LLC" className="mt-0.5 block text-[11px] font-semibold" />
       </div>
-      <div>
-        <p className="text-[9px] text-slate-400 mb-1">To Recipient</p>
-        <div className={`flex items-center justify-between px-3 py-2 ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800' : 'bg-slate-100'}`}>
-          <div className="flex items-center gap-2">
-            <span className="grid h-6 w-6 place-items-center rounded-full text-[9px] font-bold text-white" style={{ background: '#3b82f6' }}>SJ</span>
-            <span className="text-[11px] font-medium">Sarah Jenkins (Chase)</span>
+      {[
+        { labelSlot: 'r1Label', valueSlot: 'r1Value', label: 'ACH Routing Number', value: '021000021' },
+        { labelSlot: 'r2Label', valueSlot: 'r2Value', label: 'Account Number', value: '884920194821' },
+      ].map((row) => (
+        <div key={row.labelSlot} className={`flex items-center justify-between p-3 ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800' : 'bg-slate-50'}`}>
+          <div>
+            <EditableText slot={row.labelSlot} fallback={row.label} className="block text-[9px] text-slate-400" />
+            <EditableText slot={row.valueSlot} fallback={row.value} className="mt-0.5 block font-mono text-[11px] font-bold" />
           </div>
+          <button type="button" aria-label={`Copy ${row.label}`} className={`grid h-7 w-7 place-items-center ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-700 text-slate-200' : 'bg-white text-slate-600 shadow-sm'}`}>
+            <Copy className="h-3 w-3" />
+          </button>
+        </div>
+      ))}
+      <button type="button" className={`w-full flex items-center justify-center gap-1.5 py-2.5 text-[11px] font-bold text-white ${ctx.radius.icon}`} style={{ background: ctaBg }}>
+        <Share2 className="h-3 w-3" />
+        <EditableText slot="cta" fallback="Share Bank Details" />
+      </button>
+    </div>
+  );
+}
+
+/* Statements export */
+export function StatementsExport({ ctx }: { ctx: ViewCtx }) {
+  const pdfActiveBg = useModuleColor('pdfActiveBg', '#0284C7');
+  const csvActiveBg = useModuleColor('csvActiveBg', '#0284C7');
+  const [format, setFormat] = useState<'pdf' | 'csv'>('pdf');
+  return (
+    <div className={`space-y-3 p-3.5 ${ctx.radius.card} ${surface(ctx.isDark)}`}>
+      <ModuleHeader ctx={ctx} code="3.3 Statements Export" title="Monthly Audited Files" />
+      <div>
+        <EditableText slot="cycleLabel" fallback="Select Statement Cycle" className="mb-1 block text-[9px] text-slate-400" />
+        <div className={`flex items-center justify-between p-3 ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800' : 'bg-slate-50'}`}>
+          <EditableText slot="cycleValue" fallback="October 2024 (Current)" className="text-[11px]" />
           <ChevronDown className="h-3 w-3 text-slate-400" />
         </div>
       </div>
       <div>
-        <p className="text-[9px] text-slate-400 mb-1">Amount to Send</p>
-        <p className="text-[22px] font-bold"><span className="text-slate-400 text-[14px]">$ </span>500.00</p>
-      </div>
-      <div className="grid grid-cols-2 gap-2">
-        <div className={`p-2 ${ctx.radius.icon} border-2`} style={{ borderColor: ctx.accent, background: `${ctx.accent}10` }}>
-          <p className="text-[10px] font-bold" style={{ color: ctx.accent }}>Instant FedNow</p>
-          <p className="text-[8px] text-slate-500">Free · Arrives Now</p>
-        </div>
-        <div className={`p-2 ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800' : 'bg-slate-100'}`}>
-          <p className="text-[10px] font-bold">Standard ACH</p>
-          <p className="text-[8px] text-slate-500">1-2 Business Days</p>
-        </div>
-      </div>
-      <button type="button" className={`w-full py-2.5 text-[11px] font-bold text-white ${ctx.radius.icon}`} style={{ background: NAVY }}>Continue to Review</button>
-    </div>
-  );
-}
-
-export function MultiMarketFX({ ctx }: { ctx: ViewCtx }) {
-  return (
-    <div className={`space-y-3 p-3.5 ${ctx.radius.card} ${surface(ctx.isDark)}`}>
-      <ModuleHeader ctx={ctx} code="4.2 Currency Exchange" title="Mid-Market FX Swap" />
-      <div className={`p-3 ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800' : 'bg-slate-100'}`}>
-        <div className="flex items-center justify-between mb-1"><span className="text-[9px] text-slate-400">You send exactly</span><span className="text-[9px] text-slate-400">Fee: $0.00 USD</span></div>
-        <div className="flex items-center justify-between">
-          <p className="text-[18px] font-bold">1,000.00</p>
-          <div className="flex items-center gap-1 bg-white px-2 py-1 rounded-md ring-1 ring-slate-200">
-            <span className="text-[10px]">🇺🇸</span><span className="text-[10px] font-bold">USD</span><ChevronDown className="h-2.5 w-2.5" />
-          </div>
+        <EditableText slot="formatLabel" fallback="Format" className="mb-1 block text-[9px] text-slate-400" />
+        <div className="grid grid-cols-2 gap-2">
+          <button type="button" onClick={() => setFormat('pdf')}
+            className={`py-2 text-[11px] font-bold ${ctx.radius.icon} ${format === 'pdf' ? 'text-white' : ctx.isDark ? 'bg-slate-800 text-slate-200' : 'bg-slate-100 text-slate-700'}`}
+            style={format === 'pdf' ? { background: pdfActiveBg } : undefined}>
+            <EditableText slot="pdfBtn" fallback="PDF Format" />
+          </button>
+          <button type="button" onClick={() => setFormat('csv')}
+            className={`py-2 text-[11px] font-bold ${ctx.radius.icon} ${format === 'csv' ? 'text-white' : ctx.isDark ? 'bg-slate-800 text-slate-200' : 'bg-slate-100 text-slate-700'}`}
+            style={format === 'csv' ? { background: csvActiveBg } : undefined}>
+            <EditableText slot="csvBtn" fallback="CSV Sheet" />
+          </button>
         </div>
       </div>
-      <div className="flex items-center justify-between">
-        <span className="text-[9px] text-slate-500 flex items-center gap-1"><Lock className="h-2.5 w-2.5" /> 1 USD = 0.9214 EUR (1m)</span>
-        <button aria-label="Swap currencies" className="grid h-6 w-6 place-items-center rounded-full" style={{ background: ctx.accent }}><RefreshCw className="h-3 w-3 text-white" /></button>
+      <div className={`flex items-start gap-2 p-3 ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800' : 'bg-blue-50'}`}>
+        <ShieldCheck className="h-4 w-4 shrink-0 text-blue-500" />
+        <EditableText slot="seal" fallback="Cryptographically sealed with SHA-256 for tax filing"
+          className="block text-[9px] leading-relaxed text-slate-600 dark:text-slate-300" />
       </div>
-      <div className={`p-3 ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800' : 'bg-slate-100'}`}>
-        <div className="flex items-center justify-between mb-1"><span className="text-[9px] text-slate-400">Recipient gets</span><span className="text-[9px] text-slate-400">Live Rate</span></div>
-        <div className="flex items-center justify-between">
-          <p className="text-[18px] font-bold text-emerald-600">921.40</p>
-          <div className="flex items-center gap-1 bg-white px-2 py-1 rounded-md ring-1 ring-slate-200">
-            <span className="text-[10px]">🇪🇺</span><span className="text-[10px] font-bold">EUR</span><ChevronDown className="h-2.5 w-2.5" />
-          </div>
-        </div>
-      </div>
-      <button type="button" className={`w-full py-2.5 text-[11px] font-bold text-white ${ctx.radius.icon}`} style={{ background: '#F97316' }}>Lock Rate &amp; Exchange</button>
-    </div>
-  );
-}
-
-export function RecurringStanding({ ctx }: { ctx: ViewCtx }) {
-  return (
-    <div className={`space-y-3 p-3.5 ${ctx.radius.card} ${surface(ctx.isDark)}`}>
-      <ModuleHeader ctx={ctx} code="4.3 Scheduled Transfer" title="Recurring Standing Order" />
-      <div className={`p-3 ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800' : 'bg-slate-100'}`}>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="grid h-8 w-8 place-items-center rounded-md text-white" style={{ background: NAVY }}><Landmark className="h-4 w-4" /></span>
-            <div><p className="text-[11px] font-bold">Prime Manhattan Realty</p><p className="text-[8px] text-slate-500">Monthly Rent · #402</p></div>
-          </div>
-          <span className="h-3 w-3 rounded-sm" style={{ background: NAVY }} />
-        </div>
-        <div className="mt-3 flex items-center justify-between border-t border-slate-200 pt-2 dark:border-slate-700">
-          <div><p className="text-[8px] text-slate-400">Amount</p><p className="text-[11px] font-bold">$2,100.00 / mo</p></div>
-          <div className="text-right"><p className="text-[8px] text-slate-400">Next Run</p><p className="text-[11px] font-bold">Nov 1, 2024</p></div>
-        </div>
-      </div>
-      <p className="flex items-center gap-1 text-[9px] text-slate-500"><Clock className="h-3 w-3" /> Automatic notification 24h prior</p>
-      <button type="button" className={`w-full py-2.5 text-[11px] font-bold ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-700 text-slate-200' : 'bg-slate-200 text-slate-800'}`}>Modify Schedule Rules</button>
-    </div>
-  );
-}
-
-export function AuthorizationModal({ ctx }: { ctx: ViewCtx }) {
-  return (
-    <div className={`space-y-3 p-3.5 ${ctx.radius.card} ${surface(ctx.isDark)}`}>
-      <ModuleHeader ctx={ctx} code="4.4 Authorization Modal" title="" />
-      <p className="text-center text-[10px] uppercase tracking-wider text-slate-400">Payment Review</p>
-      <p className="text-center text-[26px] font-bold">$500.00</p>
-      <p className="text-center text-[10px] text-slate-400">to Sarah Jenkins · Chase Bank</p>
-      <div className="space-y-1.5 border-t border-slate-200 pt-2 dark:border-slate-700">
-        <div className="flex justify-between text-[10px]"><span className="text-slate-400">Network Fee</span><span className="text-emerald-600 font-semibold">Free (FedNow)</span></div>
-        <div className="flex justify-between text-[10px]"><span className="text-slate-400">Estimated Delivery</span><span className="font-semibold">Within seconds</span></div>
-        <div className="flex justify-between text-[10px]"><span className="text-slate-400">Origin Account</span><span className="font-semibold">··· 4912</span></div>
-      </div>
-      <button type="button" className={`w-full flex items-center justify-center gap-2 py-2.5 text-[11px] font-bold text-white ${ctx.radius.icon}`} style={{ background: '#14B8A6' }}>
-        <Lock className="h-3 w-3" /> Authorize Transfer ($500.00)
+      <button type="button" className={`w-full flex items-center justify-center gap-1.5 py-2.5 text-[11px] font-bold ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800 text-slate-100' : 'bg-slate-100 text-slate-800'}`}>
+        <Download className="h-3 w-3" />
+        <EditableText slot="download" fallback={format === 'pdf' ? 'Download PDF (1.2 MB)' : 'Download CSV'} />
       </button>
-      <p className="text-center text-[9px] text-slate-400">Cancel transaction</p>
-    </div>
-  );
-}
-
-export function RecentRecipients({ ctx }: { ctx: ViewCtx }) {
-  const contacts = [
-    { initials: 'SJ', name: 'Sarah J.', color: 'bg-blue-500', ring: true },
-    { initials: 'MC', name: 'Marcus', color: 'bg-indigo-400', ring: false },
-    { initials: 'ER', name: 'Elena', color: 'bg-emerald-400', ring: false },
-  ];
-  return (
-    <div className={`space-y-3 p-3.5 ${ctx.radius.card} ${surface(ctx.isDark)}`}>
-      <ModuleHeader ctx={ctx} code="5.1 Recent Recipients" title="One-Tap Contacts Dock" />
-      <div className="grid grid-cols-4 items-start gap-2">
-        <div className="flex flex-col items-center gap-1.5">
-          <div className="grid h-11 w-11 place-items-center rounded-full border-2 border-dashed border-slate-300"><Plus className="h-4 w-4 text-slate-400" /></div>
-          <span className="text-[9px] text-slate-500">Add New</span>
-        </div>
-        {contacts.map((c) => (
-          <div key={c.name} className="flex flex-col items-center gap-1.5">
-            <div className={`grid h-11 w-11 place-items-center rounded-full text-[11px] font-bold text-white ${c.color} ${c.ring ? 'ring-2 ring-blue-600 ring-offset-2' : ''}`}>{c.initials}</div>
-            <span className="text-[9px] font-medium">{c.name}</span>
-          </div>
-        ))}
-      </div>
-      <div className="flex justify-between border-t border-slate-200 pt-2 dark:border-slate-700">
-        <span className="text-[9px] text-slate-500">Synced with Device Contacts</span>
-        <span className="text-[9px] font-semibold" style={{ color: ctx.accent }}>Manage (24)</span>
-      </div>
-    </div>
-  );
-}
-
-export function BeneficiaryValidation({ ctx }: { ctx: ViewCtx }) {
-  return (
-    <div className={`space-y-3 p-3.5 ${ctx.radius.card} ${surface(ctx.isDark)}`}>
-      <ModuleHeader ctx={ctx} code="5.2 Add Recipient" title="Beneficiary Validation" />
-      <div>
-        <p className="text-[9px] text-slate-400 mb-1">Legal Full Name</p>
-        <div className={`px-3 py-2 ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800' : 'bg-slate-100'}`}><span className="text-[11px] text-slate-400">e.g. Liam Gallagher</span></div>
-      </div>
-      <div>
-        <div className="flex justify-between mb-1"><p className="text-[9px] text-slate-400">Routing Number or SWIFT</p><p className="text-[9px] font-semibold text-emerald-600">Auto-detected: Chase</p></div>
-        <div className={`px-3 py-2 ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800' : 'bg-slate-100'}`}><span className="text-[11px]">021000021</span></div>
-      </div>
-      <button type="button" className={`w-full py-2.5 text-[11px] font-bold text-white ${ctx.radius.icon}`} style={{ background: NAVY }}>Save Beneficiary</button>
-    </div>
-  );
-}
-
-export function SendMoneyAmount({ ctx }: { ctx: ViewCtx }) {
-  return (
-    <div className={`space-y-3 p-3.5 ${ctx.radius.card} ${surface(ctx.isDark)}`}>
-      <ModuleHeader ctx={ctx} code="5.3 Send Money Focus" title="" />
-      <p className="text-center text-[9px] uppercase tracking-wider text-slate-400">Amount to Dispatch</p>
-      <p className="text-center text-[36px] font-bold leading-none">$120.00</p>
-      <div className={`flex items-center gap-2 px-3 py-2.5 ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800' : 'bg-slate-100'}`}>
-        <Pencil className="h-3 w-3 text-slate-400" /><span className="text-[11px]">Dinner &amp; drinks 🍕</span>
-      </div>
-      <button type="button" className={`flex w-full items-center justify-center gap-2 py-2.5 text-[11px] font-bold text-white ${ctx.radius.icon}`} style={{ background: NAVY }}>
-        <ArrowRight className="h-3 w-3" /> Review Payment
-      </button>
-    </div>
-  );
-}
-
-export function TransferSuccess({ ctx }: { ctx: ViewCtx }) {
-  return (
-    <div className={`space-y-3 p-3.5 text-center ${ctx.radius.card} ${surface(ctx.isDark)}`}>
-      <ModuleHeader ctx={ctx} code="5.4 Transfer Success" title="" />
-      <div className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-emerald-100">
-        <div className="grid h-7 w-7 place-items-center rounded-full border-2 border-emerald-600"><Check className="h-4 w-4 text-emerald-600" /></div>
-      </div>
-      <p className="text-[16px] font-bold">Transfer Dispatched!</p>
-      <p className="text-[10px] text-slate-500">$120.00 sent to Sarah Jenkins</p>
-      <p className="font-mono text-[9px] text-slate-400">TXID: #US-99214-88A</p>
-      <div className="grid grid-cols-2 gap-2 pt-2">
-        <button type="button" className={`flex items-center justify-center gap-1.5 py-2.5 text-[11px] font-semibold ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-700 text-slate-100' : 'bg-slate-100 text-slate-800'}`}><Send className="h-3 w-3" /> Share</button>
-        <button type="button" className={`py-2.5 text-[11px] font-bold text-white ${ctx.radius.icon}`} style={{ background: '#3B82F6' }}>Done</button>
-      </div>
-    </div>
-  );
-}
-
-export function PeerInvoicing({ ctx }: { ctx: ViewCtx }) {
-  return (
-    <div className={`space-y-3 p-3.5 ${ctx.radius.card} ${surface(ctx.isDark)}`}>
-      <ModuleHeader ctx={ctx} code="6.1 Request Money" title="Peer Invoicing" />
-      <div>
-        <p className="text-[9px] text-slate-400 mb-1">Requested Amount</p>
-        <div className={`flex items-baseline gap-2 px-3 py-2 ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800' : 'bg-slate-100'}`}>
-          <span className="text-[14px] text-slate-400">$</span><span className="text-[18px] font-bold">75.00</span>
-        </div>
-      </div>
-      <div>
-        <p className="text-[9px] text-slate-400 mb-1">Purpose Note</p>
-        <div className={`px-3 py-2 ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800' : 'bg-slate-100'}`}><span className="text-[11px]">Concert tickets 🎫</span></div>
-      </div>
-      <button type="button" className={`w-full py-2.5 text-[11px] font-bold text-white ${ctx.radius.icon}`} style={{ background: NAVY }}>Send Request</button>
-    </div>
-  );
-}
-
-export function PaymentQR({ ctx }: { ctx: ViewCtx }) {
-  return (
-    <div className={`space-y-3 p-3.5 text-center ${ctx.radius.card} ${surface(ctx.isDark)}`}>
-      <ModuleHeader ctx={ctx} code="6.2 Payment QR" title="" />
-      <div className={`mx-auto grid h-32 w-32 place-items-center bg-white ring-2 ${ctx.radius.icon}`} style={{ '--tw-ring-color': ctx.accent } as React.CSSProperties}><QrCode className="h-24 w-24 text-slate-900" /></div>
-      <p className="text-[11px] font-semibold">Scan to pay Alex Rivera</p>
-      <p className="text-[9px] text-slate-400">Custom fixed amount: $75.00</p>
-      <div className="grid grid-cols-2 gap-2">
-        <button type="button" className={`py-2 text-[10px] font-semibold ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-700 text-slate-100' : 'bg-slate-100 text-slate-800'}`}>Download QR</button>
-        <button type="button" className={`py-2 text-[10px] font-bold text-white ${ctx.radius.icon}`} style={{ background: '#1E40AF' }}>Copy Link</button>
-      </div>
-    </div>
-  );
-}
-
-export function SplitPayment({ ctx }: { ctx: ViewCtx }) {
-  const rows = [
-    { name: 'You (Alex)', label: 'Paid ($60)', paid: true },
-    { name: 'Mike Henderson', label: 'Request $60', paid: false },
-    { name: 'Jessica Taylor', label: 'Request $60', paid: false },
-  ];
-  return (
-    <div className={`space-y-3 p-3.5 ${ctx.radius.card} ${surface(ctx.isDark)}`}>
-      <ModuleHeader ctx={ctx} code="6.3 Split Payment" title="" />
-      <div className="flex items-end justify-between">
-        <div><p className="text-[9px] text-slate-400">Total Bill</p><p className="text-[20px] font-bold">$180.00</p></div>
-        <div className="text-right"><p className="text-[9px] text-slate-400">Split 3 ways</p><p className="text-[16px] font-bold" style={{ color: ctx.accent }}>$60.00 each</p></div>
-      </div>
-      <div className="space-y-1.5">
-        {rows.map((p) => (
-          <div key={p.name} className={`flex items-center justify-between px-3 py-2 ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800' : 'bg-slate-100'}`}>
-            <div className="flex items-center gap-2">
-              <span className={`h-2.5 w-2.5 rounded-full ${p.paid ? 'bg-emerald-500' : ''}`} style={!p.paid ? { background: ctx.accent } : undefined} />
-              <span className="text-[11px] font-medium">{p.name}</span>
-            </div>
-            <span className={`text-[9px] ${p.paid ? 'text-slate-500' : 'font-semibold'}`} style={!p.paid ? { color: ctx.accent } : undefined}>{p.label}</span>
-          </div>
-        ))}
-      </div>
-      <button type="button" className={`w-full py-2.5 text-[11px] font-bold text-white ${ctx.radius.icon}`} style={{ background: NAVY }}>Send 2 Requests ($120.00)</button>
-    </div>
-  );
-}
-
-export function OutstandingReceivables({ ctx }: { ctx: ViewCtx }) {
-  return (
-    <div className={`space-y-3 p-3.5 ${ctx.radius.card} ${surface(ctx.isDark)}`}>
-      <ModuleHeader ctx={ctx} code="6.4 Pending Tracker" title="Outstanding Receivables" />
-      <div className={`p-3 ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800' : 'bg-slate-100'}`}>
-        <div className="flex items-center justify-between">
-          <div><p className="text-[11px] font-semibold">Mike Henderson</p><p className="text-[9px] text-slate-500">Pending 2 days · $45.00</p></div>
-          <button className="rounded-md bg-white px-3 py-1 text-[9px] font-bold shadow-sm" style={{ color: ctx.accent }}>Remind</button>
-        </div>
-      </div>
-      <div className={`p-3 ${ctx.radius.icon} ${ctx.isDark ? 'bg-slate-800' : 'bg-slate-100'}`}>
-        <div className="flex items-center justify-between">
-          <div><p className="text-[11px] font-semibold">Jessica Taylor</p><p className="text-[9px] text-emerald-600">Paid today · $120.00</p></div>
-          <div className="grid h-6 w-6 place-items-center rounded-full border-2 border-emerald-500"><Check className="h-3 w-3 text-emerald-500" /></div>
-        </div>
-      </div>
-      <div className="flex justify-between border-t border-slate-200 pt-2 dark:border-slate-700">
-        <span className="text-[9px] text-slate-500">Total outstanding: $45.00</span>
-        <span className="text-[9px] font-semibold" style={{ color: ctx.accent }}>Clear Settled</span>
-      </div>
-    </div>
-  );
-}
-
-export function HistoryFilters({ ctx }: { ctx: ViewCtx }) {
-  return (
-    <div className={`space-y-2 p-3 ${ctx.radius.card} ${surface(ctx.isDark)}`}>
-      <div className="flex items-center gap-2"><Search className="h-3.5 w-3.5 text-slate-400" /><span className="text-[10px] text-slate-400">Search transactions…</span></div>
-      <div className="flex gap-1.5 overflow-hidden">
-        {['All', 'Income', 'Spending', 'Pending'].map((chip, i) => (
-          <span key={chip} className={`rounded-full px-2.5 py-1 text-[9px] font-semibold ${i === 0 ? 'text-white' : 'text-slate-500'} ${i === 0 ? '' : ctx.isDark ? 'bg-slate-800' : 'bg-slate-100'}`} style={i === 0 ? { background: ctx.accent } : undefined}>{chip}</span>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-export function SplashCard({ ctx }: { ctx: ViewCtx }) {
-  return (
-    <div className={`flex h-[240px] flex-col items-center justify-center gap-3 ${ctx.radius.card} ${ctx.isDark ? 'bg-slate-900 ring-1 ring-white/10' : 'bg-slate-900 text-white'}`}>
-      <span className="grid h-14 w-14 place-items-center rounded-2xl text-xl font-black text-white" style={{ background: ctx.accent }}>A</span>
-      <p className="text-[13px] font-bold tracking-wide text-white">APEX BANK</p>
-      <span className="h-1 w-16 overflow-hidden rounded-full bg-white/20"><span className="block h-full w-1/2 rounded-full" style={{ background: ctx.accent }} /></span>
-    </div>
-  );
-}
-
-export function ProfileCard({ ctx }: { ctx: ViewCtx }) {
-  return (
-    <div className={`space-y-3 p-3.5 ${ctx.radius.card} ${surface(ctx.isDark)}`}>
-      <div className="flex items-center gap-3">
-        <span className="grid h-11 w-11 place-items-center rounded-full text-sm font-bold text-white" style={{ background: ctx.accent }}>U</span>
-        <div><p className="text-[12px] font-semibold">User Name</p><p className="text-[9px] text-slate-400">user@apex.bank</p></div>
-      </div>
-      <div className="flex gap-1.5">
-        <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[9px] font-semibold text-emerald-600">KYC Verified</span>
-        <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[9px] font-semibold text-blue-600">Tier 2</span>
-      </div>
-    </div>
-  );
-}
-
-export function FreezeCard({ ctx }: { ctx: ViewCtx }) {
-  return (
-    <div className={`flex items-center justify-between p-3.5 ${ctx.radius.card} ${surface(ctx.isDark)}`}>
-      <div className="flex items-center gap-3">
-        <span className={`grid h-9 w-9 place-items-center bg-sky-50 text-sky-600 ${ctx.radius.icon}`}><Snowflake className="h-4 w-4" /></span>
-        <div><p className="text-[12px] font-semibold">Freeze Card</p><p className="text-[9px] text-slate-400">{ctx.isCardFrozen ? 'Card is frozen' : 'Block instant transactions'}</p></div>
-      </div>
-      <Switch checked={ctx.isCardFrozen} onChange={ctx.actions.toggleFreeze} label="Freeze card" accent={ctx.accent} interactive={ctx.interactive} />
     </div>
   );
 }

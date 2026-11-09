@@ -869,7 +869,7 @@ function RightPanel({
           const active = tab === t.id;
           return (
             <button key={t.id} onClick={() => onTab(t.id)}
-              className={`relative flex-1 py-2.5 text-[9px] font-bold uppercase tracking-wider ${active ? 'text-[#0040DF]' : 'text-slate-400 hover:text-slate-700'}`}>
+              className={`relative flex-1 py-3 text-[11px] font-bold uppercase tracking-wider ${active ? 'text-[#0040DF]' : 'text-slate-400 hover:text-slate-700'}`}>
               {t.label}
               {active && <span className="absolute inset-x-2 -bottom-px h-0.5 rounded-full bg-[#0040DF]" />}
             </button>
@@ -879,49 +879,49 @@ function RightPanel({
 
       <div className="min-h-0 flex-1 overflow-y-auto">
         {!mod ? (
-          <div className="flex flex-col items-center justify-center gap-2 px-4 py-12 text-center">
-            <Diamond className="h-5 w-5 text-slate-300" />
-            <p className="text-[10px] text-slate-400">Select a component on the phone<br />to edit its properties</p>
+          <div className="flex flex-col items-center justify-center gap-2.5 px-4 py-16 text-center">
+            <Diamond className="h-6 w-6 text-slate-300" />
+            <p className="text-[12px] text-slate-400">Select a component on the phone<br />to edit its properties</p>
           </div>
         ) : (
           <>
             {/* Component header — matches reference: name + Master badge */}
-            <div className="border-b border-slate-200 px-3 py-3">
+            <div className="border-b border-slate-200 px-4 py-4">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-1.5">
-                  <Diamond className="h-3 w-3 text-indigo-500" />
-                  <p className="text-[11px] font-bold">{mod.title}</p>
+                <div className="flex items-center gap-2">
+                  <Diamond className="h-4 w-4 text-indigo-500" />
+                  <p className="text-[13px] font-bold">{mod.title}</p>
                 </div>
-                <span className="rounded-md bg-indigo-100 px-2 py-0.5 text-[8px] font-bold text-indigo-700">Master</span>
+                <span className="rounded-md bg-indigo-100 px-2.5 py-1 text-[10px] font-bold text-indigo-700">Master</span>
               </div>
-              <p className="mt-0.5 text-[9px] text-slate-500">{mod.subtitle}</p>
+              <p className="mt-1 text-[11px] text-slate-500">{mod.subtitle}</p>
             </div>
 
             {/* Content — schema-driven text slots */}
             {schema?.text && schema.text.length > 0 && (
-              <section className="border-b border-slate-200 px-3 py-3">
-                <div className="mb-2 flex items-center justify-between">
-                  <span className="text-[8px] font-bold uppercase tracking-wider text-slate-400">Content</span>
+              <section className="border-b border-slate-200 px-4 py-4">
+                <div className="mb-2.5 flex items-center justify-between">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Content</span>
                   {hasOverrides && (
-                    <button onClick={() => onResetModuleOverrides(selectedId!)} className="text-[9px] font-semibold text-slate-400 hover:text-rose-500">
+                    <button onClick={() => onResetModuleOverrides(selectedId!)} className="text-[11px] font-semibold text-slate-400 hover:text-rose-500">
                       Reset all
                     </button>
                   )}
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-2.5">
                   {schema.text.map((s) => (
                     <label key={s.slot} className="block">
-                      <span className="mb-0.5 block text-[9px] font-semibold uppercase tracking-wider text-slate-400">{s.label}</span>
-                      <div className="flex items-center gap-1">
+                      <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-slate-400">{s.label}</span>
+                      <div className="flex items-center gap-1.5">
                         <input
                           value={mOver?.text[s.slot] ?? ''}
                           placeholder={s.defaultValue}
                           onChange={(e) => setText(selectedId!, s.slot, e.target.value || null)}
-                          className="flex-1 rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-[11px] outline-none focus:border-[#0040DF] focus:bg-white"
+                          className="flex-1 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-[12px] outline-none focus:border-[#0040DF] focus:bg-white"
                         />
                         {mOver?.text[s.slot] && (
-                          <button onClick={() => setText(selectedId!, s.slot, null)} className="text-slate-400 hover:text-rose-500" aria-label={`Reset ${s.label}`}>
-                            <X className="h-3 w-3" />
+                          <button onClick={() => setText(selectedId!, s.slot, null)} className="grid h-7 w-7 place-items-center rounded text-slate-400 hover:bg-rose-50 hover:text-rose-500" aria-label={`Reset ${s.label}`}>
+                            <X className="h-4 w-4" />
                           </button>
                         )}
                       </div>
@@ -933,16 +933,16 @@ function RightPanel({
 
             {/* Colors — schema-driven color slots */}
             {schema?.colors && schema.colors.length > 0 && (
-              <section className="border-b border-slate-200 px-3 py-3">
-                <span className="mb-2 block text-[8px] font-bold uppercase tracking-wider text-slate-400">Colors</span>
-                <div className="space-y-2">
+              <section className="border-b border-slate-200 px-4 py-4">
+                <span className="mb-2.5 block text-[10px] font-bold uppercase tracking-wider text-slate-400">Colors</span>
+                <div className="space-y-2.5">
                   {schema.colors.map((c) => {
                     const current = mOver?.colors[c.slot] ?? c.defaultValue;
                     const overridden = !!mOver?.colors[c.slot];
                     return (
-                      <div key={c.slot} className="flex items-center gap-2">
-                        <span className="w-24 truncate text-[10px] text-slate-500">{c.label}</span>
-                        <label className="relative h-7 w-7 shrink-0 cursor-pointer overflow-hidden rounded-md ring-1 ring-slate-200">
+                      <div key={c.slot} className="flex items-center gap-2.5">
+                        <span className="w-28 truncate text-[12px] text-slate-500">{c.label}</span>
+                        <label className="relative h-9 w-9 shrink-0 cursor-pointer overflow-hidden rounded-md ring-1 ring-slate-200">
                           <span className="absolute inset-0" style={{ background: current }} />
                           <input
                             type="color"
@@ -955,11 +955,11 @@ function RightPanel({
                           type="text"
                           value={current}
                           onChange={(e) => setColor(selectedId!, c.slot, e.target.value)}
-                          className="w-20 rounded border border-slate-200 px-1.5 py-0.5 font-mono text-[10px] outline-none focus:border-[#0040DF]"
+                          className="w-24 rounded border border-slate-200 px-2 py-1 font-mono text-[11px] outline-none focus:border-[#0040DF]"
                         />
                         {overridden && (
-                          <button onClick={() => setColor(selectedId!, c.slot, null)} className="text-slate-400 hover:text-rose-500" aria-label={`Reset ${c.label}`}>
-                            <X className="h-3 w-3" />
+                          <button onClick={() => setColor(selectedId!, c.slot, null)} className="grid h-7 w-7 place-items-center rounded text-slate-400 hover:bg-rose-50 hover:text-rose-500" aria-label={`Reset ${c.label}`}>
+                            <X className="h-4 w-4" />
                           </button>
                         )}
                       </div>
@@ -970,15 +970,15 @@ function RightPanel({
             )}
 
             {/* Variant State */}
-            <section className="border-b border-slate-200 px-3 py-3">
-              <div className="mb-2 flex items-center justify-between">
-                <span className="text-[8px] font-bold uppercase tracking-wider text-slate-400">Variant State</span>
-                <span className="text-[8px] font-semibold text-slate-400">3 variants</span>
+            <section className="border-b border-slate-200 px-4 py-4">
+              <div className="mb-2.5 flex items-center justify-between">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Variant State</span>
+                <span className="text-[10px] font-semibold text-slate-400">3 variants</span>
               </div>
-              <div className="flex gap-1.5">
+              <div className="flex gap-2">
                 {(['Default', 'Masked', 'Negative'] as const).map((v) => (
                   <button key={v}
-                    className={`flex-1 rounded-md py-1.5 text-[9px] font-bold transition ${
+                    className={`flex-1 rounded-md py-2 text-[11px] font-bold transition ${
                       v === 'Default'
                         ? 'bg-[#0040DF] text-white shadow-sm'
                         : 'border border-slate-200 bg-white text-slate-500 hover:border-slate-300 hover:text-slate-700'
@@ -990,132 +990,132 @@ function RightPanel({
             </section>
 
             {/* Layout & Box Model — matches reference image */}
-            <section className="border-b border-slate-200 px-3 py-3">
-              <div className="mb-2 flex items-center justify-between">
-                <span className="text-[8px] font-bold uppercase tracking-wider text-slate-400">Layout &amp; Box Model</span>
-                <span className="text-[9px] font-semibold text-[#0040DF]">Flex Col</span>
+            <section className="border-b border-slate-200 px-4 py-4">
+              <div className="mb-2.5 flex items-center justify-between">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Layout &amp; Box Model</span>
+                <span className="text-[11px] font-semibold text-[#0040DF]">Flex Col</span>
               </div>
 
               {/* W / H / X / Y inputs */}
-              <div className="mb-3 grid grid-cols-2 gap-1.5">
+              <div className="mb-4 grid grid-cols-2 gap-2">
                 {([
                   { key: 'w' as const, label: 'W', value: box.w ?? measured?.w ?? '' },
                   { key: 'h' as const, label: 'H', value: box.h ?? measured?.h ?? '' },
                   { key: 'x' as const, label: 'X', value: box.x ?? 0 },
                   { key: 'y' as const, label: 'Y', value: box.y ?? 0 },
                 ]).map(({ key, label, value }) => (
-                  <label key={key} className="flex items-center gap-1.5 rounded-md border border-slate-200 bg-slate-50 px-2 py-1.5">
-                    <span className="text-[8px] font-bold text-slate-400">{label}</span>
+                  <label key={key} className="flex items-center gap-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
+                    <span className="text-[10px] font-bold text-slate-400">{label}</span>
                     <input
                       type="number"
                       value={value}
                       onChange={(e) => onBoxChange(selectedId!, {
                         [key]: e.target.value === '' ? undefined : Number(e.target.value),
                       } as ModuleBox)}
-                      className="w-full bg-transparent text-[10px] font-semibold text-slate-800 outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
+                      className="w-full bg-transparent text-[12px] font-semibold text-slate-800 outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
                     />
                   </label>
                 ))}
               </div>
 
               {/* Padding / Gap box-model diagram */}
-              <p className="mb-1.5 text-[8px] font-bold uppercase tracking-wider text-slate-400">Padding / Gap</p>
-              <div className="relative rounded-md border border-dashed border-slate-300 p-3">
+              <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">Padding / Gap</p>
+              <div className="relative rounded-md border border-dashed border-slate-300 p-4">
                 {/* Top */}
-                <div className="mb-1 flex justify-center">
-                  <div className="flex items-center gap-1 rounded border border-slate-200 bg-white px-2 py-0.5">
-                    <span className="text-[8px] text-slate-400">Top</span>
-                    <input type="number" defaultValue={2} className="w-6 bg-transparent text-center text-[8px] font-semibold text-slate-700 outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none" />
-                    <span className="text-[7px] text-slate-400">px</span>
+                <div className="mb-1.5 flex justify-center">
+                  <div className="flex items-center gap-1.5 rounded border border-slate-200 bg-white px-2.5 py-1">
+                    <span className="text-[10px] text-slate-400">Top</span>
+                    <input type="number" defaultValue={2} className="w-8 bg-transparent text-center text-[10px] font-semibold text-slate-700 outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none" />
+                    <span className="text-[9px] text-slate-400">px</span>
                   </div>
                 </div>
                 {/* Middle row: Left + center label + Right */}
-                <div className="flex items-center gap-1">
-                  <div className="flex items-center gap-1 rounded border border-slate-200 bg-white px-2 py-0.5">
-                    <span className="text-[8px] font-semibold text-slate-500">L</span>
-                    <input type="number" defaultValue={2} className="w-5 bg-transparent text-center text-[8px] font-semibold text-slate-700 outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none" />
+                <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-1.5 rounded border border-slate-200 bg-white px-2.5 py-1">
+                    <span className="text-[10px] font-semibold text-slate-500">L</span>
+                    <input type="number" defaultValue={2} className="w-7 bg-transparent text-center text-[10px] font-semibold text-slate-700 outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none" />
                   </div>
-                  <div className="flex flex-1 items-center justify-center rounded-md border border-[#0040DF] bg-blue-50 py-2">
-                    <span className="text-center font-mono text-[8px] font-semibold text-[#0040DF]">
+                  <div className="flex flex-1 items-center justify-center rounded-md border border-[#0040DF] bg-blue-50 py-3">
+                    <span className="text-center font-mono text-[10px] font-semibold text-[#0040DF]">
                       {box.w ?? measured?.w ?? 361} × {box.h ?? measured?.h ?? 168}
                       <br />
-                      <span className="text-[7px] font-normal text-slate-400">(Fill Container)</span>
+                      <span className="text-[9px] font-normal text-slate-400">(Fill Container)</span>
                     </span>
                   </div>
-                  <div className="flex items-center gap-1 rounded border border-slate-200 bg-white px-2 py-0.5">
-                    <input type="number" defaultValue={2} className="w-5 bg-transparent text-center text-[8px] font-semibold text-slate-700 outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none" />
-                    <span className="text-[8px] font-semibold text-slate-500">R</span>
+                  <div className="flex items-center gap-1.5 rounded border border-slate-200 bg-white px-2.5 py-1">
+                    <input type="number" defaultValue={2} className="w-7 bg-transparent text-center text-[10px] font-semibold text-slate-700 outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none" />
+                    <span className="text-[10px] font-semibold text-slate-500">R</span>
                   </div>
                 </div>
                 {/* Bottom */}
-                <div className="mt-1 flex justify-center">
-                  <div className="flex items-center gap-1 rounded border border-slate-200 bg-white px-2 py-0.5">
-                    <span className="text-[8px] text-slate-400">Bottom</span>
-                    <input type="number" defaultValue={2} className="w-6 bg-transparent text-center text-[8px] font-semibold text-slate-700 outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none" />
-                    <span className="text-[7px] text-slate-400">px</span>
+                <div className="mt-1.5 flex justify-center">
+                  <div className="flex items-center gap-1.5 rounded border border-slate-200 bg-white px-2.5 py-1">
+                    <span className="text-[10px] text-slate-400">Bottom</span>
+                    <input type="number" defaultValue={2} className="w-8 bg-transparent text-center text-[10px] font-semibold text-slate-700 outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none" />
+                    <span className="text-[9px] text-slate-400">px</span>
                   </div>
                 </div>
               </div>
 
-              <div className="mt-1.5 flex items-center justify-between">
-                <span className="text-[8px] font-semibold text-slate-400">Flex col</span>
-                <span className="font-mono text-[8px] text-slate-400">
+              <div className="mt-2 flex items-center justify-between">
+                <span className="text-[10px] font-semibold text-slate-400">Flex col</span>
+                <span className="font-mono text-[10px] text-slate-400">
                   {box.w ?? measured?.w ?? '—'} × {box.h ?? measured?.h ?? '—'}
                 </span>
               </div>
             </section>
 
             {/* Workflow Triggers */}
-            <section className="border-b border-slate-200 px-3 py-3">
-              <div className="mb-2 flex items-center justify-between">
-                <span className="text-[8px] font-bold uppercase tracking-wider text-slate-400">Workflow Triggers</span>
-                <button onClick={onToggleWorkflow} className="flex items-center gap-0.5 text-[9px] font-semibold text-[#0040DF]">
-                  <Plus className="h-2.5 w-2.5" /> Add Action
+            <section className="border-b border-slate-200 px-4 py-4">
+              <div className="mb-2.5 flex items-center justify-between">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Workflow Triggers</span>
+                <button onClick={onToggleWorkflow} className="flex items-center gap-1 text-[11px] font-semibold text-[#0040DF]">
+                  <Plus className="h-3 w-3" /> Add Action
                 </button>
               </div>
-              <div className="mb-1.5 flex items-center gap-1.5 text-[9px] font-semibold text-slate-700">
-                <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />WHEN: On Tap
+              <div className="mb-2 flex items-center gap-2 text-[11px] font-semibold text-slate-700">
+                <span className="h-2 w-2 rounded-full bg-amber-500" />WHEN: On Tap
               </div>
               {workflowOpen && (
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2 rounded-md bg-slate-50 px-2 py-1.5 ring-1 ring-slate-200">
-                    <span className="grid h-4 w-4 place-items-center rounded-full bg-white text-[8px] font-bold text-slate-500 ring-1 ring-slate-200">1</span>
-                    <p className="flex-1 text-[9px] font-semibold">Validate KYC Status (Passkey)</p>
-                    <span className="rounded bg-blue-50 px-1 py-0.5 text-[7px] font-bold text-[#0040DF] ring-1 ring-blue-200">Rule</span>
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-2.5 rounded-md bg-slate-50 px-3 py-2 ring-1 ring-slate-200">
+                    <span className="grid h-5 w-5 place-items-center rounded-full bg-white text-[10px] font-bold text-slate-500 ring-1 ring-slate-200">1</span>
+                    <p className="flex-1 text-[11px] font-semibold">Validate KYC Status (Passkey)</p>
+                    <span className="rounded bg-blue-50 px-1.5 py-0.5 text-[9px] font-bold text-[#0040DF] ring-1 ring-blue-200">Rule</span>
                   </div>
-                  <div className="flex items-center gap-2 rounded-md bg-slate-50 px-2 py-1.5 ring-1 ring-slate-200">
-                    <span className="grid h-4 w-4 place-items-center rounded-full bg-white text-[8px] font-bold text-slate-500 ring-1 ring-slate-200">2</span>
-                    <p className="flex-1 text-[9px] font-semibold">Open BottomSheet: /wallet/details</p>
-                    <span className="rounded bg-purple-50 px-1 py-0.5 text-[7px] font-bold text-purple-700 ring-1 ring-purple-200">Spring</span>
+                  <div className="flex items-center gap-2.5 rounded-md bg-slate-50 px-3 py-2 ring-1 ring-slate-200">
+                    <span className="grid h-5 w-5 place-items-center rounded-full bg-white text-[10px] font-bold text-slate-500 ring-1 ring-slate-200">2</span>
+                    <p className="flex-1 text-[11px] font-semibold">Open BottomSheet: /wallet/details</p>
+                    <span className="rounded bg-purple-50 px-1.5 py-0.5 text-[9px] font-bold text-purple-700 ring-1 ring-purple-200">Spring</span>
                   </div>
                 </div>
               )}
             </section>
 
             {/* Live Core Data Binding */}
-            <section className="px-3 py-3">
-              <div className="mb-2 flex items-center justify-between">
-                <span className="text-[8px] font-bold uppercase tracking-wider text-slate-400">Live Core Data Binding</span>
-                <span className={`flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[8px] font-bold ${wsStatus === 'active' ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
-                  <span className={`h-1.5 w-1.5 rounded-full ${wsStatus === 'active' ? 'bg-emerald-500' : 'bg-slate-400'}`} />
+            <section className="px-4 py-4">
+              <div className="mb-2.5 flex items-center justify-between">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Live Core Data Binding</span>
+                <span className={`flex items-center gap-1.5 rounded-full px-2 py-1 text-[10px] font-bold ${wsStatus === 'active' ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
+                  <span className={`h-2 w-2 rounded-full ${wsStatus === 'active' ? 'bg-emerald-500' : 'bg-slate-400'}`} />
                   {wsStatus === 'active' ? 'WS Active' : 'Disconnected'}
                 </span>
               </div>
-              <div className="flex items-center gap-1.5 rounded-md bg-slate-50 px-2 py-1.5 ring-1 ring-slate-200">
-                <Braces className="h-3 w-3 text-slate-400" />
-                <span className="font-mono text-[9px] text-[#0040DF]">{'{{account.available_balance}}'}</span>
+              <div className="flex items-center gap-2 rounded-md bg-slate-50 px-3 py-2 ring-1 ring-slate-200">
+                <Braces className="h-4 w-4 text-slate-400" />
+                <span className="font-mono text-[11px] text-[#0040DF]">{'{{account.available_balance}}'}</span>
               </div>
             </section>
           </>
         )}
       </div>
 
-      <div className="flex items-center gap-1.5 border-t border-slate-200 p-2.5">
-        <button className="flex flex-1 items-center justify-center gap-1.5 rounded-md bg-[#0040DF] py-2 text-[10px] font-bold text-white hover:bg-[#0036BF]">
-          <Play className="h-3 w-3" /> Preview
+      <div className="flex items-center gap-2 border-t border-slate-200 p-3">
+        <button className="flex flex-1 items-center justify-center gap-2 rounded-md bg-[#0040DF] py-2.5 text-[12px] font-bold text-white hover:bg-[#0036BF]">
+          <Play className="h-4 w-4" /> Preview
         </button>
-        <button className="grid h-8 w-8 place-items-center rounded-md border border-slate-200 text-slate-600 hover:bg-slate-50">
-          <Code2 className="h-3.5 w-3.5" />
+        <button className="grid h-10 w-10 place-items-center rounded-md border border-slate-200 text-slate-600 hover:bg-slate-50">
+          <Code2 className="h-4 w-4" />
         </button>
       </div>
     </aside>

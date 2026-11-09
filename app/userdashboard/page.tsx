@@ -286,8 +286,8 @@ const TEMPLATES: {
     image: "/dashboard/template2.png",
   },
   {
-    title: "Card Issuing Program",
-    description: "Launch a card program with spend controls, rewards, and compliance rules.",
+    title: "Payment Service Provider",
+    description: "A payment infrastructure platform for accepting, processing and routing transactions across multiple payment channels.",
     tags: ["Cards", "Payments", "Compliance"],
     image: "/dashboard/template3.png",
   },
@@ -315,7 +315,7 @@ export default function DashboardHome() {
             aria-hidden
            />
           {/* Readability overlay — lightens only the left side where the text lives */}
-<div className="absolute inset-0 bg-gradient-to-r from-white/85 via-white/40 to-transparent" aria-hidden />
+<div className="absolute inset-0" aria-hidden />
 
           <div className="relative px-6 md:px-10 py-8 md:py-12">
             <div className="flex items-center gap-2 mb-3">
@@ -507,7 +507,7 @@ export default function DashboardHome() {
                 className="group rounded-xl border border-slate-200 bg-white overflow-hidden hover:border-blue-300 hover:shadow-sm transition-all cursor-pointer flex flex-col"
               >
                 {/* ---- Per-template image ---- */}
-                <div className="relative h-64 bg-gradient-to-br from-blue-50 via-slate-50 to-blue-100 border-b border-slate-200 flex items-center justify-center">
+                <div className="relative aspect-video bg-gradient-to-br from-blue-50 via-slate-50 to-blue-100 border-b border-slate-200 flex items-center justify-center">
                   <img
                     src={getPath(tpl.image)}
                     alt={tpl.title}
