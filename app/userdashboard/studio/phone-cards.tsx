@@ -585,6 +585,11 @@ export interface ViewCtx {
   faceId: boolean;
   isCardFrozen: boolean;
   actions: ViewActions;
+  customRadius?: string;
+  customStroke?: React.CSSProperties;
+  customBackground?: React.CSSProperties;
+  customBackgroundImage?: React.CSSProperties;
+  customBackgroundOpacity?: number;
 }
 
 /* ─────────────────────────── shared UI primitives ─────────────────────────── */
@@ -1894,9 +1899,41 @@ export function StatementsExport({ ctx }: { ctx: ViewCtx }) {
 /* ─────────────────────────── dispatcher ─────────────────────────── */
 
 export function ModuleView({ id, ctx, passive }: { id: ModuleId; ctx: ViewCtx; passive?: boolean }) {
+  const hasCustomFill = !!ctx.customBackground || !!ctx.customBackgroundImage;
+  const wrapperStyle: React.CSSProperties = {
+    borderRadius: ctx.customRadius,
+    overflow: ctx.customRadius || hasCustomFill ? 'hidden' : undefined,
+    ...ctx.customStroke,
+    ...ctx.customBackground,
+  };
+
+  // Strip default card rounding if a custom radius is provided
+  const innerCtx = ctx.customRadius || ctx.customBackground ? {
+    ...ctx,
+    radius: { ...ctx.radius, card: '' },
+  } : ctx;
+
   return (
     <ModuleScope moduleId={id} passive={passive}>
-      <ModuleViewInner id={id} ctx={ctx} />
+      <div className="relative" style={wrapperStyle}>
+        {hasCustomFill && (
+          <style>{'.studio-module-fill-content > * { background: transparent !important; }'}</style>
+        )}
+        {ctx.customBackgroundImage && (
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 z-0"
+            style={{
+              ...ctx.customBackgroundImage,
+              borderRadius: ctx.customRadius,
+              opacity: ctx.customBackgroundOpacity ?? 1,
+            }}
+          />
+        )}
+        <div className={hasCustomFill ? 'studio-module-fill-content relative z-[1]' : 'relative'}>
+          <ModuleViewInner id={id} ctx={innerCtx} />
+        </div>
+      </div>
     </ModuleScope>
   );
 }

@@ -2,13 +2,14 @@
 'use client';
 
 import React, { useEffect, useState, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { Urbanist, Outfit } from 'next/font/google';
 import {
   ChevronDown, ChevronUp, ChevronsUpDown, GripVertical,
   Layers, Box, Workflow, Palette, ShieldCheck, Settings, Plus, PlusCircle,
   Trash2, Undo2, Home, Wallet,
   BarChart3, User, Play, Code2, Check, Braces, X, Diamond, CreditCard,
-  Search,
+  Search, Upload, Eye, EyeOff, Image as ImageIcon, Pipette
 } from 'lucide-react';
 import {
   PAGES, APP_KINDS, PAGE_TO_TAB, TAB_TO_PAGE, SINGLE_SLOT,
@@ -26,14 +27,11 @@ import { EDITABLE_SCHEMA } from './editable-schema';
 
 const urbanist = Urbanist({ subsets: ['latin'], weight: ['400', '500', '600', '700', '800'], display: 'swap' });
 const outfit = Outfit({ subsets: ['latin'], weight: ['400', '500', '600', '700'], display: 'swap' });
-const RESIZE_HANDLES = [
+
+const CORNER_HANDLES = [
   { k: 'nw', cls: 'top-0 left-0 -translate-x-1/2 -translate-y-1/2 cursor-nwse-resize' },
-  { k: 'n',  cls: 'top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 cursor-ns-resize' },
   { k: 'ne', cls: 'top-0 right-0 translate-x-1/2 -translate-y-1/2 cursor-nesw-resize' },
-  { k: 'w',  cls: 'top-1/2 left-0 -translate-x-1/2 -translate-y-1/2 cursor-ew-resize' },
-  { k: 'e',  cls: 'top-1/2 right-0 translate-x-1/2 -translate-y-1/2 cursor-ew-resize' },
   { k: 'sw', cls: 'bottom-0 left-0 -translate-x-1/2 translate-y-1/2 cursor-nesw-resize' },
-  { k: 's',  cls: 'bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 cursor-ns-resize' },
   { k: 'se', cls: 'bottom-0 right-0 translate-x-1/2 translate-y-1/2 cursor-nwse-resize' },
 ] as const;
 
@@ -42,7 +40,34 @@ type StudioMode = 'design' | 'prototype' | 'workflows' | 'code';
 type RightTab = 'design' | 'layout' | 'logic' | 'data' | 'code';
 type SaveState = 'saving' | 'saved' | 'unsaved';
 type DragState = { id: ModuleId; from: 'library' | 'canvas' } | null;
-type ModuleBox = { w?: number; h?: number; x?: number; y?: number };
+type CornerRadii = { topLeft: number; topRight: number; bottomRight: number; bottomLeft: number };
+
+type ImageFill = {
+  url: string;
+  name: string;
+  fit: 'fill' | 'fit' | 'crop' | 'tile';
+  opacity: number;
+  visible: boolean;
+};
+
+type ModuleBox = {
+  w?: number;
+  h?: number;
+  x?: number;
+  y?: number;
+  rotation?: number;
+  opacity?: number;
+  cornerRadius?: CornerRadii;
+  cornerRadiusLinked?: boolean;
+  strokeWidth?: number;
+  strokeColor?: string;
+  strokeAlign?: 'inside' | 'center' | 'outside';
+  strokeStyle?: 'solid' | 'dashed' | 'dotted';
+  // New Fill properties
+  fillType?: 'none' | 'color' | 'image';
+  fillColor?: string;
+  imageFill?: ImageFill;
+};
 
 /* ═══════════════════════════ TopBar ═══════════════════════════ */
 
@@ -501,41 +526,54 @@ function ModuleWrapper({
   onMeasure: (id: ModuleId, size: { w: number; h: number }) => void;
   onBoxChange: (id: ModuleId, patch: ModuleBox) => void;
 }) {
-  const ref = useRef<HTMLDivElement>(null);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const [natural, setNatural] = useState<{ w: number; h: number } | null>(null);
   const isSource = drag?.from === 'canvas' && drag.id === id;
 
-  /* Report natural size to the right panel whenever it changes */
   useEffect(() => {
-    if (!ref.current) return;
-    const ro = new ResizeObserver(([entry]) => {
-      onMeasure(id, {
-        w: Math.round(entry.contentRect.width),
-        h: Math.round(entry.contentRect.height),
-      });
+    const el = contentRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      if (!entry) return;
+      const bb = entry.borderBoxSize?.[0];
+      const w = Math.round(bb ? bb.inlineSize : entry.contentRect.width);
+      const h = Math.round(bb ? bb.blockSize : entry.contentRect.height);
+      if (w <= 0 || h <= 0) return;
+      setNatural((prev) =>
+        prev && Math.abs(prev.w - w) < 1 && Math.abs(prev.h - h) < 1 ? prev : { w, h }
+      );
     });
-    ro.observe(ref.current);
+    ro.observe(el);
     return () => ro.disconnect();
-  }, [id, onMeasure]);
+  }, []);
 
-  /* Drag a handle → compute deltas and update w/h/x/y */
+  useEffect(() => {
+    if (natural) onMeasure(id, natural);
+  }, [id, natural, onMeasure]);
+
+  const targetW = box.w ?? natural?.w;
+  const targetH = box.h ?? natural?.h;
+  const sx = box.w && natural ? box.w / natural.w : 1;
+  const sy = box.h && natural ? box.h / natural.h : 1;
+
   const startResize = (e: React.MouseEvent, handle: string) => {
     e.preventDefault();
     e.stopPropagation();
-    if (!ref.current) return;
+    if (!wrapperRef.current) return;
 
-    const rect = ref.current.getBoundingClientRect();
-    const startW = rect.width;
-    const startH = rect.height;
+    const startW = targetW ?? wrapperRef.current.offsetWidth;
+    const startH = targetH ?? wrapperRef.current.offsetHeight;
     const startClientX = e.clientX;
     const startClientY = e.clientY;
     const baseX = box.x ?? 0;
     const baseY = box.y ?? 0;
 
-    const onMove = (ev: MouseEvent) => {
+    const onMouseMove = (ev: MouseEvent) => {
       const dx = ev.clientX - startClientX;
       const dy = ev.clientY - startClientY;
       const patch: ModuleBox = {};
-
       if (handle.includes('e')) patch.w = Math.max(40, Math.round(startW + dx));
       if (handle.includes('w')) {
         patch.w = Math.max(40, Math.round(startW - dx));
@@ -548,49 +586,89 @@ function ModuleWrapper({
       }
       onBoxChange(id, patch);
     };
-    const onUp = () => {
-      window.removeEventListener('mousemove', onMove);
-      window.removeEventListener('mouseup', onUp);
+    const onMouseUp = () => {
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
     };
-    window.addEventListener('mousemove', onMove);
-    window.addEventListener('mouseup', onUp);
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+  };
+
+  const customRadiusString = box.cornerRadius
+    ? `${box.cornerRadius.topLeft}px ${box.cornerRadius.topRight}px ${box.cornerRadius.bottomRight}px ${box.cornerRadius.bottomLeft}px`
+    : undefined;
+
+  // Construct custom background styles based on fillType
+  let customBackground: React.CSSProperties | undefined = undefined;
+  if (box.fillType === 'color' && box.fillColor) {
+    customBackground = { backgroundColor: box.fillColor };
+  } else if (box.fillType === 'image' && box.imageFill?.url && box.imageFill.visible !== false) {
+    const { url, fit, opacity } = box.imageFill;
+    customBackground = {
+      backgroundImage: `url(${url})`,
+      backgroundSize: fit === 'fill' ? '100% 100%' : fit === 'fit' ? 'contain' : fit === 'crop' ? 'cover' : 'auto',
+      backgroundRepeat: fit === 'tile' ? 'repeat' : 'no-repeat',
+      backgroundPosition: 'center',
+    };
+  }
+
+  const ctxWithBox = {
+    ...ctx,
+    customRadius: customRadiusString,
+    customStroke: box.strokeWidth ? {
+      border: `${box.strokeWidth}px ${box.strokeStyle ?? 'solid'} ${box.strokeColor ?? '#6941C6'}`,
+      boxShadow: box.strokeAlign !== 'center' && (box.strokeStyle ?? 'solid') === 'solid'
+        ? `${box.strokeAlign === 'inside' ? 'inset ' : ''}0 0 0 ${box.strokeWidth}px ${box.strokeColor ?? '#6941C6'}`
+        : undefined,
+      boxSizing: 'border-box' as const,
+    } : undefined,
+    customBackground: box.fillType === 'color' ? customBackground : undefined,
+    customBackgroundImage: box.fillType === 'image' ? customBackground : undefined,
+    customBackgroundOpacity: box.imageFill?.opacity === undefined ? 1 : box.imageFill.opacity / 100,
   };
 
   const wrapperStyle: React.CSSProperties = {
-    ['--tw-ring-color' as string]: accent,
+    width: targetW,
+    height: targetH,
+    transform:
+      box.x !== undefined || box.y !== undefined || box.rotation !== undefined
+        ? `translate(${box.x ?? 0}px, ${box.y ?? 0}px) rotate(${box.rotation ?? 0}deg)`
+        : undefined,
+    opacity: box.opacity === undefined ? undefined : box.opacity / 100,
     outline: selected ? '2px solid #0040DF' : undefined,
     outlineOffset: 4,
-    borderRadius: 0,
-    width: box.w !== undefined ? box.w : undefined,
-    height: box.h !== undefined ? box.h : undefined,
-    transform:
-      box.x !== undefined || box.y !== undefined
-        ? `translate(${box.x ?? 0}px, ${box.y ?? 0}px)`
-        : undefined,
+  };
+
+  const contentStyle: React.CSSProperties = {
+    width: box.w && natural ? natural.w : undefined,
+    height: box.h && natural ? natural.h : undefined,
+    transform: sx !== 1 || sy !== 1 ? `scale(${sx}, ${sy})` : undefined,
+    transformOrigin: 'top left',
   };
 
   return (
     <div
-      ref={ref}
+      ref={wrapperRef}
       data-module-id={id}
-      draggable
-      onDragStart={(e) => onStartDrag(e, id, 'canvas')}
+      draggable={!selected}
+      onDragStart={(e) => {
+        if (selected) { e.preventDefault(); return; }
+        onStartDrag(e, id, 'canvas');
+      }}
       onDragEnd={onEndDrag}
       onDragOver={(e) => onItemDragOver(e, index)}
       onDrop={onDrop}
-      onClick={(e) => {
-        e.stopPropagation();
-        onSelect(id);
-      }}
+      onClick={(e) => { e.stopPropagation(); onSelect(id); }}
       style={wrapperStyle}
-      className={`group relative cursor-grab active:cursor-grabbing ${radius.card} ${
+      className={`group relative cursor-grab active:cursor-grabbing ${
         isDark ? 'ring-offset-slate-950' : 'ring-offset-[#F7F8FF]'
       } ${isSource ? 'opacity-40' : ''}`}
     >
       {drag && dropIndex === index && <DropLine side="top" accent={accent} />}
-      {drag && dropIndex === total && index === total - 1 && <DropLine side="bottom" accent={accent} />}
+      {drag && dropIndex === total && index === total - 1 && (
+        <DropLine side="bottom" accent={accent} />
+      )}
 
-      {/* Hover toolbar */}
       <div className="absolute -top-3.5 right-2 z-20 flex items-center gap-0.5 rounded-full bg-white p-0.5 opacity-0 shadow-md ring-1 ring-slate-200 transition group-hover:opacity-100">
         <GripVertical className="h-3.5 w-3.5 text-slate-400" aria-hidden />
         <ToolbarButton label="Move up" disabled={index === 0} onClick={() => onMove(id, -1)}>
@@ -604,18 +682,21 @@ function ModuleWrapper({
         </ToolbarButton>
       </div>
 
-      <div className={drag ? 'pointer-events-none' : ''}>
-        <ModuleView id={id} ctx={ctx} />
+      <div
+        ref={contentRef}
+        className={drag ? 'pointer-events-none' : ''}
+        style={contentStyle}
+      >
+        <ModuleView id={id} ctx={ctxWithBox} />
       </div>
 
-      {/* 8 resize handles — shown only when selected & not dragging */}
       {selected && !drag && (
         <div className="pointer-events-none absolute z-30" style={{ inset: -4 }}>
-          {RESIZE_HANDLES.map((h) => (
+          {CORNER_HANDLES.map((h) => (
             <span
               key={h.k}
               onMouseDown={(e) => startResize(e, h.k)}
-              className={`pointer-events-auto absolute h-2 w-2 rounded-full border-2 border-[#0040DF] bg-white shadow-sm ${h.cls}`}
+              className={`pointer-events-auto absolute h-2.5 w-2.5 rounded-full border-2 border-[#0040DF] bg-white shadow-sm ${h.cls}`}
             />
           ))}
         </div>
@@ -653,8 +734,13 @@ function PageCanvas({
         onDragOver={(e) => { if (!drag) return; e.preventDefault(); e.stopPropagation(); }}
         onDrop={onDrop}
         style={drag ? { borderColor: accent, background: `${accent}14` } : undefined}
-        className={`my-auto flex flex-col items-center justify-center space-y-3 border-2 border-dashed p-6 text-center transition-colors ${radius.card} ${drag ? 'border-solid' : isDark ? 'border-slate-700 bg-slate-900/50' : 'border-blue-300/60 bg-blue-50/20'}`}>
-        <div className={`grid h-12 w-12 place-items-center text-white shadow-sm ${radius.icon}`} style={{ background: accent }}><Plus className="h-6 w-6" /></div>
+        className={`my-auto flex flex-col items-center justify-center space-y-3 border-2 border-dashed p-6 text-center transition-colors ${radius.card} ${
+          drag ? 'border-solid' : isDark ? 'border-slate-700 bg-slate-900/50' : 'border-blue-300/60 bg-blue-50/20'
+        }`}
+      >
+        <div className={`grid h-12 w-12 place-items-center text-white shadow-sm ${radius.icon}`} style={{ background: accent }}>
+          <Plus className="h-6 w-6" />
+        </div>
         <div className="space-y-1">
           <h4 className="text-xs font-bold">{drag ? 'Drop to add it here' : `Build the ${pageLabel} page`}</h4>
           <p className="text-[11px] text-slate-500">Drag tiles from the left panel.</p>
@@ -663,41 +749,33 @@ function PageCanvas({
     );
   }
 
-   return (
+  return (
     <div className="space-y-3">
-      {modules.map((id, i) => {
-        const isSource = drag?.from === 'canvas' && drag.id === id;
-        const isSelected = selectedId === id;
-        return (
-          <div key={id} data-module-id={id} draggable={!isSelected}
-            onDragStart={(e) => { if (isSelected) { e.preventDefault(); return; } onStartDrag(e, id, 'canvas'); }}
-            onDragEnd={onEndDrag}
-            onDragOver={(e) => onItemDragOver(e, i)}
-            onDrop={onDrop}
-            onClick={() => onSelect(id)}
-            style={{
-              ['--tw-ring-color' as string]: accent,
-              outline: isSelected ? '2px solid #0040DF' : undefined,
-              outlineOffset: 4,
-              borderRadius: 0,
-            } as React.CSSProperties}
-            className={`group relative cursor-grab active:cursor-grabbing ${radius.card} ${isDark ? 'ring-offset-slate-950' : 'ring-offset-[#F7F8FF]'} ${isSource ? 'opacity-40' : ''}`}>
-            {drag && dropIndex === i && <DropLine side="top" accent={accent} />}
-            {drag && dropIndex === modules.length && i === modules.length - 1 && <DropLine side="bottom" accent={accent} />}
-
-            <div className="absolute -top-3.5 right-2 z-20 flex items-center gap-0.5 rounded-full bg-white p-0.5 opacity-0 shadow-md ring-1 ring-slate-200 transition group-hover:opacity-100">
-              <GripVertical className="h-3.5 w-3.5 text-slate-400" aria-hidden />
-              <ToolbarButton label="Move up" disabled={i === 0} onClick={() => onMove(id, -1)}><ChevronUp className="h-3.5 w-3.5" /></ToolbarButton>
-              <ToolbarButton label="Move down" disabled={i === modules.length - 1} onClick={() => onMove(id, 1)}><ChevronDown className="h-3.5 w-3.5" /></ToolbarButton>
-              <ToolbarButton label="Remove" danger onClick={() => onRemove(id)}><Trash2 className="h-3.5 w-3.5" /></ToolbarButton>
-            </div>
-
-            <div className={drag ? 'pointer-events-none' : ''}>
-              <ModuleView id={id} ctx={ctx} />
-            </div>
-          </div>
-        );
-      })}
+      {modules.map((id, i) => (
+        <ModuleWrapper
+          key={id}
+          id={id}
+          index={i}
+          total={modules.length}
+          selected={selectedId === id}
+          drag={drag}
+          dropIndex={dropIndex}
+          accent={accent}
+          isDark={isDark}
+          radius={radius}
+          ctx={ctx}
+          box={boxes[id] ?? {}}
+          onSelect={onSelect}
+          onStartDrag={onStartDrag}
+          onEndDrag={onEndDrag}
+          onItemDragOver={onItemDragOver}
+          onDrop={onDrop}
+          onMove={onMove}
+          onRemove={onRemove}
+          onMeasure={onMeasure}
+          onBoxChange={onBoxChange}
+        />
+      ))}
     </div>
   );
 }
@@ -835,6 +913,194 @@ function Canvas({
 
 /* ═══════════════════════════ RightPanel ═══════════════════════════ */
 
+const CornerIcon = ({ type }: { type: 'tl' | 'tr' | 'bl' | 'br' }) => {
+  const paths = {
+    tl: 'M2 10V2H10',
+    tr: 'M10 10V2H2',
+    bl: 'M2 2V10H10',
+    br: 'M10 2V10H2',
+  };
+  return (
+    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-slate-500 shrink-0">
+      <path d={paths[type]} />
+    </svg>
+  );
+};
+
+const HexagonLinkIcon = () => (
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+    <circle cx="12" cy="12" r="2" />
+  </svg>
+);
+
+type PickerPosition = { top: number; left: number };
+
+function AdvancedColorPicker({
+  color, onChange, position, title, onClose,
+}: {
+  color: string;
+  onChange: (hex: string) => void;
+  position: PickerPosition;
+  title: string;
+  onClose: () => void;
+}) {
+  const [mode, setMode] = useState<'Solid' | 'Linear' | 'Radial'>('Solid');
+  const [hexDraftState, setHexDraftState] = useState({ color, value: color.replace(/^#/, '').toUpperCase() });
+  const hexDraft = hexDraftState.color === color
+    ? hexDraftState.value
+    : color.replace(/^#/, '').toUpperCase();
+
+  const validColor = /^#[\da-f]{6}$/i.test(color) ? color : '#000000';
+  const hexToRgb = (hex: string) => {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex || '#000000');
+    return result ? {
+      r: parseInt(result[1], 16),
+      g: parseInt(result[2], 16),
+      b: parseInt(result[3], 16)
+    } : { r: 0, g: 0, b: 0 };
+  };
+  const rgb = hexToRgb(color);
+  const rgbToHex = (r: number, g: number, b: number) =>
+    "#" + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('');
+
+  const brandPalette = ['#6D28D9', '#2563EB', '#1E293B', '#64748B', '#C7D2FE', '#FFFFFF'];
+  const recentColors = ['#F8FAFC', '#8B5CF6', '#7C3AED', '#3B82F6', '#E0E7FF', '#1E293B'];
+
+  const picker = (
+    <div
+      role="dialog"
+      aria-label={title}
+      className="fixed z-[100] max-h-[calc(100vh-16px)] w-[288px] overflow-y-auto rounded-xl border border-slate-200 bg-white p-3 shadow-2xl"
+      style={{ top: position.top, left: position.left }}
+    >
+      <div className="mb-2 flex items-center justify-between">
+        <span className="text-[11px] font-semibold text-slate-800">{title}</span>
+        <button type="button" onClick={onClose} aria-label="Close color picker" className="text-slate-400 hover:text-slate-600">
+          <X className="h-3 w-3" />
+        </button>
+      </div>
+      <div className="space-y-3 p-1 w-full">
+      {/* Tabs */}
+      <div className="flex rounded-md bg-slate-100 p-0.5">
+        {(['Solid', 'Linear', 'Radial'] as const).map(m => (
+          <button key={m} onClick={() => setMode(m)} type="button"
+            className={`flex-1 rounded py-1 text-[10px] font-semibold ${mode === m ? 'bg-white shadow-sm text-[#0040DF]' : 'text-slate-500 hover:text-slate-700'}`}
+          >
+            {m}
+          </button>
+        ))}
+      </div>
+
+      {/* Gradient Area */}
+      <div className="relative h-28 w-full overflow-hidden rounded-md bg-gradient-to-br from-indigo-500 via-purple-500 to-black">
+        <span className="pointer-events-none absolute left-2 top-2 h-5 w-5 rounded-full border-2 border-white ring-2 ring-[#0040DF]" style={{ backgroundColor: validColor }} />
+        <input
+          type="color"
+          aria-label="Choose color"
+          value={validColor}
+          onChange={(e) => onChange(e.target.value.toUpperCase())}
+          className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+        />
+      </div>
+
+      {/* Hue Slider */}
+      <div className="relative h-3 w-full rounded-full bg-gradient-to-r from-red-500 via-green-500 to-blue-500">
+        <input type="range" min="0" max="360" className="absolute inset-0 w-full opacity-0 cursor-pointer" />
+        <div className="absolute right-1/4 top-0 h-3 w-2 rounded bg-white shadow" />
+      </div>
+
+      {/* Alpha Slider */}
+      <div className="relative h-3 w-full rounded-full bg-slate-100 border border-slate-200">
+        <input type="range" min="0" max="100" className="absolute inset-0 w-full opacity-0 cursor-pointer" />
+        <div className="absolute right-1/2 top-0 h-3 w-2 rounded bg-white shadow" />
+      </div>
+
+      {/* HEX & Opacity */}
+      <div className="flex items-center gap-2">
+        <select className="h-7 rounded border border-slate-200 bg-slate-50 px-1 text-[10px] text-slate-600 outline-none">
+          <option>HEX</option>
+        </select>
+        <div className="flex flex-1 items-center rounded bg-slate-50 px-2 py-1 border border-slate-200">
+          <span className="text-[10px] text-slate-400 mr-1">#</span>
+          <input
+            type="text"
+            aria-label="Hex color"
+            value={hexDraft}
+            maxLength={6}
+            onChange={(e) => {
+              const next = e.target.value.replace(/[^0-9a-f]/gi, '').slice(0, 6).toUpperCase();
+              setHexDraftState({ color, value: next });
+              if (/^[\da-f]{6}$/i.test(next)) onChange(`#${next}`);
+            }}
+            onBlur={() => {
+              if (!/^[\da-f]{6}$/i.test(hexDraft)) {
+                setHexDraftState({ color, value: color.replace(/^#/, '').toUpperCase() });
+              }
+            }}
+            className="w-full bg-transparent text-[11px] font-mono text-slate-800 outline-none uppercase"
+          />
+          <button type="button" className="text-slate-400 hover:text-slate-600" onClick={() => navigator.clipboard.writeText(color)}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          </button>
+        </div>
+        <div className="flex w-16 items-center rounded bg-slate-50 px-2 py-1 border border-slate-200">
+          <input type="text" defaultValue="90%" className="w-full bg-transparent text-[11px] text-slate-800 outline-none text-right" />
+        </div>
+      </div>
+
+      {/* RGB Inputs */}
+      <div className="flex gap-2">
+        {[
+          { label: 'R', value: rgb.r, key: 'r' },
+          { label: 'G', value: rgb.g, key: 'g' },
+          { label: 'B', value: rgb.b, key: 'b' }
+        ].map(({ label, value, key }) => (
+          <div key={key} className="flex flex-1 items-center rounded bg-slate-50 px-2 py-1 border border-slate-200">
+            <span className="text-[10px] font-bold text-slate-400 mr-2">{label}</span>
+            <input
+              type="number"
+              value={value}
+              onChange={(e) => {
+                const num = parseInt(e.target.value) || 0;
+                const newRgb = { ...rgb, [key]: Math.min(255, Math.max(0, num)) };
+                onChange(rgbToHex(newRgb.r, newRgb.g, newRgb.b));
+              }}
+              className="w-full bg-transparent text-[11px] text-slate-800 outline-none text-right [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
+            />
+          </div>
+        ))}
+      </div>
+
+      {/* Brand Palette */}
+      <div>
+        <div className="mb-1 flex items-center justify-between">
+          <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500">Brand Palette</span>
+          <Settings className="h-3 w-3 text-slate-400" />
+        </div>
+        <div className="flex gap-1.5">
+          {brandPalette.map(c => (
+            <button key={c} type="button" onClick={() => onChange(c)} className="h-6 w-6 rounded border border-slate-200" style={{ background: c }} />
+          ))}
+        </div>
+      </div>
+
+      {/* Recent Colors */}
+      <div>
+        <span className="mb-1 block text-[9px] font-bold uppercase tracking-wider text-slate-500">Recent Colors</span>
+        <div className="flex gap-1.5">
+          {recentColors.map(c => (
+            <button key={c} type="button" onClick={() => onChange(c)} className="h-6 w-6 rounded-full border border-slate-200" style={{ background: c }} />
+          ))}
+        </div>
+      </div>
+      </div>
+    </div>
+  );
+
+  return typeof document === 'undefined' ? null : createPortal(picker, document.body);
+}
+
 function RightPanel({
   tab, onTab, selectedId, accent, wsStatus, workflowOpen, onToggleWorkflow,
   box, measured, onBoxChange, onResetBox,
@@ -853,6 +1119,12 @@ function RightPanel({
   setColor: (moduleId: ModuleId, slot: string, value: string | null) => void;
   onResetModuleOverrides: (moduleId: ModuleId) => void;
 }) {
+  const [showCornerRadius, setShowCornerRadius] = useState(false);
+  const [showFillColorPicker, setShowFillColorPicker] = useState(false);
+  const [showSchemaColorPicker, setShowSchemaColorPicker] = useState<string | null>(null);
+  const [colorPickerPosition, setColorPickerPosition] = useState<PickerPosition | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const tabs: { id: RightTab; label: string }[] = [
     { id: 'design', label: 'Design' }, { id: 'layout', label: 'Layout' },
     { id: 'logic', label: 'Logic' }, { id: 'data', label: 'Data' }, { id: 'code', label: 'Code' },
@@ -862,6 +1134,74 @@ function RightPanel({
   const mOver = selectedId ? overrides[selectedId] : undefined;
   const hasOverrides = !!mOver && (Object.keys(mOver.text).length > 0 || Object.keys(mOver.colors).length > 0);
 
+  const cornerRadii: CornerRadii = box.cornerRadius ?? {
+    topLeft: 0, topRight: 0, bottomRight: 0, bottomLeft: 0,
+  };
+  const corners: { key: keyof CornerRadii; label: string }[] = [
+    { key: 'topLeft', label: 'TL' },
+    { key: 'topRight', label: 'TR' },
+    { key: 'bottomLeft', label: 'BL' },
+    { key: 'bottomRight', label: 'BR' },
+  ];
+  const cornerRadiusLinked = box.cornerRadiusLinked !== false;
+  const toggleColorPicker = (
+    event: React.MouseEvent<HTMLButtonElement>,
+    kind: 'fill' | string,
+  ) => {
+    if ((kind === 'fill' && showFillColorPicker) || showSchemaColorPicker === kind) {
+      setShowFillColorPicker(false);
+      setShowSchemaColorPicker(null);
+      setColorPickerPosition(null);
+      return;
+    }
+
+    const anchor = event.currentTarget.getBoundingClientRect();
+    const panel = event.currentTarget.closest('aside')?.getBoundingClientRect();
+    const pickerWidth = 288;
+    const gap = 8;
+    setColorPickerPosition({
+      top: Math.max(8, Math.min(anchor.top, window.innerHeight - 500)),
+      left: Math.max(8, (panel?.left ?? anchor.left) - pickerWidth - gap),
+    });
+    setShowFillColorPicker(kind === 'fill');
+    setShowSchemaColorPicker(kind === 'fill' ? null : kind);
+  };
+  const closeColorPicker = () => {
+    setShowFillColorPicker(false);
+    setShowSchemaColorPicker(null);
+    setColorPickerPosition(null);
+  };
+  const updateCornerRadius = (corner: keyof CornerRadii, value: number) => {
+    const cornerRadius = cornerRadiusLinked
+      ? { topLeft: value, topRight: value, bottomRight: value, bottomLeft: value }
+      : { ...cornerRadii, [corner]: value };
+    onBoxChange(selectedId!, { cornerRadius });
+  };
+
+  // Handle Image Upload for Fills
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const url = ev.target?.result as string;
+        onBoxChange(selectedId!, {
+          fillType: 'image',
+          imageFill: {
+            url,
+            name: file.name,
+            fit: 'fill',
+            opacity: 100,
+            visible: true
+          }
+        });
+      };
+      reader.readAsDataURL(file);
+    }
+    // reset input so same file can be uploaded again
+    e.target.value = '';
+  };
+
   return (
     <aside className="flex w-[340px] shrink-0 flex-col border-l border-slate-200 bg-white">
       <div className="flex border-b border-slate-200">
@@ -869,7 +1209,7 @@ function RightPanel({
           const active = tab === t.id;
           return (
             <button key={t.id} onClick={() => onTab(t.id)}
-              className={`relative flex-1 py-3 text-[11px] font-bold uppercase tracking-wider ${active ? 'text-[#0040DF]' : 'text-slate-400 hover:text-slate-700'}`}>
+              className={`relative flex-1 py-2.5 text-[9px] font-bold uppercase tracking-wider ${active ? 'text-[#0040DF]' : 'text-slate-400 hover:text-slate-700'}`}>
               {t.label}
               {active && <span className="absolute inset-x-2 -bottom-px h-0.5 rounded-full bg-[#0040DF]" />}
             </button>
@@ -885,16 +1225,35 @@ function RightPanel({
           </div>
         ) : (
           <>
-            {/* Component header — matches reference: name + Master badge */}
-            <div className="border-b border-slate-200 px-4 py-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Diamond className="h-4 w-4 text-indigo-500" />
-                  <p className="text-[13px] font-bold">{mod.title}</p>
+            <div className="border-b border-slate-200 px-3 py-2.5">
+              <div className="rounded-lg border border-slate-200 bg-slate-50 p-2.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex min-w-0 items-center gap-1.5">
+                    <Diamond className="h-3.5 w-3.5 shrink-0 text-indigo-500" />
+                    <p className="truncate text-[11px] font-bold">{mod.title}</p>
+                  </div>
+                  <span className="ml-2 rounded bg-indigo-100 px-1.5 py-0.5 text-[11px] font-bold text-indigo-700">Master</span>
                 </div>
-                <span className="rounded-md bg-indigo-100 px-2.5 py-1 text-[10px] font-bold text-indigo-700">Master</span>
+                <p className="mt-1 truncate text-[9px] text-slate-500">{mod.subtitle}</p>
+                <div className="mt-2 border-t border-slate-200 pt-2">
+                  <div className="mb-1.5 flex items-center justify-between">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Variant State</span>
+                    <span className="text-[11px] font-semibold text-[#0040DF]">3 variants</span>
+                  </div>
+                  <div className="flex gap-1 rounded-md border border-slate-200 bg-white p-0.5">
+                    {(['Default', 'Masked', 'Negative'] as const).map((v) => (
+                      <button key={v}
+                        className={`flex-1 rounded py-1 text-[11px] font-semibold transition ${
+                          v === 'Default'
+                            ? 'bg-[#0040DF] text-white shadow-sm'
+                            : 'text-slate-400 hover:bg-slate-50 hover:text-slate-700'
+                        }`}>
+                        {v}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
-              <p className="mt-1 text-[11px] text-slate-500">{mod.subtitle}</p>
             </div>
 
             {/* Content — schema-driven text slots */}
@@ -933,34 +1292,43 @@ function RightPanel({
 
             {/* Colors — schema-driven color slots */}
             {schema?.colors && schema.colors.length > 0 && (
-              <section className="border-b border-slate-200 px-4 py-4">
+              <section className="border-b border-slate-200 px-4 py-4 relative">
                 <span className="mb-2.5 block text-[10px] font-bold uppercase tracking-wider text-slate-400">Colors</span>
                 <div className="space-y-2.5">
                   {schema.colors.map((c) => {
                     const current = mOver?.colors[c.slot] ?? c.defaultValue;
                     const overridden = !!mOver?.colors[c.slot];
                     return (
-                      <div key={c.slot} className="flex items-center gap-2.5">
-                        <span className="w-28 truncate text-[12px] text-slate-500">{c.label}</span>
-                        <label className="relative h-9 w-9 shrink-0 cursor-pointer overflow-hidden rounded-md ring-1 ring-slate-200">
-                          <span className="absolute inset-0" style={{ background: current }} />
-                          <input
-                            type="color"
-                            value={current}
-                            onChange={(e) => setColor(selectedId!, c.slot, e.target.value)}
-                            className="absolute inset-0 cursor-pointer opacity-0"
-                          />
-                        </label>
+                      <div key={c.slot} className="flex items-center gap-2.5 relative">
+                        <span className="w-20 truncate text-[11px] font-medium text-slate-600">{c.label}</span>
+                        <button
+                          type="button"
+                          aria-label={`Choose ${c.label}`}
+                          onClick={(e) => toggleColorPicker(e, c.slot)}
+                          className="h-8 w-8 shrink-0 rounded-md ring-1 ring-slate-200 shadow-sm"
+                          style={{ background: current }}
+                        />
                         <input
                           type="text"
                           value={current}
                           onChange={(e) => setColor(selectedId!, c.slot, e.target.value)}
-                          className="w-24 rounded border border-slate-200 px-2 py-1 font-mono text-[11px] outline-none focus:border-[#0040DF]"
+                          className="w-20 rounded border border-slate-200 px-2 py-1 font-mono text-[11px] uppercase outline-none focus:border-[#0040DF]"
                         />
                         {overridden && (
-                          <button onClick={() => setColor(selectedId!, c.slot, null)} className="grid h-7 w-7 place-items-center rounded text-slate-400 hover:bg-rose-50 hover:text-rose-500" aria-label={`Reset ${c.label}`}>
-                            <X className="h-4 w-4" />
+                          <button onClick={() => setColor(selectedId!, c.slot, null)} className="grid h-6 w-6 place-items-center rounded text-slate-400 hover:bg-rose-50 hover:text-rose-500" aria-label={`Reset ${c.label}`}>
+                            <X className="h-3 w-3" />
                           </button>
+                        )}
+
+                        {/* Popover for schema color picker */}
+                        {showSchemaColorPicker === c.slot && colorPickerPosition && (
+                          <AdvancedColorPicker
+                            color={current}
+                            position={colorPickerPosition}
+                            title={`Edit ${c.label}`}
+                            onClose={closeColorPicker}
+                            onChange={(hex) => setColor(selectedId!, c.slot, hex)}
+                          />
                         )}
                       </div>
                     );
@@ -969,99 +1337,295 @@ function RightPanel({
               </section>
             )}
 
-            {/* Variant State */}
-            <section className="border-b border-slate-200 px-4 py-4">
-              <div className="mb-2.5 flex items-center justify-between">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Variant State</span>
-                <span className="text-[10px] font-semibold text-slate-400">3 variants</span>
-              </div>
-              <div className="flex gap-2">
-                {(['Default', 'Masked', 'Negative'] as const).map((v) => (
-                  <button key={v}
-                    className={`flex-1 rounded-md py-2 text-[11px] font-bold transition ${
-                      v === 'Default'
-                        ? 'bg-[#0040DF] text-white shadow-sm'
-                        : 'border border-slate-200 bg-white text-slate-500 hover:border-slate-300 hover:text-slate-700'
-                    }`}>
-                    {v}
+            {/* Fills Section */}
+            <section className="border-b border-slate-200 px-3 py-3 relative">
+              <div className="mb-2 flex items-center justify-between">
+                <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500">Fills</span>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => onBoxChange(selectedId!, { fillType: 'color', fillColor: box.fillColor || '#6D28D9' })}
+                    className="flex items-center gap-1 text-[10px] font-semibold text-[#0040DF] hover:underline"
+                  >
+                    <Plus className="h-3 w-3" /> Fill
                   </button>
-                ))}
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="flex items-center gap-1 text-[10px] font-semibold text-[#0040DF] hover:underline"
+                  >
+                    <ImageIcon className="h-3 w-3" /> Image
+                  </button>
+                  <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" className="hidden" />
+                </div>
               </div>
+
+              {!box.fillType || box.fillType === 'none' ? (
+                <div className="rounded-lg border border-dashed border-slate-200 p-3 text-center">
+                  <p className="text-[10px] text-slate-400">No fills applied</p>
+                </div>
+              ) : box.fillType === 'color' ? (
+                <div className="flex items-center gap-2 rounded-lg border border-slate-200 p-2 bg-slate-50 relative">
+                  <button
+                    type="button"
+                    aria-label="Choose fill color"
+                    onClick={(e) => toggleColorPicker(e, 'fill')}
+                    className="h-7 w-7 shrink-0 rounded border border-slate-300 shadow-sm"
+                    style={{ background: box.fillColor || '#6D28D9' }}
+                  />
+                  <div className="flex flex-1 flex-col min-w-0">
+                    <span className="text-[11px] font-semibold text-slate-700">Solid Color</span>
+                    <span className="text-[9px] text-slate-500 font-mono uppercase">{box.fillColor || '#6D28D9'}</span>
+                  </div>
+                  <span className="text-[11px] font-semibold text-slate-600">100%</span>
+                  <button className="text-slate-400 hover:text-slate-600"><Eye className="h-4 w-4" /></button>
+                  <button onClick={() => onBoxChange(selectedId!, { fillType: 'none' })} className="text-slate-400 hover:text-rose-500">
+                    <div className="h-4 w-4 rounded-full border border-current flex items-center justify-center"><div className="h-px w-2 bg-current rotate-45" /></div>
+                  </button>
+
+                  {showFillColorPicker && colorPickerPosition && (
+                    <AdvancedColorPicker
+                      color={box.fillColor || '#6D28D9'}
+                      position={colorPickerPosition}
+                      title="Fill color"
+                      onClose={closeColorPicker}
+                      onChange={(c) => onBoxChange(selectedId!, { fillColor: c })}
+                    />
+                  )}
+                </div>
+              ) : box.fillType === 'image' && box.imageFill ? (
+                <div className="rounded-lg border border-slate-200 p-2 space-y-2">
+                  <div className="flex items-center gap-2">
+                     <div className="h-8 w-8 shrink-0 rounded overflow-hidden bg-slate-100 border border-slate-200">
+                       <img src={box.imageFill.url} alt="fill" className="h-full w-full object-cover" />
+                     </div>
+                     <div className="flex flex-1 flex-col min-w-0">
+                       <div className="flex items-center gap-1.5">
+                         <span className="text-[11px] font-semibold text-slate-800 truncate">Image Fill</span>
+                         <span className="rounded bg-blue-50 px-1 py-0.5 text-[7px] font-bold text-blue-600 tracking-wide">PATTERN</span>
+                       </div>
+                       <span className="text-[9px] text-slate-500 truncate">{box.imageFill.name}</span>
+                     </div>
+                     <span className="text-[10px] text-slate-500">{box.imageFill.opacity}%</span>
+                     <button onClick={() => onBoxChange(selectedId!, { imageFill: { ...box.imageFill!, visible: !box.imageFill!.visible } })} className="text-slate-400 hover:text-slate-600">
+                       {box.imageFill.visible !== false ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
+                     </button>
+                     <button onClick={() => onBoxChange(selectedId!, { fillType: 'none' })} className="text-slate-400 hover:text-rose-500">
+                       <div className="h-4 w-4 rounded-full border border-current flex items-center justify-center"><div className="h-px w-2 bg-current rotate-45" /></div>
+                     </button>
+                  </div>
+
+                  <div className="flex gap-2">
+                     <button onClick={() => fileInputRef.current?.click()} className="flex flex-1 items-center justify-between rounded border border-slate-200 bg-white px-2 py-1 text-[10px] text-slate-700 hover:bg-slate-50">
+                       <span className="flex items-center gap-1"><ImageIcon className="h-3 w-3 text-blue-500" /> Choose...</span>
+                       <ChevronDown className="h-3 w-3" />
+                     </button>
+                     <div className="flex flex-1 items-center justify-between rounded border border-slate-200 bg-white px-2 py-1 text-[10px] text-slate-700">
+                       <span className="capitalize">{box.imageFill.fit}</span>
+                       <ChevronDown className="h-3 w-3" />
+                     </div>
+                  </div>
+
+                  <div className="flex rounded-md bg-slate-100 p-0.5">
+                    {(['fill', 'fit', 'crop', 'tile'] as const).map(f => (
+                       <button
+                         key={f}
+                         onClick={() => onBoxChange(selectedId!, { imageFill: { ...box.imageFill!, fit: f } })}
+                         className={`flex-1 py-1 text-[9px] font-semibold capitalize ${box.imageFill!.fit === f ? 'bg-white text-[#0040DF] shadow-sm rounded' : 'text-slate-500 hover:text-slate-700'}`}
+                       >
+                         {f}
+                       </button>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
             </section>
 
-            {/* Layout & Box Model — matches reference image */}
-            <section className="border-b border-slate-200 px-4 py-4">
+            {/* Layout & Box Model */}
+            <section className="border-b border-slate-200 px-3 py-3">
               <div className="mb-2.5 flex items-center justify-between">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Layout &amp; Box Model</span>
-                <span className="text-[11px] font-semibold text-[#0040DF]">Flex Col</span>
+                <span className="text-[8px] font-bold uppercase tracking-wider text-slate-500">Layout &amp; Box Model</span>
+                <span className="text-[8px] font-semibold text-[#0040DF]">Flex Col</span>
               </div>
 
-              {/* W / H / X / Y inputs */}
-              <div className="mb-4 grid grid-cols-2 gap-2">
+              <div className="mb-3 grid grid-cols-2 gap-1">
                 {([
-                  { key: 'w' as const, label: 'W', value: box.w ?? measured?.w ?? '' },
-                  { key: 'h' as const, label: 'H', value: box.h ?? measured?.h ?? '' },
                   { key: 'x' as const, label: 'X', value: box.x ?? 0 },
                   { key: 'y' as const, label: 'Y', value: box.y ?? 0 },
+                  { key: 'w' as const, label: 'W', value: box.w ?? measured?.w ?? '' },
+                  { key: 'h' as const, label: 'H', value: box.h ?? measured?.h ?? '' },
                 ]).map(({ key, label, value }) => (
-                  <label key={key} className="flex items-center gap-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
-                    <span className="text-[10px] font-bold text-slate-400">{label}</span>
+                  <label key={key} className="flex h-7 items-center gap-2 rounded-md border border-slate-100 bg-[#F3F4FF] px-2">
+                    <span className="text-[8px] font-semibold text-slate-400">{label}</span>
                     <input
                       type="number"
                       value={value}
                       onChange={(e) => onBoxChange(selectedId!, {
                         [key]: e.target.value === '' ? undefined : Number(e.target.value),
                       } as ModuleBox)}
-                      className="w-full bg-transparent text-[12px] font-semibold text-slate-800 outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
+                      className="w-full bg-transparent text-right text-[9px] font-semibold text-slate-700 outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
                     />
+                    <span className="text-[8px] text-slate-400">px</span>
                   </label>
                 ))}
               </div>
 
-              {/* Padding / Gap box-model diagram */}
-              <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">Padding / Gap</p>
-              <div className="relative rounded-md border border-dashed border-slate-300 p-4">
-                {/* Top */}
-                <div className="mb-1.5 flex justify-center">
-                  <div className="flex items-center gap-1.5 rounded border border-slate-200 bg-white px-2.5 py-1">
-                    <span className="text-[10px] text-slate-400">Top</span>
-                    <input type="number" defaultValue={2} className="w-8 bg-transparent text-center text-[10px] font-semibold text-slate-700 outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none" />
-                    <span className="text-[9px] text-slate-400">px</span>
-                  </div>
-                </div>
-                {/* Middle row: Left + center label + Right */}
-                <div className="flex items-center gap-1.5">
-                  <div className="flex items-center gap-1.5 rounded border border-slate-200 bg-white px-2.5 py-1">
-                    <span className="text-[10px] font-semibold text-slate-500">L</span>
-                    <input type="number" defaultValue={2} className="w-7 bg-transparent text-center text-[10px] font-semibold text-slate-700 outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none" />
-                  </div>
-                  <div className="flex flex-1 items-center justify-center rounded-md border border-[#0040DF] bg-blue-50 py-3">
-                    <span className="text-center font-mono text-[10px] font-semibold text-[#0040DF]">
-                      {box.w ?? measured?.w ?? 361} × {box.h ?? measured?.h ?? 168}
-                      <br />
-                      <span className="text-[9px] font-normal text-slate-400">(Fill Container)</span>
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-1.5 rounded border border-slate-200 bg-white px-2.5 py-1">
-                    <input type="number" defaultValue={2} className="w-7 bg-transparent text-center text-[10px] font-semibold text-slate-700 outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none" />
-                    <span className="text-[10px] font-semibold text-slate-500">R</span>
-                  </div>
-                </div>
-                {/* Bottom */}
-                <div className="mt-1.5 flex justify-center">
-                  <div className="flex items-center gap-1.5 rounded border border-slate-200 bg-white px-2.5 py-1">
-                    <span className="text-[10px] text-slate-400">Bottom</span>
-                    <input type="number" defaultValue={2} className="w-8 bg-transparent text-center text-[10px] font-semibold text-slate-700 outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none" />
-                    <span className="text-[9px] text-slate-400">px</span>
-                  </div>
-                </div>
+              <div className="mb-3 grid grid-cols-2 gap-1">
+                {([
+                  { key: 'rotation' as const, label: 'Rotation', value: box.rotation ?? 0, suffix: '°' },
+                  { key: 'opacity' as const, label: 'Opacity', value: box.opacity ?? 100, suffix: '%' },
+                ]).map(({ key, label, value, suffix }) => (
+                  <label key={key} className="flex h-7 items-center gap-2 rounded-md border border-slate-100 bg-[#F3F4FF] px-2">
+                    <span className="text-[8px] font-semibold text-slate-400">{label}</span>
+                    <input
+                      type="number"
+                      min={key === 'opacity' ? 0 : undefined}
+                      max={key === 'opacity' ? 100 : undefined}
+                      value={value}
+                      onChange={(e) => onBoxChange(selectedId!, {
+                        [key]: key === 'opacity'
+                          ? Math.max(0, Math.min(100, Number(e.target.value) || 0))
+                          : Number(e.target.value) || 0,
+                      })}
+                      className="w-full bg-transparent text-right text-[9px] font-semibold text-slate-700 outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
+                    />
+                    <span className="text-[8px] text-slate-400">{suffix}</span>
+                  </label>
+                ))}
+              </div>
+            </section>
+
+            {/* Corner Radius */}
+            <section className="border-b border-slate-200 px-3 py-3 relative">
+              <div className="mb-2 flex items-center justify-between">
+                <span className="text-[9px] font-semibold text-slate-700">Corner Radius</span>
+                <button
+                  type="button"
+                  onClick={() => setShowCornerRadius(v => !v)}
+                  className="rounded px-1.5 py-1 text-[8px] font-semibold text-[#0040DF] bg-blue-50 hover:bg-blue-100 transition"
+                >
+                  Edit corners
+                </button>
               </div>
 
-              <div className="mt-2 flex items-center justify-between">
-                <span className="text-[10px] font-semibold text-slate-400">Flex col</span>
-                <span className="font-mono text-[10px] text-slate-400">
-                  {box.w ?? measured?.w ?? '—'} × {box.h ?? measured?.h ?? '—'}
-                </span>
+              <div className="flex gap-2">
+                  <div className="flex h-7 items-center gap-2 rounded-md border border-slate-100 bg-[#F3F4FF] px-2 w-full">
+                    <CornerIcon type="tl" />
+                    <input
+                      type="number"
+                      value={cornerRadii.topLeft}
+                      onChange={(e) => updateCornerRadius('topLeft', Math.max(0, Number(e.target.value) || 0))}
+                      className="w-full bg-transparent text-right text-[9px] font-semibold text-slate-700 outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
+                    />
+                    <span className="text-[8px] text-slate-400">px</span>
+                  </div>
+              </div>
+
+              {showCornerRadius && (
+                <div className="absolute left-0 right-0 top-full z-50 mt-1 rounded-xl border border-slate-200 bg-white p-4 shadow-[0_10px_40px_rgba(0,0,0,0.1)]">
+                    <div className="mb-4 flex items-center justify-between">
+                      <span className="text-[13px] font-semibold text-slate-800">Corner radius details</span>
+                      <button onClick={() => setShowCornerRadius(false)} className="text-slate-400 hover:text-slate-600">
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      {corners.map(({ key }) => {
+                        const isBottomRight = key === 'bottomRight';
+                        return (
+                          <label key={key} className="flex h-[38px] items-center gap-2 rounded-lg bg-[#F4F5F8] px-3">
+                            <CornerIcon type={key === 'topLeft' ? 'tl' : key === 'topRight' ? 'tr' : key === 'bottomLeft' ? 'bl' : 'br'} />
+                            <input
+                              type="number"
+                              min={0}
+                              value={cornerRadii[key]}
+                              onChange={(e) => updateCornerRadius(key, Math.max(0, Number(e.target.value) || 0))}
+                              className="w-full bg-transparent text-[12px] font-medium text-slate-700 outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
+                            />
+                            {isBottomRight && (
+                              <button
+                                type="button"
+                                onClick={() => onBoxChange(selectedId!, { cornerRadiusLinked: !cornerRadiusLinked })}
+                                className={`ml-auto rounded p-1 hover:bg-slate-200 transition ${cornerRadiusLinked ? 'text-[#0040DF]' : 'text-slate-400'}`}
+                                title={cornerRadiusLinked ? 'Corners linked' : 'Corners unlinked'}
+                              >
+                                <HexagonLinkIcon />
+                              </button>
+                            )}
+                          </label>
+                        );
+                      })}
+                    </div>
+                </div>
+              )}
+            </section>
+
+            {/* Strokes & Borders */}
+            <section className="border-b border-slate-200 px-3 py-3">
+              <div className="mb-2 flex items-center justify-between">
+                <span className="text-[9px] font-semibold text-slate-700">Strokes &amp; Borders</span>
+                <span className="text-[8px] text-slate-400">Selected component</span>
+              </div>
+              <div className="mb-2 flex items-center gap-2 rounded-md border border-slate-100 bg-[#F3F4FF] px-2 py-1.5">
+                <label className="relative h-5 w-5 shrink-0 cursor-pointer overflow-hidden rounded border border-slate-300" title="Stroke color">
+                  <span className="absolute inset-0" style={{ background: box.strokeColor ?? '#6941C6' }} />
+                  <input
+                    aria-label="Stroke color"
+                    type="color"
+                    value={box.strokeColor ?? '#6941C6'}
+                    onChange={(e) => onBoxChange(selectedId!, { strokeColor: e.target.value })}
+                    className="absolute inset-0 cursor-pointer opacity-0"
+                  />
+                </label>
+                <span className="flex-1 font-mono text-[9px] text-slate-600 uppercase">{box.strokeColor ?? '#6941C6'}</span>
+                <label className="flex items-center gap-1 text-[8px] text-slate-400">
+                  W
+                  <input
+                    aria-label="Stroke width"
+                    type="number"
+                    min={0}
+                    max={20}
+                    value={box.strokeWidth ?? 0}
+                    onChange={(e) => onBoxChange(selectedId!, { strokeWidth: Math.max(0, Math.min(20, Number(e.target.value) || 0)) })}
+                    className="w-8 rounded border border-slate-200 bg-white px-1 py-0.5 text-center text-[9px] text-slate-700 outline-none"
+                  />
+                </label>
+              </div>
+              <div className="grid grid-cols-2 gap-1.5">
+                <label className="flex h-7 items-center rounded-md border border-slate-200 bg-white px-2">
+                  <span className="sr-only">Stroke alignment</span>
+                  <select
+                    aria-label="Stroke alignment"
+                    value={box.strokeAlign ?? 'inside'}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      if (value === 'inside' || value === 'center' || value === 'outside') {
+                        onBoxChange(selectedId!, { strokeAlign: value });
+                      }
+                    }}
+                    className="w-full bg-transparent text-[9px] text-slate-600 outline-none"
+                  >
+                    <option value="inside">Inside</option>
+                    <option value="center">Center</option>
+                    <option value="outside">Outside</option>
+                  </select>
+                </label>
+                <label className="flex h-7 items-center rounded-md border border-slate-200 bg-white px-2">
+                  <span className="sr-only">Stroke style</span>
+                  <select
+                    aria-label="Stroke style"
+                    value={box.strokeStyle ?? 'solid'}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      if (value === 'solid' || value === 'dashed' || value === 'dotted') {
+                        onBoxChange(selectedId!, { strokeStyle: value });
+                      }
+                    }}
+                    className="w-full bg-transparent text-[9px] text-slate-600 outline-none"
+                  >
+                    <option value="solid">Solid Line</option>
+                    <option value="dashed">Dashed</option>
+                    <option value="dotted">Dotted</option>
+                  </select>
+                </label>
               </div>
             </section>
 
