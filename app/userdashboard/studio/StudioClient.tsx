@@ -26,6 +26,7 @@ import {
 
 import { EditProvider, useEditOverrides } from './edit-context';
 import { EDITABLE_SCHEMA } from './editable-schema';
+import AssetTab, { type AssetItem } from './assettab';
 
 const urbanist = Urbanist({ subsets: ['latin'], weight: ['400', '500', '600', '700', '800'], display: 'swap' });
 const outfit = Outfit({ subsets: ['latin'], weight: ['400', '500', '600', '700'], display: 'swap' });
@@ -325,7 +326,7 @@ function IconRail() {
 function PageMenuItem({
   pageId, label, count, active, expanded, accent, singleSlot, canvasModules,
   appKind, onSelect, onToggleExpand, onAddModule, onRemoveModule,
-  onStartDrag, onEndDrag, drag,
+  onStartDrag, onEndDrag, drag, selectedId, onSelectModule,
 }: {
   pageId: PageId; label: string; count: number; active: boolean; expanded: boolean;
   accent: string; singleSlot: boolean; canvasModules: ModuleId[]; appKind: AppKind;
@@ -333,99 +334,119 @@ function PageMenuItem({
   onAddModule: (id: ModuleId) => void; onRemoveModule: (id: ModuleId) => void;
   onStartDrag: (e: React.DragEvent, id: ModuleId, from: 'library' | 'canvas') => void;
   onEndDrag: () => void; drag: DragState;
+  selectedId: ModuleId | null;
+  onSelectModule: (id: ModuleId) => void;
 }) {
   const pageComponents = allModulesFor().filter((m) => pageModulesFor(pageId, appKind).includes(m.id));
   const pageMeta = pageIconMeta(pageId, label);
 
   return (
-    <li className="relative list-none">
-      <div
-        className={`flex items-center gap-2 rounded-lg border px-2.5 py-1.5 transition ${
-          active ? 'shadow-sm' : 'border-transparent'
-        }`}
-        style={active ? { background: `${accent}12`, borderColor: `${accent}38` } : undefined}
-      >
-        <span className={`grid h-6 w-6 shrink-0 place-items-center rounded-md ${pageMeta.bg} ${pageMeta.text}`}>
-          <pageMeta.Icon className="h-3.5 w-3.5" />
-        </span>
-
-        <div className="flex min-w-0 flex-1 items-center gap-1">
-          <button
-            type="button"
-            onClick={onSelect}
-            style={active ? { color: accent } : undefined}
-            className={`min-w-0 flex-1 cursor-pointer truncate text-left text-[12px] ${
-              active ? 'font-semibold' : 'font-medium text-slate-700'
-            }`}
-          >
-            {label}
-          </button>
-        </div>
-
-        <span
-          style={active ? { background: accent } : undefined}
-          className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] ${
-            active ? 'font-semibold text-white' : 'bg-[#E3E6F7] font-medium text-slate-500'
+    <li className="relative list-none mb-2">
+      <div className={`rounded-xl border transition ${expanded ? 'border-slate-200 bg-slate-200 shadow-sm' : 'border-transparent'}`}>
+        <div
+          onClick={() => {
+            if (!active) onSelect();
+            onToggleExpand();
+          }}
+          className={`flex cursor-pointer items-center gap-2 px-2.5 py-1.5 ${
+            !expanded && active ? 'rounded-xl bg-[#EDEFFC]' : ''
           }`}
         >
-          {count} comps
-        </span>
+          <span className={`grid h-6 w-6 shrink-0 place-items-center rounded-md ${pageMeta.bg} ${pageMeta.text}`}>
+            <pageMeta.Icon className="h-3.5 w-3.5" />
+          </span>
 
-        <button
-          type="button"
-          onClick={onToggleExpand}
-          aria-label={expanded ? `Hide ${label}` : `Show ${label}`}
-          style={active ? { color: accent } : undefined}
-          className={`grid h-5 w-5 place-items-center rounded-full ${active ? '' : 'text-slate-400 hover:text-slate-700'}`}
-        >
-          {expanded ? <X className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
-        </button>
-      </div>
+          <div className="flex min-w-0 flex-1 items-center gap-1">
+            <span
+              className={`min-w-0 flex-1 truncate text-left text-[12px] ${
+                active ? 'font-semibold text-[#0040DF]' : 'font-medium text-slate-700'
+              }`}
+            >
+              {label}
+            </span>
+          </div>
 
-      {expanded && (
-        <div className="my-1 ml-2 space-y-0.5 border-l border-slate-200 pl-2">
-          {singleSlot && (
-            <p className="mb-1 rounded-md bg-blue-50 px-2 py-1 text-[9px] font-medium text-blue-700">
-              Single slot page — adding replaces current.
-            </p>
-          )}
+          <span
+            className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] ${
+              active ? 'bg-[#0040DF] font-semibold text-white' : 'bg-[#E3E6F7] font-medium text-slate-500'
+            }`}
+          >
+            {count} comps
+          </span>
 
-          {pageComponents.map((mod) => {
-            const isAdded = canvasModules.includes(mod.id);
-            const isDragging = drag?.id === mod.id && drag.from === 'library';
-            const modMeta = moduleIconMeta(mod.id, mod.title);
-
-            return (
-              <div
-                key={mod.id}
-                draggable
-                onDragStart={(e) => onStartDrag(e, mod.id, 'library')}
-                onDragEnd={onEndDrag}
-                className={`group flex items-center justify-between rounded-md px-2 py-1.5 hover:bg-slate-100/80 cursor-grab active:cursor-grabbing ${
-                  isDragging ? 'opacity-50' : ''
-                }`}
-              >
-                <div className="flex min-w-0 items-center gap-2">
-                  <span className={`grid h-5 w-5 shrink-0 place-items-center rounded-md ${modMeta.bg} ${modMeta.text}`}>
-                    <modMeta.Icon className="h-3 w-3" />
-                  </span>
-                  <span className="truncate text-[11px] font-medium text-slate-700">{mod.title}</span>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => (isAdded ? onRemoveModule(mod.id) : onAddModule(mod.id))}
-                  className={`grid h-5 w-5 shrink-0 place-items-center rounded hover:bg-slate-200 ${
-                    isAdded ? 'text-emerald-600' : 'text-slate-400 group-hover:text-slate-600'
-                  }`}
-                >
-                  {isAdded ? <Check className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
-                </button>
-              </div>
-            );
-          })}
+          <span className="grid h-5 w-5 place-items-center rounded-full text-slate-400">
+            {expanded ? <X className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
+          </span>
         </div>
-      )}
+
+        {expanded && (
+          <div className="space-y-0.5 border-t border-slate-100 px-2 pb-2 pt-1">
+            {singleSlot && (
+              <p className="mb-1 rounded-md bg-blue-50 px-2 py-1 text-[9px] font-medium text-blue-700">
+                Single slot page — adding replaces current.
+              </p>
+            )}
+
+            {pageComponents.map((mod) => {
+              const isAdded = canvasModules.includes(mod.id);
+              const isDragging = drag?.id === mod.id && drag.from === 'library';
+              const modMeta = moduleIconMeta(mod.id, mod.title);
+              const isSelected = mod.id === selectedId;
+
+              return (
+                <div
+                  key={mod.id}
+                  draggable
+                  onDragStart={(e) => onStartDrag(e, mod.id, 'library')}
+                  onDragEnd={onEndDrag}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (!active) onSelect();
+                    onSelectModule(mod.id);
+                  }}
+                  className={`group flex cursor-pointer items-center justify-between rounded-md px-2 py-1.5 ${
+                    isSelected ? 'bg-[#0040DF] text-white' : 'hover:bg-slate-100/80'
+                  } ${isDragging ? 'opacity-50' : ''}`}
+                >
+                  <div className="flex min-w-0 items-center gap-2">
+                    <span
+                      className={`grid h-5 w-5 shrink-0 place-items-center rounded-md ${
+                        isSelected ? 'bg-white/20 text-white' : `${modMeta.bg} ${modMeta.text}`
+                      }`}
+                    >
+                      <modMeta.Icon className="h-3 w-3" />
+                    </span>
+                    <span
+                      className={`truncate text-[11px] font-medium ${
+                        isSelected ? 'text-white' : 'text-slate-700'
+                      }`}
+                    >
+                      {mod.title}
+                    </span>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      isAdded ? onRemoveModule(mod.id) : onAddModule(mod.id);
+                    }}
+                    className={`grid h-5 w-5 shrink-0 place-items-center rounded hover:bg-slate-200 ${
+                      isSelected
+                        ? 'text-white/80 hover:text-white'
+                        : isAdded
+                        ? 'text-emerald-600'
+                        : 'text-slate-400 group-hover:text-slate-600'
+                    }`}
+                  >
+                    {isAdded ? <Check className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
     </li>
   );
 }
@@ -433,6 +454,7 @@ function PageMenuItem({
 function LeftPanel({
   appKind, onAppKind, activePage, onSelectPage, expandedPage, onToggleExpand,
   pageModules, accent, onStartDrag, onEndDrag, drag, onAddModule, onRemoveModule,
+  selectedId, onSelectModule, onAssetClick,
 }: {
   appKind: AppKind; onAppKind: (k: AppKind) => void;
   activePage: PageId; onSelectPage: (p: PageId) => void;
@@ -442,11 +464,14 @@ function LeftPanel({
   onStartDrag: (e: React.DragEvent, id: ModuleId, from: 'library' | 'canvas') => void;
   onEndDrag: () => void;
   onAddModule: (id: ModuleId) => void; onRemoveModule: (id: ModuleId) => void;
-}) {
+  selectedId: ModuleId | null;
+  onSelectModule: (id: ModuleId) => void;
+  onAssetClick: (asset: AssetItem) => void;
+}){
   const [tab, setTab] = useState<'navigator' | 'comps' | 'assets'>('navigator');
   const [query, setQuery] = useState('');
   const [compLibrary, setCompLibrary] = useState<CompLibraryId | null>(null);
-  const [expandedCompGroup, setExpandedCompGroup] = useState<string | null>(null);
+  const [activeCompSubgroup, setActiveCompSubgroup] = useState<string | null>(null);
 
   const previewCtx: ViewCtx = {
     radius: RADII.rounded,
@@ -470,63 +495,66 @@ function LeftPanel({
       m.title.toLowerCase().includes(query.toLowerCase()) ||
       m.subtitle.toLowerCase().includes(query.toLowerCase())
   );
+  
   const compsInLibrary = compLibrary
-  ? filteredMods.filter((m) => libraryForModule(m) === compLibrary)
-  : [];
+    ? filteredMods.filter((m) => libraryForModule(m) === compLibrary)
+    : [];
 
-const groupedComps = COMP_SUBGROUPS
-  .map((group) => ({
-    ...group,
-    mods: compsInLibrary.filter((m) => subgroupForModule(m) === group.id),
-  }))
-  .filter((group) => group.mods.length > 0);
+  const groupedComps = COMP_SUBGROUPS
+    .map((group) => ({
+      ...group,
+      mods: compsInLibrary.filter((m) => subgroupForModule(m) === group.id),
+    }))
+    .filter((group) => group.mods.length > 0);
 
-const renderCompModule = (mod: ModuleMeta) => {
-  const isAdded = (pageModules[activePage] ?? []).includes(mod.id);
-  const isDragging = drag?.id === mod.id && drag.from === 'library';
-  const modMeta = moduleIconMeta(mod.id, mod.title);
+  const activeGroup = groupedComps.find((g) => g.id === activeCompSubgroup);
 
-  return (
-    <div
-      key={mod.id}
-      draggable
-      onDragStart={(e) => onStartDrag(e, mod.id, 'library')}
-      onDragEnd={onEndDrag}
-      className={`overflow-hidden rounded-lg border border-slate-200 bg-white cursor-grab active:cursor-grabbing ${
-        isDragging ? 'opacity-50' : ''
-      }`}
-    >
-      <div className="flex items-center justify-between border-b border-slate-100 px-2 py-1.5">
-        <div className="flex min-w-0 items-center gap-1.5">
-          <span className={`grid h-5 w-5 shrink-0 place-items-center rounded-md ${modMeta.bg} ${modMeta.text}`}>
-            <modMeta.Icon className="h-3 w-3" />
-          </span>
-          <span className="truncate text-[9px] font-bold text-slate-800">{mod.title}</span>
-          <span className={`shrink-0 rounded px-1 py-0.5 text-[7px] font-bold ${mod.badgeColor}`}>
-            {mod.badge}
-          </span>
+  const renderCompModule = (mod: ModuleMeta) => {
+    const isAdded = (pageModules[activePage] ?? []).includes(mod.id);
+    const isDragging = drag?.id === mod.id && drag.from === 'library';
+    const modMeta = moduleIconMeta(mod.id, mod.title);
+
+    return (
+      <div
+        key={mod.id}
+        draggable
+        onDragStart={(e) => onStartDrag(e, mod.id, 'library')}
+        onDragEnd={onEndDrag}
+        className={`overflow-hidden rounded-lg border border-slate-200 bg-white cursor-grab active:cursor-grabbing ${
+          isDragging ? 'opacity-50' : ''
+        }`}
+      >
+        <div className="flex items-center justify-between border-b border-slate-100 px-2 py-1.5">
+          <div className="flex min-w-0 items-center gap-1.5">
+            <span className={`grid h-5 w-5 shrink-0 place-items-center rounded-md ${modMeta.bg} ${modMeta.text}`}>
+              <modMeta.Icon className="h-3 w-3" />
+            </span>
+            <span className="truncate text-[9px] font-bold text-slate-800">{mod.title}</span>
+            <span className={`shrink-0 rounded px-1 py-0.5 text-[7px] font-bold ${mod.badgeColor}`}>
+              {mod.badge}
+            </span>
+          </div>
+
+          <button
+            draggable={false}
+            onDragStart={(e) => e.stopPropagation()}
+            onClick={() => (isAdded ? onRemoveModule(mod.id) : onAddModule(mod.id))}
+            className={`grid h-4 w-4 shrink-0 place-items-center rounded hover:bg-slate-200 ${
+              isAdded ? 'text-emerald-600' : 'text-slate-400'
+            }`}
+          >
+            {isAdded ? <Check className="h-3 w-3" /> : <Plus className="h-3 w-3" />}
+          </button>
         </div>
 
-        <button
-          draggable={false}
-          onDragStart={(e) => e.stopPropagation()}
-          onClick={() => (isAdded ? onRemoveModule(mod.id) : onAddModule(mod.id))}
-          className={`grid h-4 w-4 shrink-0 place-items-center rounded hover:bg-slate-200 ${
-            isAdded ? 'text-emerald-600' : 'text-slate-400'
-          }`}
-        >
-          {isAdded ? <Check className="h-3 w-3" /> : <Plus className="h-3 w-3" />}
-        </button>
-      </div>
-
-      <div className="relative overflow-hidden bg-[#F7F8FF] p-2" style={{ height: 140 }}>
-        <div className="pointer-events-none origin-top-left" style={{ transform: 'scale(0.75)', width: '133%' }}>
-          <ModuleView id={mod.id} ctx={previewCtx} passive />
+        <div className="relative overflow-hidden bg-[#F7F8FF] p-2" style={{ height: 140 }}>
+          <div className="pointer-events-none origin-top-left" style={{ transform: 'scale(0.75)', width: '133%' }}>
+            <ModuleView id={mod.id} ctx={previewCtx} passive />
+          </div>
         </div>
       </div>
-    </div>
-  );
-};
+    );
+  };
 
   return (
     <aside className="flex w-[340px] shrink-0 flex-col border-r border-slate-200 bg-[#EDEFFC] scrollbar-thin-blue">
@@ -607,6 +635,8 @@ const renderCompModule = (mod: ModuleMeta) => {
                 onStartDrag={onStartDrag}
                 onEndDrag={onEndDrag}
                 drag={drag}
+                selectedId={selectedId}
+                onSelectModule={onSelectModule}
               />
             ))}
           </ul>
@@ -620,134 +650,154 @@ const renderCompModule = (mod: ModuleMeta) => {
 
       {/* Comps tab */}
       {tab === 'comps' && (
-  <div className="min-h-0 flex-1 space-y-2 overflow-y-auto px-3 pb-3 pt-2 scrollbar-thin-blue [scrollbar-width:thin] [scrollbar-color:#0040DF_transparent] [&::-webkit-scrollbar]:w-[5px] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-[#0040DF] [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-[#002db3]">
-    {query.trim() !== '' ? (
-      <>
-        <div className="flex items-center justify-between px-1">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Search results</span>
-          <span className="text-[10px] text-slate-400">{filteredMods.length} items</span>
-        </div>
-
-        {filteredMods.length === 0 && (
-          <p className="py-6 text-center text-[10px] text-slate-400">No components found.</p>
-        )}
-
-        {filteredMods.map(renderCompModule)}
-      </>
-    ) : compLibrary === null ? (
-      <>
-        <div className="flex items-center justify-between px-1">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
-            Design Kits &amp; Libraries
-          </span>
-          <span className="text-[10px] text-slate-400">3 active</span>
-        </div>
-
-        {COMP_LIBRARY_ORDER.map((id) => {
-          const meta = COMP_LIBRARY_META[id];
-          const count = allMods.filter((m) => libraryForModule(m) === id).length;
-
-          return (
-            <button
-              key={id}
-              type="button"
-              onClick={() => {
-                setCompLibrary(id);
-                setExpandedCompGroup(null);
-              }}
-              className="group w-full overflow-hidden rounded-xl border border-slate-200 bg-white text-left transition hover:border-[#0040DF]/40 hover:shadow-sm"
-            >
-              <div className={`flex h-24 items-center justify-center ${meta.bg}`}>
-                <meta.Icon className={`h-10 w-10 ${meta.text}`} />
+        <div className="min-h-0 flex-1 space-y-2 overflow-y-auto px-3 pb-3 pt-2 scrollbar-thin-blue [scrollbar-width:thin] [scrollbar-color:#0040DF_transparent] [&::-webkit-scrollbar]:w-[5px] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-[#0040DF] [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-[#002db3]">
+          {query.trim() !== '' ? (
+            <>
+              <div className="flex items-center justify-between px-1">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Search results</span>
+                <span className="text-[10px] text-slate-400">{filteredMods.length} items</span>
               </div>
 
-              <div className="flex items-center justify-between px-3 py-2">
-                <div className="min-w-0">
-                  <p className="truncate text-[12px] font-bold text-slate-800">{meta.label}</p>
-                  <p className="text-[10px] text-slate-500">{count} components</p>
-                </div>
-                <ChevronRight className="h-4 w-4 shrink-0 text-slate-400 group-hover:text-[#0040DF]" />
+              {filteredMods.length === 0 && (
+                <p className="py-6 text-center text-[10px] text-slate-400">No components found.</p>
+              )}
+
+              {filteredMods.map(renderCompModule)}
+            </>
+          ) : compLibrary === null ? (
+            /* Level 1: Libraries */
+            <>
+              <div className="flex items-center justify-between px-1">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                  Design Kits &amp; Libraries
+                </span>
+                <span className="text-[10px] text-slate-400">3 active</span>
               </div>
-            </button>
-          );
-        })}
 
-        <button
-          type="button"
-          className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-[#0040DF] py-2 text-[11px] font-semibold text-white hover:bg-[#0036BF]"
-        >
-          <PlusCircle className="h-3.5 w-3.5" /> Explore More Components
-        </button>
-      </>
-    ) : (
-      <>
-        <div className="mb-1 flex items-center gap-2 px-1">
-          <button
-            type="button"
-            onClick={() => {
-              setCompLibrary(null);
-              setExpandedCompGroup(null);
-            }}
-            className="grid h-6 w-6 shrink-0 place-items-center rounded-md border border-slate-200 bg-white text-slate-500 hover:text-[#0040DF]"
-          >
-            <ChevronLeft className="h-3.5 w-3.5" />
-          </button>
+              {COMP_LIBRARY_ORDER.map((id) => {
+                const meta = COMP_LIBRARY_META[id];
+                const count = allMods.filter((m) => libraryForModule(m) === id).length;
 
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-[11px] font-bold text-slate-800">
-              {COMP_LIBRARY_META[compLibrary].label}
-            </p>
-            <p className="text-[9px] text-slate-500">{compsInLibrary.length} components</p>
-          </div>
-        </div>
+                return (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => {
+                      setCompLibrary(id);
+                      setActiveCompSubgroup(null);
+                    }}
+                    className="group w-full overflow-hidden rounded-xl border border-slate-200 bg-white text-left transition hover:border-[#0040DF]/40 hover:shadow-sm"
+                  >
+                    <div className={`flex h-24 items-center justify-center ${meta.bg}`}>
+                      <meta.Icon className={`h-10 w-10 ${meta.text}`} />
+                    </div>
 
-        {groupedComps.map((group) => {
-          const expanded = expandedCompGroup === group.id;
+                    <div className="flex items-center justify-between px-3 py-2">
+                      <div className="min-w-0">
+                        <p className="truncate text-[12px] font-bold text-slate-800">{meta.label}</p>
+                        <p className="text-[10px] text-slate-500">{count} components</p>
+                      </div>
+                      <ChevronRight className="h-4 w-4 shrink-0 text-slate-400 group-hover:text-[#0040DF]" />
+                    </div>
+                  </button>
+                );
+              })}
 
-          return (
-            <div key={group.id} className="overflow-hidden rounded-lg border border-slate-200 bg-white">
               <button
                 type="button"
-                onClick={() => setExpandedCompGroup(expanded ? null : group.id)}
-                className="flex w-full items-center gap-2 px-3 py-2 text-left hover:bg-slate-50"
+                className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-[#0040DF] py-2 text-[11px] font-semibold text-white hover:bg-[#0036BF]"
               >
-                <span className={`grid h-7 w-7 shrink-0 place-items-center rounded-lg ${group.bg} ${group.text}`}>
-                  <group.Icon className="h-4 w-4" />
-                </span>
+                <PlusCircle className="h-3.5 w-3.5" /> Explore More Components
+              </button>
+            </>
+          ) : activeCompSubgroup === null ? (
+            /* Level 2: Subgroups */
+            <>
+              <div className="mb-1 flex items-center gap-2 px-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCompLibrary(null);
+                    setActiveCompSubgroup(null);
+                  }}
+                  className="grid h-6 w-6 shrink-0 place-items-center rounded-md border border-slate-200 bg-white text-slate-500 hover:text-[#0040DF]"
+                >
+                  <ChevronLeft className="h-3.5 w-3.5" />
+                </button>
 
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-[11px] font-bold text-slate-800">{group.label}</p>
-                  <p className="text-[9px] text-slate-500">{group.mods.length} templates</p>
+                  <p className="truncate text-[11px] font-bold text-slate-800">
+                    {COMP_LIBRARY_META[compLibrary].label}
+                  </p>
+                  <p className="text-[9px] text-slate-500">{compsInLibrary.length} components</p>
                 </div>
+              </div>
 
-                <ChevronRight
-                  className={`h-4 w-4 shrink-0 text-slate-400 transition ${expanded ? 'rotate-90' : ''}`}
-                />
-              </button>
+              {groupedComps.map((group) => {
+                return (
+                  <div key={group.id} className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+                    <button
+                      type="button"
+                      onClick={() => setActiveCompSubgroup(group.id)}
+                      className="flex w-full items-center gap-2 px-3 py-2 text-left hover:bg-slate-50"
+                    >
+                      <span className={`grid h-7 w-7 shrink-0 place-items-center rounded-lg ${group.bg} ${group.text}`}>
+                        <group.Icon className="h-4 w-4" />
+                      </span>
 
-              {expanded && (
-                <div className="space-y-2 border-t border-slate-100 p-2">
-                  {group.mods.map(renderCompModule)}
-                </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-[11px] font-bold text-slate-800">{group.label}</p>
+                        <p className="text-[9px] text-slate-500">{group.mods.length} templates</p>
+                      </div>
+
+                      <ChevronRight className="h-4 w-4 shrink-0 text-slate-400" />
+                    </button>
+                  </div>
+                );
+              })}
+
+              {groupedComps.length === 0 && (
+                <p className="py-6 text-center text-[10px] text-slate-400">No components found.</p>
               )}
-            </div>
-          );
-        })}
+            </>
+          ) : (
+            /* Level 3: Components */
+            <>
+              <div className="mb-1 flex items-center gap-2 px-1">
+                <button
+                  type="button"
+                  onClick={() => setActiveCompSubgroup(null)}
+                  className="grid h-6 w-6 shrink-0 place-items-center rounded-md border border-slate-200 bg-white text-slate-500 hover:text-[#0040DF]"
+                >
+                  <ChevronLeft className="h-3.5 w-3.5" />
+                </button>
 
-        {groupedComps.length === 0 && (
-          <p className="py-6 text-center text-[10px] text-slate-400">No components found.</p>
-        )}
-      </>
-    )}
-  </div>
-)}
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-[11px] font-bold text-slate-800">
+                    {activeGroup?.label}
+                  </p>
+                  <p className="text-[9px] text-slate-500">{activeGroup?.mods.length} components</p>
+                </div>
+              </div>
+
+              {activeGroup?.mods.map(renderCompModule)}
+
+              {!activeGroup?.mods.length && (
+                <p className="py-6 text-center text-[10px] text-slate-400">No components found.</p>
+              )}
+            </>
+          )}
+        </div>
+      )}
 
       {/* Assets tab */}
       {tab === 'assets' && (
-        <div className="flex flex-1 items-center justify-center px-4 text-center">
-          <p className="text-[10px] text-slate-400">Assets library coming soon.</p>
-        </div>
-      )}
+  <AssetTab
+    accent={accent}
+    onAssetDragStart={() => { /* optional */ }}
+    onAssetClick={onAssetClick}
+  />
+)}
     </aside>
   );
 }
@@ -2157,6 +2207,7 @@ export default function StudioClient() {
   const [selectedId, setSelectedId] = useState<ModuleId | null>(null);
   const [drag, setDrag] = useState<DragState>(null);
   const [dropIndex, setDropIndex] = useState<number | null>(null);
+  const [allAssetsForLookup, setAllAssetsForLookup] = useState<AssetItem[]>([]);
 
   /* per-module box overrides & measured natural sizes */
   const [boxes, setBoxes] = useState<Record<string, ModuleBox>>({});
@@ -2265,8 +2316,32 @@ export default function StudioClient() {
     }
   };
 
+  const handleAssetDrop = (assetId: string, moduleId: ModuleId | null) => {
+  if (!moduleId) return;
+  const asset = (allAssetsForLookup || []).find((a) => a.id === assetId);
+  if (!asset?.dataUrl) return;
+
+  onBoxChange(moduleId, {
+    fillType: 'image',
+    imageFill: {
+      url: asset.dataUrl,
+      name: asset.name,
+      fit: 'crop',
+      opacity: 100,
+      visible: true,
+    },
+  });
+};
+
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault(); e.stopPropagation();
+    const assetId = e.dataTransfer.getData('application/x-pf-asset-id');
+  if (assetId) {
+    // Drop an asset onto the currently selected module
+    handleAssetDrop(assetId, selectedId);
+    endDrag();
+    return;
+  }
     const id = (drag?.id ?? e.dataTransfer.getData('application/x-pf-module-id')) as ModuleId | '';
     if (!id) { endDrag(); return; }
     if (!allModulesFor().some((m) => m.id === id)) { endDrag(); return; }
@@ -2328,7 +2403,13 @@ export default function StudioClient() {
             pageModules={pageModules} accent={accentColor}
             onStartDrag={startDrag} onEndDrag={endDrag} drag={drag}
             onAddModule={addModule} onRemoveModule={removeModule}
-          />
+            selectedId={selectedId}
+            onSelectModule={setSelectedId}
+            onAssetClick={(asset) => setAllAssetsForLookup((assets) => [
+              ...assets.filter((item) => item.id !== asset.id),
+              asset,
+            ])}
+/>
           <Canvas
             device={device} zoom={zoom} onZoom={setZoom}
             pageModules={pageModules} activePage={activePage} pageLabel={currentPageLabel}
