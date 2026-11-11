@@ -5,11 +5,13 @@ import React, { useEffect, useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Urbanist, Outfit } from 'next/font/google';
 import {
-  ChevronDown, ChevronUp, ChevronsUpDown, GripVertical,
+  ChevronDown, ChevronUp, ChevronLeft, ChevronRight, ChevronsUpDown, GripVertical,
   Layers, Box, Workflow, Palette, ShieldCheck, Settings, Plus, PlusCircle,
   Trash2, Undo2, Home, Wallet,
   BarChart3, User, Play, Code2, Check, Braces, X, Diamond, CreditCard,
-  Search, Upload, Eye, EyeOff, Image as ImageIcon, Pipette
+  Search, Upload, Eye, EyeOff, Image as ImageIcon, Pipette,
+  Bell, List, ArrowRightLeft, Landmark, PiggyBank, Activity,
+  CircleDollarSign, Coins, LayoutGrid, Type
 } from 'lucide-react';
 import {
   PAGES, APP_KINDS, PAGE_TO_TAB, TAB_TO_PAGE, SINGLE_SLOT,
@@ -34,6 +36,131 @@ const CORNER_HANDLES = [
   { k: 'sw', cls: 'bottom-0 left-0 -translate-x-1/2 translate-y-1/2 cursor-nesw-resize' },
   { k: 'se', cls: 'bottom-0 right-0 translate-x-1/2 translate-y-1/2 cursor-nwse-resize' },
 ] as const;
+
+type IconType = React.ComponentType<{ className?: string }>;
+type IconMeta = { Icon: IconType; bg: string; text: string };
+type ModuleMeta = ReturnType<typeof allModulesFor>[number];
+type CompLibraryId = 'banking' | 'crypto' | 'general';
+
+const COMP_LIBRARY_ORDER: CompLibraryId[] = ['banking', 'crypto', 'general'];
+
+const COMP_LIBRARY_META: Record<
+  CompLibraryId,
+  { label: string; description: string; Icon: IconType; bg: string; text: string }
+> = {
+  banking: {
+    label: 'Banking UIs',
+    description: 'Accounts, cards, payments & money movement',
+    Icon: Landmark,
+    bg: 'bg-blue-50',
+    text: 'text-blue-600',
+  },
+  crypto: {
+    label: 'Crypto UIs',
+    description: 'Wallets, tokens, swaps & on-chain activity',
+    Icon: Coins,
+    bg: 'bg-violet-50',
+    text: 'text-violet-600',
+  },
+  general: {
+    label: 'General UIs',
+    description: 'Shared app chrome, alerts, settings & more',
+    Icon: LayoutGrid,
+    bg: 'bg-slate-100',
+    text: 'text-slate-600',
+  },
+};
+
+const COMP_SUBGROUPS: {
+  id: string;
+  label: string;
+  Icon: IconType;
+  bg: string;
+  text: string;
+}[] = [
+  { id: 'financial', label: 'Financial Card & Balance', Icon: CreditCard, bg: 'bg-indigo-50', text: 'text-indigo-600' },
+  { id: 'cards', label: 'Cards', Icon: CreditCard, bg: 'bg-blue-50', text: 'text-blue-600' },
+  { id: 'activity', label: 'Activity & Transactions', Icon: Activity, bg: 'bg-cyan-50', text: 'text-cyan-600' },
+  { id: 'alerts', label: 'Alerts', Icon: Bell, bg: 'bg-amber-50', text: 'text-amber-600' },
+  { id: 'payments', label: 'Payments & Transfers', Icon: ArrowRightLeft, bg: 'bg-violet-50', text: 'text-violet-600' },
+  { id: 'savings', label: 'Savings & Vaults', Icon: PiggyBank, bg: 'bg-emerald-50', text: 'text-emerald-600' },
+  { id: 'quick', label: 'Quick Actions', Icon: LayoutGrid, bg: 'bg-purple-50', text: 'text-purple-600' },
+  { id: 'navigation', label: 'Navigation & Profile', Icon: LayoutGrid, bg: 'bg-slate-100', text: 'text-slate-600' },
+  { id: 'insights', label: 'Insights', Icon: BarChart3, bg: 'bg-sky-50', text: 'text-sky-600' },
+  { id: 'security', label: 'Security & Compliance', Icon: ShieldCheck, bg: 'bg-rose-50', text: 'text-rose-600' },
+  { id: 'crypto', label: 'Crypto & Tokens', Icon: Coins, bg: 'bg-violet-50', text: 'text-violet-600' },
+  { id: 'general', label: 'General Components', Icon: Box, bg: 'bg-slate-100', text: 'text-slate-600' },
+];
+
+function libraryForModule(mod: ModuleMeta): CompLibraryId {
+  const t = `${mod.id} ${mod.title} ${mod.subtitle}`.toLowerCase();
+  if (/crypto|coin|token|blockchain|web3|defi|swap|nft/.test(t)) return 'crypto';
+  if (/bank|account|card|balance|saving|vault|payment|send|transfer|transaction|wallet|kyc|bill|deposit|fx|money/.test(t)) {
+    return 'banking';
+  }
+  return 'general';
+}
+
+function subgroupForModule(mod: ModuleMeta): string {
+  const t = `${mod.id} ${mod.title} ${mod.subtitle}`.toLowerCase();
+  if (/alert|notification/.test(t)) return 'alerts';
+  if (/activity|transaction|history|feed/.test(t)) return 'activity';
+  if (/saving|vault/.test(t)) return 'savings';
+  if (/send|transfer|payment|bill|top.?up/.test(t)) return 'payments';
+  if (/card management|manage card|freeze|virtual card|physical card|card controls/.test(t)) return 'cards';
+  if (/card|balance|wallet|amount|financial/.test(t)) return 'financial';
+  if (/quick|action|grid/.test(t)) return 'quick';
+  if (/header|greeting|profile|setting|bottom|dock|tab|navigation/.test(t)) return 'navigation';
+  if (/chart|insight|analytic/.test(t)) return 'insights';
+  if (/security|kyc|face|freeze|compliance/.test(t)) return 'security';
+  if (/crypto|coin|token|swap/.test(t)) return 'crypto';
+  return 'general';
+}
+
+function pageIconMeta(pageId: PageId, label: string): IconMeta {
+  const key = `${pageId} ${label}`.toLowerCase();
+
+  if (key.includes('home')) return { Icon: Home, bg: 'bg-blue-50', text: 'text-blue-600' };
+  if (key.includes('card')) return { Icon: CreditCard, bg: 'bg-indigo-50', text: 'text-indigo-600' };
+  if (key.includes('activity') || key.includes('insight')) return { Icon: BarChart3, bg: 'bg-cyan-50', text: 'text-cyan-600' };
+  if (key.includes('send') || key.includes('transfer')) return { Icon: ArrowRightLeft, bg: 'bg-violet-50', text: 'text-violet-600' };
+  if (key.includes('payment') || key.includes('bill')) return { Icon: Wallet, bg: 'bg-emerald-50', text: 'text-emerald-600' };
+  if (key.includes('history')) return { Icon: List, bg: 'bg-sky-50', text: 'text-sky-600' };
+  if (key.includes('notification') || key.includes('alert')) return { Icon: Bell, bg: 'bg-amber-50', text: 'text-amber-600' };
+  if (key.includes('saving') || key.includes('vault')) return { Icon: PiggyBank, bg: 'bg-emerald-50', text: 'text-emerald-600' };
+  if (key.includes('account')) return { Icon: Landmark, bg: 'bg-blue-50', text: 'text-blue-600' };
+  if (key.includes('security') || key.includes('kyc') || key.includes('compliance')) {
+    return { Icon: ShieldCheck, bg: 'bg-rose-50', text: 'text-rose-600' };
+  }
+  if (key.includes('setting') || key.includes('profile')) return { Icon: User, bg: 'bg-slate-100', text: 'text-slate-600' };
+
+  return { Icon: Layers, bg: 'bg-slate-100', text: 'text-slate-600' };
+}
+
+function moduleIconMeta(id: ModuleId, title = ''): IconMeta {
+  const key = `${id} ${title}`.toLowerCase();
+
+  if (key.includes('alert') || key.includes('notification')) return { Icon: Bell, bg: 'bg-amber-50', text: 'text-amber-600' };
+  if (key.includes('card') || key.includes('balance') || key.includes('wallet')) return { Icon: CreditCard, bg: 'bg-indigo-50', text: 'text-indigo-600' };
+  if (key.includes('transaction') || key.includes('activity') || key.includes('history') || key.includes('feed')) {
+    return { Icon: List, bg: 'bg-cyan-50', text: 'text-cyan-600' };
+  }
+  if (key.includes('saving') || key.includes('vault')) return { Icon: PiggyBank, bg: 'bg-emerald-50', text: 'text-emerald-600' };
+  if (key.includes('send') || key.includes('transfer') || key.includes('payment') || key.includes('bill') || key.includes('topup')) {
+    return { Icon: ArrowRightLeft, bg: 'bg-violet-50', text: 'text-violet-600' };
+  }
+  if (key.includes('quick') || key.includes('action') || key.includes('grid')) return { Icon: LayoutGrid, bg: 'bg-purple-50', text: 'text-purple-600' };
+  if (key.includes('header') || key.includes('greeting')) return { Icon: Type, bg: 'bg-blue-50', text: 'text-blue-600' };
+  if (key.includes('amount') || key.includes('display')) return { Icon: CircleDollarSign, bg: 'bg-emerald-50', text: 'text-emerald-600' };
+  if (key.includes('bottom') || key.includes('dock') || key.includes('tab')) return { Icon: Home, bg: 'bg-slate-100', text: 'text-slate-600' };
+  if (key.includes('face') || key.includes('freeze') || key.includes('security') || key.includes('kyc')) {
+    return { Icon: ShieldCheck, bg: 'bg-rose-50', text: 'text-rose-600' };
+  }
+  if (key.includes('chart') || key.includes('insight') || key.includes('analytic')) return { Icon: BarChart3, bg: 'bg-sky-50', text: 'text-sky-600' };
+  if (key.includes('crypto') || key.includes('coin') || key.includes('token')) return { Icon: Coins, bg: 'bg-violet-50', text: 'text-violet-600' };
+
+  return { Icon: Box, bg: 'bg-slate-100', text: 'text-slate-600' };
+}
 
 type DeviceType = 'iphone' | 'pixel' | 'tablet';
 type StudioMode = 'design' | 'prototype' | 'workflows' | 'code';
@@ -208,51 +335,90 @@ function PageMenuItem({
   onEndDrag: () => void; drag: DragState;
 }) {
   const pageComponents = allModulesFor().filter((m) => pageModulesFor(pageId, appKind).includes(m.id));
+  const pageMeta = pageIconMeta(pageId, label);
 
   return (
     <li className="relative list-none">
-      <div className="flex items-center gap-2 rounded-lg border border-transparent px-2.5 py-1.5"
-        style={active ? { background: `${accent}12`, borderColor: `${accent}38` } : undefined}>
+      <div
+        className={`flex items-center gap-2 rounded-lg border px-2.5 py-1.5 transition ${
+          active ? 'shadow-sm' : 'border-transparent'
+        }`}
+        style={active ? { background: `${accent}12`, borderColor: `${accent}38` } : undefined}
+      >
+        <span className={`grid h-6 w-6 shrink-0 place-items-center rounded-md ${pageMeta.bg} ${pageMeta.text}`}>
+          <pageMeta.Icon className="h-3.5 w-3.5" />
+        </span>
+
         <div className="flex min-w-0 flex-1 items-center gap-1">
-          <button type="button" onClick={onSelect}
+          <button
+            type="button"
+            onClick={onSelect}
             style={active ? { color: accent } : undefined}
-            className={`min-w-0 flex-1 cursor-pointer truncate text-left text-[12px] ${active ? 'font-semibold' : 'font-medium text-slate-700'}`}>
+            className={`min-w-0 flex-1 cursor-pointer truncate text-left text-[12px] ${
+              active ? 'font-semibold' : 'font-medium text-slate-700'
+            }`}
+          >
             {label}
           </button>
         </div>
-        <span style={active ? { background: accent } : undefined}
-          className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] ${active ? 'font-semibold text-white' : 'bg-[#E3E6F7] font-medium text-slate-500'}`}>
+
+        <span
+          style={active ? { background: accent } : undefined}
+          className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] ${
+            active ? 'font-semibold text-white' : 'bg-[#E3E6F7] font-medium text-slate-500'
+          }`}
+        >
           {count} comps
         </span>
-        <button type="button" onClick={onToggleExpand}
+
+        <button
+          type="button"
+          onClick={onToggleExpand}
           aria-label={expanded ? `Hide ${label}` : `Show ${label}`}
           style={active ? { color: accent } : undefined}
-          className={`grid h-5 w-5 place-items-center rounded-full ${active ? '' : 'text-slate-400 hover:text-slate-700'}`}>
+          className={`grid h-5 w-5 place-items-center rounded-full ${active ? '' : 'text-slate-400 hover:text-slate-700'}`}
+        >
           {expanded ? <X className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
         </button>
       </div>
 
       {expanded && (
-        <div className="my-1 ml-2 pl-2 border-l border-slate-200 space-y-0.5">
+        <div className="my-1 ml-2 space-y-0.5 border-l border-slate-200 pl-2">
           {singleSlot && (
             <p className="mb-1 rounded-md bg-blue-50 px-2 py-1 text-[9px] font-medium text-blue-700">
               Single slot page — adding replaces current.
             </p>
           )}
+
           {pageComponents.map((mod) => {
             const isAdded = canvasModules.includes(mod.id);
             const isDragging = drag?.id === mod.id && drag.from === 'library';
+            const modMeta = moduleIconMeta(mod.id, mod.title);
+
             return (
-              <div key={mod.id} draggable
+              <div
+                key={mod.id}
+                draggable
                 onDragStart={(e) => onStartDrag(e, mod.id, 'library')}
                 onDragEnd={onEndDrag}
-                className={`flex items-center justify-between px-2 py-1.5 rounded-md hover:bg-slate-100/80 cursor-grab active:cursor-grabbing group ${isDragging ? 'opacity-50' : ''}`}>
-                <div className="flex items-center gap-2 min-w-0">
-                  <GripVertical className="h-3 w-3 text-slate-300 shrink-0" />
-                  <span className="text-[11px] font-medium text-slate-700 truncate">{mod.title}</span>
+                className={`group flex items-center justify-between rounded-md px-2 py-1.5 hover:bg-slate-100/80 cursor-grab active:cursor-grabbing ${
+                  isDragging ? 'opacity-50' : ''
+                }`}
+              >
+                <div className="flex min-w-0 items-center gap-2">
+                  <span className={`grid h-5 w-5 shrink-0 place-items-center rounded-md ${modMeta.bg} ${modMeta.text}`}>
+                    <modMeta.Icon className="h-3 w-3" />
+                  </span>
+                  <span className="truncate text-[11px] font-medium text-slate-700">{mod.title}</span>
                 </div>
-                <button type="button" onClick={() => (isAdded ? onRemoveModule(mod.id) : onAddModule(mod.id))}
-                  className={`grid h-5 w-5 shrink-0 place-items-center rounded hover:bg-slate-200 ${isAdded ? 'text-emerald-600' : 'text-slate-400 group-hover:text-slate-600'}`}>
+
+                <button
+                  type="button"
+                  onClick={() => (isAdded ? onRemoveModule(mod.id) : onAddModule(mod.id))}
+                  className={`grid h-5 w-5 shrink-0 place-items-center rounded hover:bg-slate-200 ${
+                    isAdded ? 'text-emerald-600' : 'text-slate-400 group-hover:text-slate-600'
+                  }`}
+                >
                   {isAdded ? <Check className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
                 </button>
               </div>
@@ -279,6 +445,8 @@ function LeftPanel({
 }) {
   const [tab, setTab] = useState<'navigator' | 'comps' | 'assets'>('navigator');
   const [query, setQuery] = useState('');
+  const [compLibrary, setCompLibrary] = useState<CompLibraryId | null>(null);
+  const [expandedCompGroup, setExpandedCompGroup] = useState<string | null>(null);
 
   const previewCtx: ViewCtx = {
     radius: RADII.rounded,
@@ -302,6 +470,63 @@ function LeftPanel({
       m.title.toLowerCase().includes(query.toLowerCase()) ||
       m.subtitle.toLowerCase().includes(query.toLowerCase())
   );
+  const compsInLibrary = compLibrary
+  ? filteredMods.filter((m) => libraryForModule(m) === compLibrary)
+  : [];
+
+const groupedComps = COMP_SUBGROUPS
+  .map((group) => ({
+    ...group,
+    mods: compsInLibrary.filter((m) => subgroupForModule(m) === group.id),
+  }))
+  .filter((group) => group.mods.length > 0);
+
+const renderCompModule = (mod: ModuleMeta) => {
+  const isAdded = (pageModules[activePage] ?? []).includes(mod.id);
+  const isDragging = drag?.id === mod.id && drag.from === 'library';
+  const modMeta = moduleIconMeta(mod.id, mod.title);
+
+  return (
+    <div
+      key={mod.id}
+      draggable
+      onDragStart={(e) => onStartDrag(e, mod.id, 'library')}
+      onDragEnd={onEndDrag}
+      className={`overflow-hidden rounded-lg border border-slate-200 bg-white cursor-grab active:cursor-grabbing ${
+        isDragging ? 'opacity-50' : ''
+      }`}
+    >
+      <div className="flex items-center justify-between border-b border-slate-100 px-2 py-1.5">
+        <div className="flex min-w-0 items-center gap-1.5">
+          <span className={`grid h-5 w-5 shrink-0 place-items-center rounded-md ${modMeta.bg} ${modMeta.text}`}>
+            <modMeta.Icon className="h-3 w-3" />
+          </span>
+          <span className="truncate text-[9px] font-bold text-slate-800">{mod.title}</span>
+          <span className={`shrink-0 rounded px-1 py-0.5 text-[7px] font-bold ${mod.badgeColor}`}>
+            {mod.badge}
+          </span>
+        </div>
+
+        <button
+          draggable={false}
+          onDragStart={(e) => e.stopPropagation()}
+          onClick={() => (isAdded ? onRemoveModule(mod.id) : onAddModule(mod.id))}
+          className={`grid h-4 w-4 shrink-0 place-items-center rounded hover:bg-slate-200 ${
+            isAdded ? 'text-emerald-600' : 'text-slate-400'
+          }`}
+        >
+          {isAdded ? <Check className="h-3 w-3" /> : <Plus className="h-3 w-3" />}
+        </button>
+      </div>
+
+      <div className="relative overflow-hidden bg-[#F7F8FF] p-2" style={{ height: 140 }}>
+        <div className="pointer-events-none origin-top-left" style={{ transform: 'scale(0.75)', width: '133%' }}>
+          <ModuleView id={mod.id} ctx={previewCtx} passive />
+        </div>
+      </div>
+    </div>
+  );
+};
 
   return (
     <aside className="flex w-[340px] shrink-0 flex-col border-r border-slate-200 bg-[#EDEFFC] scrollbar-thin-blue">
@@ -395,52 +620,127 @@ function LeftPanel({
 
       {/* Comps tab */}
       {tab === 'comps' && (
-        <div className="min-h-0 flex-1 space-y-2 overflow-y-auto px-3 pb-3 pt-2 scrollbar-thin-blue [scrollbar-width:thin] [scrollbar-color:#0040DF_transparent] [&::-webkit-scrollbar]:w-[5px] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-[#0040DF] [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-[#002db3]">
-          {filteredMods.length === 0 && (
-            <p className="py-6 text-center text-[10px] text-slate-400">No components found.</p>
-          )}
-          {filteredMods.map((mod) => {
-  const isAdded = (pageModules[activePage] ?? []).includes(mod.id);
-  const isDragging = drag?.id === mod.id && drag.from === 'library';
-  return (
-    <div
-      key={mod.id}
-      draggable
-      onDragStart={(e) => onStartDrag(e, mod.id, 'library')}
-      onDragEnd={onEndDrag}
-      className={`overflow-hidden rounded-lg border border-slate-200 bg-white cursor-grab active:cursor-grabbing ${
-        isDragging ? 'opacity-50' : ''
-      }`}
-    >
-      <div className="flex items-center justify-between border-b border-slate-100 px-2 py-1.5">
-        <div className="flex min-w-0 items-center gap-1.5">
-          <GripVertical className="h-3 w-3 shrink-0 text-slate-300" />
-          <span className="truncate text-[9px] font-bold text-slate-800">{mod.title}</span>
-          <span className={`shrink-0 rounded px-1 py-0.5 text-[7px] font-bold ${mod.badgeColor}`}>
-            {mod.badge}
+  <div className="min-h-0 flex-1 space-y-2 overflow-y-auto px-3 pb-3 pt-2 scrollbar-thin-blue [scrollbar-width:thin] [scrollbar-color:#0040DF_transparent] [&::-webkit-scrollbar]:w-[5px] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-[#0040DF] [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-[#002db3]">
+    {query.trim() !== '' ? (
+      <>
+        <div className="flex items-center justify-between px-1">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Search results</span>
+          <span className="text-[10px] text-slate-400">{filteredMods.length} items</span>
+        </div>
+
+        {filteredMods.length === 0 && (
+          <p className="py-6 text-center text-[10px] text-slate-400">No components found.</p>
+        )}
+
+        {filteredMods.map(renderCompModule)}
+      </>
+    ) : compLibrary === null ? (
+      <>
+        <div className="flex items-center justify-between px-1">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+            Design Kits &amp; Libraries
           </span>
+          <span className="text-[10px] text-slate-400">3 active</span>
         </div>
+
+        {COMP_LIBRARY_ORDER.map((id) => {
+          const meta = COMP_LIBRARY_META[id];
+          const count = allMods.filter((m) => libraryForModule(m) === id).length;
+
+          return (
+            <button
+              key={id}
+              type="button"
+              onClick={() => {
+                setCompLibrary(id);
+                setExpandedCompGroup(null);
+              }}
+              className="group w-full overflow-hidden rounded-xl border border-slate-200 bg-white text-left transition hover:border-[#0040DF]/40 hover:shadow-sm"
+            >
+              <div className={`flex h-24 items-center justify-center ${meta.bg}`}>
+                <meta.Icon className={`h-10 w-10 ${meta.text}`} />
+              </div>
+
+              <div className="flex items-center justify-between px-3 py-2">
+                <div className="min-w-0">
+                  <p className="truncate text-[12px] font-bold text-slate-800">{meta.label}</p>
+                  <p className="text-[10px] text-slate-500">{count} components</p>
+                </div>
+                <ChevronRight className="h-4 w-4 shrink-0 text-slate-400 group-hover:text-[#0040DF]" />
+              </div>
+            </button>
+          );
+        })}
+
         <button
-          draggable={false}
-          onDragStart={(e) => e.stopPropagation()}
-          onClick={() => (isAdded ? onRemoveModule(mod.id) : onAddModule(mod.id))}
-          className={`grid h-4 w-4 shrink-0 place-items-center rounded hover:bg-slate-200 ${
-            isAdded ? 'text-emerald-600' : 'text-slate-400'
-          }`}
+          type="button"
+          className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-[#0040DF] py-2 text-[11px] font-semibold text-white hover:bg-[#0036BF]"
         >
-          {isAdded ? <Check className="h-3 w-3" /> : <Plus className="h-3 w-3" />}
+          <PlusCircle className="h-3.5 w-3.5" /> Explore More Components
         </button>
-      </div>
-      <div className="relative overflow-hidden bg-[#F7F8FF] p-2" style={{ height: 140 }}>
-        <div className="pointer-events-none origin-top-left" style={{ transform: 'scale(0.75)', width: '133%' }}>
-          <ModuleView id={mod.id} ctx={previewCtx} passive />
+      </>
+    ) : (
+      <>
+        <div className="mb-1 flex items-center gap-2 px-1">
+          <button
+            type="button"
+            onClick={() => {
+              setCompLibrary(null);
+              setExpandedCompGroup(null);
+            }}
+            className="grid h-6 w-6 shrink-0 place-items-center rounded-md border border-slate-200 bg-white text-slate-500 hover:text-[#0040DF]"
+          >
+            <ChevronLeft className="h-3.5 w-3.5" />
+          </button>
+
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-[11px] font-bold text-slate-800">
+              {COMP_LIBRARY_META[compLibrary].label}
+            </p>
+            <p className="text-[9px] text-slate-500">{compsInLibrary.length} components</p>
+          </div>
         </div>
-      </div>
-    </div>
-  );
-})}
-        </div>
-      )}
+
+        {groupedComps.map((group) => {
+          const expanded = expandedCompGroup === group.id;
+
+          return (
+            <div key={group.id} className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+              <button
+                type="button"
+                onClick={() => setExpandedCompGroup(expanded ? null : group.id)}
+                className="flex w-full items-center gap-2 px-3 py-2 text-left hover:bg-slate-50"
+              >
+                <span className={`grid h-7 w-7 shrink-0 place-items-center rounded-lg ${group.bg} ${group.text}`}>
+                  <group.Icon className="h-4 w-4" />
+                </span>
+
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-[11px] font-bold text-slate-800">{group.label}</p>
+                  <p className="text-[9px] text-slate-500">{group.mods.length} templates</p>
+                </div>
+
+                <ChevronRight
+                  className={`h-4 w-4 shrink-0 text-slate-400 transition ${expanded ? 'rotate-90' : ''}`}
+                />
+              </button>
+
+              {expanded && (
+                <div className="space-y-2 border-t border-slate-100 p-2">
+                  {group.mods.map(renderCompModule)}
+                </div>
+              )}
+            </div>
+          );
+        })}
+
+        {groupedComps.length === 0 && (
+          <p className="py-6 text-center text-[10px] text-slate-400">No components found.</p>
+        )}
+      </>
+    )}
+  </div>
+)}
 
       {/* Assets tab */}
       {tab === 'assets' && (
@@ -1225,451 +1525,596 @@ function RightPanel({
           </div>
         ) : (
           <>
-            <div className="border-b border-slate-200 px-3 py-2.5">
-              <div className="rounded-lg border border-slate-200 bg-slate-50 p-2.5">
-                <div className="flex items-center justify-between">
-                  <div className="flex min-w-0 items-center gap-1.5">
-                    <Diamond className="h-3.5 w-3.5 shrink-0 text-indigo-500" />
-                    <p className="truncate text-[11px] font-bold">{mod.title}</p>
-                  </div>
-                  <span className="ml-2 rounded bg-indigo-100 px-1.5 py-0.5 text-[11px] font-bold text-indigo-700">Master</span>
-                </div>
-                <p className="mt-1 truncate text-[9px] text-slate-500">{mod.subtitle}</p>
-                <div className="mt-2 border-t border-slate-200 pt-2">
-                  <div className="mb-1.5 flex items-center justify-between">
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Variant State</span>
-                    <span className="text-[11px] font-semibold text-[#0040DF]">3 variants</span>
-                  </div>
-                  <div className="flex gap-1 rounded-md border border-slate-200 bg-white p-0.5">
-                    {(['Default', 'Masked', 'Negative'] as const).map((v) => (
-                      <button key={v}
-                        className={`flex-1 rounded py-1 text-[11px] font-semibold transition ${
-                          v === 'Default'
-                            ? 'bg-[#0040DF] text-white shadow-sm'
-                            : 'text-slate-400 hover:bg-slate-50 hover:text-slate-700'
-                        }`}>
-                        {v}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
+  <div className="border-b border-slate-200 px-3 py-2.5">
+    <div className="rounded-lg border border-slate-200 bg-slate-50 p-2.5">
+      <div className="flex items-center justify-between">
+        <div className="flex min-w-0 items-center gap-1.5">
+          <Diamond className="h-3.5 w-3.5 shrink-0 text-indigo-500" />
+          <p className="truncate text-[11px] font-bold">{mod.title}</p>
+        </div>
+        <span className="ml-2 rounded bg-indigo-100 px-1.5 py-0.5 text-[11px] font-bold text-indigo-700">
+          Master
+        </span>
+      </div>
 
-            {/* Content — schema-driven text slots */}
-            {schema?.text && schema.text.length > 0 && (
-              <section className="border-b border-slate-200 px-4 py-4">
-                <div className="mb-2.5 flex items-center justify-between">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Content</span>
-                  {hasOverrides && (
-                    <button onClick={() => onResetModuleOverrides(selectedId!)} className="text-[11px] font-semibold text-slate-400 hover:text-rose-500">
-                      Reset all
-                    </button>
-                  )}
-                </div>
-                <div className="space-y-2.5">
-                  {schema.text.map((s) => (
-                    <label key={s.slot} className="block">
-                      <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-slate-400">{s.label}</span>
-                      <div className="flex items-center gap-1.5">
-                        <input
-                          value={mOver?.text[s.slot] ?? ''}
-                          placeholder={s.defaultValue}
-                          onChange={(e) => setText(selectedId!, s.slot, e.target.value || null)}
-                          className="flex-1 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-[12px] outline-none focus:border-[#0040DF] focus:bg-white"
-                        />
-                        {mOver?.text[s.slot] && (
-                          <button onClick={() => setText(selectedId!, s.slot, null)} className="grid h-7 w-7 place-items-center rounded text-slate-400 hover:bg-rose-50 hover:text-rose-500" aria-label={`Reset ${s.label}`}>
-                            <X className="h-4 w-4" />
-                          </button>
-                        )}
-                      </div>
-                    </label>
-                  ))}
-                </div>
-              </section>
-            )}
+      <p className="mt-1 truncate text-[9px] text-slate-500">{mod.subtitle}</p>
 
-            {/* Colors — schema-driven color slots */}
-            {schema?.colors && schema.colors.length > 0 && (
-              <section className="border-b border-slate-200 px-4 py-4 relative">
-                <span className="mb-2.5 block text-[10px] font-bold uppercase tracking-wider text-slate-400">Colors</span>
-                <div className="space-y-2.5">
-                  {schema.colors.map((c) => {
-                    const current = mOver?.colors[c.slot] ?? c.defaultValue;
-                    const overridden = !!mOver?.colors[c.slot];
-                    return (
-                      <div key={c.slot} className="flex items-center gap-2.5 relative">
-                        <span className="w-20 truncate text-[11px] font-medium text-slate-600">{c.label}</span>
-                        <button
-                          type="button"
-                          aria-label={`Choose ${c.label}`}
-                          onClick={(e) => toggleColorPicker(e, c.slot)}
-                          className="h-8 w-8 shrink-0 rounded-md ring-1 ring-slate-200 shadow-sm"
-                          style={{ background: current }}
-                        />
-                        <input
-                          type="text"
-                          value={current}
-                          onChange={(e) => setColor(selectedId!, c.slot, e.target.value)}
-                          className="w-20 rounded border border-slate-200 px-2 py-1 font-mono text-[11px] uppercase outline-none focus:border-[#0040DF]"
-                        />
-                        {overridden && (
-                          <button onClick={() => setColor(selectedId!, c.slot, null)} className="grid h-6 w-6 place-items-center rounded text-slate-400 hover:bg-rose-50 hover:text-rose-500" aria-label={`Reset ${c.label}`}>
-                            <X className="h-3 w-3" />
-                          </button>
-                        )}
+      <div className="mt-2 border-t border-slate-200 pt-2">
+        <div className="mb-1.5 flex items-center justify-between">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+            Variant State
+          </span>
+          <span className="text-[11px] font-semibold text-[#0040DF]">3 variants</span>
+        </div>
 
-                        {/* Popover for schema color picker */}
-                        {showSchemaColorPicker === c.slot && colorPickerPosition && (
-                          <AdvancedColorPicker
-                            color={current}
-                            position={colorPickerPosition}
-                            title={`Edit ${c.label}`}
-                            onClose={closeColorPicker}
-                            onChange={(hex) => setColor(selectedId!, c.slot, hex)}
-                          />
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </section>
-            )}
+        <div className="flex gap-1 rounded-md border border-slate-200 bg-white p-0.5">
+          {(['Default', 'Masked', 'Negative'] as const).map((v) => (
+            <button
+              key={v}
+              className={`flex-1 rounded py-1 text-[11px] font-semibold transition ${
+                v === 'Default'
+                  ? 'bg-[#0040DF] text-white shadow-sm'
+                  : 'text-slate-400 hover:bg-slate-50 hover:text-slate-700'
+              }`}
+            >
+              {v}
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  </div>
 
-            {/* Fills Section */}
-            <section className="border-b border-slate-200 px-3 py-3 relative">
-              <div className="mb-2 flex items-center justify-between">
-                <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500">Fills</span>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => onBoxChange(selectedId!, { fillType: 'color', fillColor: box.fillColor || '#6D28D9' })}
-                    className="flex items-center gap-1 text-[10px] font-semibold text-[#0040DF] hover:underline"
-                  >
-                    <Plus className="h-3 w-3" /> Fill
-                  </button>
-                  <button
-                    onClick={() => fileInputRef.current?.click()}
-                    className="flex items-center gap-1 text-[10px] font-semibold text-[#0040DF] hover:underline"
-                  >
-                    <ImageIcon className="h-3 w-3" /> Image
-                  </button>
-                  <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" className="hidden" />
-                </div>
-              </div>
+  {/* Layout & Box Model */}
+  <section className="border-b border-slate-200 px-3 py-3">
+    <div className="mb-2.5 flex items-center justify-between">
+      <span className="text-[8px] font-bold uppercase tracking-wider text-slate-500">
+        Layout &amp; Box Model
+      </span>
+      <span className="text-[8px] font-semibold text-[#0040DF]">Flex Col</span>
+    </div>
 
-              {!box.fillType || box.fillType === 'none' ? (
-                <div className="rounded-lg border border-dashed border-slate-200 p-3 text-center">
-                  <p className="text-[10px] text-slate-400">No fills applied</p>
-                </div>
-              ) : box.fillType === 'color' ? (
-                <div className="flex items-center gap-2 rounded-lg border border-slate-200 p-2 bg-slate-50 relative">
+    <div className="mb-3 grid grid-cols-2 gap-1">
+      {([
+        { key: 'x' as const, label: 'X', value: box.x ?? 0 },
+        { key: 'y' as const, label: 'Y', value: box.y ?? 0 },
+        { key: 'w' as const, label: 'W', value: box.w ?? measured?.w ?? '' },
+        { key: 'h' as const, label: 'H', value: box.h ?? measured?.h ?? '' },
+      ]).map(({ key, label, value }) => (
+        <label
+          key={key}
+          className="flex h-7 items-center gap-2 rounded-md border border-slate-100 bg-[#F3F4FF] px-2"
+        >
+          <span className="text-[8px] font-semibold text-slate-400">{label}</span>
+          <input
+            type="number"
+            value={value}
+            onChange={(e) =>
+              onBoxChange(selectedId!, {
+                [key]: e.target.value === '' ? undefined : Number(e.target.value),
+              } as ModuleBox)
+            }
+            className="w-full bg-transparent text-right text-[9px] font-semibold text-slate-700 outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
+          />
+          <span className="text-[8px] text-slate-400">px</span>
+        </label>
+      ))}
+    </div>
+
+    <div className="mb-3 grid grid-cols-2 gap-1">
+      {([
+        { key: 'rotation' as const, label: 'Rotation', value: box.rotation ?? 0, suffix: '°' },
+        { key: 'opacity' as const, label: 'Opacity', value: box.opacity ?? 100, suffix: '%' },
+      ]).map(({ key, label, value, suffix }) => (
+        <label
+          key={key}
+          className="flex h-7 items-center gap-2 rounded-md border border-slate-100 bg-[#F3F4FF] px-2"
+        >
+          <span className="text-[8px] font-semibold text-slate-400">{label}</span>
+          <input
+            type="number"
+            min={key === 'opacity' ? 0 : undefined}
+            max={key === 'opacity' ? 100 : undefined}
+            value={value}
+            onChange={(e) =>
+              onBoxChange(selectedId!, {
+                [key]:
+                  key === 'opacity'
+                    ? Math.max(0, Math.min(100, Number(e.target.value) || 0))
+                    : Number(e.target.value) || 0,
+              })
+            }
+            className="w-full bg-transparent text-right text-[9px] font-semibold text-slate-700 outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
+          />
+          <span className="text-[8px] text-slate-400">{suffix}</span>
+        </label>
+      ))}
+    </div>
+  </section>
+
+  {/* Padding / Gap */}
+  <section className="border-b border-slate-200 px-3 py-3">
+    <div className="mb-2 flex items-center justify-between">
+      <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500">
+        Padding / Gap
+      </span>
+      <span className="text-[8px] font-semibold text-[#0040DF]">Fill container</span>
+    </div>
+
+    <div className="rounded-lg border border-dashed border-slate-200 p-2">
+      <div className="mb-1 flex items-center justify-between">
+        <span className="text-[8px] font-semibold text-slate-400">Top</span>
+        <span className="grid h-6 w-8 place-items-center rounded border border-slate-200 bg-white text-[9px] font-semibold text-slate-700">
+          2
+        </span>
+        <span className="text-[8px] text-slate-400">px</span>
+      </div>
+
+      <div className="flex items-center gap-2">
+        <div className="flex flex-1 items-center gap-1 rounded border border-slate-100 bg-[#F3F4FF] px-2 py-1">
+          <span className="text-[8px] text-slate-400">L</span>
+          <span className="grid h-5 w-7 place-items-center rounded border border-slate-200 bg-white text-[9px] font-semibold text-slate-700">
+            2
+          </span>
+          <span className="text-[8px] text-slate-400">px</span>
+        </div>
+
+        <div className="flex flex-[2] items-center justify-center rounded border border-blue-200 bg-blue-50 px-2 py-1 text-[9px] font-semibold text-[#0040DF]">
+          {box.w ?? measured?.w ?? 361} × {box.h ?? measured?.h ?? 168} (Fill Container)
+        </div>
+
+        <div className="flex flex-1 items-center gap-1 rounded border border-slate-100 bg-[#F3F4FF] px-2 py-1">
+          <span className="text-[8px] text-slate-400">R</span>
+          <span className="grid h-5 w-7 place-items-center rounded border border-slate-200 bg-white text-[9px] font-semibold text-slate-700">
+            2
+          </span>
+          <span className="text-[8px] text-slate-400">px</span>
+        </div>
+      </div>
+
+      <div className="mt-1 flex items-center justify-between">
+        <span className="text-[8px] font-semibold text-slate-400">Bottom</span>
+        <span className="grid h-6 w-8 place-items-center rounded border border-slate-200 bg-white text-[9px] font-semibold text-slate-700">
+          2
+        </span>
+        <span className="text-[8px] text-slate-400">px</span>
+      </div>
+    </div>
+  </section>
+
+  {/* Corner Radius */}
+  <section className="relative border-b border-slate-200 px-3 py-3">
+    <div className="mb-2 flex items-center justify-between">
+      <span className="text-[9px] font-semibold text-slate-700">Corner Radius</span>
+      <button
+        type="button"
+        onClick={() => setShowCornerRadius((v) => !v)}
+        className="rounded bg-blue-50 px-1.5 py-1 text-[8px] font-semibold text-[#0040DF] transition hover:bg-blue-100"
+      >
+        Edit corners
+      </button>
+    </div>
+
+    <div className="flex gap-2">
+      <div className="flex h-7 w-full items-center gap-2 rounded-md border border-slate-100 bg-[#F3F4FF] px-2">
+        <CornerIcon type="tl" />
+        <input
+          type="number"
+          value={cornerRadii.topLeft}
+          onChange={(e) => updateCornerRadius('topLeft', Math.max(0, Number(e.target.value) || 0))}
+          className="w-full bg-transparent text-right text-[9px] font-semibold text-slate-700 outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
+        />
+        <span className="text-[8px] text-slate-400">px</span>
+      </div>
+    </div>
+
+    {showCornerRadius && (
+      <div className="absolute left-0 right-0 top-full z-50 mt-1 rounded-xl border border-slate-200 bg-white p-4 shadow-[0_10px_40px_rgba(0,0,0,0.1)]">
+        <div className="mb-4 flex items-center justify-between">
+          <span className="text-[13px] font-semibold text-slate-800">Corner radius details</span>
+          <button onClick={() => setShowCornerRadius(false)} className="text-slate-400 hover:text-slate-600">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2">
+          {corners.map(({ key }) => {
+            const isBottomRight = key === 'bottomRight';
+            return (
+              <label key={key} className="flex h-[38px] items-center gap-2 rounded-lg bg-[#F4F5F8] px-3">
+                <CornerIcon
+                  type={key === 'topLeft' ? 'tl' : key === 'topRight' ? 'tr' : key === 'bottomLeft' ? 'bl' : 'br'}
+                />
+                <input
+                  type="number"
+                  min={0}
+                  value={cornerRadii[key]}
+                  onChange={(e) => updateCornerRadius(key, Math.max(0, Number(e.target.value) || 0))}
+                  className="w-full bg-transparent text-[12px] font-medium text-slate-700 outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
+                />
+                {isBottomRight && (
                   <button
                     type="button"
-                    aria-label="Choose fill color"
-                    onClick={(e) => toggleColorPicker(e, 'fill')}
-                    className="h-7 w-7 shrink-0 rounded border border-slate-300 shadow-sm"
-                    style={{ background: box.fillColor || '#6D28D9' }}
-                  />
-                  <div className="flex flex-1 flex-col min-w-0">
-                    <span className="text-[11px] font-semibold text-slate-700">Solid Color</span>
-                    <span className="text-[9px] text-slate-500 font-mono uppercase">{box.fillColor || '#6D28D9'}</span>
-                  </div>
-                  <span className="text-[11px] font-semibold text-slate-600">100%</span>
-                  <button className="text-slate-400 hover:text-slate-600"><Eye className="h-4 w-4" /></button>
-                  <button onClick={() => onBoxChange(selectedId!, { fillType: 'none' })} className="text-slate-400 hover:text-rose-500">
-                    <div className="h-4 w-4 rounded-full border border-current flex items-center justify-center"><div className="h-px w-2 bg-current rotate-45" /></div>
+                    onClick={() => onBoxChange(selectedId!, { cornerRadiusLinked: !cornerRadiusLinked })}
+                    className={`ml-auto rounded p-1 transition hover:bg-slate-200 ${
+                      cornerRadiusLinked ? 'text-[#0040DF]' : 'text-slate-400'
+                    }`}
+                    title={cornerRadiusLinked ? 'Corners linked' : 'Corners unlinked'}
+                  >
+                    <HexagonLinkIcon />
                   </button>
+                )}
+              </label>
+            );
+          })}
+        </div>
+      </div>
+    )}
+  </section>
 
-                  {showFillColorPicker && colorPickerPosition && (
-                    <AdvancedColorPicker
-                      color={box.fillColor || '#6D28D9'}
-                      position={colorPickerPosition}
-                      title="Fill color"
-                      onClose={closeColorPicker}
-                      onChange={(c) => onBoxChange(selectedId!, { fillColor: c })}
-                    />
-                  )}
-                </div>
-              ) : box.fillType === 'image' && box.imageFill ? (
-                <div className="rounded-lg border border-slate-200 p-2 space-y-2">
-                  <div className="flex items-center gap-2">
-                     <div className="h-8 w-8 shrink-0 rounded overflow-hidden bg-slate-100 border border-slate-200">
-                       <img src={box.imageFill.url} alt="fill" className="h-full w-full object-cover" />
-                     </div>
-                     <div className="flex flex-1 flex-col min-w-0">
-                       <div className="flex items-center gap-1.5">
-                         <span className="text-[11px] font-semibold text-slate-800 truncate">Image Fill</span>
-                         <span className="rounded bg-blue-50 px-1 py-0.5 text-[7px] font-bold text-blue-600 tracking-wide">PATTERN</span>
-                       </div>
-                       <span className="text-[9px] text-slate-500 truncate">{box.imageFill.name}</span>
-                     </div>
-                     <span className="text-[10px] text-slate-500">{box.imageFill.opacity}%</span>
-                     <button onClick={() => onBoxChange(selectedId!, { imageFill: { ...box.imageFill!, visible: !box.imageFill!.visible } })} className="text-slate-400 hover:text-slate-600">
-                       {box.imageFill.visible !== false ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
-                     </button>
-                     <button onClick={() => onBoxChange(selectedId!, { fillType: 'none' })} className="text-slate-400 hover:text-rose-500">
-                       <div className="h-4 w-4 rounded-full border border-current flex items-center justify-center"><div className="h-px w-2 bg-current rotate-45" /></div>
-                     </button>
-                  </div>
+  {/* Fills Section */}
+  <section className="relative border-b border-slate-200 px-3 py-3">
+    <div className="mb-2 flex items-center justify-between">
+      <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500">Fills</span>
+      <div className="flex gap-2">
+        <button
+          onClick={() => onBoxChange(selectedId!, { fillType: 'color', fillColor: box.fillColor || '#6D28D9' })}
+          className="flex items-center gap-1 text-[10px] font-semibold text-[#0040DF] hover:underline"
+        >
+          <Plus className="h-3 w-3" /> Fill
+        </button>
+        <button
+          onClick={() => fileInputRef.current?.click()}
+          className="flex items-center gap-1 text-[10px] font-semibold text-[#0040DF] hover:underline"
+        >
+          <ImageIcon className="h-3 w-3" /> Image
+        </button>
+        <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" className="hidden" />
+      </div>
+    </div>
 
-                  <div className="flex gap-2">
-                     <button onClick={() => fileInputRef.current?.click()} className="flex flex-1 items-center justify-between rounded border border-slate-200 bg-white px-2 py-1 text-[10px] text-slate-700 hover:bg-slate-50">
-                       <span className="flex items-center gap-1"><ImageIcon className="h-3 w-3 text-blue-500" /> Choose...</span>
-                       <ChevronDown className="h-3 w-3" />
-                     </button>
-                     <div className="flex flex-1 items-center justify-between rounded border border-slate-200 bg-white px-2 py-1 text-[10px] text-slate-700">
-                       <span className="capitalize">{box.imageFill.fit}</span>
-                       <ChevronDown className="h-3 w-3" />
-                     </div>
-                  </div>
+    {!box.fillType || box.fillType === 'none' ? (
+      <div className="rounded-lg border border-dashed border-slate-200 p-3 text-center">
+        <p className="text-[10px] text-slate-400">No fills applied</p>
+      </div>
+    ) : box.fillType === 'color' ? (
+      <div className="relative flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 p-2">
+        <button
+          type="button"
+          aria-label="Choose fill color"
+          onClick={(e) => toggleColorPicker(e, 'fill')}
+          className="h-7 w-7 shrink-0 rounded border border-slate-300 shadow-sm"
+          style={{ background: box.fillColor || '#6D28D9' }}
+        />
+        <div className="flex min-w-0 flex-1 flex-col">
+          <span className="text-[11px] font-semibold text-slate-700">Solid Color</span>
+          <span className="font-mono text-[9px] uppercase text-slate-500">{box.fillColor || '#6D28D9'}</span>
+        </div>
+        <span className="text-[11px] font-semibold text-slate-600">100%</span>
+        <button className="text-slate-400 hover:text-slate-600">
+          <Eye className="h-4 w-4" />
+        </button>
+        <button onClick={() => onBoxChange(selectedId!, { fillType: 'none' })} className="text-slate-400 hover:text-rose-500">
+          <div className="flex h-4 w-4 items-center justify-center rounded-full border border-current">
+            <div className="h-px w-2 rotate-45 bg-current" />
+          </div>
+        </button>
 
-                  <div className="flex rounded-md bg-slate-100 p-0.5">
-                    {(['fill', 'fit', 'crop', 'tile'] as const).map(f => (
-                       <button
-                         key={f}
-                         onClick={() => onBoxChange(selectedId!, { imageFill: { ...box.imageFill!, fit: f } })}
-                         className={`flex-1 py-1 text-[9px] font-semibold capitalize ${box.imageFill!.fit === f ? 'bg-white text-[#0040DF] shadow-sm rounded' : 'text-slate-500 hover:text-slate-700'}`}
-                       >
-                         {f}
-                       </button>
-                    ))}
-                  </div>
-                </div>
-              ) : null}
-            </section>
+        {showFillColorPicker && colorPickerPosition && (
+          <AdvancedColorPicker
+            color={box.fillColor || '#6D28D9'}
+            position={colorPickerPosition}
+            title="Fill color"
+            onClose={closeColorPicker}
+            onChange={(c) => onBoxChange(selectedId!, { fillColor: c })}
+          />
+        )}
+      </div>
+    ) : box.fillType === 'image' && box.imageFill ? (
+      <div className="space-y-2 rounded-lg border border-slate-200 p-2">
+        <div className="flex items-center gap-2">
+          <div className="h-8 w-8 shrink-0 overflow-hidden rounded border border-slate-200 bg-slate-100">
+            <img src={box.imageFill.url} alt="fill" className="h-full w-full object-cover" />
+          </div>
+          <div className="flex min-w-0 flex-1 flex-col">
+            <div className="flex items-center gap-1.5">
+              <span className="truncate text-[11px] font-semibold text-slate-800">Image Fill</span>
+              <span className="rounded bg-blue-50 px-1 py-0.5 text-[7px] font-bold tracking-wide text-blue-600">
+                PATTERN
+              </span>
+            </div>
+            <span className="truncate text-[9px] text-slate-500">{box.imageFill.name}</span>
+          </div>
+          <span className="text-[10px] text-slate-500">{box.imageFill.opacity}%</span>
+          <button
+            onClick={() =>
+              onBoxChange(selectedId!, {
+                imageFill: { ...box.imageFill!, visible: !box.imageFill!.visible },
+              })
+            }
+            className="text-slate-400 hover:text-slate-600"
+          >
+            {box.imageFill.visible !== false ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
+          </button>
+          <button onClick={() => onBoxChange(selectedId!, { fillType: 'none' })} className="text-slate-400 hover:text-rose-500">
+            <div className="flex h-4 w-4 items-center justify-center rounded-full border border-current">
+              <div className="h-px w-2 rotate-45 bg-current" />
+            </div>
+          </button>
+        </div>
 
-            {/* Layout & Box Model */}
-            <section className="border-b border-slate-200 px-3 py-3">
-              <div className="mb-2.5 flex items-center justify-between">
-                <span className="text-[8px] font-bold uppercase tracking-wider text-slate-500">Layout &amp; Box Model</span>
-                <span className="text-[8px] font-semibold text-[#0040DF]">Flex Col</span>
-              </div>
+        <div className="flex gap-2">
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="flex flex-1 items-center justify-between rounded border border-slate-200 bg-white px-2 py-1 text-[10px] text-slate-700 hover:bg-slate-50"
+          >
+            <span className="flex items-center gap-1">
+              <ImageIcon className="h-3 w-3 text-blue-500" /> Choose...
+            </span>
+            <ChevronDown className="h-3 w-3" />
+          </button>
+          <div className="flex flex-1 items-center justify-between rounded border border-slate-200 bg-white px-2 py-1 text-[10px] text-slate-700">
+            <span className="capitalize">{box.imageFill.fit}</span>
+            <ChevronDown className="h-3 w-3" />
+          </div>
+        </div>
 
-              <div className="mb-3 grid grid-cols-2 gap-1">
-                {([
-                  { key: 'x' as const, label: 'X', value: box.x ?? 0 },
-                  { key: 'y' as const, label: 'Y', value: box.y ?? 0 },
-                  { key: 'w' as const, label: 'W', value: box.w ?? measured?.w ?? '' },
-                  { key: 'h' as const, label: 'H', value: box.h ?? measured?.h ?? '' },
-                ]).map(({ key, label, value }) => (
-                  <label key={key} className="flex h-7 items-center gap-2 rounded-md border border-slate-100 bg-[#F3F4FF] px-2">
-                    <span className="text-[8px] font-semibold text-slate-400">{label}</span>
-                    <input
-                      type="number"
-                      value={value}
-                      onChange={(e) => onBoxChange(selectedId!, {
-                        [key]: e.target.value === '' ? undefined : Number(e.target.value),
-                      } as ModuleBox)}
-                      className="w-full bg-transparent text-right text-[9px] font-semibold text-slate-700 outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
-                    />
-                    <span className="text-[8px] text-slate-400">px</span>
-                  </label>
-                ))}
-              </div>
+        <div className="flex rounded-md bg-slate-100 p-0.5">
+          {(['fill', 'fit', 'crop', 'tile'] as const).map((f) => (
+            <button
+              key={f}
+              onClick={() => onBoxChange(selectedId!, { imageFill: { ...box.imageFill!, fit: f } })}
+              className={`flex-1 py-1 text-[9px] font-semibold capitalize ${
+                box.imageFill!.fit === f
+                  ? 'rounded bg-white text-[#0040DF] shadow-sm'
+                  : 'text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              {f}
+            </button>
+          ))}
+        </div>
+      </div>
+    ) : null}
+  </section>
 
-              <div className="mb-3 grid grid-cols-2 gap-1">
-                {([
-                  { key: 'rotation' as const, label: 'Rotation', value: box.rotation ?? 0, suffix: '°' },
-                  { key: 'opacity' as const, label: 'Opacity', value: box.opacity ?? 100, suffix: '%' },
-                ]).map(({ key, label, value, suffix }) => (
-                  <label key={key} className="flex h-7 items-center gap-2 rounded-md border border-slate-100 bg-[#F3F4FF] px-2">
-                    <span className="text-[8px] font-semibold text-slate-400">{label}</span>
-                    <input
-                      type="number"
-                      min={key === 'opacity' ? 0 : undefined}
-                      max={key === 'opacity' ? 100 : undefined}
-                      value={value}
-                      onChange={(e) => onBoxChange(selectedId!, {
-                        [key]: key === 'opacity'
-                          ? Math.max(0, Math.min(100, Number(e.target.value) || 0))
-                          : Number(e.target.value) || 0,
-                      })}
-                      className="w-full bg-transparent text-right text-[9px] font-semibold text-slate-700 outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
-                    />
-                    <span className="text-[8px] text-slate-400">{suffix}</span>
-                  </label>
-                ))}
-              </div>
-            </section>
+  {/* Colors — schema-driven color slots */}
+  {schema?.colors && schema.colors.length > 0 && (
+    <section className="relative border-b border-slate-200 px-4 py-4">
+      <span className="mb-2.5 block text-[10px] font-bold uppercase tracking-wider text-slate-400">
+        Colors
+      </span>
 
-            {/* Corner Radius */}
-            <section className="border-b border-slate-200 px-3 py-3 relative">
-              <div className="mb-2 flex items-center justify-between">
-                <span className="text-[9px] font-semibold text-slate-700">Corner Radius</span>
+      <div className="space-y-2.5">
+        {schema.colors.map((c) => {
+          const current = mOver?.colors[c.slot] ?? c.defaultValue;
+          const overridden = !!mOver?.colors[c.slot];
+
+          return (
+            <div key={c.slot} className="relative flex items-center gap-2.5">
+              <span className="w-20 truncate text-[11px] font-medium text-slate-600">{c.label}</span>
+              <button
+                type="button"
+                aria-label={`Choose ${c.label}`}
+                onClick={(e) => toggleColorPicker(e, c.slot)}
+                className="h-8 w-8 shrink-0 rounded-md shadow-sm ring-1 ring-slate-200"
+                style={{ background: current }}
+              />
+              <input
+                type="text"
+                value={current}
+                onChange={(e) => setColor(selectedId!, c.slot, e.target.value)}
+                className="w-20 rounded border border-slate-200 px-2 py-1 font-mono text-[11px] uppercase outline-none focus:border-[#0040DF]"
+              />
+              {overridden && (
                 <button
-                  type="button"
-                  onClick={() => setShowCornerRadius(v => !v)}
-                  className="rounded px-1.5 py-1 text-[8px] font-semibold text-[#0040DF] bg-blue-50 hover:bg-blue-100 transition"
+                  onClick={() => setColor(selectedId!, c.slot, null)}
+                  className="grid h-6 w-6 place-items-center rounded text-slate-400 hover:bg-rose-50 hover:text-rose-500"
+                  aria-label={`Reset ${c.label}`}
                 >
-                  Edit corners
+                  <X className="h-3 w-3" />
                 </button>
-              </div>
-
-              <div className="flex gap-2">
-                  <div className="flex h-7 items-center gap-2 rounded-md border border-slate-100 bg-[#F3F4FF] px-2 w-full">
-                    <CornerIcon type="tl" />
-                    <input
-                      type="number"
-                      value={cornerRadii.topLeft}
-                      onChange={(e) => updateCornerRadius('topLeft', Math.max(0, Number(e.target.value) || 0))}
-                      className="w-full bg-transparent text-right text-[9px] font-semibold text-slate-700 outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
-                    />
-                    <span className="text-[8px] text-slate-400">px</span>
-                  </div>
-              </div>
-
-              {showCornerRadius && (
-                <div className="absolute left-0 right-0 top-full z-50 mt-1 rounded-xl border border-slate-200 bg-white p-4 shadow-[0_10px_40px_rgba(0,0,0,0.1)]">
-                    <div className="mb-4 flex items-center justify-between">
-                      <span className="text-[13px] font-semibold text-slate-800">Corner radius details</span>
-                      <button onClick={() => setShowCornerRadius(false)} className="text-slate-400 hover:text-slate-600">
-                        <X className="h-4 w-4" />
-                      </button>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      {corners.map(({ key }) => {
-                        const isBottomRight = key === 'bottomRight';
-                        return (
-                          <label key={key} className="flex h-[38px] items-center gap-2 rounded-lg bg-[#F4F5F8] px-3">
-                            <CornerIcon type={key === 'topLeft' ? 'tl' : key === 'topRight' ? 'tr' : key === 'bottomLeft' ? 'bl' : 'br'} />
-                            <input
-                              type="number"
-                              min={0}
-                              value={cornerRadii[key]}
-                              onChange={(e) => updateCornerRadius(key, Math.max(0, Number(e.target.value) || 0))}
-                              className="w-full bg-transparent text-[12px] font-medium text-slate-700 outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
-                            />
-                            {isBottomRight && (
-                              <button
-                                type="button"
-                                onClick={() => onBoxChange(selectedId!, { cornerRadiusLinked: !cornerRadiusLinked })}
-                                className={`ml-auto rounded p-1 hover:bg-slate-200 transition ${cornerRadiusLinked ? 'text-[#0040DF]' : 'text-slate-400'}`}
-                                title={cornerRadiusLinked ? 'Corners linked' : 'Corners unlinked'}
-                              >
-                                <HexagonLinkIcon />
-                              </button>
-                            )}
-                          </label>
-                        );
-                      })}
-                    </div>
-                </div>
               )}
-            </section>
 
-            {/* Strokes & Borders */}
-            <section className="border-b border-slate-200 px-3 py-3">
-              <div className="mb-2 flex items-center justify-between">
-                <span className="text-[9px] font-semibold text-slate-700">Strokes &amp; Borders</span>
-                <span className="text-[8px] text-slate-400">Selected component</span>
-              </div>
-              <div className="mb-2 flex items-center gap-2 rounded-md border border-slate-100 bg-[#F3F4FF] px-2 py-1.5">
-                <label className="relative h-5 w-5 shrink-0 cursor-pointer overflow-hidden rounded border border-slate-300" title="Stroke color">
-                  <span className="absolute inset-0" style={{ background: box.strokeColor ?? '#6941C6' }} />
-                  <input
-                    aria-label="Stroke color"
-                    type="color"
-                    value={box.strokeColor ?? '#6941C6'}
-                    onChange={(e) => onBoxChange(selectedId!, { strokeColor: e.target.value })}
-                    className="absolute inset-0 cursor-pointer opacity-0"
-                  />
-                </label>
-                <span className="flex-1 font-mono text-[9px] text-slate-600 uppercase">{box.strokeColor ?? '#6941C6'}</span>
-                <label className="flex items-center gap-1 text-[8px] text-slate-400">
-                  W
-                  <input
-                    aria-label="Stroke width"
-                    type="number"
-                    min={0}
-                    max={20}
-                    value={box.strokeWidth ?? 0}
-                    onChange={(e) => onBoxChange(selectedId!, { strokeWidth: Math.max(0, Math.min(20, Number(e.target.value) || 0)) })}
-                    className="w-8 rounded border border-slate-200 bg-white px-1 py-0.5 text-center text-[9px] text-slate-700 outline-none"
-                  />
-                </label>
-              </div>
-              <div className="grid grid-cols-2 gap-1.5">
-                <label className="flex h-7 items-center rounded-md border border-slate-200 bg-white px-2">
-                  <span className="sr-only">Stroke alignment</span>
-                  <select
-                    aria-label="Stroke alignment"
-                    value={box.strokeAlign ?? 'inside'}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      if (value === 'inside' || value === 'center' || value === 'outside') {
-                        onBoxChange(selectedId!, { strokeAlign: value });
-                      }
-                    }}
-                    className="w-full bg-transparent text-[9px] text-slate-600 outline-none"
-                  >
-                    <option value="inside">Inside</option>
-                    <option value="center">Center</option>
-                    <option value="outside">Outside</option>
-                  </select>
-                </label>
-                <label className="flex h-7 items-center rounded-md border border-slate-200 bg-white px-2">
-                  <span className="sr-only">Stroke style</span>
-                  <select
-                    aria-label="Stroke style"
-                    value={box.strokeStyle ?? 'solid'}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      if (value === 'solid' || value === 'dashed' || value === 'dotted') {
-                        onBoxChange(selectedId!, { strokeStyle: value });
-                      }
-                    }}
-                    className="w-full bg-transparent text-[9px] text-slate-600 outline-none"
-                  >
-                    <option value="solid">Solid Line</option>
-                    <option value="dashed">Dashed</option>
-                    <option value="dotted">Dotted</option>
-                  </select>
-                </label>
-              </div>
-            </section>
+              {showSchemaColorPicker === c.slot && colorPickerPosition && (
+                <AdvancedColorPicker
+                  color={current}
+                  position={colorPickerPosition}
+                  title={`Edit ${c.label}`}
+                  onClose={closeColorPicker}
+                  onChange={(hex) => setColor(selectedId!, c.slot, hex)}
+                />
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  )}
 
-            {/* Workflow Triggers */}
-            <section className="border-b border-slate-200 px-4 py-4">
-              <div className="mb-2.5 flex items-center justify-between">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Workflow Triggers</span>
-                <button onClick={onToggleWorkflow} className="flex items-center gap-1 text-[11px] font-semibold text-[#0040DF]">
-                  <Plus className="h-3 w-3" /> Add Action
+  {/* Strokes & Borders */}
+  <section className="border-b border-slate-200 px-3 py-3">
+    <div className="mb-2 flex items-center justify-between">
+      <span className="text-[9px] font-semibold text-slate-700">Strokes &amp; Borders</span>
+      <span className="text-[8px] text-slate-400">Selected component</span>
+    </div>
+
+    <div className="mb-2 flex items-center gap-2 rounded-md border border-slate-100 bg-[#F3F4FF] px-2 py-1.5">
+      <label className="relative h-5 w-5 shrink-0 cursor-pointer overflow-hidden rounded border border-slate-300" title="Stroke color">
+        <span className="absolute inset-0" style={{ background: box.strokeColor ?? '#6941C6' }} />
+        <input
+          aria-label="Stroke color"
+          type="color"
+          value={box.strokeColor ?? '#6941C6'}
+          onChange={(e) => onBoxChange(selectedId!, { strokeColor: e.target.value })}
+          className="absolute inset-0 cursor-pointer opacity-0"
+        />
+      </label>
+      <span className="flex-1 font-mono text-[9px] uppercase text-slate-600">{box.strokeColor ?? '#6941C6'}</span>
+      <label className="flex items-center gap-1 text-[8px] text-slate-400">
+        W
+        <input
+          aria-label="Stroke width"
+          type="number"
+          min={0}
+          max={20}
+          value={box.strokeWidth ?? 0}
+          onChange={(e) =>
+            onBoxChange(selectedId!, {
+              strokeWidth: Math.max(0, Math.min(20, Number(e.target.value) || 0)),
+            })
+          }
+          className="w-8 rounded border border-slate-200 bg-white px-1 py-0.5 text-center text-[9px] text-slate-700 outline-none"
+        />
+      </label>
+    </div>
+
+    <div className="grid grid-cols-2 gap-1.5">
+      <label className="flex h-7 items-center rounded-md border border-slate-200 bg-white px-2">
+        <span className="sr-only">Stroke alignment</span>
+        <select
+          aria-label="Stroke alignment"
+          value={box.strokeAlign ?? 'inside'}
+          onChange={(e) => {
+            const value = e.target.value;
+            if (value === 'inside' || value === 'center' || value === 'outside') {
+              onBoxChange(selectedId!, { strokeAlign: value });
+            }
+          }}
+          className="w-full bg-transparent text-[9px] text-slate-600 outline-none"
+        >
+          <option value="inside">Inside</option>
+          <option value="center">Center</option>
+          <option value="outside">Outside</option>
+        </select>
+      </label>
+
+      <label className="flex h-7 items-center rounded-md border border-slate-200 bg-white px-2">
+        <span className="sr-only">Stroke style</span>
+        <select
+          aria-label="Stroke style"
+          value={box.strokeStyle ?? 'solid'}
+          onChange={(e) => {
+            const value = e.target.value;
+            if (value === 'solid' || value === 'dashed' || value === 'dotted') {
+              onBoxChange(selectedId!, { strokeStyle: value });
+            }
+          }}
+          className="w-full bg-transparent text-[9px] text-slate-600 outline-none"
+        >
+          <option value="solid">Solid Line</option>
+          <option value="dashed">Dashed</option>
+          <option value="dotted">Dotted</option>
+        </select>
+      </label>
+    </div>
+  </section>
+
+  {/* Content — schema-driven text slots */}
+  {schema?.text && schema.text.length > 0 && (
+    <section className="border-b border-slate-200 px-4 py-4">
+      <div className="mb-2.5 flex items-center justify-between">
+        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Content</span>
+        {hasOverrides && (
+          <button
+            onClick={() => onResetModuleOverrides(selectedId!)}
+            className="text-[11px] font-semibold text-slate-400 hover:text-rose-500"
+          >
+            Reset all
+          </button>
+        )}
+      </div>
+
+      <div className="space-y-2.5">
+        {schema.text.map((s) => (
+          <label key={s.slot} className="block">
+            <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+              {s.label}
+            </span>
+            <div className="flex items-center gap-1.5">
+              <input
+                value={mOver?.text[s.slot] ?? ''}
+                placeholder={s.defaultValue}
+                onChange={(e) => setText(selectedId!, s.slot, e.target.value || null)}
+                className="flex-1 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-[12px] outline-none focus:border-[#0040DF] focus:bg-white"
+              />
+              {mOver?.text[s.slot] && (
+                <button
+                  onClick={() => setText(selectedId!, s.slot, null)}
+                  className="grid h-7 w-7 place-items-center rounded text-slate-400 hover:bg-rose-50 hover:text-rose-500"
+                  aria-label={`Reset ${s.label}`}
+                >
+                  <X className="h-4 w-4" />
                 </button>
-              </div>
-              <div className="mb-2 flex items-center gap-2 text-[11px] font-semibold text-slate-700">
-                <span className="h-2 w-2 rounded-full bg-amber-500" />WHEN: On Tap
-              </div>
-              {workflowOpen && (
-                <div className="space-y-1.5">
-                  <div className="flex items-center gap-2.5 rounded-md bg-slate-50 px-3 py-2 ring-1 ring-slate-200">
-                    <span className="grid h-5 w-5 place-items-center rounded-full bg-white text-[10px] font-bold text-slate-500 ring-1 ring-slate-200">1</span>
-                    <p className="flex-1 text-[11px] font-semibold">Validate KYC Status (Passkey)</p>
-                    <span className="rounded bg-blue-50 px-1.5 py-0.5 text-[9px] font-bold text-[#0040DF] ring-1 ring-blue-200">Rule</span>
-                  </div>
-                  <div className="flex items-center gap-2.5 rounded-md bg-slate-50 px-3 py-2 ring-1 ring-slate-200">
-                    <span className="grid h-5 w-5 place-items-center rounded-full bg-white text-[10px] font-bold text-slate-500 ring-1 ring-slate-200">2</span>
-                    <p className="flex-1 text-[11px] font-semibold">Open BottomSheet: /wallet/details</p>
-                    <span className="rounded bg-purple-50 px-1.5 py-0.5 text-[9px] font-bold text-purple-700 ring-1 ring-purple-200">Spring</span>
-                  </div>
-                </div>
               )}
-            </section>
+            </div>
+          </label>
+        ))}
+      </div>
+    </section>
+  )}
 
-            {/* Live Core Data Binding */}
-            <section className="px-4 py-4">
-              <div className="mb-2.5 flex items-center justify-between">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Live Core Data Binding</span>
-                <span className={`flex items-center gap-1.5 rounded-full px-2 py-1 text-[10px] font-bold ${wsStatus === 'active' ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
-                  <span className={`h-2 w-2 rounded-full ${wsStatus === 'active' ? 'bg-emerald-500' : 'bg-slate-400'}`} />
-                  {wsStatus === 'active' ? 'WS Active' : 'Disconnected'}
-                </span>
-              </div>
-              <div className="flex items-center gap-2 rounded-md bg-slate-50 px-3 py-2 ring-1 ring-slate-200">
-                <Braces className="h-4 w-4 text-slate-400" />
-                <span className="font-mono text-[11px] text-[#0040DF]">{'{{account.available_balance}}'}</span>
-              </div>
-            </section>
+  {/* Workflow Triggers */}
+  <section className="border-b border-slate-200 px-4 py-4">
+    <div className="mb-2.5 flex items-center justify-between">
+      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+        Workflow Triggers
+      </span>
+      <button onClick={onToggleWorkflow} className="flex items-center gap-1 text-[11px] font-semibold text-[#0040DF]">
+        <Plus className="h-3 w-3" /> Add Action
+      </button>
+    </div>
+
+    <div className="mb-2 flex items-center gap-2 text-[11px] font-semibold text-slate-700">
+      <span className="h-2 w-2 rounded-full bg-amber-500" />
+      WHEN: On Tap
+    </div>
+
+    {workflowOpen && (
+      <div className="space-y-1.5">
+        <div className="flex items-center gap-2.5 rounded-md bg-slate-50 px-3 py-2 ring-1 ring-slate-200">
+          <span className="grid h-5 w-5 place-items-center rounded-full bg-white text-[10px] font-bold text-slate-500 ring-1 ring-slate-200">
+            1
+          </span>
+          <p className="flex-1 text-[11px] font-semibold">Validate KYC Status (Passkey)</p>
+          <span className="rounded bg-blue-50 px-1.5 py-0.5 text-[9px] font-bold text-[#0040DF] ring-1 ring-blue-200">
+            Rule
+          </span>
+        </div>
+        <div className="flex items-center gap-2.5 rounded-md bg-slate-50 px-3 py-2 ring-1 ring-slate-200">
+          <span className="grid h-5 w-5 place-items-center rounded-full bg-white text-[10px] font-bold text-slate-500 ring-1 ring-slate-200">
+            2
+          </span>
+          <p className="flex-1 text-[11px] font-semibold">Open BottomSheet: /wallet/details</p>
+          <span className="rounded bg-purple-50 px-1.5 py-0.5 text-[9px] font-bold text-purple-700 ring-1 ring-purple-200">
+            Spring
+          </span>
+        </div>
+      </div>
+    )}
+  </section>
+
+  {/* Live Core Data Binding */}
+  <section className="px-4 py-4">
+    <div className="mb-2.5 flex items-center justify-between">
+      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+        Live Core Data Binding
+      </span>
+      <span
+        className={`flex items-center gap-1.5 rounded-full px-2 py-1 text-[10px] font-bold ${
+          wsStatus === 'active' ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'
+        }`}
+      >
+        <span className={`h-2 w-2 rounded-full ${wsStatus === 'active' ? 'bg-emerald-500' : 'bg-slate-400'}`} />
+        {wsStatus === 'active' ? 'WS Active' : 'Disconnected'}
+      </span>
+    </div>
+
+    <div className="flex items-center gap-2 rounded-md bg-slate-50 px-3 py-2 ring-1 ring-slate-200">
+      <Braces className="h-4 w-4 text-slate-400" />
+      <span className="font-mono text-[11px] text-[#0040DF]">{'{{account.available_balance}}'}</span>
+    </div>
+  </section>
           </>
         )}
       </div>
