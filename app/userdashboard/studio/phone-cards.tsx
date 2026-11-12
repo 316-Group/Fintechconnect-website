@@ -586,6 +586,7 @@ export interface ViewCtx {
   isCardFrozen: boolean;
   actions: ViewActions;
   customRadius?: string;
+  customPadding?: { top: number; right: number; bottom: number; left: number };
   customStroke?: React.CSSProperties;
   customBackground?: React.CSSProperties;
   customBackgroundImage?: React.CSSProperties;
@@ -1903,6 +1904,10 @@ export function ModuleView({ id, ctx, passive }: { id: ModuleId; ctx: ViewCtx; p
   const wrapperStyle: React.CSSProperties = {
     borderRadius: ctx.customRadius,
     overflow: ctx.customRadius || hasCustomFill ? 'hidden' : undefined,
+    boxSizing: 'border-box',
+    padding: ctx.customPadding
+      ? `${ctx.customPadding.top}px ${ctx.customPadding.right}px ${ctx.customPadding.bottom}px ${ctx.customPadding.left}px`
+      : undefined,
     ...ctx.customStroke,
     ...ctx.customBackground,
   };

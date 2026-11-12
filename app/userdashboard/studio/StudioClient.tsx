@@ -12,7 +12,9 @@ import {
   Search, Upload, Eye, EyeOff, Image as ImageIcon, Pipette,
   Bell, List, ArrowRightLeft, Landmark, PiggyBank, Activity,
   CircleDollarSign, Coins, LayoutGrid, Type, Square, Circle, Minus,
-  Sparkles, Sun, Droplet, SlidersHorizontal, Move
+  Sparkles, Sun, Droplet, SlidersHorizontal, Move, MousePointer2, Hand,
+  Frame, Star, ArrowRight, Spline, MessageCircle,
+  AlignLeft, AlignCenter, AlignRight, AlignJustify, Underline, Strikethrough,
 } from 'lucide-react';
 import {
   PAGES, APP_KINDS, PAGE_TO_TAB, TAB_TO_PAGE, SINGLE_SLOT,
@@ -25,7 +27,11 @@ import {
   noopActions,
 } from './phone-cards';
 
-import { EditProvider, useEditOverrides } from './edit-context';
+import {
+  EditProvider,
+  useEditOverrides,
+  type EditableTextStyle,
+} from './edit-context';
 import { EDITABLE_SCHEMA } from './editable-schema';
 import AssetTab, { type AssetItem } from './assettab';
 
@@ -133,6 +139,12 @@ type RightTab = 'design' | 'layout' | 'logic' | 'data' | 'code';
 type SaveState = 'saving' | 'saved' | 'unsaved';
 type DragState = { id: ModuleId; from: 'library' | 'canvas' } | null;
 type CornerRadii = { topLeft: number; topRight: number; bottomRight: number; bottomLeft: number };
+type ShapeType = NonNullable<ModuleBox['shapeType']>;
+const COMPONENT_SHAPES: ShapeType[] = ['rounded', 'sharp', 'pill', 'squircle'];
+type CanvasShapeType = 'shape-rect' | 'shape-circle' | 'shape-triangle' | 'shape-star' | 'shape-line' | 'shape-arrow' | 'shape-scribble';
+type CanvasInsertType = CanvasShapeType | 'shape-text' | 'shape-comment';
+type DrawBox = Pick<ModuleBox, 'x' | 'y' | 'w' | 'h' | 'flipX' | 'flipY' | 'freehandPath'>;
+type DrawPreview = { type: CanvasInsertType; box: DrawBox };
 
 type ImageFill = {
   url: string;
@@ -144,16 +156,23 @@ type ImageFill = {
 
 type EffectType = 'none' | 'glassmorphism' | 'shadow' | 'blur';
 
+type Insets = { top: number; right: number; bottom: number; left: number };
+
 type ModuleBox = {
   w?: number;
   h?: number;
   x?: number;
   y?: number;
+  flipX?: boolean;
+  flipY?: boolean;
+  text?: string;
+  freehandPath?: string;
   rotation?: number;
   opacity?: number;
+  padding?: Insets;
   cornerRadius?: CornerRadii;
   cornerRadiusLinked?: boolean;
-  shapeType?: 'rounded' | 'sharp' | 'pill' | 'squircle'; // Add this line
+  shapeType?: 'rounded' | 'sharp' | 'pill' | 'squircle';
   strokeWidth?: number;
   strokeColor?: string;
   strokeAlign?: 'inside' | 'center' | 'outside';
@@ -161,7 +180,6 @@ type ModuleBox = {
   fillType?: 'none' | 'color' | 'image';
   fillColor?: string;
   imageFill?: ImageFill;
-  // Effects
   effectType?: EffectType;
   glassBlur?: number;
   glassSaturation?: number;
@@ -295,7 +313,7 @@ function IconRail() {
 function PageMenuItem({
   pageId, label, count, active, expanded, accent, singleSlot, canvasModules,
   appKind, onSelect, onToggleExpand, onAddModule, onRemoveModule,
-  onStartDrag, onEndDrag, drag, selectedId, onSelectModule,
+  onStartDrag, onEndDrag, drag, selectedId, onSelectModule, onSelectTextSlot, onShowPreview,
 }: {
   pageId: PageId; label: string; count: number; active: boolean; expanded: boolean;
   accent: string; singleSlot: boolean; canvasModules: ModuleId[]; appKind: AppKind;
@@ -305,29 +323,27 @@ function PageMenuItem({
   onEndDrag: () => void; drag: DragState;
   selectedId: ModuleId | null;
   onSelectModule: (id: ModuleId) => void;
+  onSelectTextSlot: (id: ModuleId, slot: string | null) => void;
+  onShowPreview: (id: ModuleId, event: React.MouseEvent) => void;
 }) {
   const pageComponents = allModulesFor().filter((m) => pageModulesFor(pageId, appKind).includes(m.id));
   const pageMeta = pageIconMeta(pageId, label);
-   // Add this state
+  
   const [expandedLayerId, setExpandedLayerId] = useState<ModuleId | null>(null);
+  const [activeSubLayer, setActiveSubLayer] = useState<string | null>(null);
 
-  // Helper to get mock layers based on component
-  const getLayers = (modId: string) => {
-    if (modId.includes('card')) return [
-      { icon: Box, label: 'MeshGradientBackdrop' },
-      { icon: Type, label: 'AmountDisplay ($25,000)' },
-      { icon: Wallet, label: 'MyWalletButton' },
-    ];
-    if (modId.includes('header')) return [
-      { icon: Type, label: 'Greeting Text' },
-      { icon: User, label: 'User Avatar' },
-      { icon: Bell, label: 'Notification Icon' },
-    ];
-    return [
-      { icon: Box, label: 'Container' },
-      { icon: Type, label: 'Text Content' },
-      { icon: Square, label: 'Background Shape' },
-    ];
+  // Helper to generate layers dynamically from the schema
+  const getLayers = (modId: ModuleId) => {
+    const schema = EDITABLE_SCHEMA[modId];
+    const layers: { id: string; label: string; type: 'text' | 'color'; Icon: IconType }[] = [];
+    
+    if (schema?.text) {
+      schema.text.forEach((t) => layers.push({ id: `text:${t.slot}`, label: t.label, type: 'text', Icon: Type }));
+    }
+    if (schema?.colors) {
+      schema.colors.forEach((c) => layers.push({ id: `color:${c.slot}`, label: c.label, type: 'color', Icon: Palette }));
+    }
+    return layers;
   };
 
   return (
@@ -383,6 +399,8 @@ function PageMenuItem({
               const modMeta = moduleIconMeta(mod.id, mod.title);
               const isSelected = mod.id === selectedId;
               const hasLayersExpanded = expandedLayerId === mod.id;
+              const layers = getLayers(mod.id);
+              const hasLayers = layers.length > 0;
 
               return (
                 <div key={mod.id} className="flex flex-col">
@@ -394,7 +412,9 @@ function PageMenuItem({
                       e.stopPropagation();
                       if (!active) onSelect();
                       onSelectModule(mod.id);
+                      // Toggle the layer dropdown
                       setExpandedLayerId(isSelected ? (hasLayersExpanded ? null : mod.id) : mod.id);
+                      setActiveSubLayer(null);
                     }}
                     className={`group flex cursor-pointer items-center justify-between rounded-md px-2 py-1.5 ${
                       isSelected ? 'bg-[#0040DF] text-white' : 'hover:bg-slate-100/80'
@@ -414,7 +434,22 @@ function PageMenuItem({
                     </div>
 
                     <div className="flex items-center gap-1">
-                      {isSelected && (
+                      {/* Eye Icon for Preview */}
+                      <button
+                        type="button"
+                        title="Preview component"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onShowPreview(mod.id, e);
+                        }}
+                        className={`grid h-5 w-5 shrink-0 place-items-center rounded hover:bg-slate-200 ${
+                          isSelected ? 'text-white/80 hover:text-white hover:bg-white/20' : 'text-slate-400 hover:text-slate-700'
+                        }`}
+                      >
+                        <Eye className="h-3.5 w-3.5" />
+                      </button>
+
+                      {isSelected && hasLayers && (
                         <ChevronRight className={`h-3 w-3 text-white/80 transition-transform ${hasLayersExpanded ? 'rotate-90' : ''}`} />
                       )}
                       <button
@@ -424,7 +459,7 @@ function PageMenuItem({
                           isAdded ? onRemoveModule(mod.id) : onAddModule(mod.id);
                         }}
                         className={`grid h-5 w-5 shrink-0 place-items-center rounded hover:bg-slate-200 ${
-                          isSelected ? 'text-white/80 hover:text-white' : isAdded ? 'text-emerald-600' : 'text-slate-400 group-hover:text-slate-600'
+                          isSelected ? 'text-white/80 hover:text-white hover:bg-white/20' : isAdded ? 'text-emerald-600' : 'text-slate-400 group-hover:text-slate-600'
                         }`}
                       >
                         {isAdded ? <Check className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
@@ -432,15 +467,33 @@ function PageMenuItem({
                     </div>
                   </div>
 
-                  {/* Render nested layers */}
+                  {/* Dynamic nested layers */}
                   {isSelected && hasLayersExpanded && (
                     <div className="ml-6 mt-1 space-y-1 border-l-2 border-[#0040DF]/20 pl-2 pb-1">
-                      {getLayers(mod.id).map((layer, idx) => (
-                        <div key={idx} className="flex items-center gap-2 text-[10px] text-slate-500 hover:text-slate-800 cursor-pointer py-0.5">
-                          <layer.icon className="h-3 w-3 text-slate-400" />
-                          <span>{layer.label}</span>
-                        </div>
-                      ))}
+                      {layers.map((layer) => {
+                        const isSubActive = activeSubLayer === layer.id;
+                        return (
+                          <div
+                            key={layer.id}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setActiveSubLayer(layer.id);
+                              onSelectTextSlot(
+                                mod.id,
+                                layer.type === 'text' ? layer.id.slice('text:'.length) : null,
+                              );
+                            }}
+                            className={`flex cursor-pointer items-center gap-2 rounded px-2 py-1 text-[10px] transition-colors ${
+                              isSubActive
+                                ? 'bg-[#0040DF] text-white'
+                                : 'text-slate-500 hover:bg-slate-100 hover:text-slate-800'
+                            }`}
+                          >
+                            <layer.Icon className={`h-3 w-3 ${isSubActive ? 'text-white' : 'text-slate-400'}`} />
+                            <span className="truncate">{layer.label}</span>
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
@@ -456,7 +509,8 @@ function PageMenuItem({
 function LeftPanel({
   appKind, onAppKind, activePage, onSelectPage, expandedPage, onToggleExpand,
   pageModules, accent, onStartDrag, onEndDrag, drag, onAddModule, onRemoveModule,
-  selectedId, onSelectModule, onAssetClick,
+  selectedId, onSelectModule, onAssetClick, measured,
+  onSelectTextSlot,
 }: {
   appKind: AppKind; onAppKind: (k: AppKind) => void;
   activePage: PageId; onSelectPage: (p: PageId) => void;
@@ -468,12 +522,15 @@ function LeftPanel({
   onAddModule: (id: ModuleId) => void; onRemoveModule: (id: ModuleId) => void;
   selectedId: ModuleId | null;
   onSelectModule: (id: ModuleId) => void;
+  onSelectTextSlot: (id: ModuleId, slot: string | null) => void;
   onAssetClick: (asset: AssetItem) => void;
+  measured: Record<string, { w: number; h: number }>;
 }){
   const [tab, setTab] = useState<'navigator' | 'comps' | 'assets'>('navigator');
   const [query, setQuery] = useState('');
   const [compLibrary, setCompLibrary] = useState<CompLibraryId | null>(null);
   const [activeCompSubgroup, setActiveCompSubgroup] = useState<string | null>(null);
+  const [previewInfo, setPreviewInfo] = useState<{ id: ModuleId; top: number; left: number } | null>(null);
 
   const previewCtx: ViewCtx = {
     radius: RADII.rounded,
@@ -489,6 +546,17 @@ function LeftPanel({
     isCardFrozen: false,
     actions: noopActions,
   };
+
+  const handleShowPreview = (id: ModuleId, event: React.MouseEvent) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    setPreviewInfo({
+      id,
+      top: Math.max(16, Math.min(rect.top, window.innerHeight - 600)), 
+      left: rect.right + 16,
+    });
+  };
+
+  const closePreview = () => setPreviewInfo(null);
 
   const allMods = allModulesFor();
   const filteredMods = allMods.filter(
@@ -537,16 +605,30 @@ function LeftPanel({
             </span>
           </div>
 
-          <button
-            draggable={false}
-            onDragStart={(e) => e.stopPropagation()}
-            onClick={() => (isAdded ? onRemoveModule(mod.id) : onAddModule(mod.id))}
-            className={`grid h-4 w-4 shrink-0 place-items-center rounded hover:bg-slate-200 ${
-              isAdded ? 'text-emerald-600' : 'text-slate-400'
-            }`}
-          >
-            {isAdded ? <Check className="h-3 w-3" /> : <Plus className="h-3 w-3" />}
-          </button>
+          <div className="flex items-center gap-1">
+             <button
+                type="button"
+                title="Preview component"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onSelectModule(mod.id);
+                  handleShowPreview(mod.id, e);
+                }}
+                className="grid h-4 w-4 shrink-0 place-items-center rounded text-slate-400 hover:bg-slate-200 hover:text-slate-700"
+              >
+                <Eye className="h-3 w-3" />
+              </button>
+            <button
+              draggable={false}
+              onDragStart={(e) => e.stopPropagation()}
+              onClick={() => (isAdded ? onRemoveModule(mod.id) : onAddModule(mod.id))}
+              className={`grid h-4 w-4 shrink-0 place-items-center rounded hover:bg-slate-200 ${
+                isAdded ? 'text-emerald-600' : 'text-slate-400'
+              }`}
+            >
+              {isAdded ? <Check className="h-3 w-3" /> : <Plus className="h-3 w-3" />}
+            </button>
+          </div>
         </div>
 
         <div className="relative overflow-hidden bg-[#F7F8FF] p-2" style={{ height: 140 }}>
@@ -559,7 +641,7 @@ function LeftPanel({
   };
 
   return (
-    <aside className="flex w-[340px] shrink-0 flex-col border-r border-slate-200 bg-[#EDEFFC] scrollbar-thin-blue">
+    <aside className="flex w-[340px] shrink-0 flex-col border-r border-slate-200 bg-[#EDEFFC] scrollbar-thin-blue relative">
       <div className="flex items-center border-b border-slate-200 px-2 pt-2">
         <button
           onClick={() => setTab('navigator')}
@@ -630,6 +712,8 @@ function LeftPanel({
                 drag={drag}
                 selectedId={selectedId}
                 onSelectModule={onSelectModule}
+                onSelectTextSlot={onSelectTextSlot}
+                onShowPreview={handleShowPreview}
               />
             ))}
           </ul>
@@ -737,6 +821,92 @@ function LeftPanel({
           onAssetClick={onAssetClick}
         />
       )}
+
+            {/* Component Preview Portal */}
+      {previewInfo && typeof document !== 'undefined' && (() => {
+        const mod = moduleFor(previewInfo.id);
+        const dims = measured[previewInfo.id] || { w: 361, h: 168 };
+        
+        return createPortal(
+          <div
+            className="fixed z-[100] w-[320px] overflow-hidden rounded-xl bg-white shadow-[0_12px_40px_rgba(0,0,0,0.12)] ring-1 ring-slate-900/5 animate-in fade-in zoom-in-95 duration-200 flex flex-col"
+            style={{ top: previewInfo.top, left: previewInfo.left }}
+            onMouseLeave={closePreview}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-slate-100 bg-white px-3 py-2">
+              <div className="flex items-center gap-1.5 text-[11px] font-medium text-slate-800">
+                Fintech Connect Core Library <span className="text-slate-300">·</span>
+                <Layers className="h-3 w-3 text-slate-400 ml-1" />
+              </div>
+              <button onClick={closePreview} className="text-slate-400 hover:text-slate-600">
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+
+            {/* Live Render Area */}
+            <div className="bg-[#F4F6FF] p-3">
+              <div className="mb-2 flex items-center gap-1.5">
+                <span className="h-1.5 w-1.5 rounded-full bg-[#0040DF]" />
+                <span className="text-[9px] font-bold uppercase tracking-wider text-[#0040DF]">Live Render</span>
+              </div>
+              <div className="flex w-full items-center justify-center">
+                 <div className="w-full max-w-[320px] rounded-lg bg-white p-1 shadow-sm ring-1 ring-slate-900/5">
+                   <ModuleView id={previewInfo.id} ctx={previewCtx} passive />
+                 </div>
+              </div>
+            </div>
+
+            {/* Details Area */}
+            <div className="flex flex-col gap-3 p-3">
+              <div>
+                <h3 className="text-[15px] font-bold text-slate-900">{mod?.title ?? 'Component'}</h3>
+                <div className="mt-1 flex items-center gap-1.5 text-[10px] text-slate-500">
+                  <span className="grid h-4 w-4 place-items-center rounded-full bg-[#6941C6] text-[8px] font-bold text-white">A</span>
+                  <span>Apex Design System · Updated 3d ago</span>
+                </div>
+              </div>
+
+              {/* Variant State */}
+              <div className="flex flex-col gap-1">
+                <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Variant</span>
+                <div className="flex rounded-lg p-0.5 border border-slate-100 bg-slate-50">
+                  {(['Default', 'Masked', 'Negative'] as const).map((v) => (
+                    <button key={v} className={`flex-1 rounded-md py-1 text-[11px] font-semibold transition ${v === 'Default' ? 'bg-white text-[#0040DF] shadow-sm ring-1 ring-slate-200/50' : 'text-slate-500 hover:text-slate-700'}`}>
+                      {v}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Insert Button */}
+              <button
+                onClick={() => { onAddModule(previewInfo.id); closePreview(); }}
+                className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-[#0040DF] py-2 text-[12px] font-bold text-white shadow-sm transition hover:bg-[#0036BF]"
+              >
+                 Insert Component
+              </button>
+
+              {/* Schema Box */}
+              <div className="flex flex-col gap-1.5 rounded-xl border border-slate-200 bg-slate-50/50 p-2.5">
+                <div className="flex items-center justify-between text-[10px]">
+                  <span className="font-semibold text-slate-500">BOUND SCHEMA</span>
+                  <span className="text-[#0040DF]">CoreBanking.account.balance</span>
+                </div>
+                <div className="flex items-center justify-between text-[10px]">
+                  <span className="font-semibold text-slate-500">DIMENSIONS</span>
+                  <span className="text-slate-700">{dims.w} × {dims.h} pt (Responsive Fill)</span>
+                </div>
+                <div className="flex items-center justify-between text-[10px]">
+                  <span className="font-semibold text-slate-500">ACTION TRIGGERS</span>
+                  <span className="text-slate-700">OnTap → /wallet/details</span>
+                </div>
+              </div>
+            </div>
+          </div>,
+          document.body
+        );
+      })()}
     </aside>
   );
 }
@@ -788,54 +958,137 @@ function ToolbarButton({ label, onClick, disabled, danger, children }: { label: 
   );
 }
 
-function GenericShape({ id, box }: { id: string; box: ModuleBox }) {
+function radiusForBox(box: ModuleBox): string | undefined {
+  if (box.shapeType === 'rounded') return '16px';
+  if (box.shapeType === 'sharp') return '0px';
+  if (box.shapeType === 'pill') return '9999px';
+  if (box.shapeType === 'squircle') return '28%';
+  if (box.cornerRadius) {
+    const { topLeft, topRight, bottomRight, bottomLeft } = box.cornerRadius;
+    return `${topLeft}px ${topRight}px ${bottomRight}px ${bottomLeft}px`;
+  }
+  return undefined;
+}
+
+function canvasObjectTitle(id: ModuleId | null): string | null {
+  if (!id?.startsWith('shape-')) return null;
+  const type = id.slice('shape-'.length).split('-')[0];
+  const labels: Record<string, string> = {
+    rect: 'Rectangle',
+    circle: 'Ellipse',
+    triangle: 'Triangle',
+    star: 'Star',
+    line: 'Line',
+    arrow: 'Arrow',
+    scribble: 'Freehand',
+    text: 'Text',
+    comment: 'Comment',
+  };
+  return labels[type] ?? 'Shape';
+}
+
+function GenericShape({
+  id,
+  box,
+  onBoxChange,
+}: {
+  id: string;
+  box: ModuleBox;
+  onBoxChange: (patch: ModuleBox) => void;
+}) {
   const isCircle = id.includes('circle');
   const isText = id.includes('text');
+  const isComment = id.includes('comment');
   const isLine = id.includes('line');
   const isTriangle = id.includes('triangle');
-
-  let borderRadius: string | undefined = undefined;
-  if (isCircle) {
-    borderRadius = '50%';
-  } else if (box.shapeType === 'pill') {
-    borderRadius = '9999px';
-  } else if (box.shapeType === 'sharp') {
-    borderRadius = '0px';
-  } else if (box.shapeType === 'squircle') {
-    borderRadius = '24px'; // Or whatever squircle base is
-  } else if (box.cornerRadius) {
-    borderRadius = `${box.cornerRadius.topLeft}px ${box.cornerRadius.topRight}px ${box.cornerRadius.bottomRight}px ${box.cornerRadius.bottomLeft}px`;
-  }
-
-  let style: React.CSSProperties = {
+  const isStar = id.includes('star');
+  const isArrow = id.includes('arrow');
+  const isScribble = id.includes('scribble');
+  const fill = box.fillType === 'color' ? box.fillColor ?? '#ffffff' : 'transparent';
+  const strokeWidth = box.strokeWidth ?? 2;
+  const stroke = box.strokeColor ?? '#0040DF';
+  const borderRadius = isCircle ? '50%' : radiusForBox(box);
+  const arrowMarkerId = `canvas-arrowhead-${id}`;
+  const style: React.CSSProperties = {
     width: '100%',
     height: '100%',
-    backgroundColor: box.fillType === 'color' && box.fillColor ? box.fillColor : 'transparent',
-    border: box.strokeWidth ? `${box.strokeWidth}px ${box.strokeStyle ?? 'solid'} ${box.strokeColor ?? '#000000'}` : undefined,
+    backgroundColor: isComment ? '#ffffff' : fill,
+    border: isLine || isText || isComment ? undefined : `${strokeWidth}px ${box.strokeStyle ?? 'solid'} ${stroke}`,
     boxSizing: 'border-box',
     borderRadius,
+    padding: box.padding
+      ? `${box.padding.top}px ${box.padding.right}px ${box.padding.bottom}px ${box.padding.left}px`
+      : undefined,
   };
 
-  if (isTriangle) {
-    style = {
-      ...style,
-      backgroundColor: 'transparent',
-      borderLeft: '50px solid transparent',
-      borderRight: '50px solid transparent',
-      borderBottom: `100px solid ${box.fillType === 'color' && box.fillColor ? box.fillColor : '#0040DF'}`,
-    };
+  if (isTriangle || isStar || isArrow || isScribble || isLine) {
+    const points = isTriangle
+      ? '50,4 96,96 4,96'
+      : isStar
+        ? '50,3 61,36 96,36 68,56 79,91 50,70 21,91 32,56 4,36 39,36'
+        : '4,32 63,32 63,12 96,50 63,88 63,68 4,68';
+    const defaultPath = 'M8 62 C25 25 36 77 52 42 S78 61 92 28';
+    return (
+      <div className="flex h-full w-full items-center justify-center">
+        <svg className="h-full w-full overflow-visible" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+          {isScribble ? (
+            <path d={box.freehandPath ?? defaultPath} fill="none" stroke={stroke} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
+          ) : isLine ? (
+            <line
+              x1={box.flipX ? 100 : 0}
+              y1={box.flipY ? 100 : 0}
+              x2={box.flipX ? 0 : 100}
+              y2={box.flipY ? 0 : 100}
+              stroke={stroke}
+              strokeWidth={strokeWidth}
+              vectorEffect="non-scaling-stroke"
+            />
+          ) : isArrow ? (
+            <line
+              x1={box.flipX ? 100 : 0}
+              y1={box.flipY ? 100 : 0}
+              x2={box.flipX ? 0 : 100}
+              y2={box.flipY ? 0 : 100}
+              stroke={stroke}
+              strokeWidth={strokeWidth}
+              strokeLinecap="round"
+              markerEnd={`url(#${arrowMarkerId})`}
+              vectorEffect="non-scaling-stroke"
+            />
+          ) : (
+            <polygon points={points} fill={fill} stroke={stroke} strokeWidth={strokeWidth} strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
+          )}
+          {isArrow && (
+            <defs>
+              <marker id={arrowMarkerId} markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto" markerUnits="strokeWidth">
+                <path d="M0 0L8 4L0 8z" fill={stroke} />
+              </marker>
+            </defs>
+          )}
+        </svg>
+      </div>
+    );
   }
 
-  if (isLine) {
-    style.height = box.strokeWidth ? `${box.strokeWidth}px` : '2px';
-    style.backgroundColor = box.strokeColor ?? '#000000';
-    style.border = 'none';
-    style.borderRadius = '999px';
-  }
+  const handleTextInput = (event: React.FormEvent<HTMLSpanElement>) => {
+    onBoxChange({ text: event.currentTarget.innerText });
+  };
 
   return (
     <div className="flex h-full w-full items-center justify-center" style={style}>
-      {isText && <span className="text-[14px] text-slate-800">Text</span>}
+      {isText && (
+        <span
+          contentEditable
+          suppressContentEditableWarning
+          onInput={handleTextInput}
+          role="textbox"
+          aria-label="Edit text"
+          className="min-w-[24px] whitespace-pre-wrap outline-none"
+        >
+          {box.text ?? 'Text'}
+        </span>
+      )}
+      {isComment && <span className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-[12px] text-slate-700 shadow-sm">Comment</span>}
     </div>
   );
 }
@@ -903,10 +1156,14 @@ function ModuleWrapper({
     const startClientY = e.clientY;
     const baseX = box.x ?? 0;
     const baseY = box.y ?? 0;
+    const parent = wrapperRef.current.parentElement;
+    const bounds = parent?.getBoundingClientRect();
+    const scaleX = bounds && parent ? bounds.width / parent.offsetWidth || 1 : 1;
+    const scaleY = bounds && parent ? bounds.height / parent.offsetHeight || 1 : 1;
 
     const onMouseMove = (ev: MouseEvent) => {
-      const dx = ev.clientX - startClientX;
-      const dy = ev.clientY - startClientY;
+      const dx = (ev.clientX - startClientX) / scaleX;
+      const dy = (ev.clientY - startClientY) / scaleY;
       const patch: ModuleBox = {};
       if (handle.includes('e')) patch.w = Math.max(20, Math.round(startW + dx));
       if (handle.includes('w')) {
@@ -928,9 +1185,37 @@ function ModuleWrapper({
     window.addEventListener('mouseup', onMouseUp);
   };
 
-  const customRadiusString = box.cornerRadius
-    ? `${box.cornerRadius.topLeft}px ${box.cornerRadius.topRight}px ${box.cornerRadius.bottomRight}px ${box.cornerRadius.bottomLeft}px`
-    : undefined;
+  const startShapeMove = (event: React.MouseEvent<HTMLDivElement>) => {
+    if (!isShape || event.button !== 0 || !wrapperRef.current) return;
+    if (event.target instanceof Element && event.target.closest('button, [contenteditable="true"]')) return;
+    event.preventDefault();
+    event.stopPropagation();
+    onSelect(id);
+
+    const parent = wrapperRef.current.parentElement;
+    const bounds = parent?.getBoundingClientRect();
+    const scaleX = bounds && parent ? bounds.width / parent.offsetWidth || 1 : 1;
+    const scaleY = bounds && parent ? bounds.height / parent.offsetHeight || 1 : 1;
+    const startX = event.clientX;
+    const startY = event.clientY;
+    const baseX = box.x ?? 0;
+    const baseY = box.y ?? 0;
+
+    const handleMove = (moveEvent: MouseEvent) => {
+      onBoxChange(id, {
+        x: baseX + (moveEvent.clientX - startX) / scaleX,
+        y: baseY + (moveEvent.clientY - startY) / scaleY,
+      });
+    };
+    const handleUp = () => {
+      window.removeEventListener('mousemove', handleMove);
+      window.removeEventListener('mouseup', handleUp);
+    };
+    window.addEventListener('mousemove', handleMove);
+    window.addEventListener('mouseup', handleUp);
+  };
+
+  const customRadiusString = radiusForBox(box);
 
   let customBackground: React.CSSProperties | undefined = undefined;
   if (box.fillType === 'color' && box.fillColor) {
@@ -965,6 +1250,7 @@ function ModuleWrapper({
   const ctxWithBox = {
     ...ctx,
     customRadius: customRadiusString,
+    customPadding: box.padding,
     customStroke: box.strokeWidth ? {
       border: `${box.strokeWidth}px ${box.strokeStyle ?? 'solid'} ${box.strokeColor ?? '#6941C6'}`,
       boxSizing: 'border-box' as const,
@@ -976,20 +1262,24 @@ function ModuleWrapper({
   const wrapperStyle: React.CSSProperties = {
     width: targetW,
     height: targetH,
+    position: isShape ? 'absolute' : undefined,
+    left: isShape ? box.x ?? 0 : undefined,
+    top: isShape ? box.y ?? 0 : undefined,
     transform:
-      box.x !== undefined || box.y !== undefined || box.rotation !== undefined
-        ? `translate(${box.x ?? 0}px, ${box.y ?? 0}px) rotate(${box.rotation ?? 0}deg)`
+      (!isShape && (box.x !== undefined || box.y !== undefined)) || box.rotation !== undefined
+        ? `${!isShape ? `translate(${box.x ?? 0}px, ${box.y ?? 0}px) ` : ''}rotate(${box.rotation ?? 0}deg)`
         : undefined,
     opacity: box.opacity === undefined ? undefined : box.opacity / 100,
     outline: selected ? '2px solid #0040DF' : undefined,
     outlineOffset: 4,
+    zIndex: isShape ? (selected ? 30 : 20) : undefined,
     ...customEffect,
   };
 
   const contentStyle: React.CSSProperties = {
-    width: box.w && natural ? natural.w : undefined,
-    height: box.h && natural ? natural.h : undefined,
-    transform: sx !== 1 || sy !== 1 ? `scale(${sx}, ${sy})` : undefined,
+    width: isShape ? targetW : box.w && natural ? natural.w : undefined,
+    height: isShape ? targetH : box.h && natural ? natural.h : undefined,
+    transform: !isShape && (sx !== 1 || sy !== 1) ? `scale(${sx}, ${sy})` : undefined,
     transformOrigin: 'top left',
   };
 
@@ -997,19 +1287,21 @@ function ModuleWrapper({
     <div
       ref={wrapperRef}
       data-module-id={id}
-      draggable={!selected}
+      draggable={!selected && !isShape}
       onDragStart={(e) => {
+        if (isShape) { e.preventDefault(); return; }
         if (selected) { e.preventDefault(); return; }
         onStartDrag(e, id, 'canvas');
       }}
       onDragEnd={onEndDrag}
       onDragOver={(e) => onItemDragOver(e, index)}
       onDrop={onDrop}
+      onMouseDown={startShapeMove}
       onClick={(e) => { e.stopPropagation(); onSelect(id); }}
       style={wrapperStyle}
       className={`group relative cursor-grab active:cursor-grabbing ${
         isDark ? 'ring-offset-slate-950' : 'ring-offset-[#F7F8FF]'
-      } ${isSource ? 'opacity-40' : ''}`}
+      } ${isShape ? 'cursor-move' : ''} ${isSource ? 'opacity-40' : ''}`}
     >
       {drag && dropIndex === index && <DropLine side="top" accent={accent} />}
       {drag && dropIndex === total && index === total - 1 && (
@@ -1034,7 +1326,9 @@ function ModuleWrapper({
         className={drag ? 'pointer-events-none' : ''}
         style={contentStyle}
       >
-        {isShape ? <GenericShape id={id} box={box} /> : <ModuleView id={id} ctx={ctxWithBox} />}
+        {isShape
+          ? <GenericShape id={id} box={box} onBoxChange={(patch) => onBoxChange(id, patch)} />
+          : <ModuleView id={id} ctx={ctxWithBox} />}
       </div>
 
       {selected && !drag && (
@@ -1127,35 +1421,88 @@ function PageCanvas({
   );
 }
 
-function CanvasToolbar({ onAddShape }: { onAddShape: (type: string) => void }) {
-  const tools = [
+function CanvasToolbar({
+  onSelectTool,
+  onSelect,
+  panMode,
+  onPanModeChange,
+  drawTool,
+}: {
+  onSelectTool: (type: CanvasInsertType | null) => void;
+  onSelect: (id: ModuleId | null) => void;
+  panMode: boolean;
+  onPanModeChange: (enabled: boolean) => void;
+  drawTool: CanvasInsertType | null;
+}) {
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const shapes: { id: CanvasShapeType; icon: IconType; label: string }[] = [
     { id: 'shape-rect', icon: Square, label: 'Rectangle' },
-    { id: 'shape-circle', icon: Circle, label: 'Circle' },
+    { id: 'shape-circle', icon: Circle, label: 'Ellipse' },
     { id: 'shape-triangle', icon: Move, label: 'Triangle' },
+    { id: 'shape-star', icon: Star, label: 'Star' },
     { id: 'shape-line', icon: Minus, label: 'Line' },
-    { id: 'shape-text', icon: Type, label: 'Text' },
+    { id: 'shape-arrow', icon: ArrowRight, label: 'Arrow' },
+    { id: 'shape-scribble', icon: Spline, label: 'Freehand' },
   ];
-
+  const chooseTool = (type: CanvasInsertType) => {
+    onSelectTool(type);
+    onPanModeChange(false);
+    setPaletteOpen(false);
+  };
   return (
-    <div className="absolute bottom-4 left-1/2 z-40 flex -translate-x-1/2 items-center gap-1 rounded-xl bg-white p-1.5 shadow-[0_8px_24px_rgba(0,0,0,0.1)] ring-1 ring-slate-200">
-      <button
-        onClick={() => onAddShape('shape-rect')}
-        className="grid h-8 w-8 place-items-center rounded-lg bg-[#0040DF] text-white shadow-sm hover:bg-[#0036BF]"
-        title="Add Shape"
-      >
-        <Plus className="h-4 w-4" />
-      </button>
-      <div className="mx-1 h-4 w-px bg-slate-200" />
-      {tools.map((t) => (
-        <button
-          key={t.id}
-          onClick={() => onAddShape(t.id)}
-          className="grid h-8 w-8 place-items-center rounded-lg text-slate-600 hover:bg-slate-100 hover:text-slate-900"
-          title={t.label}
-        >
-          <t.icon className="h-4 w-4" />
+    <div className="absolute bottom-4 left-1/2 z-40 -translate-x-1/2">
+      {paletteOpen && (
+        <div className="absolute bottom-full left-1/2 mb-3 w-max max-w-[calc(100vw-24px)] -translate-x-1/2 rounded-xl bg-white px-3 pb-2.5 pt-2 shadow-[0_8px_24px_rgba(0,0,0,0.1)] ring-1 ring-slate-100">
+          <div className="mb-1.5 flex items-center justify-between gap-5">
+            <span className="text-[9px] font-medium uppercase tracking-wide text-slate-500">Lines &amp; Shapes</span>
+            <span className="text-[9px] text-slate-400">Choose a shape, then drag to draw</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            {shapes.map(({ id, icon: Icon, label }) => (
+              <button
+                key={id}
+                type="button"
+                aria-label={`Select ${label} tool`}
+                title={label}
+                onClick={() => chooseTool(id)}
+                className="grid h-10 w-10 place-items-center rounded-xl bg-[#F0F2FF] text-slate-800 transition hover:bg-[#E3E8FF] active:scale-95"
+              >
+                <Icon className="h-4 w-4" />
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+      <div className="flex items-center gap-0.5 rounded-xl bg-white p-1 shadow-[0_8px_24px_rgba(0,0,0,0.1)] ring-1 ring-slate-200">
+        <button type="button" aria-label="Select tool" title="Select" onClick={() => { onSelectTool(null); onPanModeChange(false); onSelect(null); }}
+          className={`grid h-8 w-8 place-items-center rounded-lg transition ${!panMode && !drawTool ? 'bg-[#0040DF] text-white shadow-sm' : 'text-slate-500 hover:bg-slate-100'}`}>
+          <MousePointer2 className="h-4 w-4" />
         </button>
-      ))}
+        <button type="button" aria-label="Hand tool" title="Hand tool" onClick={() => { onSelectTool(null); onPanModeChange(true); onSelect(null); }}
+          className={`grid h-8 w-8 place-items-center rounded-lg transition ${panMode ? 'bg-[#0040DF] text-white shadow-sm' : 'text-slate-500 hover:bg-slate-100'}`}>
+          <Hand className="h-4 w-4" />
+        </button>
+        <button type="button" aria-label="Rectangle tool" title="Rectangle" onClick={() => chooseTool('shape-rect')}
+          className={`grid h-8 w-8 place-items-center rounded-lg transition ${drawTool === 'shape-rect' ? 'bg-[#E8EDFF] text-[#0040DF]' : 'text-slate-500 hover:bg-slate-100'}`}>
+          <Frame className="h-4 w-4" />
+        </button>
+        <button type="button" aria-label="Open shape palette" title="Lines & Shapes" aria-expanded={paletteOpen} onClick={() => setPaletteOpen((open) => !open)}
+          className={`grid h-8 w-8 place-items-center rounded-lg transition ${paletteOpen ? 'text-[#0040DF]' : 'text-slate-500 hover:bg-slate-100'}`}>
+          <Plus className="h-4 w-4" />
+        </button>
+        <button type="button" aria-label="Text tool" title="Text" onClick={() => chooseTool('shape-text')}
+          className={`grid h-8 w-8 place-items-center rounded-lg transition ${drawTool === 'shape-text' ? 'bg-[#E8EDFF] text-[#0040DF]' : 'text-slate-500 hover:bg-slate-100'}`}>
+          <Type className="h-4 w-4" />
+        </button>
+        <button type="button" aria-label="Freehand tool" title="Freehand" onClick={() => chooseTool('shape-scribble')}
+          className={`grid h-8 w-8 place-items-center rounded-lg transition ${drawTool === 'shape-scribble' ? 'bg-[#E8EDFF] text-[#0040DF]' : 'text-slate-500 hover:bg-slate-100'}`}>
+          <Spline className="h-4 w-4" />
+        </button>
+        <button type="button" aria-label="Comment tool" title="Comment" onClick={() => chooseTool('shape-comment')}
+          className={`grid h-8 w-8 place-items-center rounded-lg transition ${drawTool === 'shape-comment' ? 'bg-[#E8EDFF] text-[#0040DF]' : 'text-slate-500 hover:bg-slate-100'}`}>
+          <MessageCircle className="h-4 w-4" />
+        </button>
+      </div>
     </div>
   );
 }
@@ -1183,7 +1530,7 @@ function Canvas({
   boxes: Record<string, ModuleBox>;
   onMeasure: (id: ModuleId, size: { w: number; h: number }) => void;
   onBoxChange: (id: ModuleId, patch: ModuleBox) => void;
-  onAddShape: (type: string) => void;
+  onAddShape: (type: CanvasInsertType, box: DrawBox) => void;
 }) {
   const dims = device === 'iphone' ? { w: 320, h: 640 }
     : device === 'pixel' ? { w: 340, h: 640 }
@@ -1193,7 +1540,12 @@ function Canvas({
 
   const bodyRef = React.useRef<HTMLDivElement>(null);
   const mainRef = React.useRef<HTMLElement>(null);
+  const drawAreaRef = React.useRef<HTMLDivElement>(null);
+  const suppressCanvasClickRef = React.useRef(false);
   const zoomRef = React.useRef(zoom);
+  const [panMode, setPanMode] = useState(false);
+  const [drawTool, setDrawTool] = useState<CanvasInsertType | null>(null);
+  const [drawPreview, setDrawPreview] = useState<DrawPreview | null>(null);
   zoomRef.current = zoom;
 
   React.useEffect(() => {
@@ -1215,6 +1567,106 @@ function Canvas({
     const r = el.getBoundingClientRect();
     if (clientY < r.top + 48) el.scrollBy({ top: -14 });
     else if (clientY > r.bottom - 48) el.scrollBy({ top: 14 });
+  };
+
+  const startCanvasPan = (event: React.MouseEvent<HTMLDivElement>) => {
+    if (!panMode || !bodyRef.current) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const body = bodyRef.current;
+    const startY = event.clientY;
+    const startScrollTop = body.scrollTop;
+    const handleMove = (moveEvent: MouseEvent) => {
+      body.scrollTop = startScrollTop - (moveEvent.clientY - startY);
+    };
+    const handleUp = () => {
+      window.removeEventListener('mousemove', handleMove);
+      window.removeEventListener('mouseup', handleUp);
+    };
+    window.addEventListener('mousemove', handleMove);
+    window.addEventListener('mouseup', handleUp);
+  };
+
+  const startCanvasDrawing = (event: React.MouseEvent<HTMLDivElement>) => {
+    if (!drawTool || panMode || event.button !== 0 || !drawAreaRef.current || !bodyRef.current) return;
+    event.preventDefault();
+    event.stopPropagation();
+    suppressCanvasClickRef.current = true;
+
+    const area = drawAreaRef.current;
+    const body = bodyRef.current;
+    const getPoint = (clientX: number, clientY: number) => {
+      const rect = area.getBoundingClientRect();
+      const scaleX = rect.width / (area.offsetWidth || 1) || 1;
+      const scaleY = rect.height / (area.offsetHeight || 1) || 1;
+      return {
+        x: (clientX - rect.left) / scaleX,
+        y: (clientY - rect.top) / scaleY + body.scrollTop,
+      };
+    };
+
+    const start = getPoint(event.clientX, event.clientY);
+    let points = [start];
+    const updatePreview = (point: { x: number; y: number }) => {
+      const minX = Math.min(start.x, point.x);
+      const minY = Math.min(start.y, point.y);
+      const width = Math.max(1, Math.abs(point.x - start.x));
+      const height = Math.max(1, Math.abs(point.y - start.y));
+      const box: DrawBox = {
+        x: minX,
+        y: minY,
+        w: width,
+        h: height,
+        flipX: point.x < start.x,
+        flipY: point.y < start.y,
+      };
+      if (drawTool === 'shape-scribble') {
+        points = [...points, point];
+        const pathWidth = Math.max(width, 1);
+        const pathHeight = Math.max(height, 1);
+        box.freehandPath = points
+          .map(({ x, y }, index) => {
+            const pathX = ((x - minX) / pathWidth) * 100;
+            const pathY = ((y - minY) / pathHeight) * 100;
+            return `${index === 0 ? 'M' : 'L'}${pathX} ${pathY}`;
+          })
+          .join(' ');
+      }
+      setDrawPreview({ type: drawTool, box });
+      return box;
+    };
+
+    updatePreview(start);
+    const handleMove = (moveEvent: MouseEvent) => {
+      const point = getPoint(moveEvent.clientX, moveEvent.clientY);
+      updatePreview(point);
+    };
+    const handleUp = (upEvent: MouseEvent) => {
+      const point = getPoint(upEvent.clientX, upEvent.clientY);
+      const box = updatePreview(point);
+      if (drawTool === 'shape-scribble' && points.length < 2) {
+        box.freehandPath = 'M5 50 L95 50';
+      }
+      const width = box.w ?? 1;
+      const height = box.h ?? 1;
+      if (drawTool === 'shape-text') {
+        if (width < 8) box.w = 140;
+        if (height < 8) box.h = 36;
+      } else if (drawTool === 'shape-comment') {
+        if (width < 8) box.w = 140;
+        if (height < 8) box.h = 72;
+      } else {
+        box.w = Math.max(8, width);
+        box.h = Math.max(8, height);
+      }
+      onAddShape(drawTool, box);
+      setDrawPreview(null);
+      setDrawTool(null);
+      window.removeEventListener('mousemove', handleMove);
+      window.removeEventListener('mouseup', handleUp);
+    };
+    window.addEventListener('mousemove', handleMove);
+    window.addEventListener('mouseup', handleUp);
   };
 
   return (
@@ -1264,19 +1716,57 @@ function Canvas({
                 if (!e.currentTarget.contains(e.relatedTarget as Node | null)) onEndDrag();
               }}
               onDrop={onDrop}
+              onMouseDownCapture={startCanvasPan}
               onClick={(e) => { if (e.target === e.currentTarget) onSelect(null); }}
-              className="flex min-h-0 flex-1 flex-col overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden px-3 pb-20 pt-1">
-              <PageCanvas
-                page={activePage} pageLabel={pageLabel}
-                modules={pageModules[activePage] ?? []}
-                ctx={ctx} drag={drag} dropIndex={dropIndex} accent={accent}
-                isDark={isDark} radius={radius}
-                onStartDrag={onStartDrag} onEndDrag={onEndDrag}
-                onItemDragOver={onItemDragOver} onDrop={onDrop}
-                onMove={onMove} onRemove={onRemove} onQuickAdd={onQuickAdd}
-                selectedId={selectedId} onSelect={onSelect}
-                boxes={boxes} onMeasure={onMeasure} onBoxChange={onBoxChange}
-              />
+              className={`flex min-h-0 flex-1 flex-col overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden px-3 pb-20 pt-1 ${panMode ? 'cursor-grab' : ''}`}>
+              <div
+                ref={drawAreaRef}
+                onMouseDownCapture={startCanvasDrawing}
+                onClick={(e) => {
+                  if (suppressCanvasClickRef.current) {
+                    suppressCanvasClickRef.current = false;
+                    e.stopPropagation();
+                    return;
+                  }
+                  if (e.target === e.currentTarget) onSelect(null);
+                }}
+                className={`relative min-h-full ${drawTool ? 'cursor-crosshair' : ''}`}
+              >
+                <PageCanvas
+                  page={activePage} pageLabel={pageLabel}
+                  modules={pageModules[activePage] ?? []}
+                  ctx={ctx} drag={drag} dropIndex={dropIndex} accent={accent}
+                  isDark={isDark} radius={radius}
+                  onStartDrag={onStartDrag} onEndDrag={onEndDrag}
+                  onItemDragOver={onItemDragOver} onDrop={onDrop}
+                  onMove={onMove} onRemove={onRemove} onQuickAdd={onQuickAdd}
+                  selectedId={selectedId} onSelect={onSelect}
+                  boxes={boxes} onMeasure={onMeasure} onBoxChange={onBoxChange}
+                />
+                {drawPreview && (
+                  <div
+                    className="pointer-events-none absolute z-40"
+                    style={{
+                      left: drawPreview.box.x,
+                      top: drawPreview.box.y,
+                      width: Math.max(1, drawPreview.box.w ?? 1),
+                      height: Math.max(1, drawPreview.box.h ?? 1),
+                    }}
+                  >
+                    <GenericShape
+                      id={drawPreview.type}
+                      box={{
+                        ...drawPreview.box,
+                        fillType: ['shape-text', 'shape-comment', 'shape-line', 'shape-scribble'].includes(drawPreview.type) ? 'none' : 'color',
+                        fillColor: '#ffffff',
+                        strokeWidth: 2,
+                        strokeColor: '#0040DF',
+                      }}
+                      onBoxChange={() => {}}
+                    />
+                  </div>
+                )}
+              </div>
             </div>
 
             <BottomDockTabBar activePage={activePage} isDark={isDark} onNavTab={onNavTab} />
@@ -1285,7 +1775,13 @@ function Canvas({
       </div>
       
       {/* Figma-like Toolbar */}
-      <CanvasToolbar onAddShape={onAddShape} />
+      <CanvasToolbar
+        onSelectTool={setDrawTool}
+        onSelect={onSelect}
+        panMode={panMode}
+        onPanModeChange={setPanMode}
+        drawTool={drawTool}
+      />
     </main>
   );
 }
@@ -1612,10 +2108,299 @@ const CloudIcon = () => (
   </svg>
 );
 
+function TextFormattingPanel({
+  textLabel,
+  textValue,
+  textStyle,
+  onTextChange,
+  onStyleChange,
+  onClose,
+}: { 
+  textLabel: string;
+  textValue: string;
+  textStyle: EditableTextStyle;
+  onTextChange: (value: string) => void;
+  onStyleChange: (patch: Partial<EditableTextStyle> | null) => void;
+  onClose: () => void;
+}) {
+  const alignments = [
+    { icon: AlignLeft, value: 'left', label: 'Align left' },
+    { icon: AlignCenter, value: 'center', label: 'Align center' },
+    { icon: AlignRight, value: 'right', label: 'Align right' },
+    { icon: AlignJustify, value: 'justify', label: 'Justify' },
+  ] as const;
+  const decorations = (textStyle.textDecorationLine ?? '').split(' ').filter(Boolean);
+  const toggleDecoration = (value: 'underline' | 'line-through') => {
+    const next = decorations.includes(value)
+      ? decorations.filter((item) => item !== value)
+      : [...decorations, value];
+    onStyleChange({ textDecorationLine: next.length ? next.join(' ') : undefined });
+  };
+
+  return (
+    <div className="flex h-full flex-col bg-white">
+      {/* Header */}
+      <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
+        <div className="flex items-center gap-2">
+          <Type className="h-4 w-4 text-slate-500" />
+          <span className="text-[12px] font-bold text-slate-800">Text & Formatting</span>
+        </div>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => onStyleChange(null)}
+            className="text-[11px] font-semibold text-slate-400 hover:text-rose-500"
+          >
+            Reset formatting
+          </button>
+          <button type="button" onClick={onClose} aria-label="Close text formatting" className="text-slate-400 hover:text-slate-600">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-y-auto p-4 space-y-6">
+        <section className="space-y-2">
+          <h3 className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{textLabel}</h3>
+          <textarea
+            aria-label={`Edit ${textLabel}`}
+            value={textValue}
+            onChange={(event) => onTextChange(event.target.value)}
+            rows={3}
+            className="w-full resize-y rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-[12px] outline-none focus:border-[#0040DF] focus:bg-white"
+          />
+        </section>
+
+        {/* Typography Section */}
+        <section className="space-y-3">
+          <h3 className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Typography</h3>
+          
+          <div className="flex flex-col gap-1">
+            <label className="text-[11px] font-semibold text-slate-600">Font Family</label>
+            <select 
+              aria-label="Font Family"
+              value={textStyle.fontFamily ?? 'inherit'}
+              onChange={(event) => onStyleChange({
+                fontFamily: event.target.value === 'inherit' ? undefined : event.target.value,
+              })}
+              className="w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-[12px] outline-none focus:border-[#0040DF] focus:bg-white"
+            >
+              <option value="inherit">Current font</option>
+              <option value={urbanist.style.fontFamily}>Urbanist</option>
+              <option value="Arial, sans-serif">Arial</option>
+              <option value="Georgia, serif">Georgia</option>
+              <option value="'Courier New', monospace">Courier New</option>
+              <option value="system-ui, sans-serif">System UI</option>
+            </select>
+          </div>
+
+          <div className="flex flex-col gap-1">
+            <label className="text-[11px] font-semibold text-slate-600">Font Weight</label>
+            <select 
+              aria-label="Font Weight"
+              value={textStyle.fontWeight ?? 'inherit'}
+              onChange={(event) => onStyleChange({
+                fontWeight: event.target.value === 'inherit' ? undefined : Number(event.target.value),
+              })}
+              className="w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-[12px] outline-none focus:border-[#0040DF] focus:bg-white"
+            >
+              <option value="inherit">Current weight</option>
+              <option value="400">Regular (400)</option>
+              <option value="500">Medium (500)</option>
+              <option value="600">Semi Bold (600)</option>
+              <option value="700">Bold (700)</option>
+            </select>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="flex flex-col gap-1">
+              <label className="text-[11px] font-semibold text-slate-600">Font Size</label>
+              <div className="flex items-center rounded-md border border-slate-200 bg-slate-50 px-2 py-1.5 focus-within:border-[#0040DF] focus-within:bg-white">
+                <input 
+                  type="number" 
+                  aria-label="Font Size"
+                  min="1"
+                  value={textStyle.fontSize ? Number.parseFloat(String(textStyle.fontSize)) : ''}
+                  onChange={(event) => onStyleChange({
+                    fontSize: event.target.value ? Math.max(1, Number(event.target.value)) : undefined,
+                  })}
+                  className="w-full bg-transparent text-[12px] outline-none text-right" 
+                />
+                <span className="ml-1 text-[10px] text-slate-400">px</span>
+              </div>
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-[11px] font-semibold text-slate-600">Line Height</label>
+              <div className="flex items-center rounded-md border border-slate-200 bg-slate-50 px-2 py-1.5 focus-within:border-[#0040DF] focus-within:bg-white">
+                <input 
+                  type="number" 
+                  aria-label="Line Height"
+                  min="1"
+                  value={textStyle.lineHeight ? Number.parseFloat(String(textStyle.lineHeight)) : ''}
+                  onChange={(event) => onStyleChange({
+                    lineHeight: event.target.value ? `${Math.max(1, Number(event.target.value))}px` : undefined,
+                  })}
+                  className="w-full bg-transparent text-[12px] outline-none text-right" 
+                />
+                <span className="ml-1 text-[10px] text-slate-400">px</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-1">
+            <label className="text-[11px] font-semibold text-slate-600">Letter Spacing</label>
+            <div className="flex items-center rounded-md border border-slate-200 bg-slate-50 px-2 py-1.5 focus-within:border-[#0040DF] focus-within:bg-white">
+              <input 
+                type="number" 
+                aria-label="Letter Spacing"
+                step="0.1"
+                value={textStyle.letterSpacing === undefined
+                  ? ''
+                  : Number.parseFloat(String(textStyle.letterSpacing))}
+                onChange={(event) => onStyleChange({
+                  letterSpacing: event.target.value ? Number(event.target.value) : undefined,
+                })}
+                className="w-full bg-transparent text-[12px] outline-none text-right" 
+              />
+              <span className="ml-1 text-[10px] text-slate-400">px</span>
+            </div>
+          </div>
+        </section>
+
+        {/* Colors Section */}
+        <section className="space-y-3">
+          <h3 className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Colors</h3>
+          
+          <div className="flex items-center justify-between rounded-md border border-slate-200 bg-slate-50 p-2">
+            <div className="flex items-center gap-2">
+              <input
+                type="color"
+                aria-label="Text Color"
+                value={textStyle.color ?? '#0f172a'}
+                onChange={(event) => onStyleChange({ color: event.target.value })}
+                className="h-6 w-6 cursor-pointer rounded border border-slate-300"
+              />
+              <span className="text-[12px] font-medium text-slate-700">Text Color</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => onStyleChange({ color: undefined })}
+              className="font-mono text-[11px] uppercase text-slate-500 hover:text-[#0040DF]"
+            >
+              {textStyle.color ?? 'Inherited'}
+            </button>
+          </div>
+
+          <div className="flex items-center justify-between rounded-md border border-slate-200 bg-slate-50 p-2">
+            <div className="flex items-center gap-2">
+              <input
+                type="color"
+                aria-label="Text Background Color"
+                value={textStyle.backgroundColor ?? '#ffffff'}
+                onChange={(event) => onStyleChange({ backgroundColor: event.target.value })}
+                className="h-6 w-6 cursor-pointer rounded border border-slate-300"
+              />
+              <span className="text-[12px] font-medium text-slate-700">Background</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => onStyleChange({ backgroundColor: undefined })}
+              className="font-mono text-[11px] uppercase text-slate-500 hover:text-[#0040DF]"
+            >
+              {textStyle.backgroundColor ?? 'None'}
+            </button>
+          </div>
+        </section>
+
+        {/* Alignment Section */}
+        <section className="space-y-3">
+          <h3 className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Alignment</h3>
+          <div className="flex items-center rounded-lg border border-slate-200 bg-slate-50 p-1">
+            {alignments.map(({ icon: Icon, value, label }) => (
+              <button
+                key={value}
+                type="button"
+                aria-label={label}
+                aria-pressed={(textStyle.textAlign ?? 'left') === value}
+                onClick={() => onStyleChange({ textAlign: value })}
+                className={`flex flex-1 items-center justify-center rounded-md py-1.5 ${
+                  (textStyle.textAlign ?? 'left') === value
+                    ? 'bg-white text-[#0040DF] shadow-sm ring-1 ring-slate-200'
+                    : 'text-slate-500 hover:bg-slate-100'
+                }`}
+              >
+                <Icon className="h-4 w-4" />
+              </button>
+            ))}
+          </div>
+        </section>
+
+        {/* Decoration Section */}
+        <section className="space-y-3">
+          <h3 className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Decoration</h3>
+          <div className="flex items-center rounded-lg border border-slate-200 bg-slate-50 p-1">
+            <button
+              type="button"
+              aria-label="Underline"
+              aria-pressed={decorations.includes('underline')}
+              onClick={() => toggleDecoration('underline')}
+              className={`flex flex-1 items-center justify-center rounded-md py-1.5 ${
+                decorations.includes('underline') ? 'bg-white text-[#0040DF] shadow-sm' : 'text-slate-500 hover:bg-slate-100'
+              }`}
+            >
+              <Underline className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              aria-label="Strikethrough"
+              aria-pressed={decorations.includes('line-through')}
+              onClick={() => toggleDecoration('line-through')}
+              className={`flex flex-1 items-center justify-center rounded-md py-1.5 ${
+                decorations.includes('line-through') ? 'bg-white text-[#0040DF] shadow-sm' : 'text-slate-500 hover:bg-slate-100'
+              }`}
+            >
+              <Strikethrough className="h-4 w-4" />
+            </button>
+          </div>
+        </section>
+        
+        {/* Transform Section */}
+        <section className="space-y-3">
+          <h3 className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Case</h3>
+          <div className="flex items-center rounded-lg border border-slate-200 bg-slate-50 p-1">
+            {([
+              { label: 'AA', value: 'uppercase' },
+              { label: 'Aa', value: 'capitalize' },
+              { label: 'aa', value: 'lowercase' },
+            ] as const).map(({ label, value }) => (
+              <button
+                key={value}
+                type="button"
+                aria-label={`${label} case`}
+                aria-pressed={textStyle.textTransform === value}
+                onClick={() => onStyleChange({ textTransform: value })}
+                className={`flex flex-1 items-center justify-center rounded-md py-1.5 text-[11px] font-semibold ${
+                  textStyle.textTransform === value
+                    ? 'bg-white text-[#0040DF] shadow-sm'
+                    : 'text-slate-500 hover:bg-slate-100'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </section>
+
+      </div>
+    </div>
+  );
+}
+
 function RightPanel({
   tab, onTab, selectedId, accent, wsStatus, workflowOpen, onToggleWorkflow,
   box, measured, onBoxChange, onResetBox,
-  overrides, setText, setColor, onResetModuleOverrides,
+  overrides, textStyles, setText, setColor, setTextStyle, onResetModuleOverrides,
+  activeTextSlot, setActiveTextSlot,
 }: {
   tab: RightTab; onTab: (t: RightTab) => void;
   selectedId: ModuleId | null; accent: string;
@@ -1626,9 +2411,13 @@ function RightPanel({
   onBoxChange: (id: ModuleId, patch: ModuleBox) => void;
   onResetBox: (id: ModuleId) => void;
   overrides: Record<string, { text: Record<string, string>; colors: Record<string, string> }>;
+  textStyles: Record<string, Record<string, EditableTextStyle>>;
   setText: (moduleId: ModuleId, slot: string, value: string | null) => void;
   setColor: (moduleId: ModuleId, slot: string, value: string | null) => void;
+  setTextStyle: (moduleId: ModuleId, slot: string, patch: Partial<EditableTextStyle> | null) => void;
   onResetModuleOverrides: (moduleId: ModuleId) => void;
+  activeTextSlot: string | null;
+  setActiveTextSlot: (slot: string | null) => void;
 }) {
   const [showCornerRadius, setShowCornerRadius] = useState(false);
   const [showFillColorPicker, setShowFillColorPicker] = useState(false);
@@ -1644,9 +2433,20 @@ function RightPanel({
     { id: 'logic', label: 'Logic' }, { id: 'data', label: 'Data' }, { id: 'code', label: 'Code' },
   ];
   const mod = selectedId ? moduleFor(selectedId) : null;
+  const selectedShapeTitle = canvasObjectTitle(selectedId);
+  const selectedTitle = mod?.title ?? selectedShapeTitle;
+  const selectedSubtitle = mod?.subtitle ?? (selectedShapeTitle ? 'Canvas shape' : null);
   const schema = selectedId ? EDITABLE_SCHEMA[selectedId] : undefined;
   const mOver = selectedId ? overrides[selectedId] : undefined;
-  const hasOverrides = !!mOver && (Object.keys(mOver.text).length > 0 || Object.keys(mOver.colors).length > 0);
+  const activeTextField = schema?.text?.find((field) => field.slot === activeTextSlot);
+  const activeTextValue = activeTextSlot && selectedId
+    ? mOver?.text[activeTextSlot] ?? activeTextField?.defaultValue ?? ''
+    : '';
+  const activeTextStyle = activeTextSlot && selectedId
+    ? textStyles[selectedId]?.[activeTextSlot] ?? {}
+    : {};
+  const hasOverrides = !!mOver && (Object.keys(mOver.text).length > 0 || Object.keys(mOver.colors).length > 0)
+    || !!selectedId && Object.keys(textStyles[selectedId] ?? {}).length > 0;
 
   const cornerRadii: CornerRadii = box.cornerRadius ?? {
     topLeft: 0, topRight: 0, bottomRight: 0, bottomLeft: 0,
@@ -1709,7 +2509,19 @@ function RightPanel({
     const cornerRadius = cornerRadiusLinked
       ? { topLeft: value, topRight: value, bottomRight: value, bottomLeft: value }
       : { ...cornerRadii, [corner]: value };
-    onBoxChange(selectedId!, { cornerRadius });
+    onBoxChange(selectedId!, { cornerRadius, shapeType: undefined });
+  };
+
+  const updatePadding = (side: keyof Insets, value: string) => {
+    onBoxChange(selectedId!, {
+      padding: {
+        top: box.padding?.top ?? 0,
+        right: box.padding?.right ?? 0,
+        bottom: box.padding?.bottom ?? 0,
+        left: box.padding?.left ?? 0,
+        [side]: Math.max(0, Number(value) || 0),
+      },
+    });
   };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1734,6 +2546,27 @@ function RightPanel({
     e.target.value = '';
   };
 
+  // Conditional Render for Text Formatting Panel
+  if (activeTextSlot) {
+    return (
+      <aside className="flex w-[340px] shrink-0 flex-col border-l border-slate-200 bg-white">
+        <TextFormattingPanel 
+          textLabel={activeTextField?.label ?? activeTextSlot}
+          textValue={activeTextValue}
+          textStyle={activeTextStyle}
+          onTextChange={(value) => {
+            if (selectedId) setText(selectedId, activeTextSlot, value);
+          }}
+          onStyleChange={(patch) => {
+            if (selectedId) setTextStyle(selectedId, activeTextSlot, patch);
+          }}
+          onClose={() => setActiveTextSlot(null)} 
+        />
+      </aside>
+    );
+  }
+
+  // Standard Right Panel Render
   return (
     <aside className="flex w-[340px] shrink-0 flex-col border-l border-slate-200 bg-white">
       <div className="flex border-b border-slate-200">
@@ -1750,7 +2583,7 @@ function RightPanel({
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto">
-        {!mod ? (
+        {!selectedTitle || !selectedSubtitle ? (
           <div className="flex flex-col items-center justify-center gap-2.5 px-4 py-16 text-center">
             <Diamond className="h-6 w-6 text-slate-300" />
             <p className="text-[12px] text-slate-400">Select a component on the phone<br />to edit its properties</p>
@@ -1762,11 +2595,11 @@ function RightPanel({
                 <div className="flex items-center justify-between">
                   <div className="flex min-w-0 items-center gap-1.5">
                     <Diamond className="h-3.5 w-3.5 shrink-0 text-indigo-500" />
-                    <p className="truncate text-[11px] font-bold">{mod.title}</p>
+                    <p className="truncate text-[11px] font-bold">{selectedTitle}</p>
                   </div>
                   <span className="ml-2 rounded bg-indigo-100 px-1.5 py-0.5 text-[11px] font-bold text-indigo-700">Master</span>
                 </div>
-                <p className="mt-1 truncate text-[9px] text-slate-500">{mod.subtitle}</p>
+                <p className="mt-1 truncate text-[9px] text-slate-500">{selectedSubtitle}</p>
                 <div className="mt-2 border-t border-slate-200 pt-2">
                   <div className="mb-1.5 flex items-center justify-between">
                     <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Variant State</span>
@@ -1833,15 +2666,29 @@ function RightPanel({
                 <span className="text-[8px] font-semibold text-[#0040DF]">Fill container</span>
               </div>
               <div className="rounded-lg border border-dashed border-slate-200 p-2">
-                <div className="mb-1 flex items-center justify-between">
+                <label className="mb-1 flex items-center justify-between">
                   <span className="text-[8px] font-semibold text-slate-400">Top</span>
-                  <span className="grid h-6 w-8 place-items-center rounded border border-slate-200 bg-white text-[9px] font-semibold text-slate-700">2</span>
+                  <input
+                    type="number"
+                    min="0"
+                    aria-label="Top padding"
+                    value={box.padding?.top ?? 0}
+                    onChange={(event) => updatePadding('top', event.target.value)}
+                    className="h-6 w-9 rounded border border-slate-200 bg-white px-1 text-center text-[9px] font-semibold text-slate-700 outline-none focus:border-[#0040DF]"
+                  />
                   <span className="text-[8px] text-slate-400">px</span>
-                </div>
+                </label>
                 <div className="flex items-center gap-2">
                   <div className="flex flex-1 items-center gap-1 rounded border border-slate-100 bg-[#F3F4FF] px-2 py-1">
                     <span className="text-[8px] text-slate-400">L</span>
-                    <span className="grid h-5 w-7 place-items-center rounded border border-slate-200 bg-white text-[9px] font-semibold text-slate-700">2</span>
+                    <input
+                      type="number"
+                      min="0"
+                      aria-label="Left padding"
+                      value={box.padding?.left ?? 0}
+                      onChange={(event) => updatePadding('left', event.target.value)}
+                      className="h-5 w-8 rounded border border-slate-200 bg-white text-center text-[9px] font-semibold text-slate-700 outline-none focus:border-[#0040DF]"
+                    />
                     <span className="text-[8px] text-slate-400">px</span>
                   </div>
                   <div className="flex flex-[2] items-center justify-center rounded border border-blue-200 bg-blue-50 px-2 py-1 text-[9px] font-semibold text-[#0040DF]">
@@ -1849,82 +2696,96 @@ function RightPanel({
                   </div>
                   <div className="flex flex-1 items-center gap-1 rounded border border-slate-100 bg-[#F3F4FF] px-2 py-1">
                     <span className="text-[8px] text-slate-400">R</span>
-                    <span className="grid h-5 w-7 place-items-center rounded border border-slate-200 bg-white text-[9px] font-semibold text-slate-700">2</span>
+                    <input
+                      type="number"
+                      min="0"
+                      aria-label="Right padding"
+                      value={box.padding?.right ?? 0}
+                      onChange={(event) => updatePadding('right', event.target.value)}
+                      className="h-5 w-8 rounded border border-slate-200 bg-white text-center text-[9px] font-semibold text-slate-700 outline-none focus:border-[#0040DF]"
+                    />
                     <span className="text-[8px] text-slate-400">px</span>
                   </div>
                 </div>
-                <div className="mt-1 flex items-center justify-between">
+                <label className="mt-1 flex items-center justify-center gap-1">
                   <span className="text-[8px] font-semibold text-slate-400">Bottom</span>
-                  <span className="grid h-6 w-8 place-items-center rounded border border-slate-200 bg-white text-[9px] font-semibold text-slate-700">2</span>
+                  <input
+                    type="number"
+                    min="0"
+                    aria-label="Bottom padding"
+                    value={box.padding?.bottom ?? 0}
+                    onChange={(event) => updatePadding('bottom', event.target.value)}
+                    className="h-6 w-9 rounded border border-slate-200 bg-white px-1 text-center text-[9px] font-semibold text-slate-700 outline-none focus:border-[#0040DF]"
+                  />
                   <span className="text-[8px] text-slate-400">px</span>
-                </div>
+                </label>
               </div>
             </section>
 
             {/* Corner Radius */}
-<section className="border-b border-slate-200 px-3 py-3">
-  <div className="mb-2 flex items-center justify-between">
-    <span className="text-[9px] font-semibold text-slate-700">Corner Radius</span>
-    <button
-      type="button"
-      onClick={() => setShowCornerRadius((v) => !v)}
-      className="flex items-center gap-1 rounded px-1.5 py-1 text-[8px] font-semibold text-slate-600 hover:bg-slate-100"
-    >
-      {showCornerRadius ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-      4 Corners
-    </button>
-  </div>
+            <section className="border-b border-slate-200 px-3 py-3">
+              <div className="mb-2 flex items-center justify-between">
+                <span className="text-[9px] font-semibold text-slate-700">Corner Radius</span>
+                <button
+                  type="button"
+                  onClick={() => setShowCornerRadius((v) => !v)}
+                  className="flex items-center gap-1 rounded px-1.5 py-1 text-[8px] font-semibold text-slate-600 hover:bg-slate-100"
+                >
+                  {showCornerRadius ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                  4 Corners
+                </button>
+              </div>
 
-  <div className="flex gap-2 relative">
-    <div className="flex h-7 w-full items-center gap-2 rounded-md border border-slate-100 bg-[#F3F4FF] px-2">
-      <CornerIcon type="tl" />
-      <input
-        type="number"
-        value={cornerRadii.topLeft}
-        onChange={(e) => updateCornerRadius('topLeft', Math.max(0, Number(e.target.value) || 0))}
-        className="w-full bg-transparent text-right text-[9px] font-semibold text-slate-700 outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
-      />
-      <span className="text-[8px] text-slate-400">px</span>
-    </div>
-    
-    {/* Shape Dropdown */}
-    <div className="relative">
-      <button
-        type="button"
-        onClick={() => setShowShapeDropdown(!showShapeDropdown)}
-        className="flex h-7 items-center gap-1 rounded-md border border-slate-200 bg-white px-2 py-1 text-[9px] font-semibold text-[#0040DF] hover:bg-slate-50 capitalize"
-      >
-        {box.shapeType === 'sharp' ? <Square className="h-3 w-3" /> :
-         box.shapeType === 'pill' ? <Minus className="h-3 w-3" /> :
-         box.shapeType === 'squircle' ? <Diamond className="h-3 w-3" /> :
-         <Square className="h-3 w-3 rounded-[2px]" />}
-        <span>{box.shapeType ?? 'rounded'}</span>
-        <ChevronDown className="h-3 w-3 opacity-50" />
-      </button>
+              <div className="flex gap-2 relative">
+                <div className="flex h-7 w-full items-center gap-2 rounded-md border border-slate-100 bg-[#F3F4FF] px-2">
+                  <CornerIcon type="tl" />
+                  <input
+                    type="number"
+                    value={cornerRadii.topLeft}
+                    onChange={(e) => updateCornerRadius('topLeft', Math.max(0, Number(e.target.value) || 0))}
+                    className="w-full bg-transparent text-right text-[9px] font-semibold text-slate-700 outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
+                  />
+                  <span className="text-[8px] text-slate-400">px</span>
+                </div>
+                
+                {/* Shape Dropdown */}
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setShowShapeDropdown(!showShapeDropdown)}
+                    className="flex h-7 items-center gap-1 rounded-md border border-slate-200 bg-white px-2 py-1 text-[9px] font-semibold text-[#0040DF] hover:bg-slate-50 capitalize"
+                  >
+                    {box.shapeType === 'sharp' ? <Square className="h-3 w-3" /> :
+                     box.shapeType === 'pill' ? <Minus className="h-3 w-3" /> :
+                     box.shapeType === 'squircle' ? <Diamond className="h-3 w-3" /> :
+                     <Square className="h-3 w-3 rounded-[2px]" />}
+                    <span>{box.shapeType ?? 'rounded'}</span>
+                    <ChevronDown className="h-3 w-3 opacity-50" />
+                  </button>
 
-      {showShapeDropdown && (
-        <div className="absolute right-0 top-full z-50 mt-1 w-24 rounded-md border border-slate-200 bg-white py-1 shadow-lg">
-          {['rounded', 'sharp', 'pill', 'squircle'].map((shape) => (
-            <button
-              key={shape}
-              type="button"
-              onClick={() => {
-                onBoxChange(selectedId!, { shapeType: shape as any });
-                setShowShapeDropdown(false);
-              }}
-              className="flex w-full items-center gap-2 px-2 py-1 text-left text-[9px] font-medium text-slate-700 hover:bg-slate-100 capitalize"
-            >
-              {shape === 'sharp' ? <Square className="h-3 w-3" /> :
-               shape === 'pill' ? <Minus className="h-3 w-3" /> :
-               shape === 'squircle' ? <Diamond className="h-3 w-3" /> :
-               <Square className="h-3 w-3 rounded-[2px]" />}
-              {shape}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  </div>
+                  {showShapeDropdown && (
+                    <div className="absolute right-0 top-full z-50 mt-1 w-24 rounded-md border border-slate-200 bg-white py-1 shadow-lg">
+                      {COMPONENT_SHAPES.map((shape) => (
+                        <button
+                          key={shape}
+                          type="button"
+                          onClick={() => {
+                            onBoxChange(selectedId!, { shapeType: shape });
+                            setShowShapeDropdown(false);
+                          }}
+                          className="flex w-full items-center gap-2 px-2 py-1 text-left text-[9px] font-medium text-slate-700 hover:bg-slate-100 capitalize"
+                        >
+                          {shape === 'sharp' ? <Square className="h-3 w-3" /> :
+                           shape === 'pill' ? <Minus className="h-3 w-3" /> :
+                           shape === 'squircle' ? <Diamond className="h-3 w-3" /> :
+                           <Square className="h-3 w-3 rounded-[2px]" />}
+                          {shape}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
 
               {showCornerRadius && (
                 <div className="mt-3 grid grid-cols-2 gap-2 border-t border-slate-100 pt-3">
@@ -1949,8 +2810,8 @@ function RightPanel({
               )}
             </section>
 
-            {/* Fills & Colors */}
-            <section className="relative border-b border-slate-200 px-3 py-3">
+            {/* Fills */}
+            <section className="relative border-b border-slate-200 bg-[#F6F7FF] px-3 py-3">
               <div className="mb-2 flex items-center justify-between">
                 <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500">Fills</span>
                 <div className="flex gap-2">
@@ -1970,108 +2831,111 @@ function RightPanel({
                 </div>
               </div>
 
-              {!box.fillType || box.fillType === 'none' ? (
-                <div className="rounded-lg border border-dashed border-slate-200 p-3 text-center">
-                  <p className="text-[10px] text-slate-400">No fills applied</p>
-                </div>
-              ) : box.fillType === 'color' ? (
-                <div className="relative flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 p-2 mb-2">
-                  <button
-                    type="button"
-                    aria-label="Choose fill color"
-                    onClick={(e) => toggleColorPicker(e, 'fill')}
-                    className="h-7 w-7 shrink-0 rounded border border-slate-300 shadow-sm"
-                    style={{ background: box.fillColor || '#6D28D9' }}
-                  />
-                  <div className="flex min-w-0 flex-1 flex-col">
-                    <span className="text-[11px] font-semibold text-slate-700">Solid Color</span>
-                    <span className="font-mono text-[9px] uppercase text-slate-500">{box.fillColor || '#6D28D9'}</span>
-                  </div>
-                  <span className="text-[11px] font-semibold text-slate-600">100%</span>
-                  <button className="text-slate-400 hover:text-slate-600"><Eye className="h-4 w-4" /></button>
-                  <button onClick={() => onBoxChange(selectedId!, { fillType: 'none' })} className="text-slate-400 hover:text-rose-500">
-                    <div className="flex h-4 w-4 items-center justify-center rounded-full border border-current"><div className="h-px w-2 rotate-45 bg-current" /></div>
-                  </button>
-
-                  {showFillColorPicker && colorPickerPosition && (
-                    <AdvancedColorPicker
-                      color={box.fillColor || '#6D28D9'}
-                      position={colorPickerPosition}
-                      title="Fill color"
-                      onClose={closeColorPicker}
-                      onChange={(c) => onBoxChange(selectedId!, { fillColor: c })}
+              <div className="space-y-2">
+                {/* 1. Generic Color Fill */}
+                {box.fillType === 'color' && (
+                  <div className="relative flex items-center gap-2 rounded-lg border border-white bg-white p-2 shadow-sm">
+                    <button
+                      type="button"
+                      aria-label="Choose fill color"
+                      onClick={(e) => toggleColorPicker(e, 'fill')}
+                      className="h-7 w-7 shrink-0 rounded border border-slate-300 shadow-sm"
+                      style={{ background: box.fillColor || '#6D28D9' }}
                     />
-                  )}
-                </div>
-              ) : box.fillType === 'image' && box.imageFill ? (
-                <div className="space-y-2 rounded-lg border border-slate-200 p-2 mb-2">
-                  <div className="flex items-center gap-2">
-                    <div className="h-8 w-8 shrink-0 overflow-hidden rounded border border-slate-200 bg-slate-100">
-                      <img src={box.imageFill.url} alt="fill" className="h-full w-full object-cover" />
-                    </div>
                     <div className="flex min-w-0 flex-1 flex-col">
-                      <div className="flex items-center gap-1.5">
-                        <span className="truncate text-[11px] font-semibold text-slate-800">Image Fill</span>
-                        <span className="rounded bg-blue-50 px-1 py-0.5 text-[7px] font-bold tracking-wide text-blue-600">PATTERN</span>
-                      </div>
-                      <span className="truncate text-[9px] text-slate-500">{box.imageFill.name}</span>
+                      <span className="text-[11px] font-semibold text-slate-700">Solid Color</span>
+                      <span className="font-mono text-[9px] uppercase text-slate-500">{box.fillColor || '#6D28D9'}</span>
                     </div>
-                    <span className="text-[10px] text-slate-500">{box.imageFill.opacity}%</span>
-                    <button onClick={() => onBoxChange(selectedId!, { imageFill: { ...box.imageFill!, visible: !box.imageFill!.visible } })} className="text-slate-400 hover:text-slate-600">
-                      {box.imageFill.visible !== false ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
-                    </button>
+                    <span className="text-[11px] font-semibold text-slate-600">100%</span>
+                    <button className="text-slate-400 hover:text-slate-600"><Eye className="h-4 w-4" /></button>
                     <button onClick={() => onBoxChange(selectedId!, { fillType: 'none' })} className="text-slate-400 hover:text-rose-500">
                       <div className="flex h-4 w-4 items-center justify-center rounded-full border border-current"><div className="h-px w-2 rotate-45 bg-current" /></div>
                     </button>
+
+                    {showFillColorPicker && colorPickerPosition && (
+                      <AdvancedColorPicker
+                        color={box.fillColor || '#6D28D9'}
+                        position={colorPickerPosition}
+                        title="Fill color"
+                        onClose={closeColorPicker}
+                        onChange={(c) => onBoxChange(selectedId!, { fillColor: c })}
+                      />
+                    )}
                   </div>
-                  <div className="flex gap-2">
-                    <button onClick={() => fileInputRef.current?.click()} className="flex flex-1 items-center justify-between rounded border border-slate-200 bg-white px-2 py-1 text-[10px] text-slate-700 hover:bg-slate-50">
-                      <span className="flex items-center gap-1"><ImageIcon className="h-3 w-3 text-blue-500" /> Choose...</span>
-                      <ChevronDown className="h-3 w-3" />
-                    </button>
-                    <div className="flex flex-1 items-center justify-between rounded border border-slate-200 bg-white px-2 py-1 text-[10px] text-slate-700">
-                      <span className="capitalize">{box.imageFill.fit}</span>
-                      <ChevronDown className="h-3 w-3" />
+                )}
+
+                {/* 2. Generic Image Fill */}
+                {box.fillType === 'image' && box.imageFill && (
+                  <div className="relative mb-2 space-y-2 rounded-lg border border-white bg-white p-2 shadow-sm">
+                    <div className="flex items-center gap-2">
+                      <div className="h-8 w-8 shrink-0 overflow-hidden rounded border border-slate-200 bg-slate-100">
+                        <img src={box.imageFill.url} alt="fill" className="h-full w-full object-cover" />
+                      </div>
+                      <div className="flex min-w-0 flex-1 flex-col">
+                        <div className="flex items-center gap-1.5">
+                          <span className="truncate text-[11px] font-semibold text-slate-800">Image Fill</span>
+                          <span className="rounded bg-blue-50 px-1 py-0.5 text-[7px] font-bold tracking-wide text-blue-600">PATTERN</span>
+                        </div>
+                        <span className="truncate text-[9px] text-slate-500">{box.imageFill.name}</span>
+                      </div>
+                      <span className="text-[10px] text-slate-500">{box.imageFill.opacity}%</span>
+                      <button onClick={() => onBoxChange(selectedId!, { imageFill: { ...box.imageFill!, visible: !box.imageFill!.visible } })} className="text-slate-400 hover:text-slate-600">
+                        {box.imageFill.visible !== false ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
+                      </button>
+                      <button onClick={() => onBoxChange(selectedId!, { fillType: 'none' })} className="text-slate-400 hover:text-rose-500">
+                        <div className="flex h-4 w-4 items-center justify-center rounded-full border border-current"><div className="h-px w-2 rotate-45 bg-current" /></div>
+                      </button>
+                    </div>
+                    <div className="flex gap-2">
+                      <button onClick={() => fileInputRef.current?.click()} className="flex flex-1 items-center justify-between rounded border border-slate-200 bg-white px-2 py-1 text-[10px] text-slate-700 hover:bg-slate-50">
+                        <span className="flex items-center gap-1"><ImageIcon className="h-3 w-3 text-blue-500" /> Choose...</span>
+                        <ChevronDown className="h-3 w-3" />
+                      </button>
+                      <div className="flex flex-1 items-center justify-between rounded border border-slate-200 bg-white px-2 py-1 text-[10px] text-slate-700">
+                        <span className="capitalize">{box.imageFill.fit}</span>
+                        <ChevronDown className="h-3 w-3" />
+                      </div>
+                    </div>
+                    <div className="flex rounded-md border border-slate-100 bg-white p-0.5">
+                      {(['fill', 'fit', 'crop', 'tile'] as const).map((f) => (
+                        <button key={f} onClick={() => onBoxChange(selectedId!, { imageFill: { ...box.imageFill!, fit: f } })}
+                          className={`flex-1 rounded-md py-1 text-[9px] font-semibold capitalize transition ${box.imageFill!.fit === f ? 'bg-[#F0E9FF] text-[#6941C6]' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'}`}>
+                          {f}
+                        </button>
+                      ))}
                     </div>
                   </div>
-                  <div className="flex rounded-md bg-slate-100 p-0.5">
-                    {(['fill', 'fit', 'crop', 'tile'] as const).map((f) => (
-                      <button key={f} onClick={() => onBoxChange(selectedId!, { imageFill: { ...box.imageFill!, fit: f } })}
-                        className={`flex-1 py-1 text-[9px] font-semibold capitalize ${box.imageFill!.fit === f ? 'rounded bg-white text-[#0040DF] shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
-                        {f}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              ) : null}
+                )}
 
-              {/* Colors inside Fills */}
-              {schema?.colors && schema.colors.length > 0 && (
-                <div className="mt-3 border-t border-slate-100 pt-2">
-                  <span className="mb-2 block text-[9px] font-bold uppercase tracking-wider text-slate-500"></span>
+                {/* 3. Component Specific Colors (Schema) */}
+                {schema?.colors && schema.colors.length > 0 && (
                   <div className="space-y-2">
                     {schema.colors.map((c) => {
                       const current = mOver?.colors[c.slot] ?? c.defaultValue;
                       const overridden = !!mOver?.colors[c.slot];
                       return (
-                        <div key={c.slot} className="relative flex items-center gap-2">
-                          <span className="w-16 truncate text-[10px] font-medium text-slate-600">{c.label}</span>
+                        <div key={c.slot} className="relative flex items-center gap-2 rounded-lg border border-white bg-white p-2 shadow-sm">
                           <button
                             type="button"
                             aria-label={`Choose ${c.label}`}
                             onClick={(e) => toggleColorPicker(e, c.slot)}
-                            className="h-6 w-6 shrink-0 rounded-md shadow-sm ring-1 ring-slate-200"
+                            className="h-7 w-7 shrink-0 rounded border border-slate-300 shadow-sm"
                             style={{ background: current }}
                           />
-                          <input
-                            type="text"
-                            value={current}
-                            onChange={(e) => setColor(selectedId!, c.slot, e.target.value)}
-                            className="w-16 rounded border border-slate-200 px-1 py-0.5 font-mono text-[10px] uppercase outline-none focus:border-[#0040DF]"
-                          />
+                          <div className="flex min-w-0 flex-1 flex-col">
+                            <span className="text-[11px] font-semibold text-slate-700">{c.label}</span>
+                            <input
+                              type="text"
+                              value={current}
+                              onChange={(e) => setColor(selectedId!, c.slot, e.target.value)}
+                              className="bg-transparent font-mono text-[9px] uppercase text-slate-500 outline-none focus:border-[#0040DF]"
+                            />
+                          </div>
+                          <span className="text-[11px] font-semibold text-slate-600">100%</span>
+                          <button className="text-slate-400 hover:text-slate-600"><Eye className="h-4 w-4" /></button>
                           {overridden && (
-                            <button onClick={() => setColor(selectedId!, c.slot, null)} className="grid h-5 w-5 place-items-center rounded text-slate-400 hover:bg-rose-50 hover:text-rose-500">
-                              <X className="h-3 w-3" />
+                            <button onClick={() => setColor(selectedId!, c.slot, null)} className="text-slate-400 hover:text-rose-500">
+                              <div className="flex h-4 w-4 items-center justify-center rounded-full border border-current"><div className="h-px w-2 rotate-45 bg-current" /></div>
                             </button>
                           )}
 
@@ -2088,8 +2952,36 @@ function RightPanel({
                       );
                     })}
                   </div>
+                )}
+              </div>
+
+              {/* Tokens */}
+              <div className="mt-3 border-t border-slate-200/70 pt-2">
+                <div className="mb-1.5 flex items-center justify-between">
+                  <span className="text-[8px] font-medium uppercase tracking-wide text-slate-400">Tokens</span>
+                  <span className="text-[8px] text-slate-400">Brand colors</span>
                 </div>
-              )}
+                <div className="flex items-center gap-1.5">
+                  {[
+                    { name: 'Royal blue', color: '#0647E8' },
+                    { name: 'Blue', color: '#0864D9' },
+                    { name: 'Sky blue', color: '#1763C6' },
+                    { name: 'Teal', color: '#079B73' },
+                    { name: 'Ink', color: '#293344' },
+                    { name: 'White', color: '#FFFFFF' },
+                  ].map(({ name, color }) => (
+                    <button
+                      key={name}
+                      type="button"
+                      aria-label={`Apply ${name} fill`}
+                      title={`${name} ${color}`}
+                      onClick={() => onBoxChange(selectedId!, { fillType: 'color', fillColor: color })}
+                      className="h-5 w-5 rounded-full border border-slate-300 shadow-sm transition hover:scale-110"
+                      style={{ backgroundColor: color }}
+                    />
+                  ))}
+                </div>
+              </div>
             </section>
 
             {/* Strokes & Borders */}
@@ -2285,18 +3177,32 @@ export default function StudioClient() {
   const [dropIndex, setDropIndex] = useState<number | null>(null);
   const [allAssetsForLookup, setAllAssetsForLookup] = useState<AssetItem[]>([]);
 
+  // Add state for active text slot
+  const [activeTextSlot, setActiveTextSlot] = useState<string | null>(null);
+
   const [boxes, setBoxes] = useState<Record<string, ModuleBox>>({});
   const [measured, setMeasured] = useState<Record<string, { w: number; h: number }>>({});
 
-  const { overrides, setText, setColor, reset: resetOverrides } = useEditOverrides();
+  const {
+    overrides,
+    textStyles,
+    setText,
+    setColor,
+    setTextStyle,
+    reset: resetOverrides,
+  } = useEditOverrides();
 
   const editState = {
     mode: (mode === 'design' ? 'edit' : 'view') as 'view' | 'edit',
     selectedId,
     overrides,
+    textStyles,
     setText,
     setColor,
+    setTextStyle,
     reset: resetOverrides,
+    activeTextSlot,         // Pass to context
+    setActiveTextSlot,      // Pass to context
   };
 
   const onBoxChange = React.useCallback((id: ModuleId, patch: ModuleBox) => {
@@ -2453,16 +3359,24 @@ export default function StudioClient() {
     setSelectedId(null);
   };
 
-  const handleAddShape = (type: string) => {
+  const handleAddShape = (type: CanvasInsertType, geometry: DrawBox) => {
     const newId = `${type}-${Date.now()}` as ModuleId;
     commit([...currentModules, newId]);
     setSelectedId(newId);
     onBoxChange(newId, {
-      w: 100,
-      h: 100,
-      fillType: 'color',
-      fillColor: '#0040DF',
+      ...geometry,
+      fillType: type === 'shape-text' || type === 'shape-comment' || type === 'shape-line' || type === 'shape-scribble' ? 'none' : 'color',
+      fillColor: '#ffffff',
+      strokeWidth: 2,
+      strokeColor: '#0040DF',
+      text: type === 'shape-text' ? 'Text' : undefined,
     });
+  };
+
+  // Wrapper to reset text slot on new selection
+  const handleSelectModule = (id: ModuleId | null) => {
+    setSelectedId(id);
+    setActiveTextSlot(null);
   };
 
   return (
@@ -2480,7 +3394,12 @@ export default function StudioClient() {
             onStartDrag={startDrag} onEndDrag={endDrag} drag={drag}
             onAddModule={addModule} onRemoveModule={removeModule}
             selectedId={selectedId}
-            onSelectModule={setSelectedId}
+            onSelectModule={handleSelectModule}
+            onSelectTextSlot={(id, slot) => {
+              setSelectedId(id);
+              setActiveTextSlot(slot);
+            }}
+            measured={measured} 
             onAssetClick={(asset) => setAllAssetsForLookup((assets) => [
               ...assets.filter((item) => item.id !== asset.id),
               asset,
@@ -2491,7 +3410,7 @@ export default function StudioClient() {
             pageModules={pageModules} activePage={activePage} pageLabel={currentPageLabel}
             drag={drag} dropIndex={dropIndex}
             ctx={liveCtx} accent={accentColor} isDark={isDark} radius={radius}
-            selectedId={selectedId} onSelect={setSelectedId}
+            selectedId={selectedId} onSelect={handleSelectModule}
             onStartDrag={startDrag} onEndDrag={endDrag}
             onItemDragOver={handleItemDragOver} onDrop={handleDrop}
             onMove={moveModule} onRemove={removeModule} onQuickAdd={quickAdd}
@@ -2510,9 +3429,13 @@ export default function StudioClient() {
             onBoxChange={onBoxChange}
             onResetBox={onResetBox}
             overrides={overrides}
+            textStyles={textStyles}
             setText={setText}
             setColor={setColor}
+            setTextStyle={setTextStyle}
             onResetModuleOverrides={resetOverrides}
+            activeTextSlot={activeTextSlot}
+            setActiveTextSlot={setActiveTextSlot}
           />
         </div>
       </div>

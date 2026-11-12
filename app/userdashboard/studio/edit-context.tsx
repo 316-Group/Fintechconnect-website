@@ -2,7 +2,7 @@
 'use client';
 
 import React, {
-  createContext, useCallback, useContext, useEffect, useState,
+  createContext, useCallback, useContext, useState,
 } from 'react';
 import type { ModuleId } from './phone-cards';
 
@@ -11,13 +11,31 @@ export interface ModuleOverrides {
   colors: Record<string, string>;
 }
 
+export type EditableTextStyle = Pick<
+  React.CSSProperties,
+  | 'fontFamily'
+  | 'fontWeight'
+  | 'fontSize'
+  | 'lineHeight'
+  | 'letterSpacing'
+  | 'color'
+  | 'backgroundColor'
+  | 'textAlign'
+  | 'textDecorationLine'
+  | 'textTransform'
+>;
+
 export interface EditState {
   mode: 'view' | 'edit';
   selectedId: ModuleId | null;
   overrides: Record<string, ModuleOverrides>;
+  textStyles: Record<string, Record<string, EditableTextStyle>>;
   setText:  (moduleId: ModuleId, slot: string, value: string | null) => void;
   setColor: (moduleId: ModuleId, slot: string, value: string | null) => void;
+  setTextStyle: (moduleId: ModuleId, slot: string, patch: Partial<EditableTextStyle> | null) => void;
   reset:    (moduleId: ModuleId) => void;
+  activeTextSlot: string | null;
+  setActiveTextSlot: (slot: string | null) => void;
 }
 
 const EditContext = createContext<EditState | null>(null);
@@ -40,12 +58,13 @@ export function ModuleScope({
 /** Owns the override map — put one of these at the top of StudioClient. */
 export function useEditOverrides() {
   const [overrides, setOverrides] = useState<Record<string, ModuleOverrides>>({});
+  const [textStyles, setTextStyles] = useState<Record<string, Record<string, EditableTextStyle>>>({});
 
   const setText = useCallback((moduleId: string, slot: string, value: string | null) => {
     setOverrides((prev) => {
       const cur = prev[moduleId] ?? { text: {}, colors: {} };
       const text = { ...cur.text };
-      if (value === null || value === '') delete text[slot]; else text[slot] = value;
+      if (value === null) delete text[slot]; else text[slot] = value;
       return { ...prev, [moduleId]: { text, colors: cur.colors } };
     });
   }, []);
@@ -59,14 +78,49 @@ export function useEditOverrides() {
     });
   }, []);
 
-  const reset = useCallback((moduleId: string) => {
-    setOverrides((prev) => {
-      const { [moduleId]: _omit, ...rest } = prev;
+  const setTextStyle = useCallback((
+    moduleId: string,
+    slot: string,
+    patch: Partial<EditableTextStyle> | null,
+  ) => {
+    setTextStyles((prev) => {
+      const currentModule = prev[moduleId] ?? {};
+      const nextStyle: EditableTextStyle = patch === null ? {} : { ...currentModule[slot] };
+      if (patch !== null) {
+        for (const [key, value] of Object.entries(patch)) {
+          if (value === undefined || value === null) {
+            delete nextStyle[key as keyof EditableTextStyle];
+          } else {
+            Object.assign(nextStyle, { [key]: value });
+          }
+        }
+      }
+
+      const nextModule = { ...currentModule };
+      if (Object.keys(nextStyle).length) nextModule[slot] = nextStyle;
+      else delete nextModule[slot];
+
+      if (Object.keys(nextModule).length) return { ...prev, [moduleId]: nextModule };
+      const rest = { ...prev };
+      delete rest[moduleId];
       return rest;
     });
   }, []);
 
-  return { overrides, setText, setColor, reset };
+  const reset = useCallback((moduleId: string) => {
+    setOverrides((prev) => {
+      const next = { ...prev };
+      delete next[moduleId];
+      return next;
+    });
+    setTextStyles((prev) => {
+      const rest = { ...prev };
+      delete rest[moduleId];
+      return rest;
+    });
+  }, []);
+
+  return { overrides, textStyles, setText, setColor, setTextStyle, reset };
 }
 
 const useScope = () => useContext(ScopeContext);
@@ -86,9 +140,15 @@ export function useModuleColor(slot: string, fallback: string): string {
   return edit.overrides[scope.moduleId]?.colors[slot] ?? fallback;
 }
 
+export function useModuleTextStyle(slot: string): EditableTextStyle {
+  const edit = useEdit();
+  const scope = useScope();
+  if (!edit || !scope.moduleId) return {};
+  return edit.textStyles[scope.moduleId]?.[slot] ?? {};
+}
+
 /**
- * Inline-editable text. Renders plain <span> when not selected; when the
- * module is selected, it becomes click-to-edit with an input on activation.
+ * Selected text can be edited inline or through the text-formatting panel.
  */
 export function EditableText({
   slot, fallback, className, style,
@@ -99,31 +159,35 @@ export function EditableText({
   const edit  = useEdit();
   const scope = useScope();
   const value = useModuleText(slot, fallback);
+  const textStyle = useModuleTextStyle(slot);
   const [editing, setEditing] = useState(false);
-
-  useEffect(() => { if (!scope.active) setEditing(false); }, [scope.active]);
+  const isEditing = editing && edit?.activeTextSlot === slot;
+  const isSelectedSlot = edit?.activeTextSlot === slot && scope.moduleId === edit.selectedId;
+  const resolvedStyle: React.CSSProperties = {
+    ...style,
+    ...textStyle,
+    ...(textStyle.textAlign ? { display: 'block', width: '100%' } : {}),
+  };
 
   if (!edit || !scope.moduleId || !scope.active) {
-    return <span className={className} style={style}>{value}</span>;
+    return <span className={className} style={resolvedStyle}>{value}</span>;
   }
 
-  if (editing) {
+  if (isEditing) {
     return (
       <input
         autoFocus
-        defaultValue={value}
+        value={value}
+        onChange={(e) => edit.setText(scope.moduleId!, slot, e.target.value)}
         onClick={(e) => e.stopPropagation()}
-        onBlur={(e) => {
-          const v = e.target.value;
-          edit.setText(scope.moduleId!, slot, v === '' || v === fallback ? null : v);
-          setEditing(false);
-        }}
+        onBlur={() => setEditing(false)}
         onKeyDown={(e) => {
           if (e.key === 'Enter')  (e.target as HTMLInputElement).blur();
           if (e.key === 'Escape') setEditing(false);
         }}
-        className={`${className ?? ''} rounded bg-white px-1 text-slate-900 outline-none ring-2 ring-[#0040DF]`}
-        style={{ ...style, color: '#0f172a' }}
+        data-text-slot={slot}
+        className={`${className ?? ''} rounded bg-white px-1 outline-none ring-2 ring-[#0040DF]`}
+        style={{ ...resolvedStyle, color: textStyle.color ?? '#0f172a' }}
       />
     );
   }
@@ -133,9 +197,19 @@ export function EditableText({
       role="button"
       tabIndex={0}
       title="Click to edit"
-      onClick={(e) => { e.stopPropagation(); setEditing(true); }}
-      className={`${className ?? ''} cursor-text rounded transition hover:bg-blue-100/60 hover:ring-1 hover:ring-[#0040DF]/40`}
-      style={style}
+      data-text-slot={slot}
+      data-text-slot-selected={isSelectedSlot || undefined}
+      onClick={(e) => { 
+        e.stopPropagation(); 
+        setEditing(true); 
+        edit.setActiveTextSlot(slot);
+      }}
+      className={`${className ?? ''} cursor-text rounded transition ${
+        isSelectedSlot
+          ? 'bg-blue-100/60 ring-2 ring-[#0040DF]'
+          : 'hover:bg-blue-100/60 hover:ring-1 hover:ring-[#0040DF]/40'
+      }`}
+      style={resolvedStyle}
     >
       {value}
     </span>
