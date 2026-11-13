@@ -144,9 +144,30 @@ type CornerRadii = { topLeft: number; topRight: number; bottomRight: number; bot
 type ShapeType = NonNullable<ModuleBox['shapeType']>;
 const COMPONENT_SHAPES: ShapeType[] = ['rounded', 'sharp', 'pill', 'squircle'];
 type CanvasShapeType = 'shape-rect' | 'shape-circle' | 'shape-triangle' | 'shape-star' | 'shape-line' | 'shape-arrow' | 'shape-scribble';
-type CanvasInsertType = CanvasShapeType | 'shape-text' | 'shape-comment';
+type CanvasInsertType = CanvasShapeType | 'shape-text' | 'shape-comment' | 'frame';
 type DrawBox = Pick<ModuleBox, 'x' | 'y' | 'w' | 'h' | 'flipX' | 'flipY' | 'freehandPath'>;
 type DrawPreview = { type: CanvasInsertType; box: DrawBox };
+type WorkspaceShape = { id: string; type: CanvasInsertType; box: ModuleBox; frameId?: string };
+type ShapeMoveEnd = (
+  id: ModuleId,
+  pointer: { x: number; y: number },
+  grabRatio: { x: number; y: number },
+) => void;
+type ShapeMoveUpdate = (
+  id: ModuleId,
+  box: ModuleBox,
+  pointer: { x: number; y: number },
+  grabRatio: { x: number; y: number },
+) => void;
+type ShapeDragPreviewItem = {
+  id: string;
+  type: CanvasInsertType;
+  box: ModuleBox;
+  left: number;
+  top: number;
+  scale: number;
+};
+type ShapeDragPreview = { items: ShapeDragPreviewItem[] };
 type ComponentVariant = 'Default' | 'Masked' | 'Negative';
 type FillGradient = {
   type: 'Linear' | 'Radial';
@@ -172,6 +193,7 @@ type ModuleBox = {
   h?: number;
   x?: number;
   y?: number;
+  frameId?: string;
   flipX?: boolean;
   flipY?: boolean;
   text?: string;
@@ -200,6 +222,25 @@ type ModuleBox = {
   shadowColor?: string;
   layerBlur?: number;
 };
+
+function createShapeBox(type: CanvasInsertType, geometry: DrawBox): ModuleBox {
+  return {
+    ...geometry,
+    fillType: type === 'frame' || ['shape-text', 'shape-comment', 'shape-line', 'shape-scribble'].includes(type) ? 'none' : 'color',
+    fillColor: '#ffffff',
+    strokeWidth: 2,
+    strokeColor: '#0040DF',
+    text: type === 'shape-text' ? 'Text' : undefined,
+  };
+}
+
+function canvasInsertTypeForId(id: string): CanvasInsertType | null {
+  const types: CanvasInsertType[] = [
+    'frame', 'shape-rect', 'shape-circle', 'shape-triangle', 'shape-star',
+    'shape-line', 'shape-arrow', 'shape-scribble', 'shape-text', 'shape-comment',
+  ];
+  return types.find((type) => id.startsWith(`${type}-`)) ?? null;
+}
 
 /* ═══════════════════════════ TopBar ═══════════════════════════ */
 
@@ -990,6 +1031,7 @@ function radiusForBox(box: ModuleBox): string | undefined {
 }
 
 function canvasObjectTitle(id: ModuleId | null): string | null {
+  if (id?.startsWith('frame-')) return 'Frame';
   if (!id?.startsWith('shape-')) return null;
   const type = id.slice('shape-'.length).split('-')[0];
   const labels: Record<string, string> = {
@@ -1115,10 +1157,11 @@ function GenericShape({
 function ModuleWrapper({
   id, index, total, selected, drag, dropIndex, accent, isDark, radius, ctx,
   box, onSelect, onStartDrag, onEndDrag, onItemDragOver, onDrop, onMove, onRemove,
-  onMeasure, onBoxChange,
+  onMeasure, onBoxChange, onShapeMove, onShapeMoveEnd, isDrawing, isShapeDragSource,
 }: {
   id: ModuleId; index: number; total: number;
   selected: boolean; drag: DragState; dropIndex: number | null;
+  isDrawing: boolean; isShapeDragSource: boolean;
   accent: string; isDark: boolean; radius: Radius; ctx: ViewCtx;
   box: ModuleBox;
   onSelect: (id: ModuleId) => void;
@@ -1130,12 +1173,15 @@ function ModuleWrapper({
   onRemove: (id: ModuleId) => void;
   onMeasure: (id: ModuleId, size: { w: number; h: number }) => void;
   onBoxChange: (id: ModuleId, patch: ModuleBox) => void;
+  onShapeMove: ShapeMoveUpdate;
+  onShapeMoveEnd: ShapeMoveEnd;
 }) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const [natural, setNatural] = useState<{ w: number; h: number } | null>(null);
   const isSource = drag?.from === 'canvas' && drag.id === id;
-  const isShape = id.startsWith('shape-');
+  const isFrame = id.startsWith('frame-');
+  const isShape = isFrame || id.startsWith('shape-');
 
   useEffect(() => {
     const el = contentRef.current;
@@ -1219,16 +1265,34 @@ function ModuleWrapper({
     const startY = event.clientY;
     const baseX = box.x ?? 0;
     const baseY = box.y ?? 0;
+    const shapeBounds = wrapperRef.current.getBoundingClientRect();
+    const grabRatio = {
+      x: (event.clientX - shapeBounds.left) / (shapeBounds.width || 1),
+      y: (event.clientY - shapeBounds.top) / (shapeBounds.height || 1),
+    };
+    onShapeMove(id, box, { x: event.clientX, y: event.clientY }, grabRatio);
 
     const handleMove = (moveEvent: MouseEvent) => {
-      onBoxChange(id, {
+      const nextBox = {
         x: baseX + (moveEvent.clientX - startX) / scaleX,
         y: baseY + (moveEvent.clientY - startY) / scaleY,
-      });
+      };
+      onBoxChange(id, nextBox);
+      onShapeMove(
+        id,
+        { ...box, ...nextBox },
+        { x: moveEvent.clientX, y: moveEvent.clientY },
+        grabRatio,
+      );
     };
-    const handleUp = () => {
+    const handleUp = (upEvent: MouseEvent) => {
       window.removeEventListener('mousemove', handleMove);
       window.removeEventListener('mouseup', handleUp);
+      onShapeMoveEnd(
+        id,
+        { x: upEvent.clientX, y: upEvent.clientY },
+        grabRatio,
+      );
     };
     window.addEventListener('mousemove', handleMove);
     window.addEventListener('mouseup', handleUp);
@@ -1298,7 +1362,7 @@ function ModuleWrapper({
     opacity: box.opacity === undefined ? undefined : box.opacity / 100,
     outline: selected ? '2px solid #0040DF' : undefined,
     outlineOffset: 4,
-    zIndex: isShape ? (selected ? 30 : 20) : undefined,
+    zIndex: isFrame ? (selected ? 15 : 10) : isShape ? (selected ? 30 : 20) : undefined,
     ...customEffect,
   };
 
@@ -1313,7 +1377,7 @@ function ModuleWrapper({
     <div
       ref={wrapperRef}
       data-module-id={id}
-      draggable={!selected && !isShape}
+      draggable={!selected && !isShape && !isDrawing}
       onDragStart={(e) => {
         if (isShape) { e.preventDefault(); return; }
         if (selected) { e.preventDefault(); return; }
@@ -1324,7 +1388,11 @@ function ModuleWrapper({
       onDrop={onDrop}
       onMouseDown={startShapeMove}
       onClick={(e) => { e.stopPropagation(); onSelect(id); }}
-      style={wrapperStyle}
+      style={{
+        ...wrapperStyle,
+        cursor: isDrawing ? 'crosshair' : undefined,
+        opacity: isShapeDragSource ? 0 : wrapperStyle.opacity,
+      }}
       className={`group relative cursor-grab active:cursor-grabbing ${
         isDark ? 'ring-offset-slate-950' : 'ring-offset-[#F7F8FF]'
       } ${isShape ? 'cursor-move' : ''} ${isSource ? 'opacity-40' : ''}`}
@@ -1375,7 +1443,8 @@ function ModuleWrapper({
 function PageCanvas({
   page, pageLabel, modules, ctx, drag, dropIndex, accent, isDark, radius,
   onStartDrag, onEndDrag, onItemDragOver, onDrop, onMove, onRemove, onQuickAdd,
-  selectedId, onSelect, boxes, onMeasure, onBoxChange,
+  selectedId, onSelect, boxes, onMeasure, onBoxChange, onShapeMove, onShapeMoveEnd,
+  isDrawing, shapeDragPreviewIds,
 }: {
   page: PageId; pageLabel: string; modules: ModuleId[];
   ctx: ViewCtx; drag: DragState; dropIndex: number | null; accent: string;
@@ -1392,6 +1461,10 @@ function PageCanvas({
   boxes: Record<string, ModuleBox>;
   onMeasure: (id: ModuleId, size: { w: number; h: number }) => void;
   onBoxChange: (id: ModuleId, patch: ModuleBox) => void;
+  onShapeMove: ShapeMoveUpdate;
+  onShapeMoveEnd: ShapeMoveEnd;
+  isDrawing: boolean;
+  shapeDragPreviewIds: string[];
 }) {
   const empty = modules.length === 0;
 
@@ -1425,6 +1498,8 @@ function PageCanvas({
           index={i}
           total={modules.length}
           selected={selectedId === id}
+          isDrawing={isDrawing}
+          isShapeDragSource={shapeDragPreviewIds.includes(id)}
           drag={drag}
           dropIndex={dropIndex}
           accent={accent}
@@ -1441,6 +1516,8 @@ function PageCanvas({
           onRemove={onRemove}
           onMeasure={onMeasure}
           onBoxChange={onBoxChange}
+          onShapeMove={onShapeMove}
+          onShapeMoveEnd={onShapeMoveEnd}
         />
       ))}
     </div>
@@ -1481,7 +1558,7 @@ function CanvasToolbar({
         <div className="absolute bottom-full left-1/2 mb-3 w-max max-w-[calc(100vw-24px)] -translate-x-1/2 rounded-xl bg-white px-3 pb-2.5 pt-2 shadow-[0_8px_24px_rgba(0,0,0,0.1)] ring-1 ring-slate-100">
           <div className="mb-1.5 flex items-center justify-between gap-5">
             <span className="text-[9px] font-medium uppercase tracking-wide text-slate-500">Lines &amp; Shapes</span>
-            <span className="text-[9px] text-slate-400">Choose a shape, then drag to draw</span>
+            <span className="text-[9px] text-slate-400">Choose a tool, then drag to draw</span>
           </div>
           <div className="flex items-center gap-1.5">
             {shapes.map(({ id, icon: Icon, label }) => (
@@ -1508,8 +1585,8 @@ function CanvasToolbar({
           className={`grid h-8 w-8 place-items-center rounded-lg transition ${panMode ? 'bg-[#0040DF] text-white shadow-sm' : 'text-slate-500 hover:bg-slate-100'}`}>
           <Hand className="h-4 w-4" />
         </button>
-        <button type="button" aria-label="Rectangle tool" title="Rectangle" onClick={() => chooseTool('shape-rect')}
-          className={`grid h-8 w-8 place-items-center rounded-lg transition ${drawTool === 'shape-rect' ? 'bg-[#E8EDFF] text-[#0040DF]' : 'text-slate-500 hover:bg-slate-100'}`}>
+        <button type="button" aria-label="Frame tool" title="Frame" onClick={() => chooseTool('frame')}
+          className={`grid h-8 w-8 place-items-center rounded-lg transition ${drawTool === 'frame' ? 'bg-[#E8EDFF] text-[#0040DF]' : 'text-slate-500 hover:bg-slate-100'}`}>
           <Frame className="h-4 w-4" />
         </button>
         <button type="button" aria-label="Open shape palette" title="Lines & Shapes" aria-expanded={paletteOpen} onClick={() => setPaletteOpen((open) => !open)}
@@ -1537,7 +1614,8 @@ function Canvas({
   device, zoom, onZoom, pageModules, activePage, pageLabel, drag, dropIndex,
   ctx, accent, isDark, radius, selectedId, onSelect,
   onStartDrag, onEndDrag, onItemDragOver, onDrop, onMove, onRemove, onQuickAdd,
-  onNavTab, boxes, onMeasure, onBoxChange, onAddShape,
+  onNavTab, boxes, onMeasure, onBoxChange, onAddShape, onAddWorkspaceShapes, onRemoveMany,
+  workspaceShapes, setWorkspaceShapes, selectedWorkspaceShapeId, setSelectedWorkspaceShapeId,
 }: {
   device: DeviceType; zoom: number; onZoom: (z: number) => void;
   pageModules: Record<PageId, ModuleId[]>;
@@ -1557,6 +1635,12 @@ function Canvas({
   onMeasure: (id: ModuleId, size: { w: number; h: number }) => void;
   onBoxChange: (id: ModuleId, patch: ModuleBox) => void;
   onAddShape: (type: CanvasInsertType, box: DrawBox) => void;
+  onAddWorkspaceShapes: (shapes: WorkspaceShape[]) => void;
+  onRemoveMany: (ids: ModuleId[]) => void;
+  workspaceShapes: WorkspaceShape[];
+  setWorkspaceShapes: React.Dispatch<React.SetStateAction<WorkspaceShape[]>>;
+  selectedWorkspaceShapeId: string | null;
+  setSelectedWorkspaceShapeId: (id: string | null) => void;
 }) {
   const dims = device === 'iphone' ? { w: 320, h: 640 }
     : device === 'pixel' ? { w: 340, h: 640 }
@@ -1566,13 +1650,41 @@ function Canvas({
 
   const bodyRef = React.useRef<HTMLDivElement>(null);
   const mainRef = React.useRef<HTMLElement>(null);
+  const workspaceRef = React.useRef<HTMLDivElement>(null);
   const drawAreaRef = React.useRef<HTMLDivElement>(null);
   const suppressCanvasClickRef = React.useRef(false);
+  const workspaceShapeIdRef = React.useRef(0);
   const zoomRef = React.useRef(zoom);
   const [panMode, setPanMode] = useState(false);
   const [drawTool, setDrawTool] = useState<CanvasInsertType | null>(null);
   const [drawPreview, setDrawPreview] = useState<DrawPreview | null>(null);
+  const [drawPreviewTarget, setDrawPreviewTarget] = useState<'phone' | 'workspace' | null>(null);
+  const [shapeDragPreview, setShapeDragPreview] = useState<ShapeDragPreview | null>(null);
   zoomRef.current = zoom;
+
+  const updateShapeDragPreview = (
+    anchor: WorkspaceShape,
+    group: WorkspaceShape[],
+    pointer: { x: number; y: number },
+    grabRatio: { x: number; y: number },
+    scale: number,
+  ) => {
+    const workspace = workspaceRef.current;
+    if (!workspace) return;
+    const workspaceRect = workspace.getBoundingClientRect();
+    const anchorLeft = pointer.x - workspaceRect.left - (anchor.box.w ?? 100) * scale * grabRatio.x;
+    const anchorTop = pointer.y - workspaceRect.top - (anchor.box.h ?? 100) * scale * grabRatio.y;
+    setShapeDragPreview({
+      items: group.map((shape) => {
+        return {
+          ...shape,
+          left: anchorLeft + ((shape.box.x ?? 0) - (anchor.box.x ?? 0)) * scale,
+          top: anchorTop + ((shape.box.y ?? 0) - (anchor.box.y ?? 0)) * scale,
+          scale,
+        };
+      }),
+    });
+  };
 
   React.useEffect(() => {
     const el = mainRef.current;
@@ -1613,13 +1725,13 @@ function Canvas({
     window.addEventListener('mouseup', handleUp);
   };
 
-  const startCanvasDrawing = (event: React.MouseEvent<HTMLDivElement>) => {
-    if (!drawTool || panMode || event.button !== 0 || !drawAreaRef.current || !bodyRef.current) return;
+  const startCanvasDrawing = (event: React.MouseEvent<HTMLDivElement>, target: 'phone' | 'workspace') => {
+    const area = target === 'phone' ? drawAreaRef.current : workspaceRef.current;
+    if (!drawTool || panMode || event.button !== 0 || !area || (target === 'phone' && !bodyRef.current)) return;
     event.preventDefault();
     event.stopPropagation();
-    suppressCanvasClickRef.current = true;
+    if (target === 'phone') suppressCanvasClickRef.current = true;
 
-    const area = drawAreaRef.current;
     const body = bodyRef.current;
     const getPoint = (clientX: number, clientY: number) => {
       const rect = area.getBoundingClientRect();
@@ -1627,7 +1739,7 @@ function Canvas({
       const scaleY = rect.height / (area.offsetHeight || 1) || 1;
       return {
         x: (clientX - rect.left) / scaleX,
-        y: (clientY - rect.top) / scaleY + body.scrollTop,
+        y: (clientY - rect.top) / scaleY + (target === 'phone' ? body?.scrollTop ?? 0 : 0),
       };
     };
 
@@ -1659,6 +1771,7 @@ function Canvas({
           .join(' ');
       }
       setDrawPreview({ type: drawTool, box });
+      setDrawPreviewTarget(target);
       return box;
     };
 
@@ -1685,14 +1798,342 @@ function Canvas({
         box.w = Math.max(8, width);
         box.h = Math.max(8, height);
       }
-      onAddShape(drawTool, box);
+      if (target === 'workspace') {
+        const id = `workspace-shape-${++workspaceShapeIdRef.current}`;
+        onSelect(null);
+        setSelectedWorkspaceShapeId(id);
+        setWorkspaceShapes((shapes) => {
+          const centerX = (box.x ?? 0) + (box.w ?? 0) / 2;
+          const centerY = (box.y ?? 0) + (box.h ?? 0) / 2;
+          const frameId = drawTool === 'frame' ? undefined : shapes
+            .filter((shape) => shape.type === 'frame')
+            .filter((shape) => {
+              const frameX = shape.box.x ?? 0;
+              const frameY = shape.box.y ?? 0;
+              const containsCenter = centerX >= frameX && centerX <= frameX + (shape.box.w ?? 0)
+                && centerY >= frameY && centerY <= frameY + (shape.box.h ?? 0);
+              const containsStart = start.x >= frameX && start.x <= frameX + (shape.box.w ?? 0)
+                && start.y >= frameY && start.y <= frameY + (shape.box.h ?? 0);
+              return containsCenter || containsStart;
+            })
+            .sort((a, b) => (a.box.w ?? 0) * (a.box.h ?? 0) - (b.box.w ?? 0) * (b.box.h ?? 0))[0]?.id;
+          return [...shapes, {
+            id,
+            type: drawTool,
+            box: createShapeBox(drawTool, box),
+            frameId,
+          }];
+        });
+      } else {
+        onAddShape(drawTool, box);
+      }
       setDrawPreview(null);
+      setDrawPreviewTarget(null);
       setDrawTool(null);
       window.removeEventListener('mousemove', handleMove);
       window.removeEventListener('mouseup', handleUp);
     };
     window.addEventListener('mousemove', handleMove);
     window.addEventListener('mouseup', handleUp);
+  };
+
+  const getWorkspaceGroup = (shape: WorkspaceShape, shapes: WorkspaceShape[]) => {
+    return shape.type === 'frame'
+      ? shapes.filter((item) => item.id === shape.id || item.frameId === shape.id)
+      : [shape];
+  };
+
+  const moveWorkspaceShape = (id: string, direction: -1 | 1) => {
+    setWorkspaceShapes((shapes) => {
+      const target = shapes.find((shape) => shape.id === id);
+      if (!target) return shapes;
+      const group = getWorkspaceGroup(target, shapes);
+      const groupIds = new Set(group.map((shape) => shape.id));
+      const indices = shapes
+        .map((shape, index) => groupIds.has(shape.id) ? index : -1)
+        .filter((index) => index >= 0);
+      const targetIndex = direction < 0 ? Math.min(...indices) - 1 : Math.max(...indices) + 1;
+      if (targetIndex < 0 || targetIndex >= shapes.length) return shapes;
+      const targetId = shapes[targetIndex].id;
+      const next = shapes.filter((shape) => !groupIds.has(shape.id));
+      const remainingTargetIndex = next.findIndex((shape) => shape.id === targetId);
+      next.splice(direction < 0 ? remainingTargetIndex : remainingTargetIndex + 1, 0, ...group);
+      return next;
+    });
+  };
+
+  const removeWorkspaceShape = (id: string) => {
+    const target = workspaceShapes.find((shape) => shape.id === id);
+    if (!target) return;
+    const ids = new Set((target.type === 'frame'
+      ? workspaceShapes.filter((shape) => shape.id === target.id || shape.frameId === target.id)
+      : [target]).map((shape) => shape.id));
+    if (selectedWorkspaceShapeId && ids.has(selectedWorkspaceShapeId)) {
+      setSelectedWorkspaceShapeId(null);
+    }
+    setWorkspaceShapes((shapes) => shapes.filter((shape) => !ids.has(shape.id)));
+  };
+
+  const startWorkspaceShapeResize = (
+    event: React.MouseEvent<HTMLSpanElement>,
+    shape: WorkspaceShape,
+    handle: string,
+  ) => {
+    event.preventDefault();
+    event.stopPropagation();
+    const workspace = workspaceRef.current;
+    if (!workspace) return;
+
+    const workspaceRect = workspace.getBoundingClientRect();
+    const scaleX = workspaceRect.width / (workspace.offsetWidth || 1) || 1;
+    const scaleY = workspaceRect.height / (workspace.offsetHeight || 1) || 1;
+    const startX = event.clientX;
+    const startY = event.clientY;
+    const startW = shape.box.w ?? 100;
+    const startH = shape.box.h ?? 100;
+    const baseX = shape.box.x ?? 0;
+    const baseY = shape.box.y ?? 0;
+
+    const handleMove = (moveEvent: MouseEvent) => {
+      const dx = (moveEvent.clientX - startX) / scaleX;
+      const dy = (moveEvent.clientY - startY) / scaleY;
+      const patch: ModuleBox = {};
+      if (handle.includes('e')) patch.w = Math.max(20, startW + dx);
+      if (handle.includes('w')) {
+        patch.w = Math.max(20, startW - dx);
+        patch.x = baseX + dx;
+      }
+      if (handle.includes('s')) patch.h = Math.max(20, startH + dy);
+      if (handle.includes('n')) {
+        patch.h = Math.max(20, startH - dy);
+        patch.y = baseY + dy;
+      }
+      setWorkspaceShapes((shapes) => shapes.map((item) => item.id === shape.id
+        ? { ...item, box: { ...item.box, ...patch } }
+        : item));
+    };
+    const handleUp = () => {
+      window.removeEventListener('mousemove', handleMove);
+      window.removeEventListener('mouseup', handleUp);
+    };
+    window.addEventListener('mousemove', handleMove);
+    window.addEventListener('mouseup', handleUp);
+  };
+
+  const startWorkspaceShapeMove = (event: React.MouseEvent<HTMLDivElement>, shape: WorkspaceShape) => {
+    if (drawTool || event.button !== 0 || !workspaceRef.current) return;
+    if (event.target instanceof Element && event.target.closest('button, [contenteditable="true"]')) return;
+    event.preventDefault();
+    event.stopPropagation();
+    onSelect(null);
+    setSelectedWorkspaceShapeId(shape.id);
+
+    const workspace = workspaceRef.current;
+    const workspaceRect = workspace.getBoundingClientRect();
+    const scaleX = workspaceRect.width / (workspace.offsetWidth || 1) || 1;
+    const scaleY = workspaceRect.height / (workspace.offsetHeight || 1) || 1;
+    const startX = event.clientX;
+    const startY = event.clientY;
+    const group = getWorkspaceGroup(shape, workspaceShapes);
+    const groupIds = new Set(group.map((item) => item.id));
+    const bounds = event.currentTarget.getBoundingClientRect();
+    const grabRatio = {
+      x: (event.clientX - bounds.left) / (bounds.width || 1),
+      y: (event.clientY - bounds.top) / (bounds.height || 1),
+    };
+    updateShapeDragPreview(
+      shape,
+      group,
+      { x: event.clientX, y: event.clientY },
+      grabRatio,
+      1,
+    );
+
+    const getDelta = (clientX: number, clientY: number) => ({
+      x: (clientX - startX) / scaleX,
+      y: (clientY - startY) / scaleY,
+    });
+    const updateWorkspacePositions = (clientX: number, clientY: number) => {
+      const delta = getDelta(clientX, clientY);
+      setWorkspaceShapes((shapes) => shapes.map((item) => {
+        if (!groupIds.has(item.id)) return item;
+        const original = group.find((member) => member.id === item.id);
+        if (!original) return item;
+        return {
+          ...item,
+          box: {
+            ...item.box,
+            x: (original.box.x ?? 0) + delta.x,
+            y: (original.box.y ?? 0) + delta.y,
+          },
+        };
+      }));
+      const movedGroup = group.map((item) => ({
+        ...item,
+        box: {
+          ...item.box,
+          x: (item.box.x ?? 0) + delta.x,
+          y: (item.box.y ?? 0) + delta.y,
+        },
+      }));
+      const movedAnchor = movedGroup.find((item) => item.id === shape.id) ?? shape;
+      updateShapeDragPreview(
+        movedAnchor,
+        movedGroup,
+        { x: clientX, y: clientY },
+        grabRatio,
+        1,
+      );
+      return delta;
+    };
+
+    const handleMove = (moveEvent: MouseEvent) => updateWorkspacePositions(moveEvent.clientX, moveEvent.clientY);
+    const handleUp = (upEvent: MouseEvent) => {
+      const delta = updateWorkspacePositions(upEvent.clientX, upEvent.clientY);
+      window.removeEventListener('mousemove', handleMove);
+      window.removeEventListener('mouseup', handleUp);
+      setShapeDragPreview(null);
+
+      const body = bodyRef.current;
+      const area = drawAreaRef.current;
+      if (!body || !area) return;
+      const bodyRect = body.getBoundingClientRect();
+      const isDroppedInPhone = upEvent.clientX >= bodyRect.left && upEvent.clientX <= bodyRect.right
+        && upEvent.clientY >= bodyRect.top && upEvent.clientY <= bodyRect.bottom;
+      if (!isDroppedInPhone) return;
+
+      const areaRect = area.getBoundingClientRect();
+      const phoneScaleX = areaRect.width / (area.offsetWidth || 1) || 1;
+      const phoneScaleY = areaRect.height / (area.offsetHeight || 1) || 1;
+      const pointerX = (upEvent.clientX - areaRect.left) / phoneScaleX;
+      const pointerY = (upEvent.clientY - areaRect.top) / phoneScaleY + body.scrollTop;
+      const anchor = shape;
+      const anchorX = pointerX - (anchor.box.w ?? 100) * grabRatio.x;
+      const anchorY = pointerY - (anchor.box.h ?? 100) * grabRatio.y;
+      const transferred = group.map((item) => ({
+        ...item,
+        box: {
+          ...item.box,
+          x: anchorX + (item.box.x ?? 0) - (anchor.box.x ?? 0),
+          y: anchorY + (item.box.y ?? 0) - (anchor.box.y ?? 0),
+        },
+      }));
+      onAddWorkspaceShapes(transferred);
+      setSelectedWorkspaceShapeId(null);
+      setWorkspaceShapes((shapes) => shapes.filter((item) => !groupIds.has(item.id)));
+    };
+
+    window.addEventListener('mousemove', handleMove);
+    window.addEventListener('mouseup', handleUp);
+  };
+
+  const handleShapeBoxChange = (id: ModuleId, patch: ModuleBox) => {
+    onBoxChange(id, patch);
+    if (!id.startsWith('frame-')) return;
+    const frameBox = boxes[id] ?? {};
+    const deltaX = (patch.x ?? frameBox.x ?? 0) - (frameBox.x ?? 0);
+    const deltaY = (patch.y ?? frameBox.y ?? 0) - (frameBox.y ?? 0);
+    if (!deltaX && !deltaY) return;
+    (pageModules[activePage] ?? []).forEach((moduleId) => {
+      const box = boxes[moduleId];
+      if (box?.frameId !== id) return;
+      onBoxChange(moduleId, {
+        x: (box.x ?? 0) + deltaX,
+        y: (box.y ?? 0) + deltaY,
+      });
+    });
+  };
+
+  const handlePhoneShapeMoveEnd: ShapeMoveEnd = (id, pointer, grabRatio) => {
+    setShapeDragPreview(null);
+    const body = bodyRef.current;
+    const workspace = workspaceRef.current;
+    if (!body || !workspace) return;
+
+    const bodyRect = body.getBoundingClientRect();
+    const isDroppedInPhone = pointer.x >= bodyRect.left && pointer.x <= bodyRect.right
+      && pointer.y >= bodyRect.top && pointer.y <= bodyRect.bottom;
+    if (isDroppedInPhone) return;
+
+    const workspaceRect = workspace.getBoundingClientRect();
+    const isDroppedInWorkspace = pointer.x >= workspaceRect.left && pointer.x <= workspaceRect.right
+      && pointer.y >= workspaceRect.top && pointer.y <= workspaceRect.bottom;
+    const ids = id.startsWith('frame-')
+      ? [id, ...(pageModules[activePage] ?? []).filter((moduleId) => boxes[moduleId]?.frameId === id)]
+      : [id];
+
+    if (!isDroppedInWorkspace) {
+      ids.forEach((moduleId) => {
+        const box = boxes[moduleId] ?? {};
+        onBoxChange(moduleId, { x: box.x ?? 0, y: box.y ?? 0 });
+      });
+      return;
+    }
+
+    const workspaceScaleX = workspaceRect.width / (workspace.offsetWidth || 1) || 1;
+    const workspaceScaleY = workspaceRect.height / (workspace.offsetHeight || 1) || 1;
+    const pointerX = (pointer.x - workspaceRect.left) / workspaceScaleX;
+    const pointerY = (pointer.y - workspaceRect.top) / workspaceScaleY;
+    const sourceBox = boxes[id] ?? {};
+    const width = sourceBox.w ?? 100;
+    const height = sourceBox.h ?? 100;
+    const x = pointerX - width * grabRatio.x;
+    const y = pointerY - height * grabRatio.y;
+    const workspaceFrameId = id.startsWith('frame-')
+      ? `workspace-shape-${++workspaceShapeIdRef.current}`
+      : undefined;
+    const movedShapes = ids.flatMap((moduleId) => {
+      const type = canvasInsertTypeForId(moduleId);
+      if (!type) return [];
+      const box = boxes[moduleId] ?? {};
+      const isFrame = moduleId === id && !!workspaceFrameId;
+      const frameId = isFrame ? undefined : workspaceFrameId;
+      return [{
+        id: isFrame ? workspaceFrameId : `workspace-shape-${++workspaceShapeIdRef.current}`,
+        type,
+        box: {
+          ...box,
+          x: isFrame ? x : x + (box.x ?? 0) - (sourceBox.x ?? 0),
+          y: isFrame ? y : y + (box.y ?? 0) - (sourceBox.y ?? 0),
+          frameId,
+        },
+        frameId,
+      }];
+    });
+    onRemoveMany(ids);
+    setWorkspaceShapes((shapes) => [...shapes, ...movedShapes]);
+  };
+
+  const handlePhoneShapeMove: ShapeMoveUpdate = (id, box, pointer, grabRatio) => {
+    const type = canvasInsertTypeForId(id);
+    if (!type) return;
+    const originalBox = boxes[id] ?? {};
+    const deltaX = (box.x ?? originalBox.x ?? 0) - (originalBox.x ?? 0);
+    const deltaY = (box.y ?? originalBox.y ?? 0) - (originalBox.y ?? 0);
+    const group: WorkspaceShape[] = [{
+      id,
+      type,
+      box,
+    }];
+    if (type === 'frame') {
+      (pageModules[activePage] ?? []).forEach((moduleId) => {
+        if (boxes[moduleId]?.frameId !== id) return;
+        const childType = canvasInsertTypeForId(moduleId);
+        if (!childType) return;
+        const childBox = boxes[moduleId] ?? {};
+        group.push({
+          id: moduleId,
+          type: childType,
+          box: {
+            ...childBox,
+            x: (childBox.x ?? 0) + deltaX,
+            y: (childBox.y ?? 0) + deltaY,
+          },
+          frameId: id,
+        });
+      });
+    }
+    updateShapeDragPreview(group[0], group, pointer, grabRatio, zoom / 100);
   };
 
   return (
@@ -1703,13 +2144,145 @@ function Canvas({
       </p>
 
       <div
-        className="relative mx-auto shrink-0"
-        style={{
-          transform: `scale(${zoom / 100})`,
-          transformOrigin: 'top center',
-          willChange: 'transform',
-        }}
+        ref={workspaceRef}
+        data-canvas-drawing={drawTool ? 'true' : undefined}
+        className="relative flex min-h-0 w-full flex-1 items-start justify-center overflow-hidden"
       >
+        {drawTool && (
+          <style>{`
+            div[data-canvas-drawing] * {
+              cursor: crosshair !important;
+            }
+            div[data-canvas-drawing] .studio-tinker-active button,
+            div[data-canvas-drawing] .studio-tinker-active [data-text-slot],
+            div[data-canvas-drawing] .studio-tinker-active [data-studio-element],
+            div[data-canvas-drawing] .studio-tinker-active [data-tap-root],
+            div[data-canvas-drawing] .studio-tinker-active [role="button"] {
+              cursor: crosshair !important;
+            }
+          `}</style>
+        )}
+        <div
+          onMouseDownCapture={(event) => {
+            if (drawTool || event.target === event.currentTarget) {
+              startCanvasDrawing(event, 'workspace');
+            }
+          }}
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) {
+              setSelectedWorkspaceShapeId(null);
+              onSelect(null);
+            }
+          }}
+          className={`absolute inset-0 z-0 ${drawTool ? 'cursor-crosshair' : ''}`}
+        >
+          {workspaceShapes.map((shape, index) => {
+            const isSelected = selectedWorkspaceShapeId === shape.id;
+            const group = getWorkspaceGroup(shape, workspaceShapes);
+            const groupIds = new Set(group.map((item) => item.id));
+            const groupIndices = workspaceShapes
+              .map((item, groupIndex) => groupIds.has(item.id) ? groupIndex : -1)
+              .filter((groupIndex) => groupIndex >= 0);
+            return (
+              <div
+              key={shape.id}
+              onMouseEnter={(event) => {
+                event.currentTarget.style.zIndex = shape.type === 'frame' ? '1' : '70';
+              }}
+              onMouseLeave={(event) => {
+                event.currentTarget.style.zIndex = shape.type === 'frame'
+                  ? '1'
+                  : isSelected ? '60' : String(index + 1);
+              }}
+              onMouseDown={(event) => startWorkspaceShapeMove(event, shape)}
+              style={{
+                position: 'absolute',
+                left: shape.box.x ?? 0,
+                top: shape.box.y ?? 0,
+                width: shape.box.w ?? 100,
+                height: shape.box.h ?? 100,
+                zIndex: shape.type === 'frame' ? 1 : isSelected ? 60 : index + 1,
+                opacity: shapeDragPreview?.items.some((item) => item.id === shape.id) ? 0 : undefined,
+              }}
+              className="group cursor-move"
+              title="Drag into the phone canvas or reposition"
+            >
+              <div className={`absolute -top-3.5 right-0 z-30 flex items-center gap-0.5 rounded-full bg-white p-0.5 shadow-md ring-1 ring-slate-200 transition ${
+                isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+              }`}>
+                <GripVertical className="h-3.5 w-3.5 text-slate-400" aria-hidden />
+                <ToolbarButton label="Move up" disabled={Math.min(...groupIndices) === 0} onClick={() => moveWorkspaceShape(shape.id, -1)}>
+                  <ChevronUp className="h-3.5 w-3.5" />
+                </ToolbarButton>
+                <ToolbarButton label="Move down" disabled={Math.max(...groupIndices) === workspaceShapes.length - 1} onClick={() => moveWorkspaceShape(shape.id, 1)}>
+                  <ChevronDown className="h-3.5 w-3.5" />
+                </ToolbarButton>
+                <ToolbarButton label="Remove" danger onClick={() => removeWorkspaceShape(shape.id)}>
+                  <Trash2 className="h-3.5 w-3.5" />
+                </ToolbarButton>
+              </div>
+              <GenericShape id={shape.type} box={shape.box} onBoxChange={() => {}} />
+              {isSelected && !drawTool && (
+                <div className="pointer-events-none absolute -inset-1 z-20 border-2 border-[#0040DF]">
+                  {CORNER_HANDLES.map((handle) => (
+                    <span
+                      key={handle.k}
+                      onMouseDown={(event) => startWorkspaceShapeResize(event, shape, handle.k)}
+                      className={`pointer-events-auto absolute h-2.5 w-2.5 rounded-full border-2 border-[#0040DF] bg-white shadow-sm ${handle.cls}`}
+                    />
+                  ))}
+                </div>
+              )}
+              </div>
+            );
+          })}
+          {drawPreview && drawPreviewTarget === 'workspace' && (
+            <div
+              className="pointer-events-none absolute z-40"
+              style={{
+                left: drawPreview.box.x,
+                top: drawPreview.box.y,
+                width: Math.max(1, drawPreview.box.w ?? 1),
+                height: Math.max(1, drawPreview.box.h ?? 1),
+              }}
+            >
+              <GenericShape
+                id={drawPreview.type}
+                box={createShapeBox(drawPreview.type, drawPreview.box)}
+                onBoxChange={() => {}}
+              />
+            </div>
+          )}
+        </div>
+        {shapeDragPreview?.items.map((item) => (
+          <div
+            key={item.id}
+            className="pointer-events-none absolute"
+            style={{
+              left: item.left,
+              top: item.top,
+              width: item.box.w ?? 100,
+              height: item.box.h ?? 100,
+              transform: `scale(${item.scale})`,
+              transformOrigin: 'top left',
+              zIndex: item.type === 'frame' ? 20 : 21,
+            }}
+          >
+            <GenericShape
+              id={`${item.type}-${item.id}-drag-preview`}
+              box={item.box}
+              onBoxChange={() => {}}
+            />
+          </div>
+        ))}
+        <div
+          className="relative z-10 mx-auto shrink-0"
+          style={{
+            transform: `scale(${zoom / 100})`,
+            transformOrigin: 'top center',
+            willChange: 'transform',
+          }}
+        >
         <div className={`relative border-[3px] border-[#1d2b52] bg-[#101c3a] p-[9px] shadow-2xl ring-1 ring-white/10 ${frameRadius}`} style={{ width: dims.w + 18 }}>
           {device === 'iphone' ? (
             <div className="absolute left-1/2 top-[16px] z-30 h-[22px] w-[84px] -translate-x-1/2 rounded-full bg-black" />
@@ -1732,7 +2305,8 @@ function Canvas({
             <div
               ref={bodyRef}
               onDragOver={(e) => {
-                const hasDrag = e.dataTransfer.types.includes('application/x-pf-module-id') || e.dataTransfer.types.includes('application/x-pf-asset-id');
+                const hasDrag = e.dataTransfer.types.includes('application/x-pf-module-id')
+                  || e.dataTransfer.types.includes('application/x-pf-asset-id');
                 if (!drag && !hasDrag) return;
                 e.preventDefault();
                 e.dataTransfer.dropEffect = drag?.from === 'library' ? 'copy' : 'move';
@@ -1747,7 +2321,7 @@ function Canvas({
               className={`flex min-h-0 flex-1 flex-col overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden px-3 pb-20 pt-1 ${panMode ? 'cursor-grab' : ''}`}>
               <div
                 ref={drawAreaRef}
-                onMouseDownCapture={startCanvasDrawing}
+                onMouseDownCapture={(event) => startCanvasDrawing(event, 'phone')}
                 onClick={(e) => {
                   if (suppressCanvasClickRef.current) {
                     suppressCanvasClickRef.current = false;
@@ -1767,9 +2341,14 @@ function Canvas({
                   onItemDragOver={onItemDragOver} onDrop={onDrop}
                   onMove={onMove} onRemove={onRemove} onQuickAdd={onQuickAdd}
                   selectedId={selectedId} onSelect={onSelect}
-                  boxes={boxes} onMeasure={onMeasure} onBoxChange={onBoxChange}
+                  boxes={boxes} onMeasure={onMeasure}
+                  onBoxChange={handleShapeBoxChange}
+                  onShapeMove={handlePhoneShapeMove}
+                  onShapeMoveEnd={handlePhoneShapeMoveEnd}
+                  isDrawing={!!drawTool}
+                  shapeDragPreviewIds={shapeDragPreview?.items.map((item) => item.id) ?? []}
                 />
-                {drawPreview && (
+                {drawPreview && drawPreviewTarget === 'phone' && (
                   <div
                     className="pointer-events-none absolute z-40"
                     style={{
@@ -1781,13 +2360,7 @@ function Canvas({
                   >
                     <GenericShape
                       id={drawPreview.type}
-                      box={{
-                        ...drawPreview.box,
-                        fillType: ['shape-text', 'shape-comment', 'shape-line', 'shape-scribble'].includes(drawPreview.type) ? 'none' : 'color',
-                        fillColor: '#ffffff',
-                        strokeWidth: 2,
-                        strokeColor: '#0040DF',
-                      }}
+                      box={createShapeBox(drawPreview.type, drawPreview.box)}
                       onBoxChange={() => {}}
                     />
                   </div>
@@ -1798,6 +2371,7 @@ function Canvas({
             <BottomDockTabBar activePage={activePage} isDark={isDark} onNavTab={onNavTab} />
           </div>
         </div>
+      </div>
       </div>
       
       {/* Figma-like Toolbar */}
@@ -2625,8 +3199,9 @@ function TextFormattingPanel({
 }
 
 function RightPanel({
-  tab, onTab, selectedId, accent, wsStatus, workflowOpen, onToggleWorkflow,
-  box, measured, onBoxChange, onResetBox,
+  tab, onTab, selectedId: moduleSelectedId, accent, wsStatus, workflowOpen, onToggleWorkflow,
+  box: moduleBox, measured, onBoxChange: onModuleBoxChange, onResetBox,
+  workspaceShape, onWorkspaceShapeBoxChange,
   onSelectVariant,
   overrides, textStyles, setText, setColor, setTextStyle, onResetModuleOverrides,
   activeTextSlot, setActiveTextSlot,
@@ -2640,6 +3215,8 @@ function RightPanel({
   measured: { w: number; h: number } | null;
   onBoxChange: (id: ModuleId, patch: ModuleBox) => void;
   onResetBox: (id: ModuleId) => void;
+  workspaceShape: WorkspaceShape | null;
+  onWorkspaceShapeBoxChange: (id: string, patch: ModuleBox) => void;
   onSelectVariant: (variant: ComponentVariant) => void;
   overrides: Record<string, { text: Record<string, string>; colors: Record<string, string> }>;
   textStyles: Record<string, Record<string, EditableTextStyle>>;
@@ -2668,6 +3245,13 @@ function RightPanel({
     { id: 'design', label: 'Design' }, { id: 'layout', label: 'Layout' },
     { id: 'logic', label: 'Logic' }, { id: 'data', label: 'Data' }, { id: 'code', label: 'Code' },
   ];
+  const selectedId = workspaceShape
+    ? `${workspaceShape.type === 'frame' ? 'frame' : workspaceShape.type}-${workspaceShape.id}` as ModuleId
+    : moduleSelectedId;
+  const box = workspaceShape?.box ?? moduleBox;
+  const onBoxChange = workspaceShape
+    ? (_id: ModuleId, patch: ModuleBox) => onWorkspaceShapeBoxChange(workspaceShape.id, patch)
+    : onModuleBoxChange;
   const mod = selectedId ? moduleFor(selectedId) : null;
   const selectedShapeTitle = canvasObjectTitle(selectedId);
   const selectedTitle = mod?.title ?? selectedShapeTitle;
@@ -3005,7 +3589,7 @@ function RightPanel({
             </section>
 
             {/* Component Parts — Sub-Element Tinkering */}
-            {selectedId && !selectedId.startsWith('shape-') && (
+            {selectedId && !workspaceShape && !selectedId.startsWith('shape-') && (
               <section className="border-b border-slate-200 px-3 py-3 bg-blue-50/25">
                 <div className="mb-2 flex items-center justify-between">
                   <div className="flex items-center gap-1.5">
@@ -3580,6 +4164,9 @@ export default function StudioClient() {
 
   const [boxes, setBoxes] = useState<Record<string, ModuleBox>>({});
   const [measured, setMeasured] = useState<Record<string, { w: number; h: number }>>({});
+  const [workspaceShapes, setWorkspaceShapes] = useState<WorkspaceShape[]>([]);
+  const [selectedWorkspaceShapeId, setSelectedWorkspaceShapeId] = useState<string | null>(null);
+  const canvasObjectIdRef = useRef(0);
 
   const {
     overrides,
@@ -3623,6 +4210,12 @@ export default function StudioClient() {
       const { [id]: _drop, ...rest } = prev;
       return rest;
     });
+  }, []);
+
+  const onWorkspaceShapeBoxChange = React.useCallback((id: string, patch: ModuleBox) => {
+    setWorkspaceShapes((previous) => previous.map((shape) => shape.id === id
+      ? { ...shape, box: { ...shape.box, ...patch } }
+      : shape));
   }, []);
 
   const onMeasure = React.useCallback((id: ModuleId, size: { w: number; h: number }) => {
@@ -3747,16 +4340,39 @@ export default function StudioClient() {
     commit([...currentModules, id]);
     setSelectedId(id);
   };
+  const removeModules = (ids: ModuleId[]) => {
+    const removed = new Set(ids);
+    commit(currentModules.filter((moduleId) => !removed.has(moduleId)));
+    setBoxes((previous) => {
+      const next = { ...previous };
+      removed.forEach((moduleId) => { delete next[moduleId]; });
+      return next;
+    });
+    if (selectedId && removed.has(selectedId)) setSelectedId(null);
+  };
   const removeModule = (id: ModuleId) => {
-    commit(currentModules.filter((m) => m !== id));
-    if (selectedId === id) setSelectedId(null);
+    const ids = id.startsWith('frame-')
+      ? [id, ...currentModules.filter((moduleId) => boxes[moduleId]?.frameId === id)]
+      : [id];
+    removeModules(ids);
   };
   const moveModule = (id: ModuleId, dir: -1 | 1) => {
-    const i = currentModules.indexOf(id);
-    const j = i + dir;
-    if (i === -1 || j < 0 || j >= currentModules.length) return;
-    const next = [...currentModules];
-    [next[i], next[j]] = [next[j], next[i]];
+    const groupIds = id.startsWith('frame-')
+      ? new Set([id, ...currentModules.filter((moduleId) => boxes[moduleId]?.frameId === id)])
+      : new Set([id]);
+    const group = currentModules.filter((moduleId) => groupIds.has(moduleId));
+    if (group.length === 0) return;
+    const groupIndices = currentModules
+      .map((moduleId, index) => groupIds.has(moduleId) ? index : -1)
+      .filter((index) => index >= 0);
+    const targetIndex = dir < 0
+      ? Math.min(...groupIndices) - 1
+      : Math.max(...groupIndices) + 1;
+    if (targetIndex < 0 || targetIndex >= currentModules.length) return;
+    const targetId = currentModules[targetIndex];
+    const next = currentModules.filter((moduleId) => !groupIds.has(moduleId));
+    const remainingTargetIndex = next.indexOf(targetId);
+    next.splice(dir < 0 ? remainingTargetIndex : remainingTargetIndex + 1, 0, ...group);
     commit(next);
   };
 
@@ -3765,27 +4381,56 @@ export default function StudioClient() {
   const handleNavTab = (tab: TabId) => {
     setActivePage(TAB_TO_PAGE[tab]);
     setSelectedId(null);
+    setSelectedWorkspaceShapeId(null);
   };
 
+  const createCanvasObjectId = (type: CanvasInsertType) =>
+    `${type}-${Date.now()}-${++canvasObjectIdRef.current}` as ModuleId;
+
   const handleAddShape = (type: CanvasInsertType, geometry: DrawBox) => {
-    const newId = `${type}-${Date.now()}` as ModuleId;
+    const newId = createCanvasObjectId(type);
+    const centerX = (geometry.x ?? 0) + (geometry.w ?? 0) / 2;
+    const centerY = (geometry.y ?? 0) + (geometry.h ?? 0) / 2;
+    const frameId = type === 'frame' ? undefined : currentModules
+      .filter((moduleId) => moduleId.startsWith('frame-'))
+      .filter((moduleId) => {
+        const frame = boxes[moduleId] ?? {};
+        const frameX = frame.x ?? 0;
+        const frameY = frame.y ?? 0;
+        return centerX >= frameX && centerX <= frameX + (frame.w ?? 0)
+          && centerY >= frameY && centerY <= frameY + (frame.h ?? 0);
+      })
+      .sort((a, b) => (boxes[a]?.w ?? 0) * (boxes[a]?.h ?? 0) - (boxes[b]?.w ?? 0) * (boxes[b]?.h ?? 0))[0];
     commit([...currentModules, newId]);
     setSelectedId(newId);
-    onBoxChange(newId, {
-      ...geometry,
-      fillType: type === 'shape-text' || type === 'shape-comment' || type === 'shape-line' || type === 'shape-scribble' ? 'none' : 'color',
-      fillColor: '#ffffff',
-      strokeWidth: 2,
-      strokeColor: '#0040DF',
-      text: type === 'shape-text' ? 'Text' : undefined,
+    onBoxChange(newId, { ...createShapeBox(type, geometry), frameId });
+  };
+
+  const handleAddWorkspaceShapes = (shapes: WorkspaceShape[]) => {
+    if (shapes.length === 0) return;
+    const ids = shapes.map((shape) => createCanvasObjectId(shape.type));
+    const idByWorkspaceId = new Map(shapes.map((shape, index) => [shape.id, ids[index]]));
+    commit([...currentModules, ...ids]);
+    setBoxes((previous) => {
+      const next = { ...previous };
+      shapes.forEach((shape, index) => {
+        const frameId = shape.frameId ? idByWorkspaceId.get(shape.frameId) : undefined;
+        next[ids[index]] = { ...shape.box, frameId };
+      });
+      return next;
     });
+    const frameIndex = shapes.findIndex((shape) => shape.type === 'frame');
+    setSelectedId(ids[frameIndex >= 0 ? frameIndex : ids.length - 1]);
   };
 
   // Wrapper to reset text slot on new selection
   const handleSelectModule = (id: ModuleId | null) => {
     setSelectedId(id);
+    setSelectedWorkspaceShapeId(null);
     setActiveTextSlot(null);
   };
+
+  const workspaceShapeSelection = workspaceShapes.find((shape) => shape.id === selectedWorkspaceShapeId) ?? null;
 
   return (
     <EditProvider value={editState}>
@@ -3796,7 +4441,11 @@ export default function StudioClient() {
           <IconRail />
           <LeftPanel
             appKind={appKind} onAppKind={setAppKind}
-            activePage={activePage} onSelectPage={(p) => { setActivePage(p); setSelectedId(null); }}
+            activePage={activePage} onSelectPage={(p) => {
+              setActivePage(p);
+              setSelectedId(null);
+              setSelectedWorkspaceShapeId(null);
+            }}
             expandedPage={expandedPage} onToggleExpand={(p) => setExpandedPage((v) => (v === p ? null : p))}
             pageModules={pageModules} accent={accentColor}
             onStartDrag={startDrag} onEndDrag={endDrag} drag={drag}
@@ -3831,6 +4480,12 @@ export default function StudioClient() {
             onMeasure={onMeasure}
             onBoxChange={onBoxChange}
             onAddShape={handleAddShape}
+            onAddWorkspaceShapes={handleAddWorkspaceShapes}
+            onRemoveMany={removeModules}
+            workspaceShapes={workspaceShapes}
+            setWorkspaceShapes={setWorkspaceShapes}
+            selectedWorkspaceShapeId={selectedWorkspaceShapeId}
+            setSelectedWorkspaceShapeId={setSelectedWorkspaceShapeId}
           />
           <RightPanel
             tab={rightTab} onTab={setRightTab}
@@ -3840,6 +4495,8 @@ export default function StudioClient() {
             measured={selectedId ? measured[selectedId] ?? null : null}
             onBoxChange={onBoxChange}
             onResetBox={onResetBox}
+            workspaceShape={workspaceShapeSelection}
+            onWorkspaceShapeBoxChange={onWorkspaceShapeBoxChange}
             onSelectVariant={(variant) => {
               if (selectedId) onBoxChange(selectedId, { variant });
             }}

@@ -246,20 +246,10 @@ export function useModuleTextStyle(slot: string): EditableTextStyle {
  * Identifies the element within the host component cleanly and deterministically.
  */
 export function getTinkerElementId(el: HTMLElement, host: HTMLElement): string {
-  // 1. Explicit data-studio-element
-  const explicit = el.closest<HTMLElement>('[data-studio-element]');
-  if (explicit && host.contains(explicit)) {
-    return explicit.getAttribute('data-studio-element')!;
-  }
-
-  // 2. Button element
+  // 1. Button element
   const button = el.closest<HTMLElement>('button, [role="button"]:not([data-text-slot])');
   if (button && host.contains(button)) {
     if (button.dataset.studioElement) return button.dataset.studioElement;
-    const textChild = button.querySelector<HTMLElement>('[data-text-slot]');
-    if (textChild?.dataset.textSlot) {
-      return textChild.dataset.textSlot;
-    }
     const aria = button.getAttribute('aria-label');
     if (aria) return `btn-${aria.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
     const txt = button.textContent?.trim().slice(0, 16).toLowerCase().replace(/[^a-z0-9]+/g, '-');
@@ -269,10 +259,16 @@ export function getTinkerElementId(el: HTMLElement, host: HTMLElement): string {
     return `btn-${idx >= 0 ? idx : 'action'}`;
   }
 
-  // 3. Editable text slot
+  // 2. Editable text slot
   const textSlot = el.closest<HTMLElement>('[data-text-slot]');
   if (textSlot && host.contains(textSlot)) {
     return textSlot.getAttribute('data-text-slot')!;
+  }
+
+  // 3. Explicit data-studio-element
+  const explicit = el.closest<HTMLElement>('[data-studio-element]');
+  if (explicit && host.contains(explicit)) {
+    return explicit.getAttribute('data-studio-element')!;
   }
 
   // 4. Tap component
@@ -312,21 +308,9 @@ export function findElementById(host: HTMLElement, id: string): HTMLElement | nu
   const explicit = host.querySelector<HTMLElement>(`[data-studio-element="${id}"]`);
   if (explicit) return explicit;
 
-  // 2. Button with matching child text slot
-  const byTextSlotChild = host.querySelector<HTMLElement>(`[data-text-slot="${id}"]`);
-  if (byTextSlotChild) {
-    const parentBtn = byTextSlotChild.closest<HTMLElement>('button, [role="button"]:not([data-text-slot])');
-    if (parentBtn && host.contains(parentBtn)) return parentBtn;
-  }
-
-  // 3. Button with btn- prefix
+  // 2. Button with btn- prefix
   if (id.startsWith('btn-')) {
     const raw = id.slice(4);
-    const textChild = host.querySelector<HTMLElement>(`[data-text-slot="${raw}"]`);
-    if (textChild) {
-      const parentBtn = textChild.closest<HTMLElement>('button, [role="button"]:not([data-text-slot])');
-      if (parentBtn && host.contains(parentBtn)) return parentBtn;
-    }
     const byAria = host.querySelector<HTMLElement>(`button[aria-label="${raw}" i]`);
     if (byAria) return byAria;
     if (/^\d+$/.test(raw)) {
@@ -340,7 +324,8 @@ export function findElementById(host: HTMLElement, id: string): HTMLElement | nu
     }
   }
 
-  // 4. Standalone data-text-slot
+  // 3. Editable text slot
+  const byTextSlotChild = host.querySelector<HTMLElement>(`[data-text-slot="${id}"]`);
   if (byTextSlotChild) return byTextSlotChild;
 
   // 5. By data-tap-root or data-slot or id
@@ -811,6 +796,7 @@ export function EditableText({
       transform: `translate(${elementBox.x ?? 0}px, ${elementBox.y ?? 0}px)`,
       position: 'relative',
       zIndex: isSelectedSlot ? 20 : 10,
+      display: 'inline-block',
     } : {}),
     ...(elementBox?.w !== undefined ? { width: `${elementBox.w}px`, display: 'inline-block' } : {}),
     ...(elementBox?.h !== undefined ? { height: `${elementBox.h}px`, display: 'inline-block' } : {}),
