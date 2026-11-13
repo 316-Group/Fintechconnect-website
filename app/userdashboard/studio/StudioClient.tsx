@@ -14,7 +14,7 @@ import {
   CircleDollarSign, Coins, LayoutGrid, Type, Square, Circle, Minus,
   Sparkles, Sun, Droplet, SlidersHorizontal, Move, MousePointer2, Hand,
   Frame, Star, ArrowRight, Spline, MessageCircle,
-  AlignLeft, AlignCenter, AlignRight, AlignJustify, Underline, Strikethrough,
+  AlignLeft, AlignCenter, AlignRight, AlignJustify, Underline,
 } from 'lucide-react';
 import {
   PAGES, APP_KINDS, PAGE_TO_TAB, TAB_TO_PAGE, SINGLE_SLOT,
@@ -145,6 +145,13 @@ type CanvasShapeType = 'shape-rect' | 'shape-circle' | 'shape-triangle' | 'shape
 type CanvasInsertType = CanvasShapeType | 'shape-text' | 'shape-comment';
 type DrawBox = Pick<ModuleBox, 'x' | 'y' | 'w' | 'h' | 'flipX' | 'flipY' | 'freehandPath'>;
 type DrawPreview = { type: CanvasInsertType; box: DrawBox };
+type ComponentVariant = 'Default' | 'Masked' | 'Negative';
+type FillGradient = {
+  type: 'Linear' | 'Radial';
+  startColor: string;
+  endColor: string;
+  angle: number;
+};
 
 type ImageFill = {
   url: string;
@@ -179,6 +186,8 @@ type ModuleBox = {
   strokeStyle?: 'solid' | 'dashed' | 'dotted';
   fillType?: 'none' | 'color' | 'image';
   fillColor?: string;
+  fillGradient?: FillGradient;
+  variant?: ComponentVariant;
   imageFill?: ImageFill;
   effectType?: EffectType;
   glassBlur?: number;
@@ -519,7 +528,7 @@ function LeftPanel({
   accent: string; drag: DragState;
   onStartDrag: (e: React.DragEvent, id: ModuleId, from: 'library' | 'canvas') => void;
   onEndDrag: () => void;
-  onAddModule: (id: ModuleId) => void; onRemoveModule: (id: ModuleId) => void;
+  onAddModule: (id: ModuleId, variant?: ComponentVariant) => void; onRemoveModule: (id: ModuleId) => void;
   selectedId: ModuleId | null;
   onSelectModule: (id: ModuleId) => void;
   onSelectTextSlot: (id: ModuleId, slot: string | null) => void;
@@ -531,6 +540,7 @@ function LeftPanel({
   const [compLibrary, setCompLibrary] = useState<CompLibraryId | null>(null);
   const [activeCompSubgroup, setActiveCompSubgroup] = useState<string | null>(null);
   const [previewInfo, setPreviewInfo] = useState<{ id: ModuleId; top: number; left: number } | null>(null);
+  const [previewVariant, setPreviewVariant] = useState<ComponentVariant>('Default');
 
   const previewCtx: ViewCtx = {
     radius: RADII.rounded,
@@ -549,6 +559,7 @@ function LeftPanel({
 
   const handleShowPreview = (id: ModuleId, event: React.MouseEvent) => {
     const rect = event.currentTarget.getBoundingClientRect();
+    setPreviewVariant('Default');
     setPreviewInfo({
       id,
       top: Math.max(16, Math.min(rect.top, window.innerHeight - 600)), 
@@ -847,12 +858,12 @@ function LeftPanel({
             {/* Live Render Area */}
             <div className="bg-[#F4F6FF] p-3">
               <div className="mb-2 flex items-center gap-1.5">
-                <span className="h-1.5 w-1.5 rounded-full bg-[#0040DF]" />
+                <span className="h-1.5 w-1.5 rounded-1xl bg-[#E2E8F0]" />
                 <span className="text-[9px] font-bold uppercase tracking-wider text-[#0040DF]">Live Render</span>
               </div>
               <div className="flex w-full items-center justify-center">
-                 <div className="w-full max-w-[320px] rounded-lg bg-white p-1 shadow-sm ring-1 ring-slate-900/5">
-                   <ModuleView id={previewInfo.id} ctx={previewCtx} passive />
+                 <div className="w-full max-w-[320px] rounded-1lg bg-white p-1 shadow-sm ring-1 ring-slate-900/5">
+                   <ModuleView id={previewInfo.id} ctx={{ ...previewCtx, variant: previewVariant }} passive />
                  </div>
               </div>
             </div>
@@ -872,7 +883,13 @@ function LeftPanel({
                 <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Variant</span>
                 <div className="flex rounded-lg p-0.5 border border-slate-100 bg-slate-50">
                   {(['Default', 'Masked', 'Negative'] as const).map((v) => (
-                    <button key={v} className={`flex-1 rounded-md py-1 text-[11px] font-semibold transition ${v === 'Default' ? 'bg-white text-[#0040DF] shadow-sm ring-1 ring-slate-200/50' : 'text-slate-500 hover:text-slate-700'}`}>
+                    <button
+                      key={v}
+                      type="button"
+                      aria-pressed={previewVariant === v}
+                      onClick={() => setPreviewVariant(v)}
+                      className={`flex-1 rounded-md py-1 text-[11px] font-semibold transition ${previewVariant === v ? 'bg-white text-[#0040DF] shadow-sm ring-1 ring-slate-200/50' : 'text-slate-500 hover:text-slate-700'}`}
+                    >
                       {v}
                     </button>
                   ))}
@@ -881,7 +898,7 @@ function LeftPanel({
 
               {/* Insert Button */}
               <button
-                onClick={() => { onAddModule(previewInfo.id); closePreview(); }}
+                onClick={() => { onAddModule(previewInfo.id, previewVariant); closePreview(); }}
                 className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-[#0040DF] py-2 text-[12px] font-bold text-white shadow-sm transition hover:bg-[#0036BF]"
               >
                  Insert Component
@@ -1218,8 +1235,14 @@ function ModuleWrapper({
   const customRadiusString = radiusForBox(box);
 
   let customBackground: React.CSSProperties | undefined = undefined;
-  if (box.fillType === 'color' && box.fillColor) {
-    customBackground = { backgroundColor: box.fillColor };
+  if (box.fillType === 'color' && (box.fillColor || box.fillGradient)) {
+    customBackground = box.fillGradient
+      ? {
+          backgroundImage: box.fillGradient.type === 'Linear'
+            ? `linear-gradient(${box.fillGradient.angle}deg, ${box.fillGradient.startColor}, ${box.fillGradient.endColor})`
+            : `radial-gradient(circle, ${box.fillGradient.startColor}, ${box.fillGradient.endColor})`,
+        }
+      : { backgroundColor: box.fillColor };
   } else if (box.fillType === 'image' && box.imageFill?.url && box.imageFill.visible !== false) {
     const { url, fit } = box.imageFill;
     customBackground = {
@@ -1251,6 +1274,7 @@ function ModuleWrapper({
     ...ctx,
     customRadius: customRadiusString,
     customPadding: box.padding,
+    variant: box.variant ?? 'Default',
     customStroke: box.strokeWidth ? {
       border: `${box.strokeWidth}px ${box.strokeStyle ?? 'solid'} ${box.strokeColor ?? '#6941C6'}`,
       boxSizing: 'border-box' as const,
@@ -1812,15 +1836,17 @@ const HexagonLinkIcon = () => (
 type PickerPosition = { top: number; left: number };
 
 function AdvancedColorPicker({
-  color, onChange, position, title, onClose,
+  color, gradient, onChange, onGradientChange, position, title, onClose,
 }: {
   color: string;
+  gradient?: FillGradient;
   onChange: (hex: string) => void;
+  onGradientChange?: (gradient: FillGradient | null) => void;
   position: PickerPosition;
   title: string;
   onClose: () => void;
 }) {
-  const [mode, setMode] = useState<'Solid' | 'Linear' | 'Radial'>('Solid');
+  const [mode, setMode] = useState<'Solid' | 'Linear' | 'Radial'>(gradient?.type ?? 'Solid');
   const [hexDraftState, setHexDraftState] = useState({ color, value: color.replace(/^#/, '').toUpperCase() });
   const hexDraft = hexDraftState.color === color
     ? hexDraftState.value
@@ -1841,6 +1867,29 @@ function AdvancedColorPicker({
 
   const brandPalette = ['#6D28D9', '#2563EB', '#1E293B', '#64748B', '#C7D2FE', '#FFFFFF'];
   const recentColors = ['#F8FAFC', '#8B5CF6', '#7C3AED', '#3B82F6', '#E0E7FF', '#1E293B'];
+  const selectMode = (nextMode: 'Solid' | 'Linear' | 'Radial') => {
+    setMode(nextMode);
+    if (nextMode === 'Solid') {
+      onGradientChange?.(null);
+      return;
+    }
+    onGradientChange?.({
+      type: nextMode,
+      startColor: color,
+      endColor: gradient?.endColor ?? '#2563EB',
+      angle: gradient?.angle ?? 135,
+    });
+  };
+  const updateGradient = (patch: Partial<FillGradient>) => {
+    if (mode === 'Solid') return;
+    onGradientChange?.({
+      type: mode,
+      startColor: color,
+      endColor: gradient?.endColor ?? '#2563EB',
+      angle: gradient?.angle ?? 135,
+      ...patch,
+    });
+  };
 
   const picker = (
     <div
@@ -1857,17 +1906,32 @@ function AdvancedColorPicker({
         </button>
       </div>
       <div className="space-y-3 p-1 w-full">
-        <div className="flex rounded-md bg-slate-100 p-0.5">
-          {(['Solid', 'Linear', 'Radial'] as const).map(m => (
-            <button key={m} onClick={() => setMode(m)} type="button"
-              className={`flex-1 rounded py-1 text-[10px] font-semibold ${mode === m ? 'bg-white shadow-sm text-[#0040DF]' : 'text-slate-500 hover:text-slate-700'}`}
-            >
-              {m}
-            </button>
-          ))}
-        </div>
+        {onGradientChange && (
+          <div className="flex rounded-md bg-slate-100 p-0.5">
+            {(['Solid', 'Linear', 'Radial'] as const).map((nextMode) => (
+              <button
+                key={nextMode}
+                onClick={() => selectMode(nextMode)}
+                type="button"
+                aria-pressed={mode === nextMode}
+                className={`flex-1 rounded py-1 text-[10px] font-semibold ${mode === nextMode ? 'bg-white shadow-sm text-[#0040DF]' : 'text-slate-500 hover:text-slate-700'}`}
+              >
+                {nextMode}
+              </button>
+            ))}
+          </div>
+        )}
 
-        <div className="relative h-28 w-full overflow-hidden rounded-md bg-gradient-to-br from-indigo-500 via-purple-500 to-black">
+        <div
+          className="relative h-28 w-full overflow-hidden rounded-md"
+          style={{
+            background: mode === 'Linear'
+              ? `linear-gradient(${gradient?.angle ?? 135}deg, ${color}, ${gradient?.endColor ?? '#2563EB'})`
+              : mode === 'Radial'
+                ? `radial-gradient(circle, ${color}, ${gradient?.endColor ?? '#2563EB'})`
+                : `linear-gradient(to right, ${color}, ${color})`,
+          }}
+        >
           <span className="pointer-events-none absolute left-2 top-2 h-5 w-5 rounded-full border-2 border-white ring-2 ring-[#0040DF]" style={{ backgroundColor: validColor }} />
           <input
             type="color"
@@ -1878,15 +1942,35 @@ function AdvancedColorPicker({
           />
         </div>
 
-        <div className="relative h-3 w-full rounded-full bg-gradient-to-r from-red-500 via-green-500 to-blue-500">
-          <input type="range" min="0" max="360" className="absolute inset-0 w-full opacity-0 cursor-pointer" />
-          <div className="absolute right-1/4 top-0 h-3 w-2 rounded bg-white shadow" />
-        </div>
-
-        <div className="relative h-3 w-full rounded-full bg-slate-100 border border-slate-200">
-          <input type="range" min="0" max="100" className="absolute inset-0 w-full opacity-0 cursor-pointer" />
-          <div className="absolute right-1/2 top-0 h-3 w-2 rounded bg-white shadow" />
-        </div>
+        {mode !== 'Solid' && onGradientChange && (
+          <div className="space-y-2 rounded-md border border-slate-200 bg-slate-50 p-2">
+            <label className="flex items-center justify-between gap-2 text-[10px] font-medium text-slate-600">
+              <span>Gradient end</span>
+              <input
+                type="color"
+                aria-label="Gradient end color"
+                value={gradient?.endColor ?? '#2563EB'}
+                onChange={(event) => updateGradient({ endColor: event.target.value.toUpperCase() })}
+                className="h-6 w-8 cursor-pointer rounded border border-slate-300"
+              />
+            </label>
+            {mode === 'Linear' && (
+              <label className="flex items-center gap-2 text-[10px] font-medium text-slate-600">
+                <span>Angle</span>
+                <input
+                  type="range"
+                  aria-label="Gradient angle"
+                  min="0"
+                  max="360"
+                  value={gradient?.angle ?? 135}
+                  onChange={(event) => updateGradient({ angle: Number(event.target.value) })}
+                  className="flex-1 accent-[#0040DF]"
+                />
+                <span className="w-8 text-right">{gradient?.angle ?? 135}°</span>
+              </label>
+            )}
+          </div>
+        )}
 
         <div className="flex items-center gap-2">
           <select className="h-7 rounded border border-slate-200 bg-slate-50 px-1 text-[10px] text-slate-600 outline-none">
@@ -2123,69 +2207,54 @@ function TextFormattingPanel({
   onStyleChange: (patch: Partial<EditableTextStyle> | null) => void;
   onClose: () => void;
 }) {
+  const [textEditorOpen, setTextEditorOpen] = useState(false);
   const alignments = [
     { icon: AlignLeft, value: 'left', label: 'Align left' },
     { icon: AlignCenter, value: 'center', label: 'Align center' },
     { icon: AlignRight, value: 'right', label: 'Align right' },
     { icon: AlignJustify, value: 'justify', label: 'Justify' },
   ] as const;
-  const decorations = (textStyle.textDecorationLine ?? '').split(' ').filter(Boolean);
-  const toggleDecoration = (value: 'underline' | 'line-through') => {
-    const next = decorations.includes(value)
-      ? decorations.filter((item) => item !== value)
-      : [...decorations, value];
-    onStyleChange({ textDecorationLine: next.length ? next.join(' ') : undefined });
-  };
+  const fontSize = Number.parseFloat(String(textStyle.fontSize ?? 14)) || 14;
+  const lineHeight = Number.parseFloat(String(textStyle.lineHeight ?? 20)) || 20;
+  const lineHeightPercent = textStyle.lineHeight === undefined
+    ? 140
+    : Math.round((lineHeight / fontSize) * 100);
+  const textColor = textStyle.color ?? '#FFFFFF';
+  const textWidth = Number.parseFloat(String(textStyle.width ?? 184)) || 184;
+  const textHeight = Number.parseFloat(String(textStyle.height ?? 20)) || 20;
+  const textOpacity = Math.round(Number(textStyle.opacity ?? 1) * 100);
+  const colorSwatches = ['#FFFFFF', '#003FE0', '#0757D8', '#151C2D', '#777482', '#C7BFD6'];
+  const sizeInputClass = 'min-w-0 flex-1 bg-transparent text-[10px] text-slate-700 outline-none';
 
   return (
-    <div className="flex h-full flex-col bg-white">
-      {/* Header */}
-      <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
-        <div className="flex items-center gap-2">
-          <Type className="h-4 w-4 text-slate-500" />
-          <span className="text-[12px] font-bold text-slate-800">Text & Formatting</span>
-        </div>
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={() => onStyleChange(null)}
-            className="text-[11px] font-semibold text-slate-400 hover:text-rose-500"
-          >
-            Reset formatting
-          </button>
-          <button type="button" onClick={onClose} aria-label="Close text formatting" className="text-slate-400 hover:text-slate-600">
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-      </div>
+    <div className="flex h-full flex-col bg-white text-slate-800">
+      <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-3 pt-3">
+        <section className="space-y-2.5">
+          <div className="flex items-center justify-between">
+            <h2 className="text-[10px] font-semibold uppercase tracking-[0.04em] text-[#111827]">Font &amp; Formatting</h2>
+            <div className="flex items-center gap-1">
+              <span className="rounded bg-[#f0efff] px-1.5 py-0.5 text-[8px] font-medium text-[#7167a8]">Global Sync</span>
+              <button
+                type="button"
+                onClick={onClose}
+                aria-label="Close text formatting"
+                className="rounded p-0.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 focus-visible:outline focus-visible:outline-1 focus-visible:outline-[#0040DF]"
+              ><X className="h-3 w-3" /></button>
+            </div>
+          </div>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-6">
-        <section className="space-y-2">
-          <h3 className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{textLabel}</h3>
-          <textarea
-            aria-label={`Edit ${textLabel}`}
-            value={textValue}
-            onChange={(event) => onTextChange(event.target.value)}
-            rows={3}
-            className="w-full resize-y rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-[12px] outline-none focus:border-[#0040DF] focus:bg-white"
-          />
-        </section>
-
-        {/* Typography Section */}
-        <section className="space-y-3">
-          <h3 className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Typography</h3>
-          
-          <div className="flex flex-col gap-1">
-            <label className="text-[11px] font-semibold text-slate-600">Font Family</label>
-            <select 
+          <div className="space-y-1">
+            <label className="block text-[9px] text-slate-600" htmlFor="text-font-family">Font Family</label>
+            <select
+              id="text-font-family"
               aria-label="Font Family"
               value={textStyle.fontFamily ?? 'inherit'}
               onChange={(event) => onStyleChange({
                 fontFamily: event.target.value === 'inherit' ? undefined : event.target.value,
               })}
-              className="w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-[12px] outline-none focus:border-[#0040DF] focus:bg-white"
+              className="h-7 w-full rounded-md border-0 bg-[#f1f3ff] px-2 text-[10px] text-slate-700 outline-none focus:ring-1 focus:ring-[#0040DF]"
             >
-              <option value="inherit">Current font</option>
+              <option value="inherit">Inter (Institutional Fintech Default)</option>
               <option value={urbanist.style.fontFamily}>Urbanist</option>
               <option value="Arial, sans-serif">Arial</option>
               <option value="Georgia, serif">Georgia</option>
@@ -2194,203 +2263,360 @@ function TextFormattingPanel({
             </select>
           </div>
 
-          <div className="flex flex-col gap-1">
-            <label className="text-[11px] font-semibold text-slate-600">Font Weight</label>
-            <select 
-              aria-label="Font Weight"
-              value={textStyle.fontWeight ?? 'inherit'}
-              onChange={(event) => onStyleChange({
-                fontWeight: event.target.value === 'inherit' ? undefined : Number(event.target.value),
-              })}
-              className="w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-[12px] outline-none focus:border-[#0040DF] focus:bg-white"
-            >
-              <option value="inherit">Current weight</option>
-              <option value="400">Regular (400)</option>
-              <option value="500">Medium (500)</option>
-              <option value="600">Semi Bold (600)</option>
-              <option value="700">Bold (700)</option>
-            </select>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div className="flex flex-col gap-1">
-              <label className="text-[11px] font-semibold text-slate-600">Font Size</label>
-              <div className="flex items-center rounded-md border border-slate-200 bg-slate-50 px-2 py-1.5 focus-within:border-[#0040DF] focus-within:bg-white">
-                <input 
-                  type="number" 
+          <div className="grid grid-cols-2 gap-2">
+            <div className="min-w-0 space-y-1">
+              <label className="block text-[9px] text-slate-600" htmlFor="text-font-weight">Weight</label>
+              <select
+                id="text-font-weight"
+                aria-label="Font Weight"
+                value={textStyle.fontWeight ?? 600}
+                onChange={(event) => onStyleChange({ fontWeight: Number(event.target.value) })}
+                className="h-7 w-full rounded-md border border-[#d9dce6] bg-white px-2 text-[10px] text-slate-700 outline-none focus:border-[#0040DF]"
+              >
+                <option value="400">Regular (400)</option>
+                <option value="500">Medium (500)</option>
+                <option value="600">SemiBold (600)</option>
+                <option value="700">Bold (700)</option>
+              </select>
+            </div>
+            <div className="min-w-0 space-y-1">
+              <label className="block text-[9px] text-slate-600">Size</label>
+              <div className="flex h-7 items-center rounded-md border border-[#d9dce6] bg-white px-1">
+                <button
+                  type="button"
+                  aria-label="Decrease font size"
+                  onClick={() => onStyleChange({ fontSize: Math.max(1, fontSize - 1) })}
+                  className="grid h-5 w-5 shrink-0 place-items-center text-[12px] text-slate-500 hover:text-[#0040DF]"
+                >−</button>
+                <input
+                  type="number"
                   aria-label="Font Size"
                   min="1"
-                  value={textStyle.fontSize ? Number.parseFloat(String(textStyle.fontSize)) : ''}
+                  value={fontSize}
                   onChange={(event) => onStyleChange({
                     fontSize: event.target.value ? Math.max(1, Number(event.target.value)) : undefined,
                   })}
-                  className="w-full bg-transparent text-[12px] outline-none text-right" 
+                  className="min-w-0 w-full bg-transparent text-center text-[10px] text-slate-700 outline-none"
                 />
-                <span className="ml-1 text-[10px] text-slate-400">px</span>
+                <span className="shrink-0 text-[8px] text-slate-500">px</span>
+                <button
+                  type="button"
+                  aria-label="Increase font size"
+                  onClick={() => onStyleChange({ fontSize: fontSize + 1 })}
+                  className="grid h-5 w-5 shrink-0 place-items-center text-[12px] text-slate-500 hover:text-[#0040DF]"
+                >+</button>
               </div>
             </div>
-            <div className="flex flex-col gap-1">
-              <label className="text-[11px] font-semibold text-slate-600">Line Height</label>
-              <div className="flex items-center rounded-md border border-slate-200 bg-slate-50 px-2 py-1.5 focus-within:border-[#0040DF] focus-within:bg-white">
-                <input 
-                  type="number" 
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            <div className="min-w-0 space-y-1">
+              <div className="flex items-center justify-between">
+                <label className="text-[9px] text-slate-600">Line Height</label>
+                <span className="text-[8px] text-[#0040DF]">{lineHeightPercent}%</span>
+              </div>
+              <div className="flex h-7 items-center gap-1 rounded-md border border-[#d9dce6] bg-white px-1.5">
+                <span className="text-[9px] text-slate-500">↕</span>
+                <input
+                  type="number"
                   aria-label="Line Height"
                   min="1"
-                  value={textStyle.lineHeight ? Number.parseFloat(String(textStyle.lineHeight)) : ''}
+                  value={lineHeight}
                   onChange={(event) => onStyleChange({
                     lineHeight: event.target.value ? `${Math.max(1, Number(event.target.value))}px` : undefined,
                   })}
-                  className="w-full bg-transparent text-[12px] outline-none text-right" 
+                  className={sizeInputClass}
                 />
-                <span className="ml-1 text-[10px] text-slate-400">px</span>
+                <span className="text-[8px] text-slate-500">px</span>
+              </div>
+            </div>
+            <div className="min-w-0 space-y-1">
+              <div className="flex items-center justify-between">
+                <label className="text-[9px] text-slate-600">Letter Spacing</label>
+                <button
+                  type="button"
+                  onClick={() => onStyleChange({ letterSpacing: undefined })}
+                  className="text-[8px] text-slate-500 hover:text-[#0040DF]"
+                >Auto</button>
+              </div>
+              <div className="flex h-7 items-center gap-1 rounded-md border border-[#d9dce6] bg-white px-1.5">
+                <span className="text-[9px] text-slate-500">|A|</span>
+                <input
+                  type="number"
+                  aria-label="Letter Spacing"
+                  step="0.01"
+                  value={textStyle.letterSpacing === undefined
+                    ? '0.00'
+                    : Number.parseFloat(String(textStyle.letterSpacing)).toFixed(2)}
+                  onChange={(event) => onStyleChange({
+                    letterSpacing: event.target.value ? `${Number(event.target.value)}em` : undefined,
+                  })}
+                  className={`${sizeInputClass} text-right`}
+                />
+                <span className="text-[8px] text-slate-500">em</span>
               </div>
             </div>
           </div>
 
-          <div className="flex flex-col gap-1">
-            <label className="text-[11px] font-semibold text-slate-600">Letter Spacing</label>
-            <div className="flex items-center rounded-md border border-slate-200 bg-slate-50 px-2 py-1.5 focus-within:border-[#0040DF] focus-within:bg-white">
-              <input 
-                type="number" 
-                aria-label="Letter Spacing"
-                step="0.1"
-                value={textStyle.letterSpacing === undefined
-                  ? ''
-                  : Number.parseFloat(String(textStyle.letterSpacing))}
+          <div className="space-y-1">
+            <h3 className="text-[9px] text-slate-600">Alignment</h3>
+            <div className="flex h-7 items-center rounded-md border border-[#e1e4ee] bg-[#f7f8fc] p-0.5">
+              {alignments.map(({ icon: Icon, value, label }) => (
+                <button
+                  key={value}
+                  type="button"
+                  aria-label={label}
+                  aria-pressed={(textStyle.textAlign ?? 'left') === value}
+                  onClick={() => onStyleChange({ textAlign: value })}
+                  className={`flex h-full flex-1 items-center justify-center rounded ${
+                    (textStyle.textAlign ?? 'left') === value
+                      ? 'bg-white text-[#0040DF] shadow-sm ring-1 ring-[#e2e7fa]'
+                      : 'text-slate-500 hover:bg-white'
+                  }`}
+                >
+                  <Icon className="h-3.5 w-3.5" />
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-1">
+            <h3 className="text-[9px] text-slate-600">Case &amp; Decoration</h3>
+            <div className="flex h-7 items-center rounded-md border border-[#e1e4ee] bg-[#f7f8fc] p-0.5">
+              <button
+                type="button"
+                aria-label="Normal case"
+                aria-pressed={!textStyle.textTransform}
+                onClick={() => onStyleChange({ textTransform: undefined })}
+                className={`flex h-full flex-1 items-center justify-center rounded text-[9px] ${
+                  !textStyle.textTransform ? 'bg-white text-[#0040DF] shadow-sm' : 'text-slate-600 hover:bg-white'
+                }`}
+              >None</button>
+              <button
+                type="button"
+                aria-label="Uppercase"
+                aria-pressed={textStyle.textTransform === 'uppercase'}
+                onClick={() => onStyleChange({ textTransform: 'uppercase' })}
+                className={`flex h-full flex-1 items-center justify-center rounded text-[9px] ${
+                  textStyle.textTransform === 'uppercase' ? 'bg-white text-[#0040DF] shadow-sm' : 'text-slate-600 hover:bg-white'
+                }`}
+              >AA</button>
+              <button
+                type="button"
+                aria-label="Lowercase"
+                aria-pressed={textStyle.textTransform === 'lowercase'}
+                onClick={() => onStyleChange({ textTransform: 'lowercase' })}
+                className={`flex h-full flex-1 items-center justify-center rounded text-[9px] ${
+                  textStyle.textTransform === 'lowercase' ? 'bg-white text-[#0040DF] shadow-sm' : 'text-slate-600 hover:bg-white'
+                }`}
+              >aa</button>
+              <button
+                type="button"
+                aria-label="Italic"
+                aria-pressed={textStyle.fontStyle === 'italic'}
+                onClick={() => onStyleChange({ fontStyle: textStyle.fontStyle === 'italic' ? undefined : 'italic' })}
+                className={`flex h-full flex-1 items-center justify-center rounded text-[10px] italic ${
+                  textStyle.fontStyle === 'italic' ? 'bg-white text-[#0040DF] shadow-sm' : 'text-slate-600 hover:bg-white'
+                }`}
+              >I</button>
+            </div>
+          </div>
+        </section>
+
+        <section className="mt-3 space-y-2.5 border-t border-slate-100 pt-2.5">
+          <div className="flex items-center justify-between">
+            <h3 className="text-[10px] font-semibold uppercase tracking-[0.04em] text-[#111827]">Geometry &amp; Constraints</h3>
+            <span className="text-[8px] font-medium text-[#0040DF]">Flex Row</span>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <label className="flex h-7 min-w-0 items-center gap-1 rounded-md border border-[#e1e4ee] bg-white px-1.5 text-[9px] text-slate-600">
+              W
+              <input
+                type="number"
+                aria-label="Text width"
+                min="1"
+                value={textStyle.width === undefined ? textWidth : Number.parseFloat(String(textStyle.width))}
                 onChange={(event) => onStyleChange({
-                  letterSpacing: event.target.value ? Number(event.target.value) : undefined,
+                  width: event.target.value ? Math.max(1, Number(event.target.value)) : undefined,
                 })}
-                className="w-full bg-transparent text-[12px] outline-none text-right" 
+                className="min-w-0 flex-1 bg-transparent text-[10px] text-slate-700 outline-none"
               />
-              <span className="ml-1 text-[10px] text-slate-400">px</span>
-            </div>
-          </div>
-        </section>
-
-        {/* Colors Section */}
-        <section className="space-y-3">
-          <h3 className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Colors</h3>
-          
-          <div className="flex items-center justify-between rounded-md border border-slate-200 bg-slate-50 p-2">
-            <div className="flex items-center gap-2">
+              <span className="text-[8px] text-slate-500">px</span>
+            </label>
+            <label className="flex h-7 min-w-0 items-center gap-1 rounded-md border border-[#e1e4ee] bg-white px-1.5 text-[9px] text-slate-600">
+              H
               <input
-                type="color"
-                aria-label="Text Color"
-                value={textStyle.color ?? '#0f172a'}
-                onChange={(event) => onStyleChange({ color: event.target.value })}
-                className="h-6 w-6 cursor-pointer rounded border border-slate-300"
+                type="number"
+                aria-label="Text height"
+                min="1"
+                value={textStyle.height === undefined ? textHeight : Number.parseFloat(String(textStyle.height))}
+                onChange={(event) => onStyleChange({
+                  height: event.target.value ? Math.max(1, Number(event.target.value)) : undefined,
+                })}
+                className="min-w-0 flex-1 bg-transparent text-[10px] text-slate-700 outline-none"
               />
-              <span className="text-[12px] font-medium text-slate-700">Text Color</span>
-            </div>
+              <span className="text-[8px] text-slate-500">px</span>
+            </label>
+          </div>
+          <div className="grid grid-cols-3 gap-1">
             <button
               type="button"
-              onClick={() => onStyleChange({ color: undefined })}
-              className="font-mono text-[11px] uppercase text-slate-500 hover:text-[#0040DF]"
-            >
-              {textStyle.color ?? 'Inherited'}
-            </button>
+              aria-label="Auto width"
+              aria-pressed={textStyle.width === undefined}
+              onClick={() => onStyleChange({ width: undefined })}
+              className={`flex h-6 items-center justify-center gap-1 rounded text-[8px] ${
+                textStyle.width === undefined ? 'bg-[#eee4ff] text-[#6036a8]' : 'bg-[#f7f8fc] text-slate-500'
+              }`}
+            ><Move className="h-2.5 w-2.5" />Auto Width</button>
+            <button
+              type="button"
+              aria-label="Auto height"
+              aria-pressed={textStyle.height === undefined}
+              onClick={() => onStyleChange({ height: undefined })}
+              className={`flex h-6 items-center justify-center gap-1 rounded text-[8px] ${
+                textStyle.height === undefined ? 'bg-[#eee4ff] text-[#6036a8]' : 'bg-[#f7f8fc] text-slate-500'
+              }`}
+            ><Move className="h-2.5 w-2.5" />Auto Height</button>
+            <button
+              type="button"
+              aria-label="Fixed width and height"
+              aria-pressed={textStyle.width !== undefined && textStyle.height !== undefined}
+              onClick={() => onStyleChange({ width: textWidth, height: textHeight })}
+              className={`flex h-6 items-center justify-center gap-1 rounded text-[8px] ${
+                textStyle.width !== undefined && textStyle.height !== undefined
+                  ? 'bg-[#eee4ff] text-[#6036a8]' : 'bg-[#f7f8fc] text-slate-500'
+              }`}
+            ><Square className="h-2.5 w-2.5" />Fixed</button>
           </div>
+        </section>
 
-          <div className="flex items-center justify-between rounded-md border border-slate-200 bg-slate-50 p-2">
-            <div className="flex items-center gap-2">
+        <section className="mt-3 space-y-2 border-t border-slate-100 pt-2.5">
+          <div className="flex items-center justify-between">
+            <h3 className="text-[10px] font-semibold uppercase tracking-[0.04em] text-[#111827]">Color &amp; Fill</h3>
+            <span className="text-[8px] text-slate-500">Primary Contrast OK</span>
+          </div>
+          <div className="flex h-8 items-center gap-1.5">
+            <input
+              type="color"
+              aria-label="Text Color"
+              value={textColor}
+              onChange={(event) => onStyleChange({ color: event.target.value })}
+              className="h-7 w-7 shrink-0 cursor-pointer rounded-md border border-[#c8b7ee] bg-white p-0.5"
+            />
+            <div className="flex h-7 min-w-0 flex-1 items-center rounded-md bg-[#f1f3ff] px-2">
+              <span className="mr-1 text-[9px] text-slate-600">#</span>
               <input
-                type="color"
-                aria-label="Text Background Color"
-                value={textStyle.backgroundColor ?? '#ffffff'}
-                onChange={(event) => onStyleChange({ backgroundColor: event.target.value })}
-                className="h-6 w-6 cursor-pointer rounded border border-slate-300"
+                type="text"
+                aria-label="Text color hex"
+                value={textColor.replace('#', '').toUpperCase()}
+                onChange={(event) => {
+                  const value = event.target.value.replace(/[^0-9a-f]/gi, '').slice(0, 6);
+                  if (value.length === 6) onStyleChange({ color: `#${value}` });
+                }}
+                className="min-w-0 flex-1 bg-transparent font-mono text-[9px] text-slate-700 outline-none"
               />
-              <span className="text-[12px] font-medium text-slate-700">Background</span>
             </div>
-            <button
-              type="button"
-              onClick={() => onStyleChange({ backgroundColor: undefined })}
-              className="font-mono text-[11px] uppercase text-slate-500 hover:text-[#0040DF]"
-            >
-              {textStyle.backgroundColor ?? 'None'}
-            </button>
+            <div className="flex h-7 w-[58px] shrink-0 items-center rounded-md bg-[#f1f3ff] px-1.5">
+              <input
+                type="number"
+                aria-label="Text opacity"
+                min="0"
+                max="100"
+                value={textOpacity}
+                onChange={(event) => onStyleChange({
+                  opacity: Math.min(100, Math.max(0, Number(event.target.value))) / 100,
+                })}
+                className="min-w-0 flex-1 bg-transparent text-right text-[9px] text-slate-700 outline-none"
+              />
+              <span className="ml-1 text-[9px] text-slate-500">%</span>
+            </div>
           </div>
-        </section>
-
-        {/* Alignment Section */}
-        <section className="space-y-3">
-          <h3 className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Alignment</h3>
-          <div className="flex items-center rounded-lg border border-slate-200 bg-slate-50 p-1">
-            {alignments.map(({ icon: Icon, value, label }) => (
-              <button
-                key={value}
-                type="button"
-                aria-label={label}
-                aria-pressed={(textStyle.textAlign ?? 'left') === value}
-                onClick={() => onStyleChange({ textAlign: value })}
-                className={`flex flex-1 items-center justify-center rounded-md py-1.5 ${
-                  (textStyle.textAlign ?? 'left') === value
-                    ? 'bg-white text-[#0040DF] shadow-sm ring-1 ring-slate-200'
-                    : 'text-slate-500 hover:bg-slate-100'
-                }`}
+          <div className="space-y-1">
+            <div className="flex items-center justify-between">
+              <span className="text-[8px] text-slate-600">Apex Base Palette Swatches</span>
+              <span className="text-[8px] text-slate-500">1-Click Apply</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              {colorSwatches.map((swatch, index) => (
+                <button
+                  key={swatch}
+                  type="button"
+                  aria-label={`Apply ${swatch} text color`}
+                  aria-pressed={textColor.toLowerCase() === swatch.toLowerCase()}
+                  onClick={() => onStyleChange({ color: swatch })}
+                  className={`relative h-[22px] w-[22px] shrink-0 rounded-full border border-white ${
+                    index === 0 ? 'ring-1 ring-[#c6b5ec]' : ''
+                  }`}
+                  style={{ backgroundColor: swatch }}
+                >
+                  {textColor.toLowerCase() === swatch.toLowerCase() && (
+                    <Check className={`absolute inset-0 m-auto h-3 w-3 ${index === 0 ? 'text-[#0040DF]' : 'text-white'}`} />
+                  )}
+                </button>
+              ))}
+              <label
+                aria-label="Choose another text color"
+                className="grid h-[22px] w-[22px] shrink-0 cursor-pointer place-items-center rounded-full border border-slate-200 bg-white text-[13px] text-slate-500 hover:border-[#0040DF]"
               >
-                <Icon className="h-4 w-4" />
-              </button>
-            ))}
+                +
+                <input
+                  type="color"
+                  aria-label="Choose another text color"
+                  value={textColor}
+                  onChange={(event) => onStyleChange({ color: event.target.value })}
+                  className="sr-only"
+                />
+              </label>
+            </div>
           </div>
+
+          <button
+            type="button"
+            aria-pressed={!!textStyle.WebkitTextStroke}
+            onClick={() => onStyleChange({
+              WebkitTextStroke: textStyle.WebkitTextStroke ? undefined : '1px #0f172a',
+            })}
+            className="flex h-7 w-full items-center justify-between rounded-md bg-[#f7f8fc] px-2 text-left text-[9px] text-slate-700"
+          >
+            <span className="flex items-center gap-1.5"><Underline className="h-3 w-3" />Text Stroke</span>
+            <span className={`flex h-3 w-6 items-center rounded-full p-0.5 ${textStyle.WebkitTextStroke ? 'bg-[#0040DF]' : 'bg-[#d0c8d8]'}`}>
+              <span className={`h-2 w-2 rounded-full bg-white transition-transform ${textStyle.WebkitTextStroke ? 'translate-x-3' : ''}`} />
+            </span>
+          </button>
+          <button
+            type="button"
+            aria-pressed={!!textStyle.textShadow}
+            onClick={() => onStyleChange({
+              textShadow: textStyle.textShadow ? undefined : '0 2px 6px rgba(15, 23, 42, 0.18)',
+            })}
+            className="flex h-7 w-full items-center justify-between rounded-md bg-[#f7f8fc] px-2 text-left text-[9px] text-slate-700"
+          >
+            <span className="flex items-center gap-1.5"><Layers className="h-3 w-3" />Drop Shadow</span>
+            <span className={`flex h-3 w-6 items-center rounded-full p-0.5 ${textStyle.textShadow ? 'bg-[#0040DF]' : 'bg-[#d0c8d8]'}`}>
+              <span className={`h-2 w-2 rounded-full bg-white transition-transform ${textStyle.textShadow ? 'translate-x-3' : ''}`} />
+            </span>
+          </button>
         </section>
 
-        {/* Decoration Section */}
-        <section className="space-y-3">
-          <h3 className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Decoration</h3>
-          <div className="flex items-center rounded-lg border border-slate-200 bg-slate-50 p-1">
-            <button
-              type="button"
-              aria-label="Underline"
-              aria-pressed={decorations.includes('underline')}
-              onClick={() => toggleDecoration('underline')}
-              className={`flex flex-1 items-center justify-center rounded-md py-1.5 ${
-                decorations.includes('underline') ? 'bg-white text-[#0040DF] shadow-sm' : 'text-slate-500 hover:bg-slate-100'
-              }`}
-            >
-              <Underline className="h-4 w-4" />
-            </button>
-            <button
-              type="button"
-              aria-label="Strikethrough"
-              aria-pressed={decorations.includes('line-through')}
-              onClick={() => toggleDecoration('line-through')}
-              className={`flex flex-1 items-center justify-center rounded-md py-1.5 ${
-                decorations.includes('line-through') ? 'bg-white text-[#0040DF] shadow-sm' : 'text-slate-500 hover:bg-slate-100'
-              }`}
-            >
-              <Strikethrough className="h-4 w-4" />
-            </button>
-          </div>
-        </section>
-        
-        {/* Transform Section */}
-        <section className="space-y-3">
-          <h3 className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Case</h3>
-          <div className="flex items-center rounded-lg border border-slate-200 bg-slate-50 p-1">
-            {([
-              { label: 'AA', value: 'uppercase' },
-              { label: 'Aa', value: 'capitalize' },
-              { label: 'aa', value: 'lowercase' },
-            ] as const).map(({ label, value }) => (
-              <button
-                key={value}
-                type="button"
-                aria-label={`${label} case`}
-                aria-pressed={textStyle.textTransform === value}
-                onClick={() => onStyleChange({ textTransform: value })}
-                className={`flex flex-1 items-center justify-center rounded-md py-1.5 text-[11px] font-semibold ${
-                  textStyle.textTransform === value
-                    ? 'bg-white text-[#0040DF] shadow-sm'
-                    : 'text-slate-500 hover:bg-slate-100'
-                }`}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-        </section>
-
+        <details
+          open={textEditorOpen}
+          onToggle={(event) => setTextEditorOpen((event.target as HTMLDetailsElement).open)}
+          className="mt-3 border-t border-slate-100 pt-2.5"
+        >
+          <summary className="cursor-pointer text-[9px] font-medium text-slate-500">Edit {textLabel}</summary>
+          <textarea
+            aria-label={`Edit ${textLabel}`}
+            value={textValue}
+            onChange={(event) => onTextChange(event.target.value)}
+            rows={2}
+            className="mt-2 w-full resize-y rounded-md border border-slate-200 bg-[#f7f8fc] px-2 py-1.5 text-[10px] outline-none focus:border-[#0040DF] focus:bg-white"
+          />
+          <button
+            type="button"
+            onClick={() => onStyleChange(null)}
+            className="mt-2 text-[9px] font-medium text-slate-500 hover:text-rose-500"
+          >Reset formatting</button>
+        </details>
       </div>
     </div>
   );
@@ -2399,6 +2625,7 @@ function TextFormattingPanel({
 function RightPanel({
   tab, onTab, selectedId, accent, wsStatus, workflowOpen, onToggleWorkflow,
   box, measured, onBoxChange, onResetBox,
+  onSelectVariant,
   overrides, textStyles, setText, setColor, setTextStyle, onResetModuleOverrides,
   activeTextSlot, setActiveTextSlot,
 }: {
@@ -2410,6 +2637,7 @@ function RightPanel({
   measured: { w: number; h: number } | null;
   onBoxChange: (id: ModuleId, patch: ModuleBox) => void;
   onResetBox: (id: ModuleId) => void;
+  onSelectVariant: (variant: ComponentVariant) => void;
   overrides: Record<string, { text: Record<string, string>; colors: Record<string, string> }>;
   textStyles: Record<string, Record<string, EditableTextStyle>>;
   setText: (moduleId: ModuleId, slot: string, value: string | null) => void;
@@ -2549,7 +2777,7 @@ function RightPanel({
   // Conditional Render for Text Formatting Panel
   if (activeTextSlot) {
     return (
-      <aside className="flex w-[340px] shrink-0 flex-col border-l border-slate-200 bg-white">
+      <aside className="flex w-[270px] shrink-0 flex-col border-l border-slate-200 bg-white">
         <TextFormattingPanel 
           textLabel={activeTextField?.label ?? activeTextSlot}
           textValue={activeTextValue}
@@ -2607,9 +2835,13 @@ function RightPanel({
                   </div>
                   <div className="flex gap-1 rounded-md border border-slate-200 bg-white p-0.5">
                     {(['Default', 'Masked', 'Negative'] as const).map((v) => (
-                      <button key={v}
+                      <button
+                        key={v}
+                        type="button"
+                        aria-pressed={(box.variant ?? 'Default') === v}
+                        onClick={() => onSelectVariant(v)}
                         className={`flex-1 rounded py-1 text-[11px] font-semibold transition ${
-                          v === 'Default' ? 'bg-[#0040DF] text-white shadow-sm' : 'text-slate-400 hover:bg-slate-50 hover:text-slate-700'
+                          (box.variant ?? 'Default') === v ? 'bg-[#0040DF] text-white shadow-sm' : 'text-slate-400 hover:bg-slate-50 hover:text-slate-700'
                         }`}>
                         {v}
                       </button>
@@ -2816,7 +3048,7 @@ function RightPanel({
                 <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500">Fills</span>
                 <div className="flex gap-2">
                   <button
-                    onClick={() => onBoxChange(selectedId!, { fillType: 'color', fillColor: box.fillColor || '#6D28D9' })}
+                    onClick={() => onBoxChange(selectedId!, { fillType: 'color', fillColor: box.fillColor || '#6D28D9', fillGradient: undefined })}
                     className="flex items-center gap-1 text-[10px] font-semibold text-[#0040DF] hover:underline"
                   >
                     <Plus className="h-3 w-3" /> Fill
@@ -2840,10 +3072,18 @@ function RightPanel({
                       aria-label="Choose fill color"
                       onClick={(e) => toggleColorPicker(e, 'fill')}
                       className="h-7 w-7 shrink-0 rounded border border-slate-300 shadow-sm"
-                      style={{ background: box.fillColor || '#6D28D9' }}
+                      style={{
+                        background: box.fillGradient
+                          ? box.fillGradient.type === 'Linear'
+                            ? `linear-gradient(${box.fillGradient.angle}deg, ${box.fillGradient.startColor}, ${box.fillGradient.endColor})`
+                            : `radial-gradient(circle, ${box.fillGradient.startColor}, ${box.fillGradient.endColor})`
+                          : box.fillColor || '#6D28D9',
+                      }}
                     />
                     <div className="flex min-w-0 flex-1 flex-col">
-                      <span className="text-[11px] font-semibold text-slate-700">Solid Color</span>
+                      <span className="text-[11px] font-semibold text-slate-700">
+                        {box.fillGradient ? `${box.fillGradient.type} Gradient` : 'Solid Color'}
+                      </span>
                       <span className="font-mono text-[9px] uppercase text-slate-500">{box.fillColor || '#6D28D9'}</span>
                     </div>
                     <span className="text-[11px] font-semibold text-slate-600">100%</span>
@@ -2855,10 +3095,18 @@ function RightPanel({
                     {showFillColorPicker && colorPickerPosition && (
                       <AdvancedColorPicker
                         color={box.fillColor || '#6D28D9'}
+                        gradient={box.fillGradient}
                         position={colorPickerPosition}
                         title="Fill color"
                         onClose={closeColorPicker}
-                        onChange={(c) => onBoxChange(selectedId!, { fillColor: c })}
+                        onChange={(c) => onBoxChange(selectedId!, {
+                          fillColor: c,
+                          fillGradient: box.fillGradient ? { ...box.fillGradient, startColor: c } : undefined,
+                        })}
+                        onGradientChange={(fillGradient) => onBoxChange(selectedId!, {
+                          fillGradient: fillGradient ?? undefined,
+                          fillColor: fillGradient?.startColor ?? box.fillColor,
+                        })}
                       />
                     )}
                   </div>
@@ -3392,7 +3640,11 @@ export default function StudioClient() {
             expandedPage={expandedPage} onToggleExpand={(p) => setExpandedPage((v) => (v === p ? null : p))}
             pageModules={pageModules} accent={accentColor}
             onStartDrag={startDrag} onEndDrag={endDrag} drag={drag}
-            onAddModule={addModule} onRemoveModule={removeModule}
+            onAddModule={(id, variant) => {
+              addModule(id);
+              if (variant) onBoxChange(id, { variant });
+            }}
+            onRemoveModule={removeModule}
             selectedId={selectedId}
             onSelectModule={handleSelectModule}
             onSelectTextSlot={(id, slot) => {
@@ -3428,6 +3680,9 @@ export default function StudioClient() {
             measured={selectedId ? measured[selectedId] ?? null : null}
             onBoxChange={onBoxChange}
             onResetBox={onResetBox}
+            onSelectVariant={(variant) => {
+              if (selectedId) onBoxChange(selectedId, { variant });
+            }}
             overrides={overrides}
             textStyles={textStyles}
             setText={setText}

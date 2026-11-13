@@ -23,6 +23,12 @@ export type EditableTextStyle = Pick<
   | 'textAlign'
   | 'textDecorationLine'
   | 'textTransform'
+  | 'fontStyle'
+  | 'width'
+  | 'height'
+  | 'opacity'
+  | 'textShadow'
+  | 'WebkitTextStroke'
 >;
 
 export interface EditState {
@@ -39,8 +45,12 @@ export interface EditState {
 }
 
 const EditContext = createContext<EditState | null>(null);
-interface ScopeValue { moduleId: ModuleId | null; active: boolean }
-const ScopeContext = createContext<ScopeValue>({ moduleId: null, active: false });
+interface ScopeValue {
+  moduleId: ModuleId | null;
+  active: boolean;
+  variant: 'Default' | 'Masked' | 'Negative';
+}
+const ScopeContext = createContext<ScopeValue>({ moduleId: null, active: false, variant: 'Default' });
 
 export function EditProvider({ value, children }: { value: EditState; children: React.ReactNode }) {
   return <EditContext.Provider value={value}>{children}</EditContext.Provider>;
@@ -48,11 +58,16 @@ export function EditProvider({ value, children }: { value: EditState; children: 
 
 /** Wrap every rendered module so its text/colors can opt into editing. */
 export function ModuleScope({
-  moduleId, passive, children,
-}: { moduleId: ModuleId; passive?: boolean; children: React.ReactNode }) {
+  moduleId, passive, variant, children,
+}: {
+  moduleId: ModuleId;
+  passive?: boolean;
+  variant?: 'Default' | 'Masked' | 'Negative';
+  children: React.ReactNode;
+}) {
   const edit = useContext(EditContext);
   const active = !passive && edit?.mode === 'edit' && edit.selectedId === moduleId;
-  return <ScopeContext.Provider value={{ moduleId, active }}>{children}</ScopeContext.Provider>;
+  return <ScopeContext.Provider value={{ moduleId, active, variant: variant ?? 'Default' }}>{children}</ScopeContext.Provider>;
 }
 
 /** Owns the override map — put one of these at the top of StudioClient. */
@@ -163,14 +178,22 @@ export function EditableText({
   const [editing, setEditing] = useState(false);
   const isEditing = editing && edit?.activeTextSlot === slot;
   const isSelectedSlot = edit?.activeTextSlot === slot && scope.moduleId === edit.selectedId;
+  const isFinancialValue = /balance|amount|available|total|value|^amt$|^bal$|^tx\d+Amount$/i.test(slot);
+  const displayValue = scope.variant === 'Masked' && isFinancialValue
+    ? value.replace(/\d/g, '•')
+    : scope.variant === 'Negative' && isFinancialValue && !/^\s*-/.test(value)
+      ? value.replace(/^(\s*)([$€£¥])/, '$1-$2').replace(/^((?!\s*[-$€£¥]).+)/, '-$1')
+      : value;
   const resolvedStyle: React.CSSProperties = {
     ...style,
     ...textStyle,
+    ...(scope.variant === 'Negative' && isFinancialValue && !textStyle.color ? { color: '#dc2626' } : {}),
     ...(textStyle.textAlign ? { display: 'block', width: '100%' } : {}),
+    ...(textStyle.width !== undefined || textStyle.height !== undefined ? { display: 'inline-block' } : {}),
   };
 
   if (!edit || !scope.moduleId || !scope.active) {
-    return <span className={className} style={resolvedStyle}>{value}</span>;
+    return <span className={className} style={resolvedStyle}>{displayValue}</span>;
   }
 
   if (isEditing) {
@@ -211,7 +234,7 @@ export function EditableText({
       }`}
       style={resolvedStyle}
     >
-      {value}
+      {displayValue}
     </span>
   );
 }

@@ -585,6 +585,7 @@ export interface ViewCtx {
   faceId: boolean;
   isCardFrozen: boolean;
   actions: ViewActions;
+  variant?: 'Default' | 'Masked' | 'Negative';
   customRadius?: string;
   customPadding?: { top: number; right: number; bottom: number; left: number };
   customStroke?: React.CSSProperties;
@@ -1919,7 +1920,7 @@ export function ModuleView({ id, ctx, passive }: { id: ModuleId; ctx: ViewCtx; p
   } : ctx;
 
   return (
-    <ModuleScope moduleId={id} passive={passive}>
+    <ModuleScope moduleId={id} passive={passive} variant={ctx.variant}>
       <div className="relative" style={wrapperStyle}>
         {hasCustomFill && (
           <style>{'.studio-module-fill-content > * { background: transparent !important; }'}</style>
