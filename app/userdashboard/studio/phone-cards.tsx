@@ -29,7 +29,7 @@ import {
 } from '@/app/products/mobile-app/crypto-modules';
 
 import {
-  EditableText, useModuleColor, useModuleText, ModuleScope,
+  EditableText, useModuleColor, useModuleText, ModuleScope, ElementTinkerHost,
 } from './edit-context';
 
 /* ─────────────────────────── constants ─────────────────────────── */
@@ -1936,9 +1936,11 @@ export function ModuleView({ id, ctx, passive }: { id: ModuleId; ctx: ViewCtx; p
             }}
           />
         )}
-        <div className={hasCustomFill ? 'studio-module-fill-content relative z-[1]' : 'relative'}>
-          <ModuleViewInner id={id} ctx={innerCtx} />
-        </div>
+        <ElementTinkerHost moduleId={id} passive={passive}>
+          <div className={hasCustomFill ? 'studio-module-fill-content relative z-[1]' : 'relative'}>
+            <ModuleViewInner id={id} ctx={innerCtx} />
+          </div>
+        </ElementTinkerHost>
       </div>
     </ModuleScope>
   );

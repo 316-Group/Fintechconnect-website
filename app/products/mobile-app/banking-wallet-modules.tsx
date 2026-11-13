@@ -204,15 +204,15 @@ function HomeHeroBalance({ ctx }: { ctx: BankingWalletCtx }) {
       </div>
       <EditableText slot="balance" fallback={usd(ctx.balance)} className="relative mt-1 block text-[24px] font-bold leading-none tracking-tight" />
       <div className="relative mt-4 flex items-center gap-2">
-        <button type="button" onClick={ctx.actions.send} className="flex items-center gap-1 rounded-full px-3 py-1.5 text-[10px] font-bold text-[#0B1A56]" style={{ background: pill }}>
+        <button type="button" data-studio-element="transfer" onClick={ctx.actions.send} className="flex items-center gap-1 rounded-full px-3 py-1.5 text-[10px] font-bold text-[#0B1A56]" style={{ background: pill }}>
           <ArrowUpRight className="h-3 w-3" />
           <EditableText slot="transfer" fallback="Transfer" />
         </button>
-        <button type="button" onClick={ctx.actions.payBill} className="flex items-center gap-1 rounded-full bg-white px-3 py-1.5 text-[10px] font-bold text-[#0B1A56]">
+        <button type="button" data-studio-element="receive" onClick={ctx.actions.payBill} className="flex items-center gap-1 rounded-full bg-white px-3 py-1.5 text-[10px] font-bold text-[#0B1A56]">
           <ArrowDownLeft className="h-3 w-3" />
           <EditableText slot="receive" fallback="Receive" />
         </button>
-        <button type="button" aria-label="Cards" onClick={ctx.actions.openWallet} className="ml-auto grid h-8 w-8 place-items-center rounded-full" style={{ background: pill }}>
+        <button type="button" data-studio-element="cards" aria-label="Cards" onClick={ctx.actions.openWallet} className="ml-auto grid h-8 w-8 place-items-center rounded-full" style={{ background: pill }}>
           <CreditCard className="h-4 w-4 text-[#0B1A56]" />
         </button>
       </div>

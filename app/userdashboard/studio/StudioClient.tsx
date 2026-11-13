@@ -30,7 +30,9 @@ import {
 import {
   EditProvider,
   useEditOverrides,
+  getElementDisplayName,
   type EditableTextStyle,
+  type ElementBox,
 } from './edit-context';
 import { EDITABLE_SCHEMA } from './editable-schema';
 import AssetTab, { type AssetItem } from './assettab';
@@ -2628,6 +2630,7 @@ function RightPanel({
   onSelectVariant,
   overrides, textStyles, setText, setColor, setTextStyle, onResetModuleOverrides,
   activeTextSlot, setActiveTextSlot,
+  elementBoxes, activeElementId, setActiveElementId, setElementBox, resetElementBoxes,
 }: {
   tab: RightTab; onTab: (t: RightTab) => void;
   selectedId: ModuleId | null; accent: string;
@@ -2646,6 +2649,11 @@ function RightPanel({
   onResetModuleOverrides: (moduleId: ModuleId) => void;
   activeTextSlot: string | null;
   setActiveTextSlot: (slot: string | null) => void;
+  elementBoxes: Record<string, Record<string, ElementBox>>;
+  activeElementId: string | null;
+  setActiveElementId: (id: string | null) => void;
+  setElementBox: (moduleId: string, elementId: string, patch: Partial<ElementBox> | null) => void;
+  resetElementBoxes: (moduleId: string) => void;
 }) {
   const [showCornerRadius, setShowCornerRadius] = useState(false);
   const [showFillColorPicker, setShowFillColorPicker] = useState(false);
@@ -2686,6 +2694,48 @@ function RightPanel({
     { key: 'bottomRight', label: 'BR' },
   ];
   const cornerRadiusLinked = box.cornerRadiusLinked !== false;
+
+  const suggestedParts = React.useMemo(() => {
+    if (!selectedId || selectedId.startsWith('shape-')) return [];
+    const list: { id: string; label: string }[] = [];
+    const s = EDITABLE_SCHEMA[selectedId as keyof typeof EDITABLE_SCHEMA];
+    if (s?.text) {
+      for (const t of (s.text as { slot: string; label: string }[])) {
+        list.push({ id: t.slot, label: t.label });
+      }
+    }
+    // Additional named elements for well-known modules
+    const heroSuggestions: Record<string, { id: string; label: string }[]> = {
+      homeHeroBalance: [
+        { id: 'transfer', label: 'Transfer Button' },
+        { id: 'receive', label: 'Receive Button' },
+        { id: 'cards', label: 'Cards Button' },
+      ],
+      accounts: [
+        { id: 'cta', label: 'CTA Button' },
+      ],
+      transfers: [
+        { id: 'sendLabel', label: 'Send Icon' },
+        { id: 'paymentsLabel', label: 'Payments Icon' },
+        { id: 'payBillLabel', label: 'Pay Bill Icon' },
+        { id: 'topUpLabel', label: 'Top Up Icon' },
+      ],
+      homeBlueHero: [
+        { id: 'deposit', label: 'Deposit Button' },
+        { id: 'transfer', label: 'Transfer Button' },
+      ],
+    };
+    const extras = heroSuggestions[selectedId] ?? [];
+    for (const e of extras) {
+      if (!list.find((x) => x.id === e.id)) list.unshift(e);
+    }
+    const seen = new Set<string>();
+    return list.filter((p) => {
+      if (seen.has(p.id)) return false;
+      seen.add(p.id);
+      return true;
+    });
+  }, [selectedId]);
 
   const toggleColorPicker = (
     event: React.MouseEvent<HTMLButtonElement>,
@@ -2953,6 +3003,106 @@ function RightPanel({
                 </label>
               </div>
             </section>
+
+            {/* Component Parts — Sub-Element Tinkering */}
+            {selectedId && !selectedId.startsWith('shape-') && (
+              <section className="border-b border-slate-200 px-3 py-3 bg-blue-50/25">
+                <div className="mb-2 flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <Move className="h-3.5 w-3.5 text-[#0040DF]" />
+                    <span className="text-[9px] font-bold uppercase tracking-wider text-slate-700">
+                      Component Parts{activeElementId ? ` · ${getElementDisplayName(activeElementId)}` : ''}
+                    </span>
+                  </div>
+                  {activeElementId && (
+                    <button
+                      type="button"
+                      onClick={() => setActiveElementId(null)}
+                      className="text-[9px] font-semibold text-slate-400 hover:text-slate-600"
+                    >
+                      Deselect
+                    </button>
+                  )}
+                </div>
+
+                {activeElementId ? (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between rounded-md border border-blue-200 bg-white p-2 shadow-sm">
+                      <div className="min-w-0">
+                        <p className="truncate text-[10px] font-bold text-slate-800">
+                          {getElementDisplayName(activeElementId)}
+                        </p>
+                        <p className="text-[8px] text-slate-400 font-mono truncate">ID: {activeElementId}</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setElementBox(selectedId!, activeElementId, null)}
+                        className="flex items-center gap-1 rounded px-1.5 py-0.5 text-[9px] font-semibold text-blue-600 hover:bg-blue-50"
+                      >
+                        <Undo2 className="h-2.5 w-2.5" />
+                        Reset
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-2 gap-1">
+                      {([
+                        { key: 'x' as const, label: 'X Offset', value: (elementBoxes[selectedId!]?.[activeElementId]?.x ?? 0) as number | '' },
+                        { key: 'y' as const, label: 'Y Offset', value: (elementBoxes[selectedId!]?.[activeElementId]?.y ?? 0) as number | '' },
+                        { key: 'w' as const, label: 'Width', value: (elementBoxes[selectedId!]?.[activeElementId]?.w ?? '') as number | '' },
+                        { key: 'h' as const, label: 'Height', value: (elementBoxes[selectedId!]?.[activeElementId]?.h ?? '') as number | '' },
+                      ]).map(({ key, label, value }) => (
+                        <label key={key} className="flex h-7 items-center gap-2 rounded-md border border-slate-200 bg-white px-2">
+                          <span className="text-[8px] font-semibold text-slate-400">{label}</span>
+                          <input
+                            type="number"
+                            placeholder={key === 'w' || key === 'h' ? 'Auto' : '0'}
+                            value={value}
+                            onChange={(e) => setElementBox(selectedId!, activeElementId, {
+                              [key]: e.target.value === '' ? undefined : (key === 'w' || key === 'h' ? Math.max(16, Number(e.target.value)) : Number(e.target.value)),
+                            })}
+                            className="w-full bg-transparent text-right text-[9px] font-semibold text-slate-700 outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
+                          />
+                          <span className="text-[8px] text-slate-400">px</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-1.5">
+                    <p className="text-[9px] text-slate-500">
+                      Click any element inside the card to drag &amp; resize it with 4 corner handles.
+                    </p>
+                    {suggestedParts.length > 0 && (
+                      <div className="flex flex-wrap gap-1 pt-1">
+                        {suggestedParts.map((part) => (
+                          <button
+                            key={part.id}
+                            type="button"
+                            onClick={() => setActiveElementId(part.id)}
+                            className="flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[9px] font-medium text-slate-600 hover:border-[#0040DF] hover:text-[#0040DF] shadow-sm transition"
+                          >
+                            <Move className="h-2 w-2 opacity-50" />
+                            <span>{part.label}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {selectedId && elementBoxes[selectedId] && Object.keys(elementBoxes[selectedId]).length > 0 && (
+                  <div className="mt-2 pt-2 border-t border-slate-200/60 flex justify-end">
+                    <button
+                      type="button"
+                      onClick={() => resetElementBoxes(selectedId!)}
+                      className="flex items-center gap-1 text-[9px] font-semibold text-slate-500 hover:text-rose-600"
+                    >
+                      <Trash2 className="h-2.5 w-2.5" />
+                      Reset All Parts
+                    </button>
+                  </div>
+                )}
+              </section>
+            )}
 
             {/* Corner Radius */}
             <section className="border-b border-slate-200 px-3 py-3">
@@ -3438,6 +3588,11 @@ export default function StudioClient() {
     setColor,
     setTextStyle,
     reset: resetOverrides,
+    elementBoxes,
+    activeElementId,
+    setActiveElementId,
+    setElementBox,
+    resetElementBoxes,
   } = useEditOverrides();
 
   const editState = {
@@ -3445,12 +3600,17 @@ export default function StudioClient() {
     selectedId,
     overrides,
     textStyles,
+    elementBoxes,
+    activeElementId,
+    setActiveElementId,
+    setElementBox,
+    resetElementBoxes,
     setText,
     setColor,
     setTextStyle,
     reset: resetOverrides,
-    activeTextSlot,         // Pass to context
-    setActiveTextSlot,      // Pass to context
+    activeTextSlot,
+    setActiveTextSlot,
   };
 
   const onBoxChange = React.useCallback((id: ModuleId, patch: ModuleBox) => {
@@ -3691,6 +3851,11 @@ export default function StudioClient() {
             onResetModuleOverrides={resetOverrides}
             activeTextSlot={activeTextSlot}
             setActiveTextSlot={setActiveTextSlot}
+            elementBoxes={elementBoxes}
+            activeElementId={activeElementId}
+            setActiveElementId={setActiveElementId}
+            setElementBox={setElementBox}
+            resetElementBoxes={resetElementBoxes}
           />
         </div>
       </div>
