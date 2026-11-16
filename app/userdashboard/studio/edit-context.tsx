@@ -40,6 +40,14 @@ export interface ElementBox {
   h?: number;
 }
 
+export interface PlacedAsset {
+  id: string;
+  name: string;
+  url: string;
+}
+
+const EMPTY_PLACED_ASSETS: PlacedAsset[] = [];
+
 export const CORNER_HANDLES = [
   { k: 'nw', cls: 'top-0 left-0 -translate-x-1/2 -translate-y-1/2 cursor-nwse-resize' },
   { k: 'ne', cls: 'top-0 right-0 translate-x-1/2 -translate-y-1/2 cursor-nesw-resize' },
@@ -53,6 +61,8 @@ export interface EditState {
   overrides: Record<string, ModuleOverrides>;
   textStyles: Record<string, Record<string, EditableTextStyle>>;
   elementBoxes: Record<string, Record<string, ElementBox>>;
+  placedAssets: Record<string, PlacedAsset[]>;
+  addPlacedAsset: (moduleId: string, asset: PlacedAsset) => void;
   activeElementId: string | null;
   setActiveElementId: (id: string | null) => void;
   setElementBox: (moduleId: string, elementId: string, patch: Partial<ElementBox> | null) => void;
@@ -97,7 +107,15 @@ export function useEditOverrides() {
   const [overrides, setOverrides] = useState<Record<string, ModuleOverrides>>({});
   const [textStyles, setTextStyles] = useState<Record<string, Record<string, EditableTextStyle>>>({});
   const [elementBoxes, setElementBoxes] = useState<Record<string, Record<string, ElementBox>>>({});
+  const [placedAssets, setPlacedAssets] = useState<Record<string, PlacedAsset[]>>({});
   const [activeElementId, setActiveElementId] = useState<string | null>(null);
+
+  const addPlacedAsset = useCallback((moduleId: string, asset: PlacedAsset) => {
+    setPlacedAssets((prev) => ({
+      ...prev,
+      [moduleId]: [...(prev[moduleId] ?? []), asset],
+    }));
+  }, []);
 
   const setText = useCallback((moduleId: string, slot: string, value: string | null) => {
     setOverrides((prev) => {
@@ -200,6 +218,11 @@ export function useEditOverrides() {
       delete rest[moduleId];
       return rest;
     });
+    setPlacedAssets((prev) => {
+      const rest = { ...prev };
+      delete rest[moduleId];
+      return rest;
+    });
     setActiveElementId(null);
   }, []);
 
@@ -207,6 +230,8 @@ export function useEditOverrides() {
     overrides,
     textStyles,
     elementBoxes,
+    placedAssets,
+    addPlacedAsset,
     activeElementId,
     setActiveElementId,
     setElementBox,
@@ -419,6 +444,8 @@ export function ElementTinkerHost({
   const active = !passive && edit?.mode === 'edit' && edit.selectedId === moduleId;
   const activeElementId = edit?.activeElementId ?? null;
   const elementBoxes = edit?.elementBoxes ?? {};
+  const moduleAssets = edit?.placedAssets[moduleId];
+  const placedAssets = moduleAssets ?? EMPTY_PLACED_ASSETS;
   // Stabilize currentModBoxes — avoid creating a new {} on every render
   const currentModBoxes = useMemo(
     () => elementBoxes[moduleId] ?? {},
@@ -479,7 +506,7 @@ export function ElementTinkerHost({
       if (el) {
         if (box.x !== undefined || box.y !== undefined) {
           el.style.transform = `translate(${box.x ?? 0}px, ${box.y ?? 0}px)`;
-          el.style.position = 'relative';
+          el.style.position = el.dataset.studioAsset === 'true' ? 'absolute' : 'relative';
         } else {
           el.style.transform = '';
         }
@@ -503,7 +530,7 @@ export function ElementTinkerHost({
     }
     // Schedule overlay update after the DOM settles
     requestAnimationFrame(() => { updateOverlayRef.current(); });
-  }, [currentModBoxes, moduleId]);
+  }, [currentModBoxes, moduleId, placedAssets]);
 
   // Update overlay on window resize
   useEffect(() => {
@@ -566,7 +593,7 @@ export function ElementTinkerHost({
       const nextY = Math.round(baseY + dy);
 
       targetEl.style.transform = `translate(${nextX}px, ${nextY}px)`;
-      targetEl.style.position = 'relative';
+      targetEl.style.position = targetEl.dataset.studioAsset === 'true' ? 'absolute' : 'relative';
       targetEl.style.zIndex = '30';
 
       edit?.setElementBox(moduleId, elementId, {
@@ -634,7 +661,7 @@ export function ElementTinkerHost({
         targetEl.style.display = 'inline-block';
       }
       targetEl.style.transform = `translate(${patch.x ?? 0}px, ${patch.y ?? 0}px)`;
-      targetEl.style.position = 'relative';
+      targetEl.style.position = targetEl.dataset.studioAsset === 'true' ? 'absolute' : 'relative';
       targetEl.style.zIndex = '30';
 
       edit?.setElementBox(moduleId, activeElementId, patch);
@@ -664,6 +691,7 @@ export function ElementTinkerHost({
   return (
     <div
       ref={hostRef}
+      data-studio-tinker-host={moduleId}
       onMouseDown={handleMouseDown}
       onClickCapture={(e) => {
         if (active) {
@@ -695,6 +723,32 @@ export function ElementTinkerHost({
       )}
 
       {children}
+
+      {placedAssets.map((asset) => {
+        const box = currentModBoxes[asset.id] ?? {};
+        return (
+          <div
+            key={asset.id}
+            data-studio-element={asset.id}
+            data-studio-asset="true"
+            role="img"
+            aria-label={asset.name}
+            style={{
+              position: 'absolute',
+              left: 0,
+              top: 0,
+              width: box.w ?? 64,
+              height: box.h ?? 64,
+              transform: `translate(${box.x ?? 0}px, ${box.y ?? 0}px)`,
+              zIndex: activeElementId === asset.id ? 35 : 25,
+              backgroundImage: `url("${asset.url}")`,
+              backgroundPosition: 'center',
+              backgroundRepeat: 'no-repeat',
+              backgroundSize: 'contain',
+            }}
+          />
+        );
+      })}
 
       {/* Mini box enclosing the active element */}
       {active && activeElementId && overlayRect && (

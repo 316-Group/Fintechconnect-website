@@ -644,7 +644,7 @@ function LeftPanel({
         draggable
         onDragStart={(e) => onStartDrag(e, mod.id, 'library')}
         onDragEnd={onEndDrag}
-        className={`overflow-hidden rounded-lg border border-slate-200 bg-white cursor-grab active:cursor-grabbing ${
+        className={`overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm cursor-grab active:cursor-grabbing ${
           isDragging ? 'opacity-50' : ''
         }`}
       >
@@ -653,10 +653,10 @@ function LeftPanel({
             <span className={`grid h-5 w-5 shrink-0 place-items-center rounded-md ${modMeta.bg} ${modMeta.text}`}>
               <modMeta.Icon className="h-3 w-3" />
             </span>
-            <span className="truncate text-[9px] font-bold text-slate-800">{mod.title}</span>
-            <span className={`shrink-0 rounded px-1 py-0.5 text-[7px] font-bold ${mod.badgeColor}`}>
-              {mod.badge}
-            </span>
+            <div className="min-w-0">
+              <span className="block truncate text-[9px] font-bold text-slate-800">{mod.title}</span>
+              <span className={`block truncate text-[7px] font-semibold ${mod.badgeColor}`}>{mod.badge}</span>
+            </div>
           </div>
 
           <div className="flex items-center gap-1">
@@ -668,25 +668,25 @@ function LeftPanel({
                   onSelectModule(mod.id);
                   handleShowPreview(mod.id, e);
                 }}
-                className="grid h-4 w-4 shrink-0 place-items-center rounded text-slate-400 hover:bg-slate-200 hover:text-slate-700"
+                className="grid h-5 w-5 shrink-0 place-items-center rounded text-slate-400 hover:bg-slate-100 hover:text-[#0040DF]"
               >
-                <Eye className="h-3 w-3" />
+                <Eye className="h-3.5 w-3.5" />
               </button>
             <button
               draggable={false}
               onDragStart={(e) => e.stopPropagation()}
               onClick={() => (isAdded ? onRemoveModule(mod.id) : onAddModule(mod.id))}
-              className={`grid h-4 w-4 shrink-0 place-items-center rounded hover:bg-slate-200 ${
+              className={`grid h-5 w-5 shrink-0 place-items-center rounded hover:bg-slate-100 ${
                 isAdded ? 'text-emerald-600' : 'text-slate-400'
               }`}
             >
-              {isAdded ? <Check className="h-3 w-3" /> : <Plus className="h-3 w-3" />}
+              {isAdded ? <Check className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
             </button>
           </div>
         </div>
 
-        <div className="relative overflow-hidden bg-[#F7F8FF] p-2" style={{ height: 140 }}>
-          <div className="pointer-events-none origin-top-left" style={{ transform: 'scale(0.75)', width: '133%' }}>
+        <div className="relative overflow-hidden bg-[#F7F8FF] p-1.5" style={{ height: 94 }}>
+          <div className="pointer-events-none origin-top-left" style={{ transform: 'scale(0.42)', width: '238%' }}>
             <ModuleView id={mod.id} ctx={previewCtx} passive />
           </div>
         </div>
@@ -788,7 +788,9 @@ function LeftPanel({
                 <span className="text-[10px] text-slate-400">{filteredMods.length} items</span>
               </div>
               {filteredMods.length === 0 && <p className="py-6 text-center text-[10px] text-slate-400">No components found.</p>}
-              {filteredMods.map(renderCompModule)}
+              <div className="grid grid-cols-2 gap-2">
+                {filteredMods.map(renderCompModule)}
+              </div>
             </>
           ) : compLibrary === null ? (
             <>
@@ -834,20 +836,23 @@ function LeftPanel({
                   <p className="text-[9px] text-slate-500">{compsInLibrary.length} components</p>
                 </div>
               </div>
-              {groupedComps.map((group) => (
-                <div key={group.id} className="overflow-hidden rounded-lg border border-slate-200 bg-white">
-                  <button type="button" onClick={() => setActiveCompSubgroup(group.id)} className="flex w-full items-center gap-2 px-3 py-2 text-left hover:bg-slate-50">
-                    <span className={`grid h-7 w-7 shrink-0 place-items-center rounded-lg ${group.bg} ${group.text}`}>
+              <div className="space-y-2 rounded-xl border border-slate-200 bg-white p-2 shadow-sm">
+                {groupedComps.map((group) => (
+                  <button key={group.id} type="button" onClick={() => setActiveCompSubgroup(group.id)} className="flex w-full items-center gap-2.5 rounded-lg border border-slate-100 bg-white px-2.5 py-2.5 text-left transition hover:border-[#0040DF]/30 hover:bg-[#F7F8FF]">
+                    <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg ${group.bg} ${group.text}`}>
                       <group.Icon className="h-4 w-4" />
                     </span>
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-[11px] font-bold text-slate-800">{group.label}</p>
-                      <p className="text-[9px] text-slate-500">{group.mods.length} templates</p>
+                      <p className="truncate text-[10px] font-bold text-slate-800">{group.label}</p>
+                      <p className="mt-0.5 text-[8px] text-slate-500">{group.mods.length} templates</p>
                     </div>
-                    <ChevronRight className="h-4 w-4 shrink-0 text-slate-400" />
+                    <span className="flex items-center gap-1 text-[8px] font-semibold text-slate-400">
+                      {group.mods.length}
+                      <ChevronRight className="h-3.5 w-3.5" />
+                    </span>
                   </button>
-                </div>
-              ))}
+                ))}
+              </div>
               {groupedComps.length === 0 && <p className="py-6 text-center text-[10px] text-slate-400">No components found.</p>}
             </>
           ) : (
@@ -861,7 +866,9 @@ function LeftPanel({
                   <p className="text-[9px] text-slate-500">{activeGroup?.mods.length} components</p>
                 </div>
               </div>
-              {activeGroup?.mods.map(renderCompModule)}
+              <div className="grid grid-cols-2 gap-2">
+                {activeGroup?.mods.map(renderCompModule)}
+              </div>
               {!activeGroup?.mods.length && <p className="py-6 text-center text-[10px] text-slate-400">No components found.</p>}
             </>
           )}
@@ -871,7 +878,7 @@ function LeftPanel({
       {tab === 'assets' && (
         <AssetTab
           accent={accent}
-          onAssetDragStart={() => {}}
+          onAssetDragStart={onAssetClick}
           onAssetClick={onAssetClick}
         />
       )}
@@ -1168,7 +1175,11 @@ function ModuleWrapper({
   onStartDrag: (e: React.DragEvent, id: ModuleId, from: 'library' | 'canvas') => void;
   onEndDrag: () => void;
   onItemDragOver: (e: React.DragEvent, index: number) => void;
-  onDrop: (e: React.DragEvent) => void;
+  onDrop: (
+    e: React.DragEvent,
+    targetId?: ModuleId,
+    position?: { x: number; y: number },
+  ) => void;
   onMove: (id: ModuleId, dir: -1 | 1) => void;
   onRemove: (id: ModuleId) => void;
   onMeasure: (id: ModuleId, size: { w: number; h: number }) => void;
@@ -1385,7 +1396,17 @@ function ModuleWrapper({
       }}
       onDragEnd={onEndDrag}
       onDragOver={(e) => onItemDragOver(e, index)}
-      onDrop={onDrop}
+      onDrop={(e) => {
+        const content = contentRef.current;
+        const target = content?.querySelector<HTMLElement>('[data-studio-tinker-host]') ?? content;
+        const rect = target?.getBoundingClientRect();
+        const scaleX = rect && target ? rect.width / target.offsetWidth || 1 : 1;
+        const scaleY = rect && target ? rect.height / target.offsetHeight || 1 : 1;
+        onDrop(e, id, rect && target ? {
+          x: (e.clientX - rect.left) / scaleX,
+          y: (e.clientY - rect.top) / scaleY,
+        } : undefined);
+      }}
       onMouseDown={startShapeMove}
       onClick={(e) => { e.stopPropagation(); onSelect(id); }}
       style={{
@@ -1452,7 +1473,11 @@ function PageCanvas({
   onStartDrag: (e: React.DragEvent, id: ModuleId, from: 'library' | 'canvas') => void;
   onEndDrag: () => void;
   onItemDragOver: (e: React.DragEvent, index: number) => void;
-  onDrop: (e: React.DragEvent) => void;
+  onDrop: (
+    e: React.DragEvent,
+    targetId?: ModuleId,
+    position?: { x: number; y: number },
+  ) => void;
   onMove: (id: ModuleId, dir: -1 | 1) => void;
   onRemove: (id: ModuleId) => void;
   onQuickAdd: (id: ModuleId) => void;
@@ -1626,7 +1651,11 @@ function Canvas({
   onStartDrag: (e: React.DragEvent, id: ModuleId, from: 'library' | 'canvas') => void;
   onEndDrag: () => void;
   onItemDragOver: (e: React.DragEvent, index: number) => void;
-  onDrop: (e: React.DragEvent) => void;
+  onDrop: (
+    e: React.DragEvent,
+    targetId?: ModuleId,
+    position?: { x: number; y: number },
+  ) => void;
   onMove: (id: ModuleId, dir: -1 | 1) => void;
   onRemove: (id: ModuleId) => void;
   onQuickAdd: (id: ModuleId) => void;
@@ -3588,106 +3617,6 @@ function RightPanel({
               </div>
             </section>
 
-            {/* Component Parts — Sub-Element Tinkering */}
-            {selectedId && !workspaceShape && !selectedId.startsWith('shape-') && (
-              <section className="border-b border-slate-200 px-3 py-3 bg-blue-50/25">
-                <div className="mb-2 flex items-center justify-between">
-                  <div className="flex items-center gap-1.5">
-                    <Move className="h-3.5 w-3.5 text-[#0040DF]" />
-                    <span className="text-[9px] font-bold uppercase tracking-wider text-slate-700">
-                      Component Parts{activeElementId ? ` · ${getElementDisplayName(activeElementId)}` : ''}
-                    </span>
-                  </div>
-                  {activeElementId && (
-                    <button
-                      type="button"
-                      onClick={() => setActiveElementId(null)}
-                      className="text-[9px] font-semibold text-slate-400 hover:text-slate-600"
-                    >
-                      Deselect
-                    </button>
-                  )}
-                </div>
-
-                {activeElementId ? (
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between rounded-md border border-blue-200 bg-white p-2 shadow-sm">
-                      <div className="min-w-0">
-                        <p className="truncate text-[10px] font-bold text-slate-800">
-                          {getElementDisplayName(activeElementId)}
-                        </p>
-                        <p className="text-[8px] text-slate-400 font-mono truncate">ID: {activeElementId}</p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => setElementBox(selectedId!, activeElementId, null)}
-                        className="flex items-center gap-1 rounded px-1.5 py-0.5 text-[9px] font-semibold text-blue-600 hover:bg-blue-50"
-                      >
-                        <Undo2 className="h-2.5 w-2.5" />
-                        Reset
-                      </button>
-                    </div>
-                    <div className="grid grid-cols-2 gap-1">
-                      {([
-                        { key: 'x' as const, label: 'X Offset', value: (elementBoxes[selectedId!]?.[activeElementId]?.x ?? 0) as number | '' },
-                        { key: 'y' as const, label: 'Y Offset', value: (elementBoxes[selectedId!]?.[activeElementId]?.y ?? 0) as number | '' },
-                        { key: 'w' as const, label: 'Width', value: (elementBoxes[selectedId!]?.[activeElementId]?.w ?? '') as number | '' },
-                        { key: 'h' as const, label: 'Height', value: (elementBoxes[selectedId!]?.[activeElementId]?.h ?? '') as number | '' },
-                      ]).map(({ key, label, value }) => (
-                        <label key={key} className="flex h-7 items-center gap-2 rounded-md border border-slate-200 bg-white px-2">
-                          <span className="text-[8px] font-semibold text-slate-400">{label}</span>
-                          <input
-                            type="number"
-                            placeholder={key === 'w' || key === 'h' ? 'Auto' : '0'}
-                            value={value}
-                            onChange={(e) => setElementBox(selectedId!, activeElementId, {
-                              [key]: e.target.value === '' ? undefined : (key === 'w' || key === 'h' ? Math.max(16, Number(e.target.value)) : Number(e.target.value)),
-                            })}
-                            className="w-full bg-transparent text-right text-[9px] font-semibold text-slate-700 outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
-                          />
-                          <span className="text-[8px] text-slate-400">px</span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="space-y-1.5">
-                    <p className="text-[9px] text-slate-500">
-                      Click any element inside the card to drag &amp; resize it with 4 corner handles.
-                    </p>
-                    {suggestedParts.length > 0 && (
-                      <div className="flex flex-wrap gap-1 pt-1">
-                        {suggestedParts.map((part) => (
-                          <button
-                            key={part.id}
-                            type="button"
-                            onClick={() => setActiveElementId(part.id)}
-                            className="flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[9px] font-medium text-slate-600 hover:border-[#0040DF] hover:text-[#0040DF] shadow-sm transition"
-                          >
-                            <Move className="h-2 w-2 opacity-50" />
-                            <span>{part.label}</span>
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {selectedId && elementBoxes[selectedId] && Object.keys(elementBoxes[selectedId]).length > 0 && (
-                  <div className="mt-2 pt-2 border-t border-slate-200/60 flex justify-end">
-                    <button
-                      type="button"
-                      onClick={() => resetElementBoxes(selectedId!)}
-                      className="flex items-center gap-1 text-[9px] font-semibold text-slate-500 hover:text-rose-600"
-                    >
-                      <Trash2 className="h-2.5 w-2.5" />
-                      Reset All Parts
-                    </button>
-                  </div>
-                )}
-              </section>
-            )}
-
             {/* Corner Radius */}
             <section className="border-b border-slate-200 px-3 py-3">
               <div className="mb-2 flex items-center justify-between">
@@ -4043,6 +3972,106 @@ function RightPanel({
               )}
             </section>
 
+            {/* Component Parts — Sub-Element Tinkering */}
+            {selectedId && !workspaceShape && !selectedId.startsWith('shape-') && (
+              <section className="border-b border-slate-200 bg-blue-50/25 px-3 py-3">
+                <div className="mb-2 flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <Move className="h-3.5 w-3.5 text-[#0040DF]" />
+                    <span className="text-[9px] font-bold uppercase tracking-wider text-slate-700">
+                      Component Parts{activeElementId ? ` · ${getElementDisplayName(activeElementId)}` : ''}
+                    </span>
+                  </div>
+                  {activeElementId && (
+                    <button
+                      type="button"
+                      onClick={() => setActiveElementId(null)}
+                      className="text-[9px] font-semibold text-slate-400 hover:text-slate-600"
+                    >
+                      Deselect
+                    </button>
+                  )}
+                </div>
+
+                {activeElementId ? (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between rounded-md border border-blue-200 bg-white p-2 shadow-sm">
+                      <div className="min-w-0">
+                        <p className="truncate text-[10px] font-bold text-slate-800">
+                          {getElementDisplayName(activeElementId)}
+                        </p>
+                        <p className="truncate font-mono text-[8px] text-slate-400">ID: {activeElementId}</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setElementBox(selectedId!, activeElementId, null)}
+                        className="flex items-center gap-1 rounded px-1.5 py-0.5 text-[9px] font-semibold text-blue-600 hover:bg-blue-50"
+                      >
+                        <Undo2 className="h-2.5 w-2.5" />
+                        Reset
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-2 gap-1">
+                      {([
+                        { key: 'x' as const, label: 'X Offset', value: (elementBoxes[selectedId!]?.[activeElementId]?.x ?? 0) as number | '' },
+                        { key: 'y' as const, label: 'Y Offset', value: (elementBoxes[selectedId!]?.[activeElementId]?.y ?? 0) as number | '' },
+                        { key: 'w' as const, label: 'Width', value: (elementBoxes[selectedId!]?.[activeElementId]?.w ?? '') as number | '' },
+                        { key: 'h' as const, label: 'Height', value: (elementBoxes[selectedId!]?.[activeElementId]?.h ?? '') as number | '' },
+                      ]).map(({ key, label, value }) => (
+                        <label key={key} className="flex h-7 items-center gap-2 rounded-md border border-slate-200 bg-white px-2">
+                          <span className="text-[8px] font-semibold text-slate-400">{label}</span>
+                          <input
+                            type="number"
+                            placeholder={key === 'w' || key === 'h' ? 'Auto' : '0'}
+                            value={value}
+                            onChange={(e) => setElementBox(selectedId!, activeElementId, {
+                              [key]: e.target.value === '' ? undefined : (key === 'w' || key === 'h' ? Math.max(16, Number(e.target.value)) : Number(e.target.value)),
+                            })}
+                            className="w-full bg-transparent text-right text-[9px] font-semibold text-slate-700 outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
+                          />
+                          <span className="text-[8px] text-slate-400">px</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-1.5">
+                    <p className="text-[9px] text-slate-500">
+                      Click any element inside the card to drag &amp; resize it with 4 corner handles.
+                    </p>
+                    {suggestedParts.length > 0 && (
+                      <div className="flex flex-wrap gap-1 pt-1">
+                        {suggestedParts.map((part) => (
+                          <button
+                            key={part.id}
+                            type="button"
+                            onClick={() => setActiveElementId(part.id)}
+                            className="flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[9px] font-medium text-slate-600 shadow-sm transition hover:border-[#0040DF] hover:text-[#0040DF]"
+                          >
+                            <Move className="h-2 w-2 opacity-50" />
+                            <span>{part.label}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {selectedId && elementBoxes[selectedId] && Object.keys(elementBoxes[selectedId]).length > 0 && (
+                  <div className="mt-2 flex justify-end border-t border-slate-200/60 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => resetElementBoxes(selectedId!)}
+                      className="flex items-center gap-1 text-[9px] font-semibold text-slate-500 hover:text-rose-600"
+                    >
+                      <Trash2 className="h-2.5 w-2.5" />
+                      Reset All Parts
+                    </button>
+                  </div>
+                )}
+              </section>
+            )}
+
             {/* Content */}
             {schema?.text && schema.text.length > 0 && (
               <section className="border-b border-slate-200 px-4 py-4">
@@ -4176,6 +4205,8 @@ export default function StudioClient() {
     setTextStyle,
     reset: resetOverrides,
     elementBoxes,
+    placedAssets,
+    addPlacedAsset,
     activeElementId,
     setActiveElementId,
     setElementBox,
@@ -4188,6 +4219,8 @@ export default function StudioClient() {
     overrides,
     textStyles,
     elementBoxes,
+    placedAssets,
+    addPlacedAsset,
     activeElementId,
     setActiveElementId,
     setElementBox,
@@ -4281,6 +4314,13 @@ export default function StudioClient() {
   const handleItemDragOver = (e: React.DragEvent, index: number) => {
     const types = Array.from(e.dataTransfer.types);
     const isOurDrag = types.includes('application/x-pf-module-id');
+    const isAssetDrag = types.includes('application/x-pf-asset-id');
+    if (isAssetDrag) {
+      e.preventDefault();
+      e.stopPropagation();
+      e.dataTransfer.dropEffect = 'copy';
+      return;
+    }
     if (!drag && !isOurDrag) return;
     e.preventDefault(); e.stopPropagation();
     if (drag) {
@@ -4305,11 +4345,38 @@ export default function StudioClient() {
     });
   };
 
-  const handleDrop = (e: React.DragEvent) => {
+  const handleDrop = (
+    e: React.DragEvent,
+    targetId?: ModuleId,
+    position?: { x: number; y: number },
+  ) => {
     e.preventDefault(); e.stopPropagation();
     const assetId = e.dataTransfer.getData('application/x-pf-asset-id');
     if (assetId) {
-      handleAssetDrop(assetId, selectedId);
+      const targetIsComponent = !!targetId && allModulesFor().some((module) => module.id === targetId);
+      const asset = allAssetsForLookup.find((item) => item.id === assetId);
+      if (targetIsComponent && position && asset?.dataUrl) {
+        const dimensions = asset.kind === 'logo' ? { w: 80, h: 40 }
+          : asset.kind === 'media' ? { w: 120, h: 80 }
+          : asset.kind === 'token' ? { w: 48, h: 48 }
+          : { w: 36, h: 36 };
+        const instance = {
+          id: `asset-${asset.id}-${++canvasObjectIdRef.current}`,
+          name: asset.name,
+          url: asset.dataUrl,
+        };
+        addPlacedAsset(targetId, instance);
+        setElementBox(targetId, instance.id, {
+          x: Math.round(position.x - dimensions.w / 2),
+          y: Math.round(position.y - dimensions.h / 2),
+          ...dimensions,
+        });
+        setSelectedId(targetId);
+        setActiveTextSlot(null);
+        setActiveElementId(instance.id);
+      } else {
+        handleAssetDrop(assetId, selectedId);
+      }
       endDrag();
       return;
     }
@@ -4459,6 +4526,7 @@ export default function StudioClient() {
             onSelectTextSlot={(id, slot) => {
               setSelectedId(id);
               setActiveTextSlot(slot);
+              setActiveElementId(slot);
             }}
             measured={measured} 
             onAssetClick={(asset) => setAllAssetsForLookup((assets) => [
