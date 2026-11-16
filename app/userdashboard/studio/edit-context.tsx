@@ -47,6 +47,7 @@ export interface PlacedAsset {
 }
 
 const EMPTY_PLACED_ASSETS: PlacedAsset[] = [];
+const EMPTY_HIDDEN_ELEMENTS: string[] = [];
 
 export const CORNER_HANDLES = [
   { k: 'nw', cls: 'top-0 left-0 -translate-x-1/2 -translate-y-1/2 cursor-nwse-resize' },
@@ -62,7 +63,9 @@ export interface EditState {
   textStyles: Record<string, Record<string, EditableTextStyle>>;
   elementBoxes: Record<string, Record<string, ElementBox>>;
   placedAssets: Record<string, PlacedAsset[]>;
+  hiddenElements: Record<string, string[]>;
   addPlacedAsset: (moduleId: string, asset: PlacedAsset) => void;
+  deleteElement: (moduleId: string, elementId: string) => void;
   activeElementId: string | null;
   setActiveElementId: (id: string | null) => void;
   setElementBox: (moduleId: string, elementId: string, patch: Partial<ElementBox> | null) => void;
@@ -108,6 +111,7 @@ export function useEditOverrides() {
   const [textStyles, setTextStyles] = useState<Record<string, Record<string, EditableTextStyle>>>({});
   const [elementBoxes, setElementBoxes] = useState<Record<string, Record<string, ElementBox>>>({});
   const [placedAssets, setPlacedAssets] = useState<Record<string, PlacedAsset[]>>({});
+  const [hiddenElements, setHiddenElements] = useState<Record<string, string[]>>({});
   const [activeElementId, setActiveElementId] = useState<string | null>(null);
 
   const addPlacedAsset = useCallback((moduleId: string, asset: PlacedAsset) => {
@@ -193,8 +197,29 @@ export function useEditOverrides() {
     });
   }, []);
 
+  const deleteElement = useCallback((moduleId: string, elementId: string) => {
+    if (elementId.startsWith('asset-')) {
+      setPlacedAssets((prev) => ({
+        ...prev,
+        [moduleId]: (prev[moduleId] ?? []).filter((asset) => asset.id !== elementId),
+      }));
+    } else {
+      setHiddenElements((prev) => ({
+        ...prev,
+        [moduleId]: [...new Set([...(prev[moduleId] ?? []), elementId])],
+      }));
+    }
+    setElementBox(moduleId, elementId, null);
+    setActiveElementId((current) => current === elementId ? null : current);
+  }, [setElementBox]);
+
   const resetElementBoxes = useCallback((moduleId: string) => {
     setElementBoxes((prev) => {
+      const rest = { ...prev };
+      delete rest[moduleId];
+      return rest;
+    });
+    setHiddenElements((prev) => {
       const rest = { ...prev };
       delete rest[moduleId];
       return rest;
@@ -223,6 +248,11 @@ export function useEditOverrides() {
       delete rest[moduleId];
       return rest;
     });
+    setHiddenElements((prev) => {
+      const rest = { ...prev };
+      delete rest[moduleId];
+      return rest;
+    });
     setActiveElementId(null);
   }, []);
 
@@ -231,7 +261,9 @@ export function useEditOverrides() {
     textStyles,
     elementBoxes,
     placedAssets,
+    hiddenElements,
     addPlacedAsset,
+    deleteElement,
     activeElementId,
     setActiveElementId,
     setElementBox,
@@ -446,6 +478,8 @@ export function ElementTinkerHost({
   const elementBoxes = edit?.elementBoxes ?? {};
   const moduleAssets = edit?.placedAssets[moduleId];
   const placedAssets = moduleAssets ?? EMPTY_PLACED_ASSETS;
+  const hiddenElements = edit?.hiddenElements[moduleId] ?? EMPTY_HIDDEN_ELEMENTS;
+  const hiddenElementsRef = useRef<{ moduleId: ModuleId; ids: string[] }>({ moduleId, ids: [] });
   // Stabilize currentModBoxes — avoid creating a new {} on every render
   const currentModBoxes = useMemo(
     () => elementBoxes[moduleId] ?? {},
@@ -531,6 +565,24 @@ export function ElementTinkerHost({
     // Schedule overlay update after the DOM settles
     requestAnimationFrame(() => { updateOverlayRef.current(); });
   }, [currentModBoxes, moduleId, placedAssets]);
+
+  useLayoutEffect(() => {
+    const host = hostRef.current;
+    if (!host) return;
+    const previous = hiddenElementsRef.current.moduleId === moduleId
+      ? hiddenElementsRef.current.ids
+      : [];
+    for (const elementId of previous) {
+      if (hiddenElements.includes(elementId)) continue;
+      const element = findElementById(host, elementId);
+      if (element) element.style.display = '';
+    }
+    for (const elementId of hiddenElements) {
+      const element = findElementById(host, elementId);
+      if (element) element.style.display = 'none';
+    }
+    hiddenElementsRef.current = { moduleId, ids: hiddenElements };
+  }, [hiddenElements, moduleId]);
 
   // Update overlay on window resize
   useEffect(() => {

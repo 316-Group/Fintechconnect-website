@@ -144,7 +144,7 @@ type CornerRadii = { topLeft: number; topRight: number; bottomRight: number; bot
 type ShapeType = NonNullable<ModuleBox['shapeType']>;
 const COMPONENT_SHAPES: ShapeType[] = ['rounded', 'sharp', 'pill', 'squircle'];
 type CanvasShapeType = 'shape-rect' | 'shape-circle' | 'shape-triangle' | 'shape-star' | 'shape-line' | 'shape-arrow' | 'shape-scribble';
-type CanvasInsertType = CanvasShapeType | 'shape-text' | 'shape-comment' | 'frame';
+type CanvasInsertType = CanvasShapeType | 'shape-text' | 'shape-comment' | 'frame' | 'asset';
 type DrawBox = Pick<ModuleBox, 'x' | 'y' | 'w' | 'h' | 'flipX' | 'flipY' | 'freehandPath'>;
 type DrawPreview = { type: CanvasInsertType; box: DrawBox };
 type WorkspaceShape = { id: string; type: CanvasInsertType; box: ModuleBox; frameId?: string };
@@ -213,6 +213,8 @@ type ModuleBox = {
   fillGradient?: FillGradient;
   variant?: ComponentVariant;
   imageFill?: ImageFill;
+  assetUrl?: string;
+  assetName?: string;
   effectType?: EffectType;
   glassBlur?: number;
   glassSaturation?: number;
@@ -236,10 +238,17 @@ function createShapeBox(type: CanvasInsertType, geometry: DrawBox): ModuleBox {
 
 function canvasInsertTypeForId(id: string): CanvasInsertType | null {
   const types: CanvasInsertType[] = [
-    'frame', 'shape-rect', 'shape-circle', 'shape-triangle', 'shape-star',
+    'asset', 'frame', 'shape-rect', 'shape-circle', 'shape-triangle', 'shape-star',
     'shape-line', 'shape-arrow', 'shape-scribble', 'shape-text', 'shape-comment',
   ];
   return types.find((type) => id.startsWith(`${type}-`)) ?? null;
+}
+
+function assetDimensions(asset: AssetItem) {
+  if (asset.kind === 'logo') return { w: 80, h: 40 };
+  if (asset.kind === 'media') return { w: 120, h: 80 };
+  if (asset.kind === 'token') return { w: 48, h: 48 };
+  return { w: 36, h: 36 };
 }
 
 /* ═══════════════════════════ TopBar ═══════════════════════════ */
@@ -562,7 +571,7 @@ function LeftPanel({
   appKind, onAppKind, activePage, onSelectPage, expandedPage, onToggleExpand,
   pageModules, accent, onStartDrag, onEndDrag, drag, onAddModule, onRemoveModule,
   selectedId, onSelectModule, onAssetClick, measured,
-  onSelectTextSlot,
+  onSelectTextSlot, onCollapse,
 }: {
   appKind: AppKind; onAppKind: (k: AppKind) => void;
   activePage: PageId; onSelectPage: (p: PageId) => void;
@@ -576,6 +585,7 @@ function LeftPanel({
   onSelectModule: (id: ModuleId) => void;
   onSelectTextSlot: (id: ModuleId, slot: string | null) => void;
   onAssetClick: (asset: AssetItem) => void;
+  onCollapse: () => void;
   measured: Record<string, { w: number; h: number }>;
 }){
   const [tab, setTab] = useState<'navigator' | 'comps' | 'assets'>('navigator');
@@ -584,6 +594,7 @@ function LeftPanel({
   const [activeCompSubgroup, setActiveCompSubgroup] = useState<string | null>(null);
   const [previewInfo, setPreviewInfo] = useState<{ id: ModuleId; top: number; left: number } | null>(null);
   const [previewVariant, setPreviewVariant] = useState<ComponentVariant>('Default');
+  const previewCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const previewCtx: ViewCtx = {
     radius: RADII.rounded,
@@ -601,6 +612,7 @@ function LeftPanel({
   };
 
   const handleShowPreview = (id: ModuleId, event: React.MouseEvent) => {
+    if (previewCloseTimerRef.current) clearTimeout(previewCloseTimerRef.current);
     const rect = event.currentTarget.getBoundingClientRect();
     setPreviewVariant('Default');
     setPreviewInfo({
@@ -610,7 +622,17 @@ function LeftPanel({
     });
   };
 
-  const closePreview = () => setPreviewInfo(null);
+  const closePreview = () => {
+    if (previewCloseTimerRef.current) clearTimeout(previewCloseTimerRef.current);
+    setPreviewInfo(null);
+  };
+  const schedulePreviewClose = () => {
+    if (previewCloseTimerRef.current) clearTimeout(previewCloseTimerRef.current);
+    previewCloseTimerRef.current = setTimeout(() => setPreviewInfo(null), 250);
+  };
+  const keepPreviewOpen = () => {
+    if (previewCloseTimerRef.current) clearTimeout(previewCloseTimerRef.current);
+  };
 
   const allMods = allModulesFor();
   const filteredMods = allMods.filter(
@@ -634,59 +656,25 @@ function LeftPanel({
   const activeGroup = groupedComps.find((g) => g.id === activeCompSubgroup);
 
   const renderCompModule = (mod: ModuleMeta) => {
-    const isAdded = (pageModules[activePage] ?? []).includes(mod.id);
     const isDragging = drag?.id === mod.id && drag.from === 'library';
-    const modMeta = moduleIconMeta(mod.id, mod.title);
 
     return (
       <div
         key={mod.id}
         draggable
+        title={mod.title}
+        aria-label={mod.title}
+        onMouseEnter={(event) => handleShowPreview(mod.id, event)}
+        onMouseLeave={schedulePreviewClose}
+        onClick={() => onAddModule(mod.id)}
         onDragStart={(e) => onStartDrag(e, mod.id, 'library')}
         onDragEnd={onEndDrag}
-        className={`overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm cursor-grab active:cursor-grabbing ${
+        className={`relative h-[120px] cursor-grab overflow-hidden rounded-lg border border-slate-200 bg-white p-2 shadow-sm transition hover:border-[#0040DF]/40 hover:shadow-md active:cursor-grabbing ${
           isDragging ? 'opacity-50' : ''
         }`}
       >
-        <div className="flex items-center justify-between border-b border-slate-100 px-2 py-1.5">
-          <div className="flex min-w-0 items-center gap-1.5">
-            <span className={`grid h-5 w-5 shrink-0 place-items-center rounded-md ${modMeta.bg} ${modMeta.text}`}>
-              <modMeta.Icon className="h-3 w-3" />
-            </span>
-            <div className="min-w-0">
-              <span className="block truncate text-[9px] font-bold text-slate-800">{mod.title}</span>
-              <span className={`block truncate text-[7px] font-semibold ${mod.badgeColor}`}>{mod.badge}</span>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-1">
-             <button
-                type="button"
-                title="Preview component"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onSelectModule(mod.id);
-                  handleShowPreview(mod.id, e);
-                }}
-                className="grid h-5 w-5 shrink-0 place-items-center rounded text-slate-400 hover:bg-slate-100 hover:text-[#0040DF]"
-              >
-                <Eye className="h-3.5 w-3.5" />
-              </button>
-            <button
-              draggable={false}
-              onDragStart={(e) => e.stopPropagation()}
-              onClick={() => (isAdded ? onRemoveModule(mod.id) : onAddModule(mod.id))}
-              className={`grid h-5 w-5 shrink-0 place-items-center rounded hover:bg-slate-100 ${
-                isAdded ? 'text-emerald-600' : 'text-slate-400'
-              }`}
-            >
-              {isAdded ? <Check className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
-            </button>
-          </div>
-        </div>
-
-        <div className="relative overflow-hidden bg-[#F7F8FF] p-1.5" style={{ height: 94 }}>
-          <div className="pointer-events-none origin-top-left" style={{ transform: 'scale(0.42)', width: '238%' }}>
+        <div className="flex h-full items-center justify-center overflow-hidden rounded-md bg-[#F7F8FF]">
+          <div className="pointer-events-none origin-center" style={{ transform: 'scale(0.42)', width: '238%' }}>
             <ModuleView id={mod.id} ctx={previewCtx} passive />
           </div>
         </div>
@@ -720,6 +708,15 @@ function LeftPanel({
           }`}
         >
           <Palette className="h-3 w-3" /> Assets
+        </button>
+        <button
+          type="button"
+          title="Collapse left panel"
+          aria-label="Collapse left panel"
+          onClick={onCollapse}
+          className="ml-1 grid h-7 w-7 shrink-0 place-items-center rounded-md text-slate-500 hover:bg-white hover:text-[#0040DF]"
+        >
+          <ChevronLeft className="h-4 w-4" />
         </button>
       </div>
 
@@ -892,7 +889,8 @@ function LeftPanel({
           <div
             className="fixed z-[100] w-[320px] overflow-hidden rounded-xl bg-white shadow-[0_12px_40px_rgba(0,0,0,0.12)] ring-1 ring-slate-900/5 animate-in fade-in zoom-in-95 duration-200 flex flex-col"
             style={{ top: previewInfo.top, left: previewInfo.left }}
-            onMouseLeave={closePreview}
+            onMouseEnter={keepPreviewOpen}
+            onMouseLeave={schedulePreviewClose}
           >
             {/* Header */}
             <div className="flex items-center justify-between border-b border-slate-100 bg-white px-3 py-2">
@@ -1037,7 +1035,8 @@ function radiusForBox(box: ModuleBox): string | undefined {
   return undefined;
 }
 
-function canvasObjectTitle(id: ModuleId | null): string | null {
+function canvasObjectTitle(id: ModuleId | null, box?: ModuleBox): string | null {
+  if (id?.startsWith('asset-')) return box?.assetName ?? 'Image Asset';
   if (id?.startsWith('frame-')) return 'Frame';
   if (!id?.startsWith('shape-')) return null;
   const type = id.slice('shape-'.length).split('-')[0];
@@ -1053,6 +1052,22 @@ function canvasObjectTitle(id: ModuleId | null): string | null {
     comment: 'Comment',
   };
   return labels[type] ?? 'Shape';
+}
+
+function CanvasAssetObject({ box }: { box: ModuleBox }) {
+  return (
+    <div
+      role="img"
+      aria-label={box.assetName ?? 'Canvas asset'}
+      className="h-full w-full"
+      style={{
+        backgroundImage: box.assetUrl ? `url("${box.assetUrl}")` : undefined,
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
+        backgroundSize: 'contain',
+      }}
+    />
+  );
 }
 
 function GenericShape({
@@ -1192,7 +1207,8 @@ function ModuleWrapper({
   const [natural, setNatural] = useState<{ w: number; h: number } | null>(null);
   const isSource = drag?.from === 'canvas' && drag.id === id;
   const isFrame = id.startsWith('frame-');
-  const isShape = isFrame || id.startsWith('shape-');
+  const isAsset = id.startsWith('asset-');
+  const isShape = isFrame || isAsset || id.startsWith('shape-');
 
   useEffect(() => {
     const el = contentRef.current;
@@ -1441,8 +1457,10 @@ function ModuleWrapper({
         className={drag ? 'pointer-events-none' : ''}
         style={contentStyle}
       >
-        {isShape
-          ? <GenericShape id={id} box={box} onBoxChange={(patch) => onBoxChange(id, patch)} />
+        {isAsset
+          ? <CanvasAssetObject box={box} />
+          : isShape
+            ? <GenericShape id={id} box={box} onBoxChange={(patch) => onBoxChange(id, patch)} />
           : <ModuleView id={id} ctx={ctxWithBox} />}
       </div>
 
@@ -1641,6 +1659,7 @@ function Canvas({
   onStartDrag, onEndDrag, onItemDragOver, onDrop, onMove, onRemove, onQuickAdd,
   onNavTab, boxes, onMeasure, onBoxChange, onAddShape, onAddWorkspaceShapes, onRemoveMany,
   workspaceShapes, setWorkspaceShapes, selectedWorkspaceShapeId, setSelectedWorkspaceShapeId,
+  onAddPhoneAsset, onAddWorkspaceAsset,
 }: {
   device: DeviceType; zoom: number; onZoom: (z: number) => void;
   pageModules: Record<PageId, ModuleId[]>;
@@ -1670,6 +1689,8 @@ function Canvas({
   setWorkspaceShapes: React.Dispatch<React.SetStateAction<WorkspaceShape[]>>;
   selectedWorkspaceShapeId: string | null;
   setSelectedWorkspaceShapeId: (id: string | null) => void;
+  onAddPhoneAsset: (assetId: string, position: { x: number; y: number }) => void;
+  onAddWorkspaceAsset: (assetId: string, position: { x: number; y: number }, frameId?: string) => void;
 }) {
   const dims = device === 'iphone' ? { w: 320, h: 640 }
     : device === 'pixel' ? { w: 340, h: 640 }
@@ -2165,6 +2186,60 @@ function Canvas({
     updateShapeDragPreview(group[0], group, pointer, grabRatio, zoom / 100);
   };
 
+  const handleCanvasDrop = (
+    event: React.DragEvent,
+    targetId?: ModuleId,
+    position?: { x: number; y: number },
+  ) => {
+    const assetId = event.dataTransfer.getData('application/x-pf-asset-id');
+    if (assetId && !targetId) {
+      const area = drawAreaRef.current;
+      const body = bodyRef.current;
+      if (!area || !body) return;
+      event.preventDefault();
+      event.stopPropagation();
+      const rect = area.getBoundingClientRect();
+      const scaleX = rect.width / (area.offsetWidth || 1) || 1;
+      const scaleY = rect.height / (area.offsetHeight || 1) || 1;
+      onAddPhoneAsset(assetId, {
+        x: (event.clientX - rect.left) / scaleX,
+        y: (event.clientY - rect.top) / scaleY + body.scrollTop,
+      });
+      onEndDrag();
+      return;
+    }
+    onDrop(event, targetId, position);
+  };
+
+  const handleWorkspaceAssetDrop = (event: React.DragEvent, targetShapeId?: string) => {
+    const assetId = event.dataTransfer.getData('application/x-pf-asset-id');
+    if (!assetId || !workspaceRef.current) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const workspace = workspaceRef.current;
+    const rect = workspace.getBoundingClientRect();
+    const scaleX = rect.width / (workspace.offsetWidth || 1) || 1;
+    const scaleY = rect.height / (workspace.offsetHeight || 1) || 1;
+    const position = {
+      x: (event.clientX - rect.left) / scaleX,
+      y: (event.clientY - rect.top) / scaleY,
+    };
+    const targetShape = workspaceShapes.find((shape) => shape.id === targetShapeId);
+    const frameId = targetShape?.type === 'frame'
+      ? targetShape.id
+      : targetShape?.frameId ?? workspaceShapes
+        .filter((shape) => shape.type === 'frame')
+        .filter((shape) => {
+          const x = shape.box.x ?? 0;
+          const y = shape.box.y ?? 0;
+          return position.x >= x && position.x <= x + (shape.box.w ?? 0)
+            && position.y >= y && position.y <= y + (shape.box.h ?? 0);
+        })
+        .sort((a, b) => (a.box.w ?? 0) * (a.box.h ?? 0) - (b.box.w ?? 0) * (b.box.h ?? 0))[0]?.id;
+    onAddWorkspaceAsset(assetId, position, frameId);
+    onEndDrag();
+  };
+
   return (
     <main ref={mainRef} className="relative flex min-w-0 flex-1 flex-col items-center overflow-hidden bg-gradient-to-b from-[#EEF0FB] via-[#F6F7FE] to-[#EEF0FB] pb-4">
       <p className="flex items-center gap-1.5 py-3 text-[10px] font-medium text-slate-500">
@@ -2174,6 +2249,12 @@ function Canvas({
 
       <div
         ref={workspaceRef}
+        onDragOver={(event) => {
+          if (!event.dataTransfer.types.includes('application/x-pf-asset-id')) return;
+          event.preventDefault();
+          event.dataTransfer.dropEffect = 'copy';
+        }}
+        onDrop={(event) => handleWorkspaceAssetDrop(event)}
         data-canvas-drawing={drawTool ? 'true' : undefined}
         className="relative flex min-h-0 w-full flex-1 items-start justify-center overflow-hidden"
       >
@@ -2215,6 +2296,14 @@ function Canvas({
             return (
               <div
               key={shape.id}
+              data-workspace-shape-id={shape.id}
+              onDragOver={(event) => {
+                if (!event.dataTransfer.types.includes('application/x-pf-asset-id')) return;
+                event.preventDefault();
+                event.stopPropagation();
+                event.dataTransfer.dropEffect = 'copy';
+              }}
+              onDrop={(event) => handleWorkspaceAssetDrop(event, shape.id)}
               onMouseEnter={(event) => {
                 event.currentTarget.style.zIndex = shape.type === 'frame' ? '1' : '70';
               }}
@@ -2250,7 +2339,9 @@ function Canvas({
                   <Trash2 className="h-3.5 w-3.5" />
                 </ToolbarButton>
               </div>
-              <GenericShape id={shape.type} box={shape.box} onBoxChange={() => {}} />
+              {shape.type === 'asset'
+                ? <CanvasAssetObject box={shape.box} />
+                : <GenericShape id={shape.type} box={shape.box} onBoxChange={() => {}} />}
               {isSelected && !drawTool && (
                 <div className="pointer-events-none absolute -inset-1 z-20 border-2 border-[#0040DF]">
                   {CORNER_HANDLES.map((handle) => (
@@ -2297,11 +2388,13 @@ function Canvas({
               zIndex: item.type === 'frame' ? 20 : 21,
             }}
           >
-            <GenericShape
-              id={`${item.type}-${item.id}-drag-preview`}
-              box={item.box}
-              onBoxChange={() => {}}
-            />
+            {item.type === 'asset'
+              ? <CanvasAssetObject box={item.box} />
+              : <GenericShape
+                  id={`${item.type}-${item.id}-drag-preview`}
+                  box={item.box}
+                  onBoxChange={() => {}}
+                />}
           </div>
         ))}
         <div
@@ -2344,7 +2437,7 @@ function Canvas({
               onDragLeave={(e) => {
                 if (!e.currentTarget.contains(e.relatedTarget as Node | null)) onEndDrag();
               }}
-              onDrop={onDrop}
+              onDrop={handleCanvasDrop}
               onMouseDownCapture={startCanvasPan}
               onClick={(e) => { if (e.target === e.currentTarget) onSelect(null); }}
               className={`flex min-h-0 flex-1 flex-col overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden px-3 pb-20 pt-1 ${panMode ? 'cursor-grab' : ''}`}>
@@ -2367,7 +2460,7 @@ function Canvas({
                   ctx={ctx} drag={drag} dropIndex={dropIndex} accent={accent}
                   isDark={isDark} radius={radius}
                   onStartDrag={onStartDrag} onEndDrag={onEndDrag}
-                  onItemDragOver={onItemDragOver} onDrop={onDrop}
+                  onItemDragOver={onItemDragOver} onDrop={handleCanvasDrop}
                   onMove={onMove} onRemove={onRemove} onQuickAdd={onQuickAdd}
                   selectedId={selectedId} onSelect={onSelect}
                   boxes={boxes} onMeasure={onMeasure}
@@ -3234,7 +3327,9 @@ function RightPanel({
   onSelectVariant,
   overrides, textStyles, setText, setColor, setTextStyle, onResetModuleOverrides,
   activeTextSlot, setActiveTextSlot,
-  elementBoxes, activeElementId, setActiveElementId, setElementBox, resetElementBoxes,
+  elementBoxes, hiddenElements, activeElementId, setActiveElementId, setElementBox,
+  resetElementBoxes, deleteElement,
+  onCollapse,
 }: {
   tab: RightTab; onTab: (t: RightTab) => void;
   selectedId: ModuleId | null; accent: string;
@@ -3256,10 +3351,13 @@ function RightPanel({
   activeTextSlot: string | null;
   setActiveTextSlot: (slot: string | null) => void;
   elementBoxes: Record<string, Record<string, ElementBox>>;
+  hiddenElements: Record<string, string[]>;
   activeElementId: string | null;
   setActiveElementId: (id: string | null) => void;
   setElementBox: (moduleId: string, elementId: string, patch: Partial<ElementBox> | null) => void;
   resetElementBoxes: (moduleId: string) => void;
+  deleteElement: (moduleId: string, elementId: string) => void;
+  onCollapse: () => void;
 }) {
   const [showCornerRadius, setShowCornerRadius] = useState(false);
   const [showFillColorPicker, setShowFillColorPicker] = useState(false);
@@ -3282,7 +3380,7 @@ function RightPanel({
     ? (_id: ModuleId, patch: ModuleBox) => onWorkspaceShapeBoxChange(workspaceShape.id, patch)
     : onModuleBoxChange;
   const mod = selectedId ? moduleFor(selectedId) : null;
-  const selectedShapeTitle = canvasObjectTitle(selectedId);
+  const selectedShapeTitle = canvasObjectTitle(selectedId, box);
   const selectedTitle = mod?.title ?? selectedShapeTitle;
   const selectedSubtitle = mod?.subtitle ?? (selectedShapeTitle ? 'Canvas shape' : null);
   const schema = selectedId ? EDITABLE_SCHEMA[selectedId] : undefined;
@@ -3441,6 +3539,17 @@ function RightPanel({
   if (activeTextSlot) {
     return (
       <aside className="flex w-[270px] shrink-0 flex-col border-l border-slate-200 bg-white">
+        <div className="flex h-10 shrink-0 items-center justify-end border-b border-slate-100 px-2">
+          <button
+            type="button"
+            title="Collapse right panel"
+            aria-label="Collapse right panel"
+            onClick={onCollapse}
+            className="grid h-7 w-7 place-items-center rounded-md text-slate-500 hover:bg-slate-100 hover:text-[#0040DF]"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </button>
+        </div>
         <TextFormattingPanel 
           textLabel={activeTextField?.label ?? activeTextSlot}
           textValue={activeTextValue}
@@ -3471,6 +3580,15 @@ function RightPanel({
             </button>
           );
         })}
+        <button
+          type="button"
+          title="Collapse right panel"
+          aria-label="Collapse right panel"
+          onClick={onCollapse}
+          className="grid h-8 w-8 shrink-0 place-items-center self-center rounded-md text-slate-500 hover:bg-slate-100 hover:text-[#0040DF]"
+        >
+          <ChevronRight className="h-4 w-4" />
+        </button>
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto">
@@ -3973,7 +4091,7 @@ function RightPanel({
             </section>
 
             {/* Component Parts — Sub-Element Tinkering */}
-            {selectedId && !workspaceShape && !selectedId.startsWith('shape-') && (
+            {selectedId && !workspaceShape && !selectedId.startsWith('shape-') && !selectedId.startsWith('asset-') && (
               <section className="border-b border-slate-200 bg-blue-50/25 px-3 py-3">
                 <div className="mb-2 flex items-center justify-between">
                   <div className="flex items-center gap-1.5">
@@ -4002,14 +4120,27 @@ function RightPanel({
                         </p>
                         <p className="truncate font-mono text-[8px] text-slate-400">ID: {activeElementId}</p>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => setElementBox(selectedId!, activeElementId, null)}
-                        className="flex items-center gap-1 rounded px-1.5 py-0.5 text-[9px] font-semibold text-blue-600 hover:bg-blue-50"
-                      >
-                        <Undo2 className="h-2.5 w-2.5" />
-                        Reset
-                      </button>
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          aria-label="Reset component part"
+                          title="Reset position and size"
+                          onClick={() => setElementBox(selectedId!, activeElementId, null)}
+                          className="flex items-center gap-1 rounded px-1.5 py-0.5 text-[9px] font-semibold text-blue-600 hover:bg-blue-50"
+                        >
+                          <Undo2 className="h-2.5 w-2.5" />
+                          Reset
+                        </button>
+                        <button
+                          type="button"
+                          aria-label="Delete component part"
+                          title="Delete component part"
+                          onClick={() => deleteElement(selectedId!, activeElementId)}
+                          className="grid h-6 w-6 place-items-center rounded text-rose-500 hover:bg-rose-50"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </button>
+                      </div>
                     </div>
                     <div className="grid grid-cols-2 gap-1">
                       {([
@@ -4057,7 +4188,8 @@ function RightPanel({
                   </div>
                 )}
 
-                {selectedId && elementBoxes[selectedId] && Object.keys(elementBoxes[selectedId]).length > 0 && (
+                {selectedId && ((elementBoxes[selectedId] && Object.keys(elementBoxes[selectedId]).length > 0)
+                  || (hiddenElements[selectedId]?.length ?? 0) > 0) && (
                   <div className="mt-2 flex justify-end border-t border-slate-200/60 pt-2">
                     <button
                       type="button"
@@ -4172,6 +4304,8 @@ export default function StudioClient() {
   const [saveState] = useState<SaveState>('saved');
   const [rightTab, setRightTab] = useState<RightTab>('design');
   const [workflowOpen, setWorkflowOpen] = useState(true);
+  const [leftPanelCollapsed, setLeftPanelCollapsed] = useState(false);
+  const [rightPanelCollapsed, setRightPanelCollapsed] = useState(false);
 
   const [appKind, setAppKind] = useState<AppKind>('banking');
   const [activePage, setActivePage] = useState<PageId>('home');
@@ -4206,7 +4340,9 @@ export default function StudioClient() {
     reset: resetOverrides,
     elementBoxes,
     placedAssets,
+    hiddenElements,
     addPlacedAsset,
+    deleteElement,
     activeElementId,
     setActiveElementId,
     setElementBox,
@@ -4220,7 +4356,9 @@ export default function StudioClient() {
     textStyles,
     elementBoxes,
     placedAssets,
+    hiddenElements,
     addPlacedAsset,
+    deleteElement,
     activeElementId,
     setActiveElementId,
     setElementBox,
@@ -4345,6 +4483,29 @@ export default function StudioClient() {
     });
   };
 
+  const addPhoneAsset = (
+    assetId: string,
+    position: { x: number; y: number },
+    frameId?: string,
+  ) => {
+    const asset = allAssetsForLookup.find((item) => item.id === assetId);
+    if (!asset?.dataUrl) return;
+    const dimensions = assetDimensions(asset);
+    const id = `asset-${asset.id}-${Date.now()}-${++canvasObjectIdRef.current}` as ModuleId;
+    commit([...currentModules, id]);
+    onBoxChange(id, {
+      x: Math.round(position.x - dimensions.w / 2),
+      y: Math.round(position.y - dimensions.h / 2),
+      ...dimensions,
+      frameId,
+      assetUrl: asset.dataUrl,
+      assetName: asset.name,
+    });
+    setSelectedId(id);
+    setSelectedWorkspaceShapeId(null);
+    setActiveTextSlot(null);
+  };
+
   const handleDrop = (
     e: React.DragEvent,
     targetId?: ModuleId,
@@ -4356,10 +4517,7 @@ export default function StudioClient() {
       const targetIsComponent = !!targetId && allModulesFor().some((module) => module.id === targetId);
       const asset = allAssetsForLookup.find((item) => item.id === assetId);
       if (targetIsComponent && position && asset?.dataUrl) {
-        const dimensions = asset.kind === 'logo' ? { w: 80, h: 40 }
-          : asset.kind === 'media' ? { w: 120, h: 80 }
-          : asset.kind === 'token' ? { w: 48, h: 48 }
-          : { w: 36, h: 36 };
+        const dimensions = assetDimensions(asset);
         const instance = {
           id: `asset-${asset.id}-${++canvasObjectIdRef.current}`,
           name: asset.name,
@@ -4374,6 +4532,13 @@ export default function StudioClient() {
         setSelectedId(targetId);
         setActiveTextSlot(null);
         setActiveElementId(instance.id);
+      } else if (targetId && position && asset?.dataUrl) {
+        const targetBox = boxes[targetId] ?? {};
+        const frameId = targetId.startsWith('frame-') ? targetId : targetBox.frameId;
+        addPhoneAsset(assetId, {
+          x: (targetBox.x ?? 0) + position.x,
+          y: (targetBox.y ?? 0) + position.y,
+        }, frameId);
       } else {
         handleAssetDrop(assetId, selectedId);
       }
@@ -4454,6 +4619,29 @@ export default function StudioClient() {
   const createCanvasObjectId = (type: CanvasInsertType) =>
     `${type}-${Date.now()}-${++canvasObjectIdRef.current}` as ModuleId;
 
+  const addWorkspaceAsset = (
+    assetId: string,
+    position: { x: number; y: number },
+    frameId?: string,
+  ) => {
+    const asset = allAssetsForLookup.find((item) => item.id === assetId);
+    if (!asset?.dataUrl) return;
+    const dimensions = assetDimensions(asset);
+    const id = `workspace-asset-${++canvasObjectIdRef.current}`;
+    const box: ModuleBox = {
+      x: Math.round(position.x - dimensions.w / 2),
+      y: Math.round(position.y - dimensions.h / 2),
+      ...dimensions,
+      frameId,
+      assetUrl: asset.dataUrl,
+      assetName: asset.name,
+    };
+    setWorkspaceShapes((shapes) => [...shapes, { id, type: 'asset', box, frameId }]);
+    setSelectedId(null);
+    setSelectedWorkspaceShapeId(id);
+    setActiveTextSlot(null);
+  };
+
   const handleAddShape = (type: CanvasInsertType, geometry: DrawBox) => {
     const newId = createCanvasObjectId(type);
     const centerX = (geometry.x ?? 0) + (geometry.w ?? 0) / 2;
@@ -4506,7 +4694,19 @@ export default function StudioClient() {
           zoom={zoom} onZoom={setZoom} saveState={saveState} onPublish={() => {}} />
         <div className="flex min-h-0 flex-1">
           <IconRail />
-          <LeftPanel
+          {leftPanelCollapsed ? (
+            <div className="flex w-9 shrink-0 justify-center border-r border-slate-200 bg-white pt-3">
+              <button
+                type="button"
+                title="Expand left panel"
+                aria-label="Expand left panel"
+                onClick={() => setLeftPanelCollapsed(false)}
+                className="grid h-7 w-7 place-items-center rounded-md text-slate-500 hover:bg-slate-100 hover:text-[#0040DF]"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
+          ) : <LeftPanel
             appKind={appKind} onAppKind={setAppKind}
             activePage={activePage} onSelectPage={(p) => {
               setActivePage(p);
@@ -4533,7 +4733,8 @@ export default function StudioClient() {
               ...assets.filter((item) => item.id !== asset.id),
               asset,
             ])}
-          />
+            onCollapse={() => setLeftPanelCollapsed(true)}
+          />}
           <Canvas
             device={device} zoom={zoom} onZoom={setZoom}
             pageModules={pageModules} activePage={activePage} pageLabel={currentPageLabel}
@@ -4554,8 +4755,22 @@ export default function StudioClient() {
             setWorkspaceShapes={setWorkspaceShapes}
             selectedWorkspaceShapeId={selectedWorkspaceShapeId}
             setSelectedWorkspaceShapeId={setSelectedWorkspaceShapeId}
+            onAddPhoneAsset={addPhoneAsset}
+            onAddWorkspaceAsset={addWorkspaceAsset}
           />
-          <RightPanel
+          {rightPanelCollapsed ? (
+            <div className="flex w-9 shrink-0 justify-center border-l border-slate-200 bg-white pt-3">
+              <button
+                type="button"
+                title="Expand right panel"
+                aria-label="Expand right panel"
+                onClick={() => setRightPanelCollapsed(false)}
+                className="grid h-7 w-7 place-items-center rounded-md text-slate-500 hover:bg-slate-100 hover:text-[#0040DF]"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+            </div>
+          ) : <RightPanel
             tab={rightTab} onTab={setRightTab}
             selectedId={selectedId} accent={accentColor} wsStatus={wsStatus}
             workflowOpen={workflowOpen} onToggleWorkflow={() => setWorkflowOpen((v) => !v)}
@@ -4577,11 +4792,14 @@ export default function StudioClient() {
             activeTextSlot={activeTextSlot}
             setActiveTextSlot={setActiveTextSlot}
             elementBoxes={elementBoxes}
+            hiddenElements={hiddenElements}
             activeElementId={activeElementId}
             setActiveElementId={setActiveElementId}
             setElementBox={setElementBox}
             resetElementBoxes={resetElementBoxes}
-          />
+            deleteElement={deleteElement}
+            onCollapse={() => setRightPanelCollapsed(true)}
+          />}
         </div>
       </div>
     </EditProvider>

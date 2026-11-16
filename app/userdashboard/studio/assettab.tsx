@@ -1,11 +1,11 @@
 // /client/app/userdashboard/studio/AssetTab.tsx
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import {
   Search, Upload, RefreshCw, GripVertical,
   Send, Inbox, Lock, Shield, Fingerprint, Nfc, Landmark, ArrowLeftRight,
-  Check, ExternalLink,
+  Check, ExternalLink, Trash2,
 } from 'lucide-react';
 
 export type AssetFilter = 'all' | 'logos' | 'icons' | 'media' | 'tokens';
@@ -223,6 +223,9 @@ export default function AssetTab({ accent = '#0040DF', onAssetDragStart, onAsset
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<AssetFilter>('all');
   const [selectedId, setSelectedId] = useState<string | null>('media-mesh');
+  const [uploadedAssets, setUploadedAssets] = useState<AssetItem[]>([]);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -237,6 +240,55 @@ export default function AssetTab({ accent = '#0040DF', onAssetDragStart, onAsset
   const icons = filtered.filter((a) => a.kind === 'icon');
   const media = filtered.filter((a) => a.kind === 'media');
   const tokens = filtered.filter((a) => a.kind === 'token');
+  const visibleUploadedAssets = uploadedAssets.filter((asset) => {
+    const matchesFilter = filter === 'all' || asset.filters.includes(filter);
+    const matchesQuery = query.trim() === '' || asset.name.toLowerCase().includes(query.trim().toLowerCase());
+    return matchesFilter && matchesQuery;
+  });
+
+  const handleUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setUploadError(null);
+    const files = Array.from(event.target.files ?? []);
+    for (const file of files) {
+      if (!file.type.startsWith('image/') && !/\.svg$/i.test(file.name)) {
+        setUploadError(`${file.name}: choose an image file.`);
+        continue;
+      }
+      if (file.size > 10 * 1024 * 1024) {
+        setUploadError(`${file.name}: files must be 10 MB or smaller.`);
+        continue;
+      }
+
+      const reader = new FileReader();
+      reader.onload = () => {
+        if (typeof reader.result !== 'string') {
+          setUploadError(`${file.name}: could not read this file.`);
+          return;
+        }
+        const format = file.name.split('.').pop()?.toUpperCase() || 'IMAGE';
+        const asset: AssetItem = {
+          id: `uploaded-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          name: file.name,
+          kind: 'media',
+          filters: ['all', 'media'],
+          format,
+          size: `${Math.max(1, Math.round(file.size / 1024))} KB`,
+          dataUrl: reader.result,
+          preview: (
+            <div
+              aria-hidden="true"
+              className="h-12 w-full bg-contain bg-center bg-no-repeat"
+              style={{ backgroundImage: `url("${reader.result}")` }}
+            />
+          ),
+        };
+        setUploadedAssets((current) => [...current, asset]);
+      };
+      reader.onerror = () => setUploadError(`${file.name}: could not read this file.`);
+      reader.readAsDataURL(file);
+    }
+    event.target.value = '';
+  };
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -277,6 +329,50 @@ export default function AssetTab({ accent = '#0040DF', onAssetDragStart, onAsset
 
       {/* Scrollable content */}
       <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-3 pb-3 pt-1 scrollbar-thin-blue [scrollbar-width:thin] [scrollbar-color:#0040DF_transparent] [&::-webkit-scrollbar]:w-[5px] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-[#0040DF] [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-[#002db3]">
+        {visibleUploadedAssets.length > 0 && (
+          <section>
+            <div className="mb-2 flex items-center justify-between">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-600">Uploaded Assets</span>
+              <span className="text-[9px] text-slate-400">{visibleUploadedAssets.length} items</span>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              {visibleUploadedAssets.map((asset) => (
+                <div
+                  key={asset.id}
+                  draggable
+                  onDragStart={(event) => attachAssetDrag(event, asset, onAssetDragStart)}
+                  onClick={() => {
+                    setSelectedId(asset.id);
+                    onAssetClick?.(asset);
+                  }}
+                  className={`group relative cursor-grab rounded-lg border bg-white p-2 transition active:cursor-grabbing ${
+                    selectedId === asset.id
+                      ? 'border-[#0040DF] shadow-sm ring-1 ring-[#0040DF]/20'
+                      : 'border-slate-200 hover:border-slate-300'
+                  }`}
+                >
+                  <button
+                    type="button"
+                    aria-label={`Delete ${asset.name}`}
+                    title="Remove uploaded asset"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      setUploadedAssets((current) => current.filter((item) => item.id !== asset.id));
+                      if (selectedId === asset.id) setSelectedId(null);
+                    }}
+                    className="absolute right-1 top-1 z-10 grid h-6 w-6 place-items-center rounded text-slate-400 opacity-0 hover:bg-rose-50 hover:text-rose-600 group-hover:opacity-100"
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </button>
+                  <div className="flex h-14 items-center justify-center overflow-hidden">{asset.preview}</div>
+                  <div className="mt-2 truncate text-[9px] font-semibold text-slate-700" title={asset.name}>
+                    {asset.name}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
         {/* Logos */}
         {logos.length > 0 && (
           <section>
@@ -442,7 +538,7 @@ export default function AssetTab({ accent = '#0040DF', onAssetDragStart, onAsset
           </section>
         )}
 
-        {filtered.length === 0 && (
+        {filtered.length === 0 && visibleUploadedAssets.length === 0 && (
           <p className="py-6 text-center text-[10px] text-slate-400">No assets found.</p>
         )}
       </div>
@@ -452,16 +548,26 @@ export default function AssetTab({ accent = '#0040DF', onAssetDragStart, onAsset
         <div className="flex gap-2">
           <button
             type="button"
+            onClick={() => fileInputRef.current?.click()}
             className="flex flex-1 items-center justify-center gap-1.5 rounded-md border border-[#0040DF]/30 bg-white py-1.5 text-[10px] font-semibold text-[#0040DF] hover:bg-[#E8EEFF]"
           >
             <Upload className="h-3 w-3" /> Upload Asset
           </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*,.svg"
+            multiple
+            onChange={handleUpload}
+            className="hidden"
+          />
           <button
             type="button"
             className="flex flex-1 items-center justify-center gap-1.5 rounded-md border border-slate-200 bg-white py-1.5 text-[10px] font-semibold text-slate-600 hover:bg-slate-50"
           >
             <RefreshCw className="h-3 w-3" /> Sync Brand Kit
           </button>
+          {uploadError && <p role="alert" className="mt-1 text-[9px] text-rose-600">{uploadError}</p>}
         </div>
         <button
           type="button"
