@@ -592,6 +592,8 @@ export interface ViewCtx {
   customBackground?: React.CSSProperties;
   customBackgroundImage?: React.CSSProperties;
   customBackgroundOpacity?: number;
+  /** When the component has an explicit height, its card fills it while its content keeps its natural size. */
+  stretchHeight?: boolean;
 }
 
 /* ─────────────────────────── shared UI primitives ─────────────────────────── */
@@ -1919,9 +1921,15 @@ export function ModuleView({ id, ctx, passive }: { id: ModuleId; ctx: ViewCtx; p
     radius: { ...ctx.radius, card: '' },
   } : ctx;
 
+  const stretch = !!ctx.stretchHeight;
+
   return (
     <ModuleScope moduleId={id} passive={passive} variant={ctx.variant}>
-      <div className="relative" style={wrapperStyle}>
+      <div
+        className={stretch ? 'studio-module-stretch relative' : 'relative'}
+        style={stretch ? { ...wrapperStyle, height: '100%' } : wrapperStyle}
+      >
+        {stretch && <style>{STRETCH_CSS}</style>}
         {hasCustomFill && (
           <style>{'.studio-module-fill-content > * { background: transparent !important; }'}</style>
         )}
@@ -1937,7 +1945,7 @@ export function ModuleView({ id, ctx, passive }: { id: ModuleId; ctx: ViewCtx; p
           />
         )}
         <ElementTinkerHost moduleId={id} passive={passive}>
-          <div className={hasCustomFill ? 'studio-module-fill-content relative z-[1]' : 'relative'}>
+          <div data-module-content className={hasCustomFill ? 'studio-module-fill-content relative z-[1]' : 'relative'}>
             <ModuleViewInner id={id} ctx={innerCtx} />
           </div>
         </ElementTinkerHost>
@@ -1945,6 +1953,17 @@ export function ModuleView({ id, ctx, passive }: { id: ModuleId; ctx: ViewCtx; p
     </ModuleScope>
   );
 }
+
+/**
+ * Stretching a component resizes its card (the module's root element) to fill
+ * the box, while text, icons and buttons inside keep their natural size.
+ */
+const STRETCH_CSS = `
+.studio-module-stretch > [data-studio-tinker-host],
+.studio-module-stretch > [data-studio-tinker-host] > [data-module-content],
+.studio-module-stretch > [data-studio-tinker-host] > [data-module-content] > :first-child {
+  height: 100% !important;
+}`;
 
 function ModuleViewInner({ id, ctx }: { id: ModuleId; ctx: ViewCtx }) {
   if (CRYPTO_MODULE_IDS.has(id)) return <CryptoModuleView id={id} ctx={ctx} />;

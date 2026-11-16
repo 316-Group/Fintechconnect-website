@@ -5,7 +5,6 @@ import React, {
   createContext, useCallback, useContext, useState, useRef, useEffect,
   useMemo, useLayoutEffect,
 } from 'react';
-import { Move, Undo2 } from 'lucide-react';
 import type { ModuleId } from './phone-cards';
 
 export interface ModuleOverrides {
@@ -399,6 +398,24 @@ export function findElementById(host: HTMLElement, id: string): HTMLElement | nu
 }
 
 /**
+ * Apply a sub-component's width/height. Parts that contain text use the size as a
+ * minimum, so the container keeps growing with the text (e.g. a larger font size);
+ * images, icons and other non-text parts get the exact size.
+ */
+function applyElementSize(el: HTMLElement, w: number | undefined, h: number | undefined) {
+  const growsWithText = !!el.textContent?.trim();
+  const [widthKey, otherWidthKey] = growsWithText ? ['minWidth', 'width'] as const : ['width', 'minWidth'] as const;
+  const [heightKey, otherHeightKey] = growsWithText ? ['minHeight', 'height'] as const : ['height', 'minHeight'] as const;
+  el.style[widthKey] = w !== undefined ? `${w}px` : '';
+  el.style[otherWidthKey] = '';
+  el.style[heightKey] = h !== undefined ? `${h}px` : '';
+  el.style[otherHeightKey] = '';
+  if ((w !== undefined || h !== undefined) && window.getComputedStyle(el).display === 'inline') {
+    el.style.display = 'inline-block';
+  }
+}
+
+/**
  * Format a human-friendly display name for an element.
  */
 export function getElementDisplayName(id: string, targetEl?: HTMLElement | null): string {
@@ -544,22 +561,7 @@ export function ElementTinkerHost({
         } else {
           el.style.transform = '';
         }
-        if (box.w !== undefined) {
-          el.style.width = `${box.w}px`;
-          if (window.getComputedStyle(el).display === 'inline') {
-            el.style.display = 'inline-block';
-          }
-        } else {
-          el.style.width = '';
-        }
-        if (box.h !== undefined) {
-          el.style.height = `${box.h}px`;
-          if (window.getComputedStyle(el).display === 'inline') {
-            el.style.display = 'inline-block';
-          }
-        } else {
-          el.style.height = '';
-        }
+        applyElementSize(el, box.w, box.h);
       }
     }
     // Schedule overlay update after the DOM settles
@@ -592,6 +594,21 @@ export function ElementTinkerHost({
     window.addEventListener('resize', handler);
     return () => window.removeEventListener('resize', handler);
   }, [active, activeElementId, updateOverlay]);
+
+  // Keep the selection outline wrapped around the part when its size changes on its own
+  // (e.g. a larger font size grows a text container).
+  const moduleTextStyles = edit?.textStyles[moduleId];
+  const moduleOverrides = edit?.overrides[moduleId];
+  useEffect(() => {
+    const host = hostRef.current;
+    if (!active || !activeElementId || !host) return;
+    const target = findElementById(host, activeElementId);
+    if (!target) return;
+    const observer = new ResizeObserver(() => updateOverlayRef.current());
+    observer.observe(target);
+    updateOverlayRef.current();
+    return () => observer.disconnect();
+  }, [active, activeElementId, moduleTextStyles, moduleOverrides]);
 
   // Dragging logic
   const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -707,11 +724,7 @@ export function ElementTinkerHost({
         patch.y = Math.round(baseY + dy);
       }
 
-      targetEl.style.width = `${patch.w}px`;
-      targetEl.style.height = `${patch.h}px`;
-      if (window.getComputedStyle(targetEl).display === 'inline') {
-        targetEl.style.display = 'inline-block';
-      }
+      applyElementSize(targetEl, patch.w, patch.h);
       targetEl.style.transform = `translate(${patch.x ?? 0}px, ${patch.y ?? 0}px)`;
       targetEl.style.position = targetEl.dataset.studioAsset === 'true' ? 'absolute' : 'relative';
       targetEl.style.zIndex = '30';
@@ -729,16 +742,6 @@ export function ElementTinkerHost({
     window.addEventListener('mousemove', onMouseMove);
     window.addEventListener('mouseup', onMouseUp);
   };
-
-  const currentBox = activeElementId ? currentModBoxes[activeElementId] : null;
-  const targetEl = (active && activeElementId && hostRef.current)
-    ? findElementById(hostRef.current, activeElementId)
-    : null;
-  const displayName = activeElementId
-    ? getElementDisplayName(activeElementId, targetEl)
-    : '';
-
-  const isNearTop = overlayRect ? overlayRect.top < 24 : false;
 
   return (
     <div
@@ -805,6 +808,7 @@ export function ElementTinkerHost({
       {/* Mini box enclosing the active element */}
       {active && activeElementId && overlayRect && (
         <div
+          data-studio-overlay="true"
           className="pointer-events-none absolute z-40 transition-none"
           style={{
             left: Math.round(overlayRect.left),
@@ -831,40 +835,6 @@ export function ElementTinkerHost({
             />
           ))}
 
-          {/* Header pill badge showing element name, dimensions and reset */}
-          <div
-            data-overlay-control="true"
-            className={`pointer-events-auto absolute left-0 flex items-center gap-1.5 whitespace-nowrap rounded bg-[#0040DF] px-1.5 py-0.5 text-[9px] font-semibold text-white shadow-md select-none ${
-              isNearTop ? 'top-full mt-1.5' : '-top-6'
-            }`}
-          >
-            <Move className="h-2.5 w-2.5 opacity-80" />
-            <span className="max-w-[120px] truncate">{displayName}</span>
-            <span className="opacity-60">·</span>
-            <span className="font-mono text-[8px] opacity-90">
-              {Math.round(overlayRect.width)}×{Math.round(overlayRect.height)}
-            </span>
-            {(currentBox?.x || currentBox?.y || currentBox?.w || currentBox?.h) && (
-              <button
-                type="button"
-                title="Reset element to original position & size"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (targetEl) {
-                    targetEl.style.transform = '';
-                    targetEl.style.width = '';
-                    targetEl.style.height = '';
-                    targetEl.style.position = '';
-                  }
-                  edit?.setElementBox(moduleId, activeElementId, null);
-                  updateOverlayRef.current();
-                }}
-                className="ml-0.5 rounded p-0.5 text-blue-200 hover:bg-blue-700 hover:text-white"
-              >
-                <Undo2 className="h-2.5 w-2.5" />
-              </button>
-            )}
-          </div>
         </div>
       )}
     </div>
@@ -895,20 +865,24 @@ export function EditableText({
       : value;
 
   const elementBox = edit?.elementBoxes[scope.moduleId ?? '']?.[slot];
+  // A text container's set width/height (from resizing or the text panel) is a minimum:
+  // the container still grows to fit the text, e.g. when the font size goes up.
+  const { width: styleWidth, height: styleHeight, ...textStyleRest } = textStyle;
+  const minWidth = elementBox?.w ?? styleWidth;
+  const minHeight = elementBox?.h ?? styleHeight;
   const resolvedStyle: React.CSSProperties = {
     ...style,
-    ...textStyle,
+    ...textStyleRest,
     ...(elementBox?.x !== undefined || elementBox?.y !== undefined ? {
       transform: `translate(${elementBox.x ?? 0}px, ${elementBox.y ?? 0}px)`,
       position: 'relative',
       zIndex: isSelectedSlot ? 20 : 10,
       display: 'inline-block',
     } : {}),
-    ...(elementBox?.w !== undefined ? { width: `${elementBox.w}px`, display: 'inline-block' } : {}),
-    ...(elementBox?.h !== undefined ? { height: `${elementBox.h}px`, display: 'inline-block' } : {}),
+    ...(minWidth !== undefined ? { minWidth, display: 'inline-block' } : {}),
+    ...(minHeight !== undefined ? { minHeight, display: 'inline-block' } : {}),
     ...(scope.variant === 'Negative' && isFinancialValue && !textStyle.color ? { color: '#dc2626' } : {}),
     ...(textStyle.textAlign ? { display: 'block', width: '100%' } : {}),
-    ...(textStyle.width !== undefined || textStyle.height !== undefined ? { display: 'inline-block' } : {}),
   };
 
   if (!edit || !scope.moduleId || !scope.active) {

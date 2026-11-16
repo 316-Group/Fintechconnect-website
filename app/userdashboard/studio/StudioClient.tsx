@@ -5,7 +5,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Urbanist, Outfit } from 'next/font/google';
 import {
-  ChevronDown, ChevronUp, ChevronLeft, ChevronRight, ChevronsUpDown, GripVertical,
+  ChevronDown, ChevronUp, ChevronLeft, ChevronRight, ChevronsUpDown,
   Layers, Box, Workflow, Palette, ShieldCheck, Settings, Plus, PlusCircle,
   Trash2, Undo2, Home, Wallet,
   BarChart3, User, Play, Code2, Check, Braces, X, Diamond, CreditCard,
@@ -29,8 +29,11 @@ import {
 
 import {
   EditProvider,
+  useEdit,
   useEditOverrides,
   getElementDisplayName,
+  getTinkerElementId,
+  findElementById,
   type EditableTextStyle,
   type ElementBox,
 } from './edit-context';
@@ -144,10 +147,20 @@ type CornerRadii = { topLeft: number; topRight: number; bottomRight: number; bot
 type ShapeType = NonNullable<ModuleBox['shapeType']>;
 const COMPONENT_SHAPES: ShapeType[] = ['rounded', 'sharp', 'pill', 'squircle'];
 type CanvasShapeType = 'shape-rect' | 'shape-circle' | 'shape-triangle' | 'shape-star' | 'shape-line' | 'shape-arrow' | 'shape-scribble';
-type CanvasInsertType = CanvasShapeType | 'shape-text' | 'shape-comment' | 'frame' | 'asset';
+/**
+ * `component` is a live instance of a library component placed on the workspace.
+ * `element` is a flattened copy of a component part (button, icon, block…) pasted onto the canvas.
+ */
+type CanvasInsertType = CanvasShapeType | 'shape-text' | 'shape-comment' | 'frame' | 'asset' | 'component' | 'element';
 type DrawBox = Pick<ModuleBox, 'x' | 'y' | 'w' | 'h' | 'flipX' | 'flipY' | 'freehandPath'>;
 type DrawPreview = { type: CanvasInsertType; box: DrawBox };
-type WorkspaceShape = { id: string; type: CanvasInsertType; box: ModuleBox; frameId?: string };
+type WorkspaceShape = {
+  id: string;
+  type: CanvasInsertType;
+  box: ModuleBox;
+  frameId?: string;
+  componentId?: ModuleId;
+};
 type ShapeMoveEnd = (
   id: ModuleId,
   pointer: { x: number; y: number },
@@ -163,11 +176,31 @@ type ShapeDragPreviewItem = {
   id: string;
   type: CanvasInsertType;
   box: ModuleBox;
+  componentId?: ModuleId;
   left: number;
   top: number;
   scale: number;
 };
 type ShapeDragPreview = { items: ShapeDragPreviewItem[] };
+/** One object on the studio clipboard. `parent` points at the index of the frame it belongs to. */
+type ClipboardItem = {
+  type: CanvasInsertType;
+  box: ModuleBox;
+  componentId?: ModuleId;
+  parent?: number;
+  /** Rendered size of a copied component, used when it is pasted as a free-floating object. */
+  size?: { w: number; h: number };
+};
+/** items[0] is the anchor: on paste its top-left corner lands at the cursor. */
+type StudioClipboard = { label: string; items: ClipboardItem[] };
+type PasteTarget = { target: 'phone' | 'workspace'; point: { x: number; y: number }; clientY: number };
+type ContextMenuState = {
+  x: number;
+  y: number;
+  /** What was right-clicked: the part under the cursor (if any) first, then its whole object. */
+  targets: { name: string; copy: () => StudioClipboard | null; remove: () => void }[];
+  paste: PasteTarget | null;
+};
 type ComponentVariant = 'Default' | 'Masked' | 'Negative';
 type FillGradient = {
   type: 'Linear' | 'Radial';
@@ -197,6 +230,15 @@ type ModuleBox = {
   flipX?: boolean;
   flipY?: boolean;
   text?: string;
+  textColor?: string;
+  fontSize?: number | string;
+  fontWeight?: number | string;
+  fontFamily?: string;
+  fontStyle?: string;
+  textAlign?: string;
+  lineHeight?: number | string;
+  /** Markup of a flattened `element` copy. */
+  html?: string;
   freehandPath?: string;
   rotation?: number;
   opacity?: number;
@@ -228,17 +270,44 @@ type ModuleBox = {
 function createShapeBox(type: CanvasInsertType, geometry: DrawBox): ModuleBox {
   return {
     ...geometry,
-    fillType: type === 'frame' || ['shape-text', 'shape-comment', 'shape-line', 'shape-scribble'].includes(type) ? 'none' : 'color',
+    fillType: ['shape-text', 'shape-comment', 'shape-line', 'shape-scribble'].includes(type) ? 'none' : 'color',
     fillColor: '#ffffff',
-    strokeWidth: 2,
+    // Frames default to a plain white container with no border.
+    strokeWidth: type === 'frame' ? 0 : 2,
     strokeColor: '#0040DF',
     text: type === 'shape-text' ? 'Text' : undefined,
   };
 }
 
+type FrameCandidate = { id: string; box: ModuleBox };
+
+/** The smallest frame containing the centre of `box`, i.e. the frame an object dropped there belongs to. */
+function frameContaining(frames: FrameCandidate[], box: ModuleBox): string | undefined {
+  const centerX = (box.x ?? 0) + (box.w ?? 0) / 2;
+  const centerY = (box.y ?? 0) + (box.h ?? 0) / 2;
+  return frames
+    .filter(({ box: frame }) => {
+      const x = frame.x ?? 0;
+      const y = frame.y ?? 0;
+      return centerX >= x && centerX <= x + (frame.w ?? 0) && centerY >= y && centerY <= y + (frame.h ?? 0);
+    })
+    .sort((a, b) => (a.box.w ?? 0) * (a.box.h ?? 0) - (b.box.w ?? 0) * (b.box.h ?? 0))[0]?.id;
+}
+
+/** Whether `inner` lies completely within `outer` (used when a frame is drawn around existing objects). */
+function boxEncloses(outer: ModuleBox, inner: ModuleBox): boolean {
+  const ox = outer.x ?? 0;
+  const oy = outer.y ?? 0;
+  const ix = inner.x ?? 0;
+  const iy = inner.y ?? 0;
+  return ix >= ox && iy >= oy
+    && ix + (inner.w ?? 0) <= ox + (outer.w ?? 0)
+    && iy + (inner.h ?? 0) <= oy + (outer.h ?? 0);
+}
+
 function canvasInsertTypeForId(id: string): CanvasInsertType | null {
   const types: CanvasInsertType[] = [
-    'asset', 'frame', 'shape-rect', 'shape-circle', 'shape-triangle', 'shape-star',
+    'asset', 'element', 'frame', 'shape-rect', 'shape-circle', 'shape-triangle', 'shape-star',
     'shape-line', 'shape-arrow', 'shape-scribble', 'shape-text', 'shape-comment',
   ];
   return types.find((type) => id.startsWith(`${type}-`)) ?? null;
@@ -329,7 +398,7 @@ function TopBar({
         </div>
         <div className="flex items-center gap-1 text-slate-500">
           <button onClick={() => onZoom(Math.max(25, zoom - 10))} className="grid h-6 w-6 place-items-center rounded-md hover:bg-slate-100">−</button>
-          <span className="w-9 text-center text-[10px] font-semibold">{zoom}%</span>
+          <span className="w-9 text-center text-[10px] font-semibold">{Math.round(zoom)}%</span>
           <button onClick={() => onZoom(Math.min(400, zoom + 10))} className="grid h-6 w-6 place-items-center rounded-md hover:bg-slate-100">+</button>
         </div>
         <button onClick={onPublish} className="rounded-md bg-[#0040DF] px-3 py-1.5 text-[11px] font-semibold text-white shadow-sm hover:bg-[#0036BF]">
@@ -1013,12 +1082,20 @@ function DropLine({ side, accent }: { side: 'top' | 'bottom'; accent: string }) 
   );
 }
 
-function ToolbarButton({ label, onClick, disabled, danger, children }: { label: string; onClick: () => void; disabled?: boolean; danger?: boolean; children: React.ReactNode; }) {
+/** Small delete button shown at the top-right corner of a hovered (or selected) canvas object. */
+function DeleteBadge({ visible, onDelete }: { visible: boolean; onDelete: () => void }) {
   return (
-    <button type="button" aria-label={label} title={label} disabled={disabled}
-      onClick={(e) => { e.stopPropagation(); onClick(); }}
-      className={`grid h-6 w-6 place-items-center rounded-full transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-30 ${danger ? 'text-rose-500' : 'text-slate-600'}`}>
-      {children}
+    <button
+      type="button"
+      aria-label="Delete"
+      title="Delete"
+      onMouseDown={(event) => event.stopPropagation()}
+      onClick={(event) => { event.stopPropagation(); onDelete(); }}
+      className={`absolute -right-1.5 -top-1.5 z-30 grid h-[18px] w-[18px] place-items-center rounded-full bg-white text-slate-500 shadow-sm ring-1 ring-slate-200 transition hover:bg-rose-50 hover:text-rose-600 ${
+        visible ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+      }`}
+    >
+      <Trash2 className="h-2.5 w-2.5" />
     </button>
   );
 }
@@ -1038,6 +1115,8 @@ function radiusForBox(box: ModuleBox): string | undefined {
 function canvasObjectTitle(id: ModuleId | null, box?: ModuleBox): string | null {
   if (id?.startsWith('asset-')) return box?.assetName ?? 'Image Asset';
   if (id?.startsWith('frame-')) return 'Frame';
+  if (id?.startsWith('element-')) return 'Copied layer';
+  if (id?.startsWith('component-')) return 'Component instance';
   if (!id?.startsWith('shape-')) return null;
   const type = id.slice('shape-'.length).split('-')[0];
   const labels: Record<string, string> = {
@@ -1067,6 +1146,205 @@ function CanvasAssetObject({ box }: { box: ModuleBox }) {
         backgroundSize: 'contain',
       }}
     />
+  );
+}
+
+function backgroundForBox(box: ModuleBox): React.CSSProperties | undefined {
+  if (box.fillType === 'color' && (box.fillColor || box.fillGradient)) {
+    return box.fillGradient
+      ? {
+          backgroundImage: box.fillGradient.type === 'Linear'
+            ? `linear-gradient(${box.fillGradient.angle}deg, ${box.fillGradient.startColor}, ${box.fillGradient.endColor})`
+            : `radial-gradient(circle, ${box.fillGradient.startColor}, ${box.fillGradient.endColor})`,
+        }
+      : { backgroundColor: box.fillColor };
+  }
+  if (box.fillType === 'image' && box.imageFill?.url && box.imageFill.visible !== false) {
+    const { url, fit } = box.imageFill;
+    return {
+      backgroundImage: `url(${url})`,
+      backgroundSize: fit === 'fill' ? '100% 100%' : fit === 'fit' ? 'contain' : fit === 'crop' ? 'cover' : 'auto',
+      backgroundRepeat: fit === 'tile' ? 'repeat' : 'no-repeat',
+      backgroundPosition: 'center',
+    };
+  }
+  return undefined;
+}
+
+/** Apply a component's box styling (fill, stroke, radius, stretch…) to its render context. */
+function ctxForBox(ctx: ViewCtx, box: ModuleBox): ViewCtx {
+  const background = backgroundForBox(box);
+  return {
+    ...ctx,
+    customRadius: radiusForBox(box),
+    customPadding: box.padding,
+    variant: box.variant ?? 'Default',
+    customStroke: box.strokeWidth ? {
+      border: `${box.strokeWidth}px ${box.strokeStyle ?? 'solid'} ${box.strokeColor ?? '#6941C6'}`,
+      boxSizing: 'border-box' as const,
+    } : undefined,
+    customBackground: box.fillType === 'color' ? background : undefined,
+    customBackgroundImage: box.fillType === 'image' ? background : undefined,
+    stretchHeight: box.h !== undefined,
+  };
+}
+
+/** A flattened copy of a component part. The markup is a clone of the studio's own rendered DOM. */
+function CanvasElementSnapshot({ box }: { box: ModuleBox }) {
+  return (
+    <div
+      aria-hidden="true"
+      className={`${outfit.className} pointer-events-none h-full w-full`}
+      style={{
+        color: box.textColor,
+        fontFamily: box.fontFamily,
+        fontSize: box.fontSize,
+        fontWeight: box.fontWeight,
+        lineHeight: box.lineHeight,
+      }}
+      dangerouslySetInnerHTML={{ __html: box.html ?? '' }}
+    />
+  );
+}
+
+/** A live, read-only instance of a library component placed on the workspace. */
+function CanvasComponentInstance({ box, componentId, ctx }: { box: ModuleBox; componentId?: ModuleId; ctx: ViewCtx }) {
+  if (!componentId) return <CanvasElementSnapshot box={box} />;
+  return (
+    <div className={`${outfit.className} pointer-events-none h-full w-full text-slate-900`}>
+      <ModuleView id={componentId} ctx={ctxForBox({ ...ctx, interactive: false }, box)} passive />
+    </div>
+  );
+}
+
+function CanvasObjectContent({
+  type, shapeId, box, componentId, ctx,
+}: {
+  type: CanvasInsertType; shapeId: string; box: ModuleBox; componentId?: ModuleId; ctx: ViewCtx;
+}) {
+  if (type === 'asset') return <CanvasAssetObject box={box} />;
+  if (type === 'element') return <CanvasElementSnapshot box={box} />;
+  if (type === 'component') return <CanvasComponentInstance box={box} componentId={componentId} ctx={ctx} />;
+  return <GenericShape id={shapeId} box={box} onBoxChange={() => {}} />;
+}
+
+const SNAPSHOT_STRIPPED_ATTRIBUTES = [
+  'id', 'data-studio-element', 'data-text-slot', 'data-text-slot-selected', 'data-tap-root',
+  'data-studio-tinker-host', 'data-module-id', 'tabindex', 'contenteditable', 'draggable', 'title',
+];
+
+/** Clone a rendered part of a component into standalone markup for an `element` copy. */
+function snapshotHtml(source: Element): string {
+  const clone = source.cloneNode(true) as HTMLElement;
+  clone.querySelectorAll('[data-studio-overlay], [data-overlay-control], [data-corner-handle]').forEach((node) => node.remove());
+  clone.querySelectorAll('style').forEach((node) => {
+    if (node.textContent?.includes('studio-tinker-active')) node.remove();
+  });
+  [clone, ...Array.from(clone.querySelectorAll<HTMLElement>('*'))].forEach((node) => {
+    node.classList?.remove('studio-tinker-active');
+    SNAPSHOT_STRIPPED_ATTRIBUTES.forEach((attribute) => node.removeAttribute(attribute));
+  });
+  // The copy is positioned by its own canvas box, so drop in-component offsets.
+  clone.style.transform = '';
+  clone.style.left = '';
+  clone.style.top = '';
+  clone.style.zIndex = '';
+  clone.style.margin = '0';
+  if (clone.style.position === 'absolute') clone.style.position = 'relative';
+  // Fill the box: stretching the copy resizes its container, not the content inside.
+  clone.style.width = '100%';
+  clone.style.height = '100%';
+  clone.style.boxSizing = 'border-box';
+  return clone.outerHTML;
+}
+
+/** Ratio between an element's on-screen size and its layout size (canvas zoom). */
+function renderScale(element: HTMLElement): number {
+  return element.getBoundingClientRect().width / (element.offsetWidth || 1) || 1;
+}
+
+function CanvasContextMenu({
+  menu, clipboard, onCopy, onPaste, onClose,
+}: {
+  menu: ContextMenuState;
+  clipboard: StudioClipboard | null;
+  onCopy: (build: () => StudioClipboard | null) => void;
+  onPaste: (target: PasteTarget) => void;
+  onClose: () => void;
+}) {
+  const menuRef = useRef<HTMLDivElement>(null);
+  const [position, setPosition] = useState({ left: menu.x, top: menu.y });
+
+  React.useLayoutEffect(() => {
+    const el = menuRef.current;
+    if (!el) return;
+    const { width, height } = el.getBoundingClientRect();
+    setPosition({
+      left: Math.max(8, Math.min(menu.x, window.innerWidth - width - 8)),
+      top: Math.max(8, Math.min(menu.y, window.innerHeight - height - 8)),
+    });
+  }, [menu.x, menu.y]);
+
+  useEffect(() => {
+    const closeOnOutside = (event: MouseEvent) => {
+      if (!menuRef.current?.contains(event.target as Node)) onClose();
+    };
+    const closeOnEscape = (event: KeyboardEvent) => { if (event.key === 'Escape') onClose(); };
+    window.addEventListener('mousedown', closeOnOutside, true);
+    window.addEventListener('keydown', closeOnEscape);
+    window.addEventListener('wheel', onClose, { passive: true });
+    window.addEventListener('resize', onClose);
+    window.addEventListener('blur', onClose);
+    return () => {
+      window.removeEventListener('mousedown', closeOnOutside, true);
+      window.removeEventListener('keydown', closeOnEscape);
+      window.removeEventListener('wheel', onClose);
+      window.removeEventListener('resize', onClose);
+      window.removeEventListener('blur', onClose);
+    };
+  }, [onClose]);
+
+  const itemClass = 'flex w-full items-center justify-between gap-6 rounded-md px-2.5 py-1.5 text-left text-[11px] font-medium text-slate-700 hover:bg-[#0040DF] hover:text-white disabled:cursor-not-allowed disabled:text-slate-300 disabled:hover:bg-transparent';
+  const shortcut = 'text-[10px] opacity-60';
+
+  return createPortal(
+    <div
+      ref={menuRef}
+      role="menu"
+      onContextMenu={(event) => event.preventDefault()}
+      className={`${urbanist.className} fixed z-[200] min-w-[200px] rounded-lg bg-white p-1 shadow-[0_12px_32px_rgba(15,23,42,0.18)] ring-1 ring-slate-200`}
+      style={position}
+    >
+      {menu.targets.map((item, index) => (
+        <button key={`copy-${index}`} type="button" role="menuitem" className={itemClass}
+          onClick={() => { onCopy(item.copy); onClose(); }}>
+          <span className="max-w-[180px] truncate">Copy {item.name}</span>
+          {index === 0 && <span className={shortcut}>Ctrl+C</span>}
+        </button>
+      ))}
+      {menu.targets.length > 0 && <div className="my-1 h-px bg-slate-100" />}
+      <button type="button" role="menuitem" className={itemClass}
+        disabled={!clipboard || !menu.paste}
+        onClick={() => { if (menu.paste) onPaste(menu.paste); onClose(); }}>
+        <span className="flex min-w-0 flex-col">
+          <span>Paste here</span>
+          {clipboard && (
+            <span className="max-w-[160px] truncate text-[9px] font-normal opacity-60">{clipboard.label}</span>
+          )}
+        </span>
+        <span className={shortcut}>Ctrl+V</span>
+      </button>
+      {menu.targets.length > 0 && <div className="my-1 h-px bg-slate-100" />}
+      {menu.targets.map((item, index) => (
+        <button key={`delete-${index}`} type="button" role="menuitem"
+          className="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-[11px] font-medium text-rose-600 hover:bg-rose-600 hover:text-white"
+          onClick={() => { item.remove(); onClose(); }}>
+          <Trash2 className="h-3 w-3 shrink-0" />
+          <span className="max-w-[180px] truncate">Delete {item.name}</span>
+        </button>
+      ))}
+    </div>,
+    document.body,
   );
 }
 
@@ -1167,6 +1445,15 @@ function GenericShape({
           role="textbox"
           aria-label="Edit text"
           className="min-w-[24px] whitespace-pre-wrap outline-none"
+          style={{
+            color: box.textColor ?? '#111827',
+            fontSize: box.fontSize,
+            fontWeight: box.fontWeight,
+            fontFamily: box.fontFamily,
+            fontStyle: box.fontStyle,
+            textAlign: box.textAlign as React.CSSProperties['textAlign'],
+            lineHeight: box.lineHeight,
+          }}
         >
           {box.text ?? 'Text'}
         </span>
@@ -1178,7 +1465,7 @@ function GenericShape({
 
 function ModuleWrapper({
   id, index, total, selected, drag, dropIndex, accent, isDark, radius, ctx,
-  box, onSelect, onStartDrag, onEndDrag, onItemDragOver, onDrop, onMove, onRemove,
+  box, onSelect, onStartDrag, onEndDrag, onItemDragOver, onDrop, onRemove,
   onMeasure, onBoxChange, onShapeMove, onShapeMoveEnd, isDrawing, isShapeDragSource,
 }: {
   id: ModuleId; index: number; total: number;
@@ -1195,7 +1482,6 @@ function ModuleWrapper({
     targetId?: ModuleId,
     position?: { x: number; y: number },
   ) => void;
-  onMove: (id: ModuleId, dir: -1 | 1) => void;
   onRemove: (id: ModuleId) => void;
   onMeasure: (id: ModuleId, size: { w: number; h: number }) => void;
   onBoxChange: (id: ModuleId, patch: ModuleBox) => void;
@@ -1208,7 +1494,9 @@ function ModuleWrapper({
   const isSource = drag?.from === 'canvas' && drag.id === id;
   const isFrame = id.startsWith('frame-');
   const isAsset = id.startsWith('asset-');
-  const isShape = isFrame || isAsset || id.startsWith('shape-');
+  const isElement = id.startsWith('element-');
+  const isShape = isFrame || isAsset || isElement || id.startsWith('shape-');
+  const isTextShape = id.startsWith('shape-text-');
 
   useEffect(() => {
     const el = contentRef.current;
@@ -1234,8 +1522,6 @@ function ModuleWrapper({
 
   const targetW = box.w ?? natural?.w ?? (isShape ? 100 : undefined);
   const targetH = box.h ?? natural?.h ?? (isShape ? 100 : undefined);
-  const sx = box.w && natural ? box.w / natural.w : 1;
-  const sy = box.h && natural ? box.h / natural.h : 1;
 
   const startResize = (e: React.MouseEvent, handle: string) => {
     e.preventDefault();
@@ -1325,27 +1611,6 @@ function ModuleWrapper({
     window.addEventListener('mouseup', handleUp);
   };
 
-  const customRadiusString = radiusForBox(box);
-
-  let customBackground: React.CSSProperties | undefined = undefined;
-  if (box.fillType === 'color' && (box.fillColor || box.fillGradient)) {
-    customBackground = box.fillGradient
-      ? {
-          backgroundImage: box.fillGradient.type === 'Linear'
-            ? `linear-gradient(${box.fillGradient.angle}deg, ${box.fillGradient.startColor}, ${box.fillGradient.endColor})`
-            : `radial-gradient(circle, ${box.fillGradient.startColor}, ${box.fillGradient.endColor})`,
-        }
-      : { backgroundColor: box.fillColor };
-  } else if (box.fillType === 'image' && box.imageFill?.url && box.imageFill.visible !== false) {
-    const { url, fit } = box.imageFill;
-    customBackground = {
-      backgroundImage: `url(${url})`,
-      backgroundSize: fit === 'fill' ? '100% 100%' : fit === 'fit' ? 'contain' : fit === 'crop' ? 'cover' : 'auto',
-      backgroundRepeat: fit === 'tile' ? 'repeat' : 'no-repeat',
-      backgroundPosition: 'center',
-    };
-  }
-
   let customEffect: React.CSSProperties = {};
   if (box.effectType === 'glassmorphism') {
     customEffect = {
@@ -1363,22 +1628,11 @@ function ModuleWrapper({
     };
   }
 
-  const ctxWithBox = {
-    ...ctx,
-    customRadius: customRadiusString,
-    customPadding: box.padding,
-    variant: box.variant ?? 'Default',
-    customStroke: box.strokeWidth ? {
-      border: `${box.strokeWidth}px ${box.strokeStyle ?? 'solid'} ${box.strokeColor ?? '#6941C6'}`,
-      boxSizing: 'border-box' as const,
-    } : undefined,
-    customBackground: box.fillType === 'color' ? customBackground : undefined,
-    customBackgroundImage: box.fillType === 'image' ? customBackground : undefined,
-  };
+  const ctxWithBox = ctxForBox(ctx, box);
 
   const wrapperStyle: React.CSSProperties = {
-    width: targetW,
-    height: targetH,
+    // Text layers treat their size as a minimum so the box grows with the text.
+    ...(isTextShape ? { minWidth: targetW, minHeight: targetH } : { width: targetW, height: targetH }),
     position: isShape ? 'absolute' : undefined,
     left: isShape ? box.x ?? 0 : undefined,
     top: isShape ? box.y ?? 0 : undefined,
@@ -1393,12 +1647,12 @@ function ModuleWrapper({
     ...customEffect,
   };
 
-  const contentStyle: React.CSSProperties = {
-    width: isShape ? targetW : box.w && natural ? natural.w : undefined,
-    height: isShape ? targetH : box.h && natural ? natural.h : undefined,
-    transform: !isShape && (sx !== 1 || sy !== 1) ? `scale(${sx}, ${sy})` : undefined,
-    transformOrigin: 'top left',
-  };
+  const contentStyle: React.CSSProperties = isTextShape
+    ? { display: 'flex', minWidth: targetW, minHeight: targetH }
+    : {
+        width: isShape ? targetW : box.w !== undefined ? '100%' : undefined,
+        height: isShape ? targetH : box.h !== undefined ? '100%' : undefined,
+      };
 
   return (
     <div
@@ -1439,26 +1693,18 @@ function ModuleWrapper({
         <DropLine side="bottom" accent={accent} />
       )}
 
-      <div className="absolute -top-3.5 right-2 z-20 flex items-center gap-0.5 rounded-full bg-white p-0.5 opacity-0 shadow-md ring-1 ring-slate-200 transition group-hover:opacity-100">
-        <GripVertical className="h-3.5 w-3.5 text-slate-400" aria-hidden />
-        <ToolbarButton label="Move up" disabled={index === 0} onClick={() => onMove(id, -1)}>
-          <ChevronUp className="h-3.5 w-3.5" />
-        </ToolbarButton>
-        <ToolbarButton label="Move down" disabled={index === total - 1} onClick={() => onMove(id, 1)}>
-          <ChevronDown className="h-3.5 w-3.5" />
-        </ToolbarButton>
-        <ToolbarButton label="Remove" danger onClick={() => onRemove(id)}>
-          <Trash2 className="h-3.5 w-3.5" />
-        </ToolbarButton>
-      </div>
+      <DeleteBadge visible={false} onDelete={() => onRemove(id)} />
 
       <div
         ref={contentRef}
+        data-module-content-root
         className={drag ? 'pointer-events-none' : ''}
         style={contentStyle}
       >
         {isAsset
           ? <CanvasAssetObject box={box} />
+          : isElement
+            ? <CanvasElementSnapshot box={box} />
           : isShape
             ? <GenericShape id={id} box={box} onBoxChange={(patch) => onBoxChange(id, patch)} />
           : <ModuleView id={id} ctx={ctxWithBox} />}
@@ -1481,7 +1727,7 @@ function ModuleWrapper({
 
 function PageCanvas({
   page, pageLabel, modules, ctx, drag, dropIndex, accent, isDark, radius,
-  onStartDrag, onEndDrag, onItemDragOver, onDrop, onMove, onRemove, onQuickAdd,
+  onStartDrag, onEndDrag, onItemDragOver, onDrop, onRemove, onQuickAdd,
   selectedId, onSelect, boxes, onMeasure, onBoxChange, onShapeMove, onShapeMoveEnd,
   isDrawing, shapeDragPreviewIds,
 }: {
@@ -1496,7 +1742,6 @@ function PageCanvas({
     targetId?: ModuleId,
     position?: { x: number; y: number },
   ) => void;
-  onMove: (id: ModuleId, dir: -1 | 1) => void;
   onRemove: (id: ModuleId) => void;
   onQuickAdd: (id: ModuleId) => void;
   selectedId: ModuleId | null;
@@ -1555,7 +1800,6 @@ function PageCanvas({
           onEndDrag={onEndDrag}
           onItemDragOver={onItemDragOver}
           onDrop={onDrop}
-          onMove={onMove}
           onRemove={onRemove}
           onMeasure={onMeasure}
           onBoxChange={onBoxChange}
@@ -1656,8 +1900,8 @@ function CanvasToolbar({
 function Canvas({
   device, zoom, onZoom, pageModules, activePage, pageLabel, drag, dropIndex,
   ctx, accent, isDark, radius, selectedId, onSelect,
-  onStartDrag, onEndDrag, onItemDragOver, onDrop, onMove, onRemove, onQuickAdd,
-  onNavTab, boxes, onMeasure, onBoxChange, onAddShape, onAddWorkspaceShapes, onRemoveMany,
+  onStartDrag, onEndDrag, onItemDragOver, onDrop, onRemove, onQuickAdd,
+  onNavTab, boxes, onMeasure, onBoxChange, onAddShape, onAddWorkspaceShapes, onAssignFrames, onRemoveMany,
   workspaceShapes, setWorkspaceShapes, selectedWorkspaceShapeId, setSelectedWorkspaceShapeId,
   onAddPhoneAsset, onAddWorkspaceAsset,
 }: {
@@ -1675,7 +1919,6 @@ function Canvas({
     targetId?: ModuleId,
     position?: { x: number; y: number },
   ) => void;
-  onMove: (id: ModuleId, dir: -1 | 1) => void;
   onRemove: (id: ModuleId) => void;
   onQuickAdd: (id: ModuleId) => void;
   onNavTab: (tab: TabId) => void;
@@ -1683,7 +1926,8 @@ function Canvas({
   onMeasure: (id: ModuleId, size: { w: number; h: number }) => void;
   onBoxChange: (id: ModuleId, patch: ModuleBox) => void;
   onAddShape: (type: CanvasInsertType, box: DrawBox) => void;
-  onAddWorkspaceShapes: (shapes: WorkspaceShape[]) => void;
+  onAddWorkspaceShapes: (shapes: WorkspaceShape[], insertBefore?: ModuleId | null) => void;
+  onAssignFrames: (ids: ModuleId[]) => void;
   onRemoveMany: (ids: ModuleId[]) => void;
   workspaceShapes: WorkspaceShape[];
   setWorkspaceShapes: React.Dispatch<React.SetStateAction<WorkspaceShape[]>>;
@@ -1704,50 +1948,129 @@ function Canvas({
   const drawAreaRef = React.useRef<HTMLDivElement>(null);
   const suppressCanvasClickRef = React.useRef(false);
   const workspaceShapeIdRef = React.useRef(0);
+  const edit = useEdit();
+
+  /*
+   * Figma-style viewport: the phone and every workspace object live in one
+   * "world" layer that is translated by viewportOffset and scaled by zoom.
+   * World coordinates equal workspace pixels at 100% zoom with no offset.
+   */
+  const viewportRef = React.useRef<HTMLDivElement>(null);
+  const phoneRef = React.useRef<HTMLDivElement>(null);
+  const [viewportOffset, setViewportOffset] = useState({ x: 0, y: 0 });
+  const viewportScale = zoom / 100;
   const zoomRef = React.useRef(zoom);
+  const renderedZoomRef = React.useRef(zoom);
+  const zoomAnchorRef = React.useRef<{ x: number; y: number } | null>(null);
+  const skipZoomAnchorRef = React.useRef(false);
+  const onZoomRef = React.useRef(onZoom);
+  React.useLayoutEffect(() => { onZoomRef.current = onZoom; }, [onZoom]);
+
   const [panMode, setPanMode] = useState(false);
   const [drawTool, setDrawTool] = useState<CanvasInsertType | null>(null);
   const [drawPreview, setDrawPreview] = useState<DrawPreview | null>(null);
   const [drawPreviewTarget, setDrawPreviewTarget] = useState<'phone' | 'workspace' | null>(null);
   const [shapeDragPreview, setShapeDragPreview] = useState<ShapeDragPreview | null>(null);
-  zoomRef.current = zoom;
+  const [clipboard, setClipboard] = useState<StudioClipboard | null>(null);
+  const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
+  const lastPointerRef = React.useRef<{ x: number; y: number } | null>(null);
+
+  /** Convert a screen position to world (workspace) coordinates. */
+  const clientToWorld = (clientX: number, clientY: number) => {
+    const viewport = viewportRef.current;
+    if (!viewport) return { x: clientX, y: clientY };
+    const rect = viewport.getBoundingClientRect();
+    const scale = rect.width / (viewport.offsetWidth || 1) || 1;
+    return { x: (clientX - rect.left) / scale, y: (clientY - rect.top) / scale };
+  };
+
+  // Whenever zoom changes, keep the point under the anchor (cursor for wheel zoom,
+  // centre of the canvas for the toolbar buttons) fixed on screen.
+  React.useLayoutEffect(() => {
+    const previous = renderedZoomRef.current;
+    renderedZoomRef.current = zoom;
+    zoomRef.current = zoom;
+    const anchor = zoomAnchorRef.current;
+    zoomAnchorRef.current = null;
+    if (skipZoomAnchorRef.current) {
+      skipZoomAnchorRef.current = false;
+      return;
+    }
+    if (previous === zoom) return;
+    const workspace = workspaceRef.current;
+    const point = anchor ?? (workspace
+      ? { x: workspace.clientWidth / 2, y: workspace.clientHeight / 2 }
+      : { x: 0, y: 0 });
+    const ratio = zoom / previous;
+    setViewportOffset((current) => ({
+      x: point.x - (point.x - current.x) * ratio,
+      y: point.y - (point.y - current.y) * ratio,
+    }));
+  }, [zoom]);
+
+  const resetView = () => {
+    skipZoomAnchorRef.current = zoom !== 100;
+    setViewportOffset({ x: 0, y: 0 });
+    onZoom(100);
+  };
 
   const updateShapeDragPreview = (
     anchor: WorkspaceShape,
     group: WorkspaceShape[],
     pointer: { x: number; y: number },
     grabRatio: { x: number; y: number },
-    scale: number,
   ) => {
-    const workspace = workspaceRef.current;
-    if (!workspace) return;
-    const workspaceRect = workspace.getBoundingClientRect();
-    const anchorLeft = pointer.x - workspaceRect.left - (anchor.box.w ?? 100) * scale * grabRatio.x;
-    const anchorTop = pointer.y - workspaceRect.top - (anchor.box.h ?? 100) * scale * grabRatio.y;
+    if (!workspaceRef.current) return;
+    const world = clientToWorld(pointer.x, pointer.y);
+    const anchorLeft = world.x - (anchor.box.w ?? 100) * grabRatio.x;
+    const anchorTop = world.y - (anchor.box.h ?? 100) * grabRatio.y;
     setShapeDragPreview({
       items: group.map((shape) => {
         return {
           ...shape,
-          left: anchorLeft + ((shape.box.x ?? 0) - (anchor.box.x ?? 0)) * scale,
-          top: anchorTop + ((shape.box.y ?? 0) - (anchor.box.y ?? 0)) * scale,
-          scale,
+          left: anchorLeft + (shape.box.x ?? 0) - (anchor.box.x ?? 0),
+          top: anchorTop + (shape.box.y ?? 0) - (anchor.box.y ?? 0),
+          scale: 1,
         };
       }),
     });
   };
 
+  // Ctrl/Cmd + wheel (or trackpad pinch) zooms towards the cursor.
+  // A plain wheel pans the canvas, except over the phone screen, which scrolls normally.
   React.useEffect(() => {
     const el = mainRef.current;
     if (!el) return;
     const handler = (e: WheelEvent) => {
-      if (!e.ctrlKey && !e.metaKey) return;
+      const workspace = workspaceRef.current;
+      if (!workspace) return;
+      const rect = workspace.getBoundingClientRect();
+      if (e.ctrlKey || e.metaKey) {
+        e.preventDefault();
+        const current = zoomRef.current;
+        const delta = e.deltaMode === 1 ? e.deltaY * 33 : e.deltaY;
+        const next = Math.max(25, Math.min(400, current * Math.exp(-delta * 0.002)));
+        if (Math.abs(next - current) < 0.01) return;
+        const inside = e.clientX >= rect.left && e.clientX <= rect.right
+          && e.clientY >= rect.top && e.clientY <= rect.bottom;
+        zoomAnchorRef.current = inside
+          ? { x: e.clientX - rect.left, y: e.clientY - rect.top }
+          : null;
+        zoomRef.current = next;
+        onZoomRef.current(next);
+        return;
+      }
+      if (!workspace.contains(e.target as Node)) return;
+      if (!e.shiftKey && bodyRef.current?.contains(e.target as Node)) return;
       e.preventDefault();
-      const delta = e.deltaY < 0 ? 10 : -10;
-      onZoom(Math.max(25, Math.min(400, zoomRef.current + delta)));
+      const horizontal = e.shiftKey && !e.deltaX;
+      const dx = horizontal ? e.deltaY : e.deltaX;
+      const dy = horizontal ? 0 : e.deltaY;
+      setViewportOffset((current) => ({ x: current.x - dx, y: current.y - dy }));
     };
     el.addEventListener('wheel', handler, { passive: false });
     return () => el.removeEventListener('wheel', handler);
-  }, [onZoom]);
+  }, []);
 
   const autoScroll = (clientY: number) => {
     const el = bodyRef.current;
@@ -1757,15 +2080,18 @@ function Canvas({
     else if (clientY > r.bottom - 48) el.scrollBy({ top: 14 });
   };
 
-  const startCanvasPan = (event: React.MouseEvent<HTMLDivElement>) => {
-    if (!panMode || !bodyRef.current) return;
+  /** Hand tool (or middle mouse button) drag pans the whole canvas. */
+  const startViewportPan = (event: React.MouseEvent<HTMLDivElement>) => {
     event.preventDefault();
     event.stopPropagation();
-    const body = bodyRef.current;
+    const startX = event.clientX;
     const startY = event.clientY;
-    const startScrollTop = body.scrollTop;
+    const base = viewportOffset;
     const handleMove = (moveEvent: MouseEvent) => {
-      body.scrollTop = startScrollTop - (moveEvent.clientY - startY);
+      setViewportOffset({
+        x: base.x + moveEvent.clientX - startX,
+        y: base.y + moveEvent.clientY - startY,
+      });
     };
     const handleUp = () => {
       window.removeEventListener('mousemove', handleMove);
@@ -1784,12 +2110,13 @@ function Canvas({
 
     const body = bodyRef.current;
     const getPoint = (clientX: number, clientY: number) => {
+      if (target === 'workspace') return clientToWorld(clientX, clientY);
       const rect = area.getBoundingClientRect();
       const scaleX = rect.width / (area.offsetWidth || 1) || 1;
       const scaleY = rect.height / (area.offsetHeight || 1) || 1;
       return {
         x: (clientX - rect.left) / scaleX,
-        y: (clientY - rect.top) / scaleY + (target === 'phone' ? body?.scrollTop ?? 0 : 0),
+        y: (clientY - rect.top) / scaleY + (body?.scrollTop ?? 0),
       };
     };
 
@@ -1867,12 +2194,19 @@ function Canvas({
               return containsCenter || containsStart;
             })
             .sort((a, b) => (a.box.w ?? 0) * (a.box.h ?? 0) - (b.box.w ?? 0) * (b.box.h ?? 0))[0]?.id;
-          return [...shapes, {
+          const drawn: WorkspaceShape = {
             id,
             type: drawTool,
-            box: createShapeBox(drawTool, box),
+            box: { ...createShapeBox(drawTool, box), frameId },
             frameId,
-          }];
+          };
+          // A frame drawn around loose objects groups them, like Figma.
+          const adopted = drawTool === 'frame'
+            ? shapes.map((shape) => shape.type !== 'frame' && !shape.frameId && boxEncloses(drawn.box, shape.box)
+              ? { ...shape, frameId: id, box: { ...shape.box, frameId: id } }
+              : shape)
+            : shapes;
+          return [...adopted, drawn];
         });
       } else {
         onAddShape(drawTool, box);
@@ -1893,22 +2227,20 @@ function Canvas({
       : [shape];
   };
 
-  const moveWorkspaceShape = (id: string, direction: -1 | 1) => {
+  /** Re-check which frame each of these workspace objects sits in (after a move or paste). */
+  const assignWorkspaceFrames = (ids: string[]) => {
+    const targets = new Set(ids);
     setWorkspaceShapes((shapes) => {
-      const target = shapes.find((shape) => shape.id === id);
-      if (!target) return shapes;
-      const group = getWorkspaceGroup(target, shapes);
-      const groupIds = new Set(group.map((shape) => shape.id));
-      const indices = shapes
-        .map((shape, index) => groupIds.has(shape.id) ? index : -1)
-        .filter((index) => index >= 0);
-      const targetIndex = direction < 0 ? Math.min(...indices) - 1 : Math.max(...indices) + 1;
-      if (targetIndex < 0 || targetIndex >= shapes.length) return shapes;
-      const targetId = shapes[targetIndex].id;
-      const next = shapes.filter((shape) => !groupIds.has(shape.id));
-      const remainingTargetIndex = next.findIndex((shape) => shape.id === targetId);
-      next.splice(direction < 0 ? remainingTargetIndex : remainingTargetIndex + 1, 0, ...group);
-      return next;
+      const frames = shapes.filter((shape) => shape.type === 'frame');
+      let changed = false;
+      const next = shapes.map((shape) => {
+        if (!targets.has(shape.id) || shape.type === 'frame') return shape;
+        const frameId = frameContaining(frames, shape.box);
+        if (frameId === shape.frameId) return shape;
+        changed = true;
+        return { ...shape, frameId, box: { ...shape.box, frameId } };
+      });
+      return changed ? next : shapes;
     });
   };
 
@@ -1931,12 +2263,10 @@ function Canvas({
   ) => {
     event.preventDefault();
     event.stopPropagation();
-    const workspace = workspaceRef.current;
-    if (!workspace) return;
+    if (!workspaceRef.current) return;
 
-    const workspaceRect = workspace.getBoundingClientRect();
-    const scaleX = workspaceRect.width / (workspace.offsetWidth || 1) || 1;
-    const scaleY = workspaceRect.height / (workspace.offsetHeight || 1) || 1;
+    const scaleX = viewportScale;
+    const scaleY = viewportScale;
     const startX = event.clientX;
     const startY = event.clientY;
     const startW = shape.box.w ?? 100;
@@ -1978,10 +2308,8 @@ function Canvas({
     onSelect(null);
     setSelectedWorkspaceShapeId(shape.id);
 
-    const workspace = workspaceRef.current;
-    const workspaceRect = workspace.getBoundingClientRect();
-    const scaleX = workspaceRect.width / (workspace.offsetWidth || 1) || 1;
-    const scaleY = workspaceRect.height / (workspace.offsetHeight || 1) || 1;
+    const scaleX = viewportScale;
+    const scaleY = viewportScale;
     const startX = event.clientX;
     const startY = event.clientY;
     const group = getWorkspaceGroup(shape, workspaceShapes);
@@ -1996,7 +2324,6 @@ function Canvas({
       group,
       { x: event.clientX, y: event.clientY },
       grabRatio,
-      1,
     );
 
     const getDelta = (clientX: number, clientY: number) => ({
@@ -2032,7 +2359,6 @@ function Canvas({
         movedGroup,
         { x: clientX, y: clientY },
         grabRatio,
-        1,
       );
       return delta;
     };
@@ -2046,11 +2372,15 @@ function Canvas({
 
       const body = bodyRef.current;
       const area = drawAreaRef.current;
-      if (!body || !area) return;
-      const bodyRect = body.getBoundingClientRect();
-      const isDroppedInPhone = upEvent.clientX >= bodyRect.left && upEvent.clientX <= bodyRect.right
+      const bodyRect = body?.getBoundingClientRect();
+      const isDroppedInPhone = !!bodyRect
+        && upEvent.clientX >= bodyRect.left && upEvent.clientX <= bodyRect.right
         && upEvent.clientY >= bodyRect.top && upEvent.clientY <= bodyRect.bottom;
-      if (!isDroppedInPhone) return;
+      if (!isDroppedInPhone || !body || !area) {
+        // Dropped on the workspace: the object joins (or leaves) whichever frame it now sits in.
+        if (shape.type !== 'frame') assignWorkspaceFrames([shape.id]);
+        return;
+      }
 
       const areaRect = area.getBoundingClientRect();
       const phoneScaleX = areaRect.width / (area.offsetWidth || 1) || 1;
@@ -2103,7 +2433,11 @@ function Canvas({
     const bodyRect = body.getBoundingClientRect();
     const isDroppedInPhone = pointer.x >= bodyRect.left && pointer.x <= bodyRect.right
       && pointer.y >= bodyRect.top && pointer.y <= bodyRect.bottom;
-    if (isDroppedInPhone) return;
+    if (isDroppedInPhone) {
+      // The object joins (or leaves) whichever frame it was dropped in.
+      if (!id.startsWith('frame-')) onAssignFrames([id]);
+      return;
+    }
 
     const workspaceRect = workspace.getBoundingClientRect();
     const isDroppedInWorkspace = pointer.x >= workspaceRect.left && pointer.x <= workspaceRect.right
@@ -2120,10 +2454,7 @@ function Canvas({
       return;
     }
 
-    const workspaceScaleX = workspaceRect.width / (workspace.offsetWidth || 1) || 1;
-    const workspaceScaleY = workspaceRect.height / (workspace.offsetHeight || 1) || 1;
-    const pointerX = (pointer.x - workspaceRect.left) / workspaceScaleX;
-    const pointerY = (pointer.y - workspaceRect.top) / workspaceScaleY;
+    const { x: pointerX, y: pointerY } = clientToWorld(pointer.x, pointer.y);
     const sourceBox = boxes[id] ?? {};
     const width = sourceBox.w ?? 100;
     const height = sourceBox.h ?? 100;
@@ -2152,6 +2483,7 @@ function Canvas({
     });
     onRemoveMany(ids);
     setWorkspaceShapes((shapes) => [...shapes, ...movedShapes]);
+    if (!workspaceFrameId) assignWorkspaceFrames(movedShapes.map((shape) => shape.id));
   };
 
   const handlePhoneShapeMove: ShapeMoveUpdate = (id, box, pointer, grabRatio) => {
@@ -2183,7 +2515,7 @@ function Canvas({
         });
       });
     }
-    updateShapeDragPreview(group[0], group, pointer, grabRatio, zoom / 100);
+    updateShapeDragPreview(group[0], group, pointer, grabRatio);
   };
 
   const handleCanvasDrop = (
@@ -2216,14 +2548,7 @@ function Canvas({
     if (!assetId || !workspaceRef.current) return;
     event.preventDefault();
     event.stopPropagation();
-    const workspace = workspaceRef.current;
-    const rect = workspace.getBoundingClientRect();
-    const scaleX = rect.width / (workspace.offsetWidth || 1) || 1;
-    const scaleY = rect.height / (workspace.offsetHeight || 1) || 1;
-    const position = {
-      x: (event.clientX - rect.left) / scaleX,
-      y: (event.clientY - rect.top) / scaleY,
-    };
+    const position = clientToWorld(event.clientX, event.clientY);
     const targetShape = workspaceShapes.find((shape) => shape.id === targetShapeId);
     const frameId = targetShape?.type === 'frame'
       ? targetShape.id
@@ -2240,11 +2565,349 @@ function Canvas({
     onEndDrag();
   };
 
+  /* ─────────── Clipboard: copy a component, part or asset; paste it anywhere ─────────── */
+
+  const findPhoneObject = (id: ModuleId) =>
+    drawAreaRef.current?.querySelector<HTMLElement>(`[data-module-id="${CSS.escape(id)}"]`) ?? null;
+
+  const withoutFrame = ({ frameId: _frameId, ...box }: ModuleBox): ModuleBox => box;
+
+  const workspaceShapeTitle = (shape: WorkspaceShape) => shape.type === 'component'
+    ? (shape.componentId && moduleFor(shape.componentId)?.title) || 'Component'
+    : canvasObjectTitle(`${shape.type}-${shape.id}` as ModuleId, shape.box) ?? 'Shape';
+
+  /** Copy a component, shape, frame (with its children) or asset that sits in the phone. */
+  const copyPhoneObject = (id: ModuleId): StudioClipboard | null => {
+    const box = boxes[id] ?? {};
+    const type = canvasInsertTypeForId(id);
+    if (type) {
+      const children = type === 'frame'
+        ? (pageModules[activePage] ?? []).filter((moduleId) => boxes[moduleId]?.frameId === id)
+        : [];
+      return {
+        label: canvasObjectTitle(id, box) ?? 'Shape',
+        items: [
+          { type, box: withoutFrame(box) },
+          ...children.flatMap((childId): ClipboardItem[] => {
+            const childType = canvasInsertTypeForId(childId);
+            return childType ? [{ type: childType, box: withoutFrame(boxes[childId] ?? {}), parent: 0 }] : [];
+          }),
+        ],
+      };
+    }
+    const content = findPhoneObject(id)?.querySelector<HTMLElement>(':scope > [data-module-content-root]');
+    const root = content?.firstElementChild;
+    if (!content || !root) return null;
+    const style = window.getComputedStyle(root);
+    const { x: _x, y: _y, ...componentBox } = withoutFrame(box);
+    return {
+      label: moduleFor(id)?.title ?? 'Component',
+      items: [{
+        type: 'component',
+        componentId: id,
+        size: { w: content.offsetWidth, h: content.offsetHeight },
+        // The snapshot is used when the component can't be placed live (e.g. it is already on that page).
+        box: { ...componentBox, html: snapshotHtml(root), textColor: style.color, fontFamily: style.fontFamily },
+      }],
+    };
+  };
+
+  /** Copy an object (and, for frames, its children) from the workspace around the phone. */
+  const copyWorkspaceShape = (id: string): StudioClipboard | null => {
+    const shape = workspaceShapes.find((item) => item.id === id);
+    if (!shape) return null;
+    const children = getWorkspaceGroup(shape, workspaceShapes).filter((item) => item.id !== id);
+    return {
+      label: workspaceShapeTitle(shape),
+      items: [
+        { type: shape.type, box: withoutFrame(shape.box), componentId: shape.componentId },
+        ...children.map((item) => ({
+          type: item.type, box: withoutFrame(item.box), componentId: item.componentId, parent: 0,
+        })),
+      ],
+    };
+  };
+
+  /** Copy a part of a component: text becomes an editable text layer, assets stay assets, anything else is flattened. */
+  const copyElement = (moduleId: ModuleId, element: HTMLElement, elementId: string): StudioClipboard | null => {
+    if (!element.isConnected) return null;
+    const host = element.closest<HTMLElement>('[data-studio-tinker-host]');
+    const scale = host ? renderScale(host) : viewportScale;
+    const rect = element.getBoundingClientRect();
+    const w = Math.max(8, Math.round(rect.width / scale));
+    const h = Math.max(8, Math.round(rect.height / scale));
+    const label = getElementDisplayName(elementId, element);
+
+    if (elementId.startsWith('asset-')) {
+      const asset = edit?.placedAssets[moduleId]?.find((item) => item.id === elementId);
+      if (asset) {
+        return { label: asset.name, items: [{ type: 'asset', box: { w, h, assetUrl: asset.url, assetName: asset.name } }] };
+      }
+    }
+
+    const style = window.getComputedStyle(element);
+    if (element.dataset.textSlot) {
+      return {
+        label,
+        items: [{
+          type: 'shape-text',
+          box: {
+            ...createShapeBox('shape-text', { w: w + 8, h }),
+            text: element.textContent ?? '',
+            textColor: style.color,
+            fontSize: style.fontSize,
+            fontWeight: style.fontWeight,
+            fontFamily: style.fontFamily,
+            fontStyle: style.fontStyle,
+            lineHeight: style.lineHeight,
+            textAlign: style.textAlign,
+          },
+        }],
+      };
+    }
+
+    return {
+      label,
+      items: [{
+        type: 'element',
+        box: {
+          w,
+          h,
+          html: snapshotHtml(element),
+          textColor: style.color,
+          fontFamily: style.fontFamily,
+          fontSize: style.fontSize,
+          fontWeight: style.fontWeight,
+          lineHeight: style.lineHeight,
+        },
+      }],
+    };
+  };
+
+  /** The copy target for whatever is currently selected (used by Ctrl/Cmd+C). */
+  const copySelection = (): StudioClipboard | null => {
+    if (selectedWorkspaceShapeId) return copyWorkspaceShape(selectedWorkspaceShapeId);
+    if (!selectedId) return null;
+    const activeElementId = edit?.activeElementId;
+    if (activeElementId && !canvasInsertTypeForId(selectedId)) {
+      const host = findPhoneObject(selectedId)?.querySelector<HTMLElement>('[data-studio-tinker-host]');
+      const element = host ? findElementById(host, activeElementId) : null;
+      if (element) return copyElement(selectedId, element, activeElementId);
+    }
+    return copyPhoneObject(selectedId);
+  };
+
+  /** Where a paste at this screen position lands: inside the phone screen or on the workspace. */
+  const resolvePasteTarget = (clientX: number, clientY: number): PasteTarget | null => {
+    const within = (rect: DOMRect) => clientX >= rect.left && clientX <= rect.right
+      && clientY >= rect.top && clientY <= rect.bottom;
+    const body = bodyRef.current;
+    const area = drawAreaRef.current;
+    if (body && area && within(body.getBoundingClientRect())) {
+      const rect = area.getBoundingClientRect();
+      const scale = renderScale(area);
+      return {
+        target: 'phone',
+        point: { x: (clientX - rect.left) / scale, y: (clientY - rect.top) / scale },
+        clientY,
+      };
+    }
+    // The phone bezel, status bar and tab bar aren't pasteable.
+    if (phoneRef.current && within(phoneRef.current.getBoundingClientRect())) return null;
+    const workspace = workspaceRef.current;
+    if (workspace && within(workspace.getBoundingClientRect())) {
+      return { target: 'workspace', point: clientToWorld(clientX, clientY), clientY };
+    }
+    return null;
+  };
+
+  /** Components in the phone are stacked, so a pasted component is inserted at the cursor's slot. */
+  const flowInsertBefore = (clientY: number): ModuleId | null => {
+    for (const id of pageModules[activePage] ?? []) {
+      if (canvasInsertTypeForId(id)) continue;
+      const element = findPhoneObject(id);
+      if (!element) continue;
+      const rect = element.getBoundingClientRect();
+      if (clientY < rect.top + rect.height / 2) return id;
+    }
+    return null;
+  };
+
+  const pasteClipboard = (paste: PasteTarget) => {
+    if (!clipboard || clipboard.items.length === 0) return;
+    const anchor = clipboard.items[0].box;
+    const placeBox = (box: ModuleBox): ModuleBox => ({
+      ...box,
+      x: Math.round(paste.point.x + (box.x ?? 0) - (anchor.x ?? 0)),
+      y: Math.round(paste.point.y + (box.y ?? 0) - (anchor.y ?? 0)),
+    });
+    const sized = (item: ClipboardItem): ModuleBox => item.type === 'component'
+      ? { ...item.box, w: item.box.w ?? item.size?.w, h: item.box.h ?? item.size?.h }
+      : item.box;
+
+    if (paste.target === 'workspace') {
+      const ids = clipboard.items.map(() => `workspace-shape-${++workspaceShapeIdRef.current}`);
+      const pasted = clipboard.items.map((item, index): WorkspaceShape => {
+        const frameId = item.parent !== undefined ? ids[item.parent] : undefined;
+        return {
+          id: ids[index],
+          type: item.type,
+          componentId: item.componentId,
+          frameId,
+          box: { ...placeBox(sized(item)), frameId },
+        };
+      });
+      onSelect(null);
+      setSelectedWorkspaceShapeId(ids[0]);
+      setWorkspaceShapes((shapes) => [...shapes, ...pasted]);
+      // Loose objects pasted inside a frame become part of it.
+      assignWorkspaceFrames(pasted.filter((shape) => !shape.frameId).map((shape) => shape.id));
+      return;
+    }
+
+    // Into the phone. A page can hold each library component once, so a component that is
+    // already on this page is pasted as a flattened copy instead.
+    const onPage = new Set(pageModules[activePage] ?? []);
+    const pasted = clipboard.items.flatMap((item, index): WorkspaceShape[] => {
+      const frameId = item.parent !== undefined ? `clipboard-${item.parent}` : undefined;
+      if (item.type === 'component') {
+        if (item.componentId && !onPage.has(item.componentId)) {
+          return [{ id: `clipboard-${index}`, type: 'component', componentId: item.componentId, frameId, box: placeBox(item.box) }];
+        }
+        if (!item.box.html) return [];
+        return [{ id: `clipboard-${index}`, type: 'element', frameId, box: placeBox(sized(item)) }];
+      }
+      return [{ id: `clipboard-${index}`, type: item.type, frameId, box: placeBox(item.box) }];
+    });
+    onAddWorkspaceShapes(pasted, flowInsertBefore(paste.clientY));
+  };
+
+  const pasteAtPointer = () => {
+    if (!clipboard) return false;
+    const pointer = lastPointerRef.current;
+    let target = pointer ? resolvePasteTarget(pointer.x, pointer.y) : null;
+    if (!target && workspaceRef.current) {
+      const rect = workspaceRef.current.getBoundingClientRect();
+      const center = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+      target = { target: 'workspace', point: clientToWorld(center.x, center.y), clientY: center.y };
+    }
+    if (!target) return false;
+    pasteClipboard(target);
+    return true;
+  };
+
+  const openContextMenu = (event: React.MouseEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    const { clientX, clientY } = event;
+    const target = event.target as HTMLElement;
+    const paste = resolvePasteTarget(clientX, clientY);
+    const menuAt = (targets: ContextMenuState['targets']) =>
+      setContextMenu({ x: clientX, y: clientY, paste, targets });
+
+    const workspaceShapeElement = target.closest<HTMLElement>('[data-workspace-shape-id]');
+    if (workspaceShapeElement) {
+      const id = workspaceShapeElement.dataset.workspaceShapeId ?? '';
+      const shape = workspaceShapes.find((item) => item.id === id);
+      onSelect(null);
+      setSelectedWorkspaceShapeId(id);
+      menuAt(shape ? [{
+        name: workspaceShapeTitle(shape),
+        copy: () => copyWorkspaceShape(id),
+        remove: () => removeWorkspaceShape(id),
+      }] : []);
+      return;
+    }
+
+    const moduleElement = target.closest<HTMLElement>('[data-module-id]');
+    if (!moduleElement) {
+      menuAt([]);
+      return;
+    }
+    const moduleId = moduleElement.dataset.moduleId as ModuleId;
+    const isCanvasObject = !!canvasInsertTypeForId(moduleId);
+    const wholeObject = {
+      name: isCanvasObject
+        ? canvasObjectTitle(moduleId, boxes[moduleId]) ?? 'shape'
+        : moduleFor(moduleId)?.title ?? 'component',
+      copy: () => copyPhoneObject(moduleId),
+      remove: () => onRemove(moduleId),
+    };
+    if (selectedId !== moduleId) onSelect(moduleId);
+    if (isCanvasObject) {
+      menuAt([wholeObject]);
+      return;
+    }
+
+    // A component's parts only become addressable once it is selected, so look up
+    // the part under the cursor after the selection has rendered.
+    requestAnimationFrame(() => {
+      const host = findPhoneObject(moduleId)?.querySelector<HTMLElement>('[data-studio-tinker-host]');
+      const hit = document.elementFromPoint(clientX, clientY) as HTMLElement | null;
+      const candidate = hit?.closest<HTMLElement>('[data-studio-element], button, [data-text-slot], [role="button"]');
+      const targets: ContextMenuState['targets'] = [];
+      if (host && candidate && host.contains(candidate)) {
+        const elementId = getTinkerElementId(candidate, host);
+        const element = findElementById(host, elementId) ?? candidate;
+        edit?.setActiveElementId(elementId);
+        if (element.dataset.textSlot) edit?.setActiveTextSlot(element.dataset.textSlot);
+        targets.push({
+          name: getElementDisplayName(elementId, element),
+          copy: () => copyElement(moduleId, element, elementId),
+          remove: () => edit?.deleteElement(moduleId, elementId),
+        });
+      }
+      targets.push(wholeObject);
+      menuAt(targets);
+    });
+  };
+
+  const closeContextMenu = React.useCallback(() => setContextMenu(null), []);
+
+  // Ctrl/Cmd+C copies the selection; Ctrl/Cmd+V pastes it under the cursor.
+  const shortcutsRef = React.useRef({ copySelection, pasteAtPointer });
+  React.useLayoutEffect(() => {
+    shortcutsRef.current = { copySelection, pasteAtPointer };
+  });
+  React.useEffect(() => {
+    const handler = (event: KeyboardEvent) => {
+      if (!(event.ctrlKey || event.metaKey) || event.altKey || event.shiftKey) return;
+      const key = event.key.toLowerCase();
+      if (key !== 'c' && key !== 'v') return;
+      const target = event.target as HTMLElement | null;
+      if (target?.isContentEditable || target?.closest('input, textarea, select, [contenteditable="true"]')) return;
+      if (key === 'c') {
+        if (window.getSelection()?.toString()) return;
+        const next = shortcutsRef.current.copySelection();
+        if (!next) return;
+        event.preventDefault();
+        setClipboard(next);
+      } else if (shortcutsRef.current.pasteAtPointer()) {
+        event.preventDefault();
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, []);
+
   return (
-    <main ref={mainRef} className="relative flex min-w-0 flex-1 flex-col items-center overflow-hidden bg-gradient-to-b from-[#EEF0FB] via-[#F6F7FE] to-[#EEF0FB] pb-4">
+    <main
+      ref={mainRef}
+      onMouseMove={(event) => { lastPointerRef.current = { x: event.clientX, y: event.clientY }; }}
+      onMouseLeave={() => { lastPointerRef.current = null; }}
+      className="relative flex min-w-0 flex-1 flex-col items-center overflow-hidden bg-gradient-to-b from-[#EEF0FB] via-[#F6F7FE] to-[#EEF0FB] pb-4"
+    >
       <p className="flex items-center gap-1.5 py-3 text-[10px] font-medium text-slate-500">
-        <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" /> Live Sandbox · {zoom}%
-        <span className="text-slate-400">· Ctrl+Scroll to zoom</span>
+        <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" /> Live Sandbox · {Math.round(zoom)}%
+        <span className="text-slate-400">· Ctrl+Scroll to zoom · Scroll to pan</span>
+        {(zoom !== 100 || viewportOffset.x !== 0 || viewportOffset.y !== 0) && (
+          <button
+            type="button"
+            onClick={resetView}
+            className="ml-1 rounded-md bg-white px-1.5 py-0.5 text-[10px] font-semibold text-[#0040DF] shadow-sm ring-1 ring-slate-200 hover:bg-[#E8EDFF]"
+          >
+            Reset view
+          </button>
+        )}
       </p>
 
       <div
@@ -2255,8 +2918,27 @@ function Canvas({
           event.dataTransfer.dropEffect = 'copy';
         }}
         onDrop={(event) => handleWorkspaceAssetDrop(event)}
+        onMouseDownCapture={(event) => {
+          if ((panMode && event.button === 0) || event.button === 1) {
+            startViewportPan(event);
+            return;
+          }
+          if (drawTool && !phoneRef.current?.contains(event.target as Node)) {
+            startCanvasDrawing(event, 'workspace');
+          }
+        }}
+        onMouseDown={(event) => {
+          // Background clicks land on the workspace itself (the world layer ignores the pointer).
+          if (event.target === event.currentTarget) {
+            setSelectedWorkspaceShapeId(null);
+            onSelect(null);
+          }
+        }}
+        onContextMenu={openContextMenu}
         data-canvas-drawing={drawTool ? 'true' : undefined}
-        className="relative flex min-h-0 w-full flex-1 items-start justify-center overflow-hidden"
+        className={`relative min-h-0 w-full flex-1 overflow-hidden ${
+          panMode ? 'cursor-grab active:cursor-grabbing' : drawTool ? 'cursor-crosshair' : ''
+        }`}
       >
         {drawTool && (
           <style>{`
@@ -2272,27 +2954,24 @@ function Canvas({
             }
           `}</style>
         )}
+        {panMode && (
+          <style>{`
+            div[data-canvas-panning] * { cursor: inherit !important; }
+          `}</style>
+        )}
         <div
-          onMouseDownCapture={(event) => {
-            if (drawTool || event.target === event.currentTarget) {
-              startCanvasDrawing(event, 'workspace');
-            }
+          ref={viewportRef}
+          data-canvas-panning={panMode ? 'true' : undefined}
+          className="pointer-events-none absolute inset-0"
+          style={{
+            transform: `translate(${viewportOffset.x}px, ${viewportOffset.y}px) scale(${viewportScale})`,
+            transformOrigin: '0 0',
+            willChange: 'transform',
           }}
-          onMouseDown={(event) => {
-            if (event.target === event.currentTarget) {
-              setSelectedWorkspaceShapeId(null);
-              onSelect(null);
-            }
-          }}
-          className={`absolute inset-0 z-0 ${drawTool ? 'cursor-crosshair' : ''}`}
         >
+        <div className="absolute inset-0 z-0">
           {workspaceShapes.map((shape, index) => {
             const isSelected = selectedWorkspaceShapeId === shape.id;
-            const group = getWorkspaceGroup(shape, workspaceShapes);
-            const groupIds = new Set(group.map((item) => item.id));
-            const groupIndices = workspaceShapes
-              .map((item, groupIndex) => groupIds.has(item.id) ? groupIndex : -1)
-              .filter((groupIndex) => groupIndex >= 0);
             return (
               <div
               key={shape.id}
@@ -2317,31 +2996,24 @@ function Canvas({
                 position: 'absolute',
                 left: shape.box.x ?? 0,
                 top: shape.box.y ?? 0,
-                width: shape.box.w ?? 100,
-                height: shape.box.h ?? 100,
+                // Text layers treat their size as a minimum so the box grows with the text.
+                ...(shape.type === 'shape-text'
+                  ? { display: 'flex', minWidth: shape.box.w ?? 100, minHeight: shape.box.h ?? 100 }
+                  : { width: shape.box.w ?? 100, height: shape.box.h ?? 100 }),
                 zIndex: shape.type === 'frame' ? 1 : isSelected ? 60 : index + 1,
                 opacity: shapeDragPreview?.items.some((item) => item.id === shape.id) ? 0 : undefined,
               }}
-              className="group cursor-move"
+              className="group pointer-events-auto cursor-move"
               title="Drag into the phone canvas or reposition"
             >
-              <div className={`absolute -top-3.5 right-0 z-30 flex items-center gap-0.5 rounded-full bg-white p-0.5 shadow-md ring-1 ring-slate-200 transition ${
-                isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
-              }`}>
-                <GripVertical className="h-3.5 w-3.5 text-slate-400" aria-hidden />
-                <ToolbarButton label="Move up" disabled={Math.min(...groupIndices) === 0} onClick={() => moveWorkspaceShape(shape.id, -1)}>
-                  <ChevronUp className="h-3.5 w-3.5" />
-                </ToolbarButton>
-                <ToolbarButton label="Move down" disabled={Math.max(...groupIndices) === workspaceShapes.length - 1} onClick={() => moveWorkspaceShape(shape.id, 1)}>
-                  <ChevronDown className="h-3.5 w-3.5" />
-                </ToolbarButton>
-                <ToolbarButton label="Remove" danger onClick={() => removeWorkspaceShape(shape.id)}>
-                  <Trash2 className="h-3.5 w-3.5" />
-                </ToolbarButton>
-              </div>
-              {shape.type === 'asset'
-                ? <CanvasAssetObject box={shape.box} />
-                : <GenericShape id={shape.type} box={shape.box} onBoxChange={() => {}} />}
+              <DeleteBadge visible={isSelected} onDelete={() => removeWorkspaceShape(shape.id)} />
+              <CanvasObjectContent
+                type={shape.type}
+                shapeId={shape.type}
+                box={shape.box}
+                componentId={shape.componentId}
+                ctx={ctx}
+              />
               {isSelected && !drawTool && (
                 <div className="pointer-events-none absolute -inset-1 z-20 border-2 border-[#0040DF]">
                   {CORNER_HANDLES.map((handle) => (
@@ -2388,23 +3060,17 @@ function Canvas({
               zIndex: item.type === 'frame' ? 20 : 21,
             }}
           >
-            {item.type === 'asset'
-              ? <CanvasAssetObject box={item.box} />
-              : <GenericShape
-                  id={`${item.type}-${item.id}-drag-preview`}
-                  box={item.box}
-                  onBoxChange={() => {}}
-                />}
+            <CanvasObjectContent
+              type={item.type}
+              shapeId={`${item.type}-${item.id}-drag-preview`}
+              box={item.box}
+              componentId={item.componentId}
+              ctx={ctx}
+            />
           </div>
         ))}
-        <div
-          className="relative z-10 mx-auto shrink-0"
-          style={{
-            transform: `scale(${zoom / 100})`,
-            transformOrigin: 'top center',
-            willChange: 'transform',
-          }}
-        >
+        <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex justify-center">
+        <div ref={phoneRef} className="pointer-events-auto relative shrink-0">
         <div className={`relative border-[3px] border-[#1d2b52] bg-[#101c3a] p-[9px] shadow-2xl ring-1 ring-white/10 ${frameRadius}`} style={{ width: dims.w + 18 }}>
           {device === 'iphone' ? (
             <div className="absolute left-1/2 top-[16px] z-30 h-[22px] w-[84px] -translate-x-1/2 rounded-full bg-black" />
@@ -2438,9 +3104,8 @@ function Canvas({
                 if (!e.currentTarget.contains(e.relatedTarget as Node | null)) onEndDrag();
               }}
               onDrop={handleCanvasDrop}
-              onMouseDownCapture={startCanvasPan}
               onClick={(e) => { if (e.target === e.currentTarget) onSelect(null); }}
-              className={`flex min-h-0 flex-1 flex-col overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden px-3 pb-20 pt-1 ${panMode ? 'cursor-grab' : ''}`}>
+              className="flex min-h-0 flex-1 flex-col overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden px-3 pb-20 pt-1">
               <div
                 ref={drawAreaRef}
                 onMouseDownCapture={(event) => startCanvasDrawing(event, 'phone')}
@@ -2461,7 +3126,7 @@ function Canvas({
                   isDark={isDark} radius={radius}
                   onStartDrag={onStartDrag} onEndDrag={onEndDrag}
                   onItemDragOver={onItemDragOver} onDrop={handleCanvasDrop}
-                  onMove={onMove} onRemove={onRemove} onQuickAdd={onQuickAdd}
+                  onRemove={onRemove} onQuickAdd={onQuickAdd}
                   selectedId={selectedId} onSelect={onSelect}
                   boxes={boxes} onMeasure={onMeasure}
                   onBoxChange={handleShapeBoxChange}
@@ -2493,9 +3158,11 @@ function Canvas({
             <BottomDockTabBar activePage={activePage} isDark={isDark} onNavTab={onNavTab} />
           </div>
         </div>
+        </div>
+        </div>
+        </div>
       </div>
-      </div>
-      
+
       {/* Figma-like Toolbar */}
       <CanvasToolbar
         onSelectTool={setDrawTool}
@@ -2504,6 +3171,19 @@ function Canvas({
         onPanModeChange={setPanMode}
         drawTool={drawTool}
       />
+
+      {contextMenu && (
+        <CanvasContextMenu
+          menu={contextMenu}
+          clipboard={clipboard}
+          onCopy={(build) => {
+            const next = build();
+            if (next) setClipboard(next);
+          }}
+          onPaste={pasteClipboard}
+          onClose={closeContextMenu}
+        />
+      )}
     </main>
   );
 }
@@ -4588,26 +5268,6 @@ export default function StudioClient() {
       : [id];
     removeModules(ids);
   };
-  const moveModule = (id: ModuleId, dir: -1 | 1) => {
-    const groupIds = id.startsWith('frame-')
-      ? new Set([id, ...currentModules.filter((moduleId) => boxes[moduleId]?.frameId === id)])
-      : new Set([id]);
-    const group = currentModules.filter((moduleId) => groupIds.has(moduleId));
-    if (group.length === 0) return;
-    const groupIndices = currentModules
-      .map((moduleId, index) => groupIds.has(moduleId) ? index : -1)
-      .filter((index) => index >= 0);
-    const targetIndex = dir < 0
-      ? Math.min(...groupIndices) - 1
-      : Math.max(...groupIndices) + 1;
-    if (targetIndex < 0 || targetIndex >= currentModules.length) return;
-    const targetId = currentModules[targetIndex];
-    const next = currentModules.filter((moduleId) => !groupIds.has(moduleId));
-    const remainingTargetIndex = next.indexOf(targetId);
-    next.splice(dir < 0 ? remainingTargetIndex : remainingTargetIndex + 1, 0, ...group);
-    commit(next);
-  };
-
   const quickAdd = (id: ModuleId) => addModule(id);
 
   const handleNavTab = (tab: TabId) => {
@@ -4642,40 +5302,106 @@ export default function StudioClient() {
     setActiveTextSlot(null);
   };
 
-  const handleAddShape = (type: CanvasInsertType, geometry: DrawBox) => {
-    const newId = createCanvasObjectId(type);
-    const centerX = (geometry.x ?? 0) + (geometry.w ?? 0) / 2;
-    const centerY = (geometry.y ?? 0) + (geometry.h ?? 0) / 2;
-    const frameId = type === 'frame' ? undefined : currentModules
-      .filter((moduleId) => moduleId.startsWith('frame-'))
-      .filter((moduleId) => {
-        const frame = boxes[moduleId] ?? {};
-        const frameX = frame.x ?? 0;
-        const frameY = frame.y ?? 0;
-        return centerX >= frameX && centerX <= frameX + (frame.w ?? 0)
-          && centerY >= frameY && centerY <= frameY + (frame.h ?? 0);
-      })
-      .sort((a, b) => (boxes[a]?.w ?? 0) * (boxes[a]?.h ?? 0) - (boxes[b]?.w ?? 0) * (boxes[b]?.h ?? 0))[0];
-    commit([...currentModules, newId]);
-    setSelectedId(newId);
-    onBoxChange(newId, { ...createShapeBox(type, geometry), frameId });
+  /** Frames on the current page, as read from a given boxes snapshot. */
+  const pageFrames = (source: Record<string, ModuleBox>): FrameCandidate[] => currentModules
+    .filter((moduleId) => moduleId.startsWith('frame-'))
+    .map((moduleId) => ({ id: moduleId, box: source[moduleId] ?? {} }));
+
+  /** Re-check which frame each of these phone objects sits in (after it is dropped). */
+  const assignPhoneFrames = (ids: ModuleId[]) => {
+    setBoxes((previous) => {
+      const frames = pageFrames(previous);
+      let next: Record<string, ModuleBox> | null = null;
+      ids.forEach((id) => {
+        if (id.startsWith('frame-') || !canvasInsertTypeForId(id) || !previous[id]) return;
+        const frameId = frameContaining(frames, previous[id]);
+        if (frameId === previous[id].frameId) return;
+        next ??= { ...previous };
+        next[id] = { ...previous[id], frameId };
+      });
+      return next ?? previous;
+    });
   };
 
-  const handleAddWorkspaceShapes = (shapes: WorkspaceShape[]) => {
-    if (shapes.length === 0) return;
-    const ids = shapes.map((shape) => createCanvasObjectId(shape.type));
-    const idByWorkspaceId = new Map(shapes.map((shape, index) => [shape.id, ids[index]]));
-    commit([...currentModules, ...ids]);
+  const handleAddShape = (type: CanvasInsertType, geometry: DrawBox) => {
+    const newId = createCanvasObjectId(type);
+    const shapeBox = createShapeBox(type, geometry);
+    commit([...currentModules, newId]);
+    setSelectedId(newId);
     setBoxes((previous) => {
       const next = { ...previous };
-      shapes.forEach((shape, index) => {
-        const frameId = shape.frameId ? idByWorkspaceId.get(shape.frameId) : undefined;
+      if (type === 'frame') {
+        // A frame drawn around loose objects groups them, like Figma.
+        currentModules.forEach((moduleId) => {
+          const box = previous[moduleId];
+          if (!box || moduleId.startsWith('frame-') || !canvasInsertTypeForId(moduleId) || box.frameId) return;
+          if (boxEncloses(shapeBox, box)) next[moduleId] = { ...box, frameId: newId };
+        });
+        next[newId] = shapeBox;
+      } else {
+        next[newId] = { ...shapeBox, frameId: frameContaining(pageFrames(previous), shapeBox) };
+      }
+      return next;
+    });
+  };
+
+  /**
+   * Bring free-floating objects into the phone (dragged in from the workspace or pasted).
+   * Component instances join the page's component stack, before `insertBefore` when given;
+   * one that is already on the page falls back to its flattened copy.
+   */
+  const handleAddWorkspaceShapes = (shapes: WorkspaceShape[], insertBefore?: ModuleId | null) => {
+    if (shapes.length === 0) return;
+    const singleSlot = !!SINGLE_SLOT[activePage];
+    const components: { id: ModuleId; box: ModuleBox }[] = [];
+    const objects: WorkspaceShape[] = [];
+    shapes.forEach((shape) => {
+      if (shape.type !== 'component') {
+        objects.push(shape);
+        return;
+      }
+      const componentId = shape.componentId;
+      const canPlaceLive = !!componentId
+        && !!moduleFor(componentId)
+        && !currentModules.includes(componentId)
+        && !components.some((component) => component.id === componentId)
+        && !(singleSlot && components.length > 0);
+      if (canPlaceLive) {
+        const { x: _x, y: _y, frameId: _frameId, html: _html, ...box } = shape.box;
+        components.push({ id: componentId, box });
+      } else if (shape.box.html) {
+        objects.push({ ...shape, type: 'element', componentId: undefined });
+      }
+    });
+    if (components.length === 0 && objects.length === 0) return;
+
+    const ids = objects.map((shape) => createCanvasObjectId(shape.type));
+    const idByWorkspaceId = new Map(objects.map((shape, index) => [shape.id, ids[index]]));
+    // A single-slot page keeps one component: a pasted one replaces it (canvas objects stay).
+    const stack = singleSlot && components.length > 0
+      ? currentModules.filter((moduleId) => canvasInsertTypeForId(moduleId))
+      : [...currentModules];
+    const insertAt = insertBefore ? stack.indexOf(insertBefore) : -1;
+    stack.splice(insertAt >= 0 ? insertAt : stack.length, 0, ...components.map((component) => component.id));
+    commit([...stack, ...ids]);
+    setBoxes((previous) => {
+      const next = { ...previous };
+      const frames = pageFrames(previous);
+      components.forEach((component) => { next[component.id] = component.box; });
+      objects.forEach((shape, index) => {
+        // Objects keep their own frame; loose ones join the frame they land in.
+        const frameId = shape.frameId
+          ? idByWorkspaceId.get(shape.frameId)
+          : shape.type === 'frame' ? undefined : frameContaining(frames, shape.box);
         next[ids[index]] = { ...shape.box, frameId };
       });
       return next;
     });
-    const frameIndex = shapes.findIndex((shape) => shape.type === 'frame');
-    setSelectedId(ids[frameIndex >= 0 ? frameIndex : ids.length - 1]);
+    const frameIndex = objects.findIndex((shape) => shape.type === 'frame');
+    setSelectedId(frameIndex >= 0
+      ? ids[frameIndex]
+      : ids[ids.length - 1] ?? components[components.length - 1].id);
+    setSelectedWorkspaceShapeId(null);
   };
 
   // Wrapper to reset text slot on new selection
@@ -4743,13 +5469,14 @@ export default function StudioClient() {
             selectedId={selectedId} onSelect={handleSelectModule}
             onStartDrag={startDrag} onEndDrag={endDrag}
             onItemDragOver={handleItemDragOver} onDrop={handleDrop}
-            onMove={moveModule} onRemove={removeModule} onQuickAdd={quickAdd}
+            onRemove={removeModule} onQuickAdd={quickAdd}
             onNavTab={handleNavTab}
             boxes={boxes}
             onMeasure={onMeasure}
             onBoxChange={onBoxChange}
             onAddShape={handleAddShape}
             onAddWorkspaceShapes={handleAddWorkspaceShapes}
+            onAssignFrames={assignPhoneFrames}
             onRemoveMany={removeModules}
             workspaceShapes={workspaceShapes}
             setWorkspaceShapes={setWorkspaceShapes}
