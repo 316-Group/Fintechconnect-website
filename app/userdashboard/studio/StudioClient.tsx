@@ -724,7 +724,7 @@ function ComponentThumbnail({ id, ctx }: { id: ModuleId; ctx: ViewCtx }) {
 function LeftPanel({
   appKind, onAppKind, activePage, onSelectPage, expandedPage, onToggleExpand,
   pageModules, accent, onStartDrag, onEndDrag, drag, onAddModule, onRemoveModule,
-  selectedId, onSelectModule, onAssetClick, measured,
+  selectedId, onSelectModule, onAssetClick, onAssetApply, measured,
   onSelectTextSlot, onCollapse,
 }: {
   appKind: AppKind; onAppKind: (k: AppKind) => void;
@@ -739,6 +739,7 @@ function LeftPanel({
   onSelectModule: (id: ModuleId) => void;
   onSelectTextSlot: (id: ModuleId, slot: string | null) => void;
   onAssetClick: (asset: AssetItem) => void;
+  onAssetApply: (asset: AssetItem) => void;
   onCollapse: () => void;
   measured: Record<string, { w: number; h: number }>;
 }){
@@ -1027,6 +1028,7 @@ function LeftPanel({
           accent={accent}
           onAssetDragStart={onAssetClick}
           onAssetClick={onAssetClick}
+          onAssetApply={onAssetApply}
         />
       )}
 
@@ -1215,19 +1217,39 @@ function canvasObjectTitle(id: ModuleId | null, box?: ModuleBox): string | null 
   return labels[type] ?? 'Shape';
 }
 
+/**
+ * An image/icon asset on the canvas. Like a Figma image layer it takes the right panel's
+ * properties: a fill (color, gradient or image) behind the asset, stroke, corner radius
+ * and padding.
+ */
 function CanvasAssetObject({ box }: { box: ModuleBox }) {
   return (
     <div
-      role="img"
-      aria-label={box.assetName ?? 'Canvas asset'}
-      className="h-full w-full"
+      className="h-full w-full overflow-hidden"
       style={{
-        backgroundImage: box.assetUrl ? `url("${box.assetUrl}")` : undefined,
-        backgroundPosition: 'center',
-        backgroundRepeat: 'no-repeat',
-        backgroundSize: 'contain',
+        ...backgroundForBox(box),
+        border: box.strokeWidth
+          ? `${box.strokeWidth}px ${box.strokeStyle ?? 'solid'} ${box.strokeColor ?? '#0040DF'}`
+          : undefined,
+        borderRadius: radiusForBox(box),
+        boxSizing: 'border-box',
+        padding: box.padding
+          ? `${box.padding.top}px ${box.padding.right}px ${box.padding.bottom}px ${box.padding.left}px`
+          : undefined,
       }}
-    />
+    >
+      <div
+        role="img"
+        aria-label={box.assetName ?? 'Canvas asset'}
+        className="h-full w-full"
+        style={{
+          backgroundImage: box.assetUrl ? `url("${box.assetUrl}")` : undefined,
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
+          backgroundSize: 'contain',
+        }}
+      />
+    </div>
   );
 }
 
@@ -1616,7 +1638,8 @@ function GenericShape({
   const style: React.CSSProperties = {
     width: '100%',
     height: '100%',
-    backgroundColor: isComment ? '#ffffff' : fill,
+    // Color, gradient or image fill (so media backgrounds work on frames and shapes too).
+    ...(isComment ? { backgroundColor: '#ffffff' } : backgroundForBox(box) ?? { backgroundColor: fill }),
     border: isLine || isText || isComment ? undefined : `${strokeWidth}px ${box.strokeStyle ?? 'solid'} ${stroke}`,
     boxSizing: 'border-box',
     borderRadius,
@@ -5661,6 +5684,49 @@ export default function StudioClient() {
     });
   };
 
+  /**
+   * Apply a clicked asset to the selected component/object: a media asset becomes its
+   * background (image fill), a color token its fill color. With a text field of a
+   * component selected, a token colors that text instead.
+   */
+  const applyAssetToSelection = (asset: AssetItem) => {
+    if (asset.kind === 'token' && asset.color && selectedId && activeTextSlot && !selectedWorkspaceShapeId) {
+      setTextStyle(selectedId, activeTextSlot, { color: asset.color });
+      return;
+    }
+    const workspaceShape = selectedWorkspaceShapeId
+      ? workspaceShapes.find((shape) => shape.id === selectedWorkspaceShapeId)
+      : undefined;
+    const targetId = workspaceShape ? null : selectedId;
+    if (!workspaceShape && !targetId) return;
+    const type = workspaceShape?.type ?? (targetId ? canvasInsertTypeForId(targetId) : null);
+
+    let patch: ModuleBox | null = null;
+    if (asset.kind === 'media' && asset.dataUrl) {
+      if (type === 'shape-text' || (type && STROKE_ONLY_TYPES.includes(type))) return;
+      patch = {
+        fillType: 'image',
+        fillGradient: undefined,
+        imageFill: { url: asset.dataUrl, name: asset.name, fit: 'crop', opacity: 100, visible: true },
+      };
+    } else if (asset.kind === 'token' && asset.color) {
+      patch = type === 'shape-text'
+        ? { textColor: asset.color }
+        : type && STROKE_ONLY_TYPES.includes(type)
+          ? { strokeColor: asset.color }
+          : { fillType: 'color', fillColor: asset.color, fillGradient: undefined };
+    }
+    if (!patch) return;
+    const applied = patch;
+    if (workspaceShape) {
+      setWorkspaceShapes((shapes) => shapes.map((shape) => shape.id === workspaceShape.id
+        ? { ...shape, box: { ...shape.box, ...applied } }
+        : shape));
+    } else if (targetId) {
+      onBoxChange(targetId, applied);
+    }
+  };
+
   const addPhoneAsset = (
     assetId: string,
     position: { x: number; y: number },
@@ -5961,6 +6027,7 @@ export default function StudioClient() {
               ...assets.filter((item) => item.id !== asset.id),
               asset,
             ])}
+            onAssetApply={applyAssetToSelection}
             onCollapse={() => setLeftPanelCollapsed(true)}
           />}
           <Canvas

@@ -28,6 +28,11 @@ type AssetTabProps = {
   accent?: string;
   onAssetDragStart?: (asset: AssetItem) => void;
   onAssetClick?: (asset: AssetItem) => void;
+  /**
+   * Clicking a media/background asset or a color token applies it to the selected
+   * component: media becomes its background, a token its fill color.
+   */
+  onAssetApply?: (asset: AssetItem) => void;
 };
 
 const svgUrl = (svg: string) => `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
@@ -219,7 +224,7 @@ const attachAssetDrag = (
 
 /* ─────────────────────────── Component ─────────────────────────── */
 
-export default function AssetTab({ accent = '#0040DF', onAssetDragStart, onAssetClick }: AssetTabProps) {
+export default function AssetTab({ accent = '#0040DF', onAssetDragStart, onAssetClick, onAssetApply }: AssetTabProps) {
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<AssetFilter>('all');
   const [selectedId, setSelectedId] = useState<string | null>('media-mesh');
@@ -344,7 +349,9 @@ export default function AssetTab({ accent = '#0040DF', onAssetDragStart, onAsset
                   onClick={() => {
                     setSelectedId(asset.id);
                     onAssetClick?.(asset);
+                    onAssetApply?.(asset);
                   }}
+                  title="Click to use as the selected component's background, or drag onto the canvas"
                   className={`group relative cursor-grab rounded-lg border bg-white p-2 transition active:cursor-grabbing ${
                     selectedId === asset.id
                       ? 'border-[#0040DF] shadow-sm ring-1 ring-[#0040DF]/20'
@@ -471,7 +478,9 @@ export default function AssetTab({ accent = '#0040DF', onAssetDragStart, onAsset
                   onClick={() => {
                     setSelectedId(a.id);
                     onAssetClick?.(a);
+                    onAssetApply?.(a);
                   }}
+                  title="Click to use as the selected component's background, or drag onto the canvas"
                   className={`group flex cursor-grab items-center gap-2 rounded-lg border bg-white p-2 transition active:cursor-grabbing ${
                     selectedId === a.id
                       ? 'border-[#0040DF] shadow-sm ring-1 ring-[#0040DF]/20'
@@ -521,7 +530,9 @@ export default function AssetTab({ accent = '#0040DF', onAssetDragStart, onAsset
                   onClick={() => {
                     setSelectedId(a.id);
                     onAssetClick?.(a);
+                    onAssetApply?.(a);
                   }}
+                  title={`Click to fill the selected component with ${a.name} (${a.format})`}
                   className={`group cursor-grab rounded-lg border bg-white p-1.5 text-center transition active:cursor-grabbing ${
                     selectedId === a.id
                       ? 'border-[#0040DF] shadow-sm ring-1 ring-[#0040DF]/20'
