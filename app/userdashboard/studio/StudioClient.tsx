@@ -1,7 +1,7 @@
 // /client/app/userdashboard/studio/StudioClient.tsx
 'use client';
 
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Urbanist, Outfit } from 'next/font/google';
 import {
@@ -49,6 +49,36 @@ const CORNER_HANDLES = [
   { k: 'sw', cls: 'bottom-0 left-0 -translate-x-1/2 translate-y-1/2 cursor-nesw-resize' },
   { k: 'se', cls: 'bottom-0 right-0 translate-x-1/2 translate-y-1/2 cursor-nwse-resize' },
 ] as const;
+
+/** Invisible strips along each side, so objects can be resized from any edge (like Figma). */
+const EDGE_HANDLES = [
+  { k: 'n', cls: 'top-0 inset-x-2 h-2 -translate-y-1/2 cursor-ns-resize' },
+  { k: 's', cls: 'bottom-0 inset-x-2 h-2 translate-y-1/2 cursor-ns-resize' },
+  { k: 'w', cls: 'left-0 inset-y-2 w-2 -translate-x-1/2 cursor-ew-resize' },
+  { k: 'e', cls: 'right-0 inset-y-2 w-2 translate-x-1/2 cursor-ew-resize' },
+] as const;
+
+/** Name for a new frame: one more than the highest "Frame N" already used. */
+function nextFrameName(boxes: ModuleBox[]): string {
+  const highest = boxes.reduce((max, box) => {
+    const match = /^Frame (\d+)$/.exec(box.name ?? '');
+    return match ? Math.max(max, Number(match[1])) : max;
+  }, 0);
+  return `Frame ${highest + 1}`;
+}
+
+/** Small Figma-style name tag above a frame's top-left corner. */
+function FrameLabel({ name, selected }: { name: string; selected: boolean }) {
+  return (
+    <span
+      className={`pointer-events-none absolute bottom-full left-0 mb-1 select-none whitespace-nowrap text-[11px] font-medium leading-none ${
+        selected ? 'text-[#0040DF]' : 'text-slate-500'
+      }`}
+    >
+      {name}
+    </span>
+  );
+}
 
 type IconType = React.ComponentType<{ className?: string }>;
 type IconMeta = { Icon: IconType; bg: string; text: string };
@@ -229,7 +259,11 @@ type ModuleBox = {
   frameId?: string;
   flipX?: boolean;
   flipY?: boolean;
+  /** Display name, e.g. "Frame 3". */
+  name?: string;
   text?: string;
+  /** Extra formatting for text layers (letter spacing, case, decoration…) from the text panel. */
+  textStyle?: EditableTextStyle;
   textColor?: string;
   fontSize?: number | string;
   fontWeight?: number | string;
@@ -267,15 +301,20 @@ type ModuleBox = {
   layerBlur?: number;
 };
 
+/** Objects drawn purely as a stroke (they keep a visible line by default). */
+const STROKE_ONLY_TYPES: CanvasInsertType[] = ['shape-line', 'shape-arrow', 'shape-scribble'];
+
 function createShapeBox(type: CanvasInsertType, geometry: DrawBox): ModuleBox {
   return {
     ...geometry,
     fillType: ['shape-text', 'shape-comment', 'shape-line', 'shape-scribble'].includes(type) ? 'none' : 'color',
-    fillColor: '#ffffff',
-    // Frames default to a plain white container with no border.
-    strokeWidth: type === 'frame' ? 0 : 2,
-    strokeColor: '#0040DF',
-    text: type === 'shape-text' ? 'Text' : undefined,
+    // Frames default to plain white; other shapes to a light grey (like Figma) so they
+    // stay visible without a border.
+    fillColor: type === 'frame' ? '#ffffff' : '#D9D9D9',
+    // No default border, except on line-type objects which are drawn with their stroke.
+    strokeWidth: STROKE_ONLY_TYPES.includes(type) ? 2 : 0,
+    strokeColor: STROKE_ONLY_TYPES.includes(type) ? '#0040DF' : '#000000',
+    text: type === 'shape-text' ? '' : undefined,
   };
 }
 
@@ -1114,7 +1153,7 @@ function radiusForBox(box: ModuleBox): string | undefined {
 
 function canvasObjectTitle(id: ModuleId | null, box?: ModuleBox): string | null {
   if (id?.startsWith('asset-')) return box?.assetName ?? 'Image Asset';
-  if (id?.startsWith('frame-')) return 'Frame';
+  if (id?.startsWith('frame-')) return box?.name ?? 'Frame';
   if (id?.startsWith('element-')) return 'Copied layer';
   if (id?.startsWith('component-')) return 'Component instance';
   if (!id?.startsWith('shape-')) return null;
@@ -1218,14 +1257,25 @@ function CanvasComponentInstance({ box, componentId, ctx }: { box: ModuleBox; co
 }
 
 function CanvasObjectContent({
-  type, shapeId, box, componentId, ctx,
+  type, shapeId, box, componentId, ctx, objectId, onBoxChange, onEmpty,
 }: {
   type: CanvasInsertType; shapeId: string; box: ModuleBox; componentId?: ModuleId; ctx: ViewCtx;
+  objectId?: string;
+  onBoxChange?: (patch: ModuleBox) => void;
+  onEmpty?: () => void;
 }) {
   if (type === 'asset') return <CanvasAssetObject box={box} />;
   if (type === 'element') return <CanvasElementSnapshot box={box} />;
   if (type === 'component') return <CanvasComponentInstance box={box} componentId={componentId} ctx={ctx} />;
-  return <GenericShape id={shapeId} box={box} onBoxChange={() => {}} />;
+  return (
+    <GenericShape
+      id={shapeId}
+      box={box}
+      onBoxChange={onBoxChange ?? (() => {})}
+      objectId={objectId}
+      onEmpty={onEmpty}
+    />
+  );
 }
 
 const SNAPSHOT_STRIPPED_ATTRIBUTES = [
@@ -1348,14 +1398,164 @@ function CanvasContextMenu({
   );
 }
 
+/** A text layer's current font size in px (its set size, or what it renders at). */
+function textFontSize(box: ModuleBox, container: HTMLElement | null): number {
+  const set = Number.parseFloat(String(box.fontSize ?? ''));
+  if (Number.isFinite(set) && set > 0) return set;
+  const field = container?.querySelector<HTMLElement>('[role="textbox"]');
+  return (field && Number.parseFloat(window.getComputedStyle(field).fontSize)) || 16;
+}
+
+/** Scale a text layer's font with its box when it is resized from a corner. */
+function scaledFontSize(startFontSize: number, startW: number, startH: number, next: ModuleBox): number {
+  const ratio = Math.sqrt(((next.w ?? startW) / (startW || 1)) * ((next.h ?? startH) / (startH || 1)));
+  return Math.max(4, Math.round(startFontSize * ratio * 10) / 10);
+}
+
+/** Text-panel fields that a text layer stores directly on its box (the rest go in `box.textStyle`). */
+const TEXT_LAYER_BOX_KEYS = ['fontSize', 'fontWeight', 'fontFamily', 'fontStyle', 'textAlign', 'lineHeight'] as const;
+const TEXT_LAYER_DEFAULT_COLOR = '#111827';
+/** Fired when a text layer is clicked, so the right panel shows its text formatting. */
+const TEXT_LAYER_CLICK_EVENT = 'studio:text-layer-click';
+
+/** A text layer's formatting in the shape the text formatting panel edits. */
+function textLayerStyle(box: ModuleBox): EditableTextStyle {
+  return {
+    ...box.textStyle,
+    color: box.textColor ?? TEXT_LAYER_DEFAULT_COLOR,
+    fontSize: box.fontSize ?? 16,
+    fontWeight: box.fontWeight as EditableTextStyle['fontWeight'],
+    fontFamily: box.fontFamily,
+    fontStyle: box.fontStyle as EditableTextStyle['fontStyle'],
+    textAlign: box.textAlign as EditableTextStyle['textAlign'],
+    lineHeight: box.lineHeight,
+    width: box.w,
+    height: box.h,
+  };
+}
+
+/** Turn a text formatting panel change (null = reset) into a patch for the text layer's box. */
+function textLayerPatch(box: ModuleBox, patch: Partial<EditableTextStyle> | null): ModuleBox {
+  if (patch === null) {
+    return {
+      textColor: undefined, fontSize: undefined, fontWeight: undefined, fontFamily: undefined,
+      fontStyle: undefined, textAlign: undefined, lineHeight: undefined, textStyle: undefined,
+    };
+  }
+  const next: ModuleBox = {};
+  const extra: Record<string, unknown> = { ...box.textStyle };
+  Object.entries(patch).forEach(([key, value]) => {
+    if (key === 'color') next.textColor = value as string | undefined;
+    else if (key === 'width') next.w = value === undefined ? undefined : Number.parseFloat(String(value)) || undefined;
+    else if (key === 'height') next.h = value === undefined ? undefined : Number.parseFloat(String(value)) || undefined;
+    else if ((TEXT_LAYER_BOX_KEYS as readonly string[]).includes(key)) (next as Record<string, unknown>)[key] = value;
+    else if (value === undefined) delete extra[key];
+    else extra[key] = value;
+  });
+  next.textStyle = extra as EditableTextStyle;
+  return next;
+}
+
+/** The text layer that should receive the typing cursor as soon as it mounts (set by the Text tool). */
+const textFocusRequest: { id: string | null } = { id: null };
+
+/**
+ * A canvas text layer. Like Figma, it is a plain object until double-clicked (or just
+ * placed with the Text tool), when it becomes editable with a typing cursor. A layer
+ * left empty is removed when editing ends.
+ */
+function CanvasTextField({
+  objectId, box, onTextChange, onEmpty,
+}: {
+  objectId?: string;
+  box: ModuleBox;
+  onTextChange: (text: string) => void;
+  onEmpty?: () => void;
+}) {
+  const ref = useRef<HTMLSpanElement>(null);
+  const [editing, setEditing] = useState(false);
+  const text = box.text ?? '';
+  // The layer box sizes the text container, so drop width/height from the text styling.
+  const fontStyle: React.CSSProperties = { ...textLayerStyle(box), width: undefined, height: undefined };
+
+  // The span is uncontrolled while typing; sync it only when the text changes elsewhere.
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (el && el.innerText !== text && document.activeElement !== el) el.innerText = text;
+  }, [text]);
+
+  const focusAtEnd = useCallback(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.focus();
+    const range = document.createRange();
+    range.selectNodeContents(el);
+    range.collapse(false);
+    const selection = window.getSelection();
+    selection?.removeAllRanges();
+    selection?.addRange(range);
+  }, []);
+
+  useEffect(() => {
+    if (!objectId || textFocusRequest.id !== objectId) return;
+    textFocusRequest.id = null;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- one-off entry into edit mode for a just-placed layer
+    setEditing(true);
+  }, [objectId]);
+
+  useEffect(() => {
+    if (editing) focusAtEnd();
+  }, [editing, focusAtEnd]);
+
+  return (
+    <span
+      ref={ref}
+      contentEditable={editing}
+      suppressContentEditableWarning
+      onInput={(event) => onTextChange(event.currentTarget.innerText)}
+      onClick={() => window.dispatchEvent(new Event(TEXT_LAYER_CLICK_EVENT))}
+      onDoubleClick={(event) => {
+        event.stopPropagation();
+        setEditing(true);
+      }}
+      onMouseDown={(event) => {
+        // While editing, clicks place the caret instead of dragging the layer.
+        if (editing) event.stopPropagation();
+      }}
+      onKeyDown={(event) => {
+        event.stopPropagation();
+        if (event.key === 'Escape') event.currentTarget.blur();
+      }}
+      onBlur={(event) => {
+        setEditing(false);
+        if (!event.currentTarget.innerText.trim()) onEmpty?.();
+      }}
+      role="textbox"
+      aria-label="Edit text"
+      className={`inline-block whitespace-pre-wrap outline-none ${editing ? 'cursor-text' : ''}`}
+      style={{
+        minWidth: 2,
+        minHeight: '1.2em',
+        ...fontStyle,
+      }}
+    />
+  );
+}
+
 function GenericShape({
   id,
   box,
   onBoxChange,
+  objectId,
+  onEmpty,
 }: {
   id: string;
   box: ModuleBox;
   onBoxChange: (patch: ModuleBox) => void;
+  /** The object's own id (`id` may just be its type), used to focus a just-placed text layer. */
+  objectId?: string;
+  /** Called when a text layer is left empty. */
+  onEmpty?: () => void;
 }) {
   const isCircle = id.includes('circle');
   const isText = id.includes('text');
@@ -1431,32 +1631,15 @@ function GenericShape({
     );
   }
 
-  const handleTextInput = (event: React.FormEvent<HTMLSpanElement>) => {
-    onBoxChange({ text: event.currentTarget.innerText });
-  };
-
   return (
-    <div className="flex h-full w-full items-center justify-center" style={style}>
+    <div className={`flex h-full w-full ${isText ? 'items-start justify-start' : 'items-center justify-center'}`} style={style}>
       {isText && (
-        <span
-          contentEditable
-          suppressContentEditableWarning
-          onInput={handleTextInput}
-          role="textbox"
-          aria-label="Edit text"
-          className="min-w-[24px] whitespace-pre-wrap outline-none"
-          style={{
-            color: box.textColor ?? '#111827',
-            fontSize: box.fontSize,
-            fontWeight: box.fontWeight,
-            fontFamily: box.fontFamily,
-            fontStyle: box.fontStyle,
-            textAlign: box.textAlign as React.CSSProperties['textAlign'],
-            lineHeight: box.lineHeight,
-          }}
-        >
-          {box.text ?? 'Text'}
-        </span>
+        <CanvasTextField
+          objectId={objectId}
+          box={box}
+          onTextChange={(text) => onBoxChange({ text })}
+          onEmpty={onEmpty}
+        />
       )}
       {isComment && <span className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-[12px] text-slate-700 shadow-sm">Comment</span>}
     </div>
@@ -1520,8 +1703,9 @@ function ModuleWrapper({
     if (natural) onMeasure(id, natural);
   }, [id, natural, onMeasure]);
 
-  const targetW = box.w ?? natural?.w ?? (isShape ? 100 : undefined);
-  const targetH = box.h ?? natural?.h ?? (isShape ? 100 : undefined);
+  // Text layers size to their text unless given a size (their size is only a minimum).
+  const targetW = isTextShape ? box.w : box.w ?? natural?.w ?? (isShape ? 100 : undefined);
+  const targetH = isTextShape ? box.h : box.h ?? natural?.h ?? (isShape ? 100 : undefined);
 
   const startResize = (e: React.MouseEvent, handle: string) => {
     e.preventDefault();
@@ -1538,6 +1722,7 @@ function ModuleWrapper({
     const bounds = parent?.getBoundingClientRect();
     const scaleX = bounds && parent ? bounds.width / parent.offsetWidth || 1 : 1;
     const scaleY = bounds && parent ? bounds.height / parent.offsetHeight || 1 : 1;
+    const startFontSize = isTextShape ? textFontSize(box, wrapperRef.current) : 0;
 
     const onMouseMove = (ev: MouseEvent) => {
       const dx = (ev.clientX - startClientX) / scaleX;
@@ -1553,6 +1738,7 @@ function ModuleWrapper({
         patch.h = Math.max(20, Math.round(startH - dy));
         patch.y = Math.round(baseY + dy);
       }
+      if (isTextShape && handle.length === 2) patch.fontSize = scaledFontSize(startFontSize, startW, startH, patch);
       onBoxChange(id, patch);
     };
     const onMouseUp = () => {
@@ -1583,7 +1769,14 @@ function ModuleWrapper({
       x: (event.clientX - shapeBounds.left) / (shapeBounds.width || 1),
       y: (event.clientY - shapeBounds.top) / (shapeBounds.height || 1),
     };
-    onShapeMove(id, box, { x: event.clientX, y: event.clientY }, grabRatio);
+    // The drag preview needs the real rendered size; text layers that grow with their
+    // text have no stored width/height (falling back to 100×100 made the drag drift).
+    const dragBox: ModuleBox = {
+      ...box,
+      w: Math.round(shapeBounds.width / scaleX),
+      h: Math.round(shapeBounds.height / scaleY),
+    };
+    onShapeMove(id, dragBox, { x: event.clientX, y: event.clientY }, grabRatio);
 
     const handleMove = (moveEvent: MouseEvent) => {
       const nextBox = {
@@ -1593,7 +1786,7 @@ function ModuleWrapper({
       onBoxChange(id, nextBox);
       onShapeMove(
         id,
-        { ...box, ...nextBox },
+        { ...dragBox, ...nextBox },
         { x: moveEvent.clientX, y: moveEvent.clientY },
         grabRatio,
       );
@@ -1694,6 +1887,7 @@ function ModuleWrapper({
       )}
 
       <DeleteBadge visible={false} onDelete={() => onRemove(id)} />
+      {isFrame && <FrameLabel name={box.name ?? 'Frame'} selected={selected} />}
 
       <div
         ref={contentRef}
@@ -1706,12 +1900,27 @@ function ModuleWrapper({
           : isElement
             ? <CanvasElementSnapshot box={box} />
           : isShape
-            ? <GenericShape id={id} box={box} onBoxChange={(patch) => onBoxChange(id, patch)} />
+            ? (
+              <GenericShape
+                id={id}
+                box={box}
+                onBoxChange={(patch) => onBoxChange(id, patch)}
+                objectId={id}
+                onEmpty={() => onRemove(id)}
+              />
+            )
           : <ModuleView id={id} ctx={ctxWithBox} />}
       </div>
 
       {selected && !drag && (
         <div className="pointer-events-none absolute z-30" style={{ inset: -4 }}>
+          {EDGE_HANDLES.map((h) => (
+            <span
+              key={h.k}
+              onMouseDown={(e) => startResize(e, h.k)}
+              className={`pointer-events-auto absolute ${h.cls}`}
+            />
+          ))}
           {CORNER_HANDLES.map((h) => (
             <span
               key={h.k}
@@ -1925,7 +2134,7 @@ function Canvas({
   boxes: Record<string, ModuleBox>;
   onMeasure: (id: ModuleId, size: { w: number; h: number }) => void;
   onBoxChange: (id: ModuleId, patch: ModuleBox) => void;
-  onAddShape: (type: CanvasInsertType, box: DrawBox) => void;
+  onAddShape: (type: CanvasInsertType, box: DrawBox) => ModuleId;
   onAddWorkspaceShapes: (shapes: WorkspaceShape[], insertBefore?: ModuleId | null) => void;
   onAssignFrames: (ids: ModuleId[]) => void;
   onRemoveMany: (ids: ModuleId[]) => void;
@@ -2166,8 +2375,14 @@ function Canvas({
       const width = box.w ?? 1;
       const height = box.h ?? 1;
       if (drawTool === 'shape-text') {
-        if (width < 8) box.w = 140;
-        if (height < 8) box.h = 36;
+        // A click places a typing cursor and the layer grows with the text (Figma-style);
+        // dragging out a box gives the text layer that size instead.
+        if (width < 8 || height < 8) {
+          delete box.w;
+          delete box.h;
+        }
+        delete box.flipX;
+        delete box.flipY;
       } else if (drawTool === 'shape-comment') {
         if (width < 8) box.w = 140;
         if (height < 8) box.h = 72;
@@ -2177,6 +2392,7 @@ function Canvas({
       }
       if (target === 'workspace') {
         const id = `workspace-shape-${++workspaceShapeIdRef.current}`;
+        if (drawTool === 'shape-text') textFocusRequest.id = id;
         onSelect(null);
         setSelectedWorkspaceShapeId(id);
         setWorkspaceShapes((shapes) => {
@@ -2197,7 +2413,13 @@ function Canvas({
           const drawn: WorkspaceShape = {
             id,
             type: drawTool,
-            box: { ...createShapeBox(drawTool, box), frameId },
+            box: {
+              ...createShapeBox(drawTool, box),
+              frameId,
+              ...(drawTool === 'frame'
+                ? { name: nextFrameName([...Object.values(boxes), ...shapes.map((shape) => shape.box)]) }
+                : {}),
+            },
             frameId,
           };
           // A frame drawn around loose objects groups them, like Figma.
@@ -2209,7 +2431,8 @@ function Canvas({
           return [...adopted, drawn];
         });
       } else {
-        onAddShape(drawTool, box);
+        const id = onAddShape(drawTool, box);
+        if (drawTool === 'shape-text') textFocusRequest.id = id;
       }
       setDrawPreview(null);
       setDrawPreviewTarget(null);
@@ -2269,8 +2492,11 @@ function Canvas({
     const scaleY = viewportScale;
     const startX = event.clientX;
     const startY = event.clientY;
-    const startW = shape.box.w ?? 100;
-    const startH = shape.box.h ?? 100;
+    const isText = shape.type === 'shape-text';
+    const shapeEl = event.currentTarget.closest<HTMLElement>('[data-workspace-shape-id]');
+    const startW = shape.box.w ?? (isText && shapeEl ? shapeEl.offsetWidth : 100);
+    const startH = shape.box.h ?? (isText && shapeEl ? shapeEl.offsetHeight : 100);
+    const startFontSize = isText ? textFontSize(shape.box, shapeEl) : 0;
     const baseX = shape.box.x ?? 0;
     const baseY = shape.box.y ?? 0;
 
@@ -2288,6 +2514,8 @@ function Canvas({
         patch.h = Math.max(20, startH - dy);
         patch.y = baseY + dy;
       }
+      // Resizing a text layer from a corner scales the text with it; edges only resize the box.
+      if (isText && handle.length === 2) patch.fontSize = scaledFontSize(startFontSize, startW, startH, patch);
       setWorkspaceShapes((shapes) => shapes.map((item) => item.id === shape.id
         ? { ...item, box: { ...item.box, ...patch } }
         : item));
@@ -2314,14 +2542,22 @@ function Canvas({
     const startY = event.clientY;
     const group = getWorkspaceGroup(shape, workspaceShapes);
     const groupIds = new Set(group.map((item) => item.id));
+    // Drag previews use each object's rendered size: text layers that grow with their text
+    // have no stored width/height, and the old 100×100 fallback made the drag drift.
+    const sizedGroup = group.map((item) => {
+      if (item.box.w !== undefined && item.box.h !== undefined) return item;
+      const el = workspaceRef.current?.querySelector<HTMLElement>(`[data-workspace-shape-id="${CSS.escape(item.id)}"]`);
+      return el ? { ...item, box: { ...item.box, w: item.box.w ?? el.offsetWidth, h: item.box.h ?? el.offsetHeight } } : item;
+    });
+    const sizedShape = sizedGroup.find((item) => item.id === shape.id) ?? shape;
     const bounds = event.currentTarget.getBoundingClientRect();
     const grabRatio = {
       x: (event.clientX - bounds.left) / (bounds.width || 1),
       y: (event.clientY - bounds.top) / (bounds.height || 1),
     };
     updateShapeDragPreview(
-      shape,
-      group,
+      sizedShape,
+      sizedGroup,
       { x: event.clientX, y: event.clientY },
       grabRatio,
     );
@@ -2345,7 +2581,7 @@ function Canvas({
           },
         };
       }));
-      const movedGroup = group.map((item) => ({
+      const movedGroup = sizedGroup.map((item) => ({
         ...item,
         box: {
           ...item.box,
@@ -2387,7 +2623,7 @@ function Canvas({
       const phoneScaleY = areaRect.height / (area.offsetHeight || 1) || 1;
       const pointerX = (upEvent.clientX - areaRect.left) / phoneScaleX;
       const pointerY = (upEvent.clientY - areaRect.top) / phoneScaleY + body.scrollTop;
-      const anchor = shape;
+      const anchor = sizedShape;
       const anchorX = pointerX - (anchor.box.w ?? 100) * grabRatio.x;
       const anchorY = pointerY - (anchor.box.h ?? 100) * grabRatio.y;
       const transferred = group.map((item) => ({
@@ -2424,6 +2660,17 @@ function Canvas({
     });
   };
 
+  /**
+   * Fill in a phone object's width/height from its rendered size when it has none stored
+   * (text layers grow with their text), so drag previews and drops line up with the cursor.
+   */
+  const withRenderedSize = (moduleId: ModuleId, box: ModuleBox): ModuleBox => {
+    if (box.w !== undefined && box.h !== undefined) return box;
+    const el = bodyRef.current?.querySelector<HTMLElement>(`[data-module-id="${CSS.escape(moduleId)}"]`);
+    if (!el) return box;
+    return { ...box, w: box.w ?? el.offsetWidth, h: box.h ?? el.offsetHeight };
+  };
+
   const handlePhoneShapeMoveEnd: ShapeMoveEnd = (id, pointer, grabRatio) => {
     setShapeDragPreview(null);
     const body = bodyRef.current;
@@ -2456,8 +2703,9 @@ function Canvas({
 
     const { x: pointerX, y: pointerY } = clientToWorld(pointer.x, pointer.y);
     const sourceBox = boxes[id] ?? {};
-    const width = sourceBox.w ?? 100;
-    const height = sourceBox.h ?? 100;
+    const sourceSize = withRenderedSize(id, sourceBox);
+    const width = sourceSize.w ?? 100;
+    const height = sourceSize.h ?? 100;
     const x = pointerX - width * grabRatio.x;
     const y = pointerY - height * grabRatio.y;
     const workspaceFrameId = id.startsWith('frame-')
@@ -2502,7 +2750,7 @@ function Canvas({
         if (boxes[moduleId]?.frameId !== id) return;
         const childType = canvasInsertTypeForId(moduleId);
         if (!childType) return;
-        const childBox = boxes[moduleId] ?? {};
+        const childBox = withRenderedSize(moduleId, boxes[moduleId] ?? {});
         group.push({
           id: moduleId,
           type: childType,
@@ -2943,14 +3191,14 @@ function Canvas({
         {drawTool && (
           <style>{`
             div[data-canvas-drawing] * {
-              cursor: crosshair !important;
+              cursor: ${drawTool === 'shape-text' ? 'text' : 'crosshair'} !important;
             }
             div[data-canvas-drawing] .studio-tinker-active button,
             div[data-canvas-drawing] .studio-tinker-active [data-text-slot],
             div[data-canvas-drawing] .studio-tinker-active [data-studio-element],
             div[data-canvas-drawing] .studio-tinker-active [data-tap-root],
             div[data-canvas-drawing] .studio-tinker-active [role="button"] {
-              cursor: crosshair !important;
+              cursor: ${drawTool === 'shape-text' ? 'text' : 'crosshair'} !important;
             }
           `}</style>
         )}
@@ -2998,7 +3246,7 @@ function Canvas({
                 top: shape.box.y ?? 0,
                 // Text layers treat their size as a minimum so the box grows with the text.
                 ...(shape.type === 'shape-text'
-                  ? { display: 'flex', minWidth: shape.box.w ?? 100, minHeight: shape.box.h ?? 100 }
+                  ? { display: 'flex', minWidth: shape.box.w, minHeight: shape.box.h }
                   : { width: shape.box.w ?? 100, height: shape.box.h ?? 100 }),
                 zIndex: shape.type === 'frame' ? 1 : isSelected ? 60 : index + 1,
                 opacity: shapeDragPreview?.items.some((item) => item.id === shape.id) ? 0 : undefined,
@@ -3007,15 +3255,28 @@ function Canvas({
               title="Drag into the phone canvas or reposition"
             >
               <DeleteBadge visible={isSelected} onDelete={() => removeWorkspaceShape(shape.id)} />
+              {shape.type === 'frame' && <FrameLabel name={shape.box.name ?? 'Frame'} selected={isSelected} />}
               <CanvasObjectContent
                 type={shape.type}
                 shapeId={shape.type}
                 box={shape.box}
                 componentId={shape.componentId}
                 ctx={ctx}
+                objectId={shape.id}
+                onBoxChange={(patch) => setWorkspaceShapes((shapes) => shapes.map((item) => item.id === shape.id
+                  ? { ...item, box: { ...item.box, ...patch } }
+                  : item))}
+                onEmpty={() => removeWorkspaceShape(shape.id)}
               />
               {isSelected && !drawTool && (
                 <div className="pointer-events-none absolute -inset-1 z-20 border-2 border-[#0040DF]">
+                  {EDGE_HANDLES.map((handle) => (
+                    <span
+                      key={handle.k}
+                      onMouseDown={(event) => startWorkspaceShapeResize(event, shape, handle.k)}
+                      className={`pointer-events-auto absolute ${handle.cls}`}
+                    />
+                  ))}
                   {CORNER_HANDLES.map((handle) => (
                     <span
                       key={handle.k}
@@ -3213,6 +3474,32 @@ const HexagonLinkIcon = () => (
 
 type PickerPosition = { top: number; left: number };
 
+/** `#RRGGBB` → hue (0–360), saturation and value (0–1). */
+function hexToHsv(hex: string): { h: number; s: number; v: number } {
+  const match = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  if (!match) return { h: 0, s: 0, v: 0 };
+  const [r, g, b] = match.slice(1).map((part) => parseInt(part, 16) / 255);
+  const max = Math.max(r, g, b);
+  const delta = max - Math.min(r, g, b);
+  let h = 0;
+  if (delta) {
+    if (max === r) h = ((g - b) / delta) % 6;
+    else if (max === g) h = (b - r) / delta + 2;
+    else h = (r - g) / delta + 4;
+    h = (h * 60 + 360) % 360;
+  }
+  return { h, s: max ? delta / max : 0, v: max };
+}
+
+/** Hue (0–360), saturation and value (0–1) → `#RRGGBB`. */
+function hsvToHex(h: number, s: number, v: number): string {
+  const channel = (n: number) => {
+    const k = (n + h / 60) % 6;
+    return Math.round((v - v * s * Math.max(0, Math.min(k, 4 - k, 1))) * 255);
+  };
+  return `#${[channel(5), channel(3), channel(1)].map((x) => x.toString(16).padStart(2, '0')).join('')}`.toUpperCase();
+}
+
 function AdvancedColorPicker({
   color, gradient, onChange, onGradientChange, position, title, onClose,
 }: {
@@ -3225,12 +3512,23 @@ function AdvancedColorPicker({
   onClose: () => void;
 }) {
   const [mode, setMode] = useState<'Solid' | 'Linear' | 'Radial'>(gradient?.type ?? 'Solid');
-  const [hexDraftState, setHexDraftState] = useState({ color, value: color.replace(/^#/, '').toUpperCase() });
-  const hexDraft = hexDraftState.color === color
-    ? hexDraftState.value
-    : color.replace(/^#/, '').toUpperCase();
-
+  // Which gradient stop the picker edits; solid fills always edit the main color.
+  const [activeStop, setActiveStop] = useState<'start' | 'end'>('start');
   const validColor = /^#[\da-f]{6}$/i.test(color) ? color : '#000000';
+  const endColor = gradient?.endColor ?? '#2563EB';
+  const editingEnd = mode !== 'Solid' && activeStop === 'end';
+  const editedColor = editingEnd ? (/^#[\da-f]{6}$/i.test(endColor) ? endColor : '#000000') : validColor;
+
+  const [hexDraftState, setHexDraftState] = useState({ color: editedColor, value: editedColor.replace(/^#/, '').toUpperCase() });
+  const hexDraft = hexDraftState.color === editedColor
+    ? hexDraftState.value
+    : editedColor.replace(/^#/, '').toUpperCase();
+
+  // Hue is kept separately so it survives greys/black/white, which have no hue of their own.
+  const hsv = hexToHsv(editedColor);
+  const [hueState, setHueState] = useState({ color: editedColor, hue: hsv.h });
+  const hue = hueState.color === editedColor ? hueState.hue : hsv.h;
+
   const hexToRgb = (hex: string) => {
     const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex || '#000000');
     return result ? {
@@ -3239,9 +3537,9 @@ function AdvancedColorPicker({
       b: parseInt(result[3], 16)
     } : { r: 0, g: 0, b: 0 };
   };
-  const rgb = hexToRgb(color);
+  const rgb = hexToRgb(editedColor);
   const rgbToHex = (r: number, g: number, b: number) =>
-    "#" + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('');
+    ("#" + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('')).toUpperCase();
 
   const brandPalette = ['#6D28D9', '#2563EB', '#1E293B', '#64748B', '#C7D2FE', '#FFFFFF'];
   const recentColors = ['#F8FAFC', '#8B5CF6', '#7C3AED', '#3B82F6', '#E0E7FF', '#1E293B'];
@@ -3268,6 +3566,48 @@ function AdvancedColorPicker({
       ...patch,
     });
   };
+
+  /** Apply a color to whichever stop is being edited. */
+  const setEditedColor = (hex: string, nextHue?: number) => {
+    const next = hex.toUpperCase();
+    if (nextHue !== undefined) setHueState({ color: next, hue: nextHue });
+    if (editingEnd) updateGradient({ endColor: next });
+    else onChange(next);
+  };
+
+  /** Drag inside a picker track, reporting the pointer position as 0–1 fractions. */
+  const startTrackDrag = (
+    event: React.PointerEvent<HTMLDivElement>,
+    apply: (fx: number, fy: number) => void,
+  ) => {
+    if (event.button !== 0) return;
+    event.preventDefault();
+    const track = event.currentTarget;
+    track.focus();
+    track.setPointerCapture(event.pointerId);
+    const update = (clientX: number, clientY: number) => {
+      const rect = track.getBoundingClientRect();
+      apply(
+        Math.min(1, Math.max(0, (clientX - rect.left) / (rect.width || 1))),
+        Math.min(1, Math.max(0, (clientY - rect.top) / (rect.height || 1))),
+      );
+    };
+    update(event.clientX, event.clientY);
+    const handleMove = (moveEvent: PointerEvent) => update(moveEvent.clientX, moveEvent.clientY);
+    const handleUp = () => {
+      track.removeEventListener('pointermove', handleMove);
+      track.removeEventListener('pointerup', handleUp);
+      track.removeEventListener('pointercancel', handleUp);
+    };
+    track.addEventListener('pointermove', handleMove);
+    track.addEventListener('pointerup', handleUp);
+    track.addEventListener('pointercancel', handleUp);
+  };
+
+  const setSaturationValue = (saturation: number, value: number) =>
+    setEditedColor(hsvToHex(hue, saturation, value), hue);
+  const setHue = (nextHue: number) =>
+    setEditedColor(hsvToHex(nextHue, hsv.s, hsv.v), nextHue);
 
   const picker = (
     <div
@@ -3300,38 +3640,99 @@ function AdvancedColorPicker({
           </div>
         )}
 
+        {mode !== 'Solid' && onGradientChange && (
+          <div className="space-y-1.5">
+            <div
+              className="h-4 w-full rounded border border-slate-200"
+              style={{
+                background: mode === 'Linear'
+                  ? `linear-gradient(${gradient?.angle ?? 135}deg, ${validColor}, ${endColor})`
+                  : `radial-gradient(circle, ${validColor}, ${endColor})`,
+              }}
+            />
+            <div className="flex gap-1.5">
+              {([
+                { stop: 'start', label: 'Start', swatch: validColor },
+                { stop: 'end', label: 'End', swatch: endColor },
+              ] as const).map(({ stop, label, swatch }) => (
+                <button
+                  key={stop}
+                  type="button"
+                  aria-pressed={activeStop === stop}
+                  onClick={() => setActiveStop(stop)}
+                  className={`flex flex-1 items-center gap-1.5 rounded border px-1.5 py-1 text-[10px] font-medium ${
+                    activeStop === stop ? 'border-[#0040DF] bg-[#EEF2FF] text-[#0040DF]' : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
+                  <span className="h-3.5 w-3.5 rounded-sm border border-slate-300" style={{ background: swatch }} />
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Saturation (x) / brightness (y) area for the current hue. */}
         <div
-          className="relative h-28 w-full overflow-hidden rounded-md"
+          role="slider"
+          tabIndex={0}
+          aria-label="Saturation and brightness"
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={Math.round(hsv.s * 100)}
+          aria-valuetext={`Saturation ${Math.round(hsv.s * 100)}%, brightness ${Math.round(hsv.v * 100)}%`}
+          onPointerDown={(event) => startTrackDrag(event, (fx, fy) => setSaturationValue(fx, 1 - fy))}
+          onKeyDown={(event) => {
+            const step = event.shiftKey ? 0.1 : 0.01;
+            const moves: Record<string, [number, number]> = {
+              ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, step], ArrowDown: [0, -step],
+            };
+            const move = moves[event.key];
+            if (!move) return;
+            event.preventDefault();
+            setSaturationValue(
+              Math.min(1, Math.max(0, hsv.s + move[0])),
+              Math.min(1, Math.max(0, hsv.v + move[1])),
+            );
+          }}
+          className="relative h-32 w-full cursor-crosshair touch-none select-none rounded-md outline-none focus-visible:ring-2 focus-visible:ring-[#0040DF]"
           style={{
-            background: mode === 'Linear'
-              ? `linear-gradient(${gradient?.angle ?? 135}deg, ${color}, ${gradient?.endColor ?? '#2563EB'})`
-              : mode === 'Radial'
-                ? `radial-gradient(circle, ${color}, ${gradient?.endColor ?? '#2563EB'})`
-                : `linear-gradient(to right, ${color}, ${color})`,
+            backgroundColor: `hsl(${hue}, 100%, 50%)`,
+            backgroundImage: 'linear-gradient(to top, #000, transparent), linear-gradient(to right, #fff, transparent)',
           }}
         >
-          <span className="pointer-events-none absolute left-2 top-2 h-5 w-5 rounded-full border-2 border-white ring-2 ring-[#0040DF]" style={{ backgroundColor: validColor }} />
-          <input
-            type="color"
-            aria-label="Choose color"
-            value={validColor}
-            onChange={(e) => onChange(e.target.value.toUpperCase())}
-            className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+          <span
+            className="pointer-events-none absolute h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white shadow-[0_0_0_1px_rgba(0,0,0,0.35)]"
+            style={{ left: `${hsv.s * 100}%`, top: `${(1 - hsv.v) * 100}%`, backgroundColor: editedColor }}
           />
         </div>
 
-        {mode !== 'Solid' && onGradientChange && (
+        {/* Hue strip. */}
+        <div
+          role="slider"
+          tabIndex={0}
+          aria-label="Hue"
+          aria-valuemin={0}
+          aria-valuemax={360}
+          aria-valuenow={Math.round(hue)}
+          onPointerDown={(event) => startTrackDrag(event, (fx) => setHue(Math.min(359.9, fx * 360)))}
+          onKeyDown={(event) => {
+            const step = event.shiftKey ? 10 : 1;
+            if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+            event.preventDefault();
+            setHue((hue + (event.key === 'ArrowRight' ? step : -step) + 360) % 360);
+          }}
+          className="relative h-3 w-full cursor-pointer touch-none select-none rounded-full outline-none focus-visible:ring-2 focus-visible:ring-[#0040DF]"
+          style={{ background: 'linear-gradient(to right, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00)' }}
+        >
+          <span
+            className="pointer-events-none absolute top-1/2 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white shadow-[0_0_0_1px_rgba(0,0,0,0.35)]"
+            style={{ left: `${(hue / 360) * 100}%`, backgroundColor: `hsl(${hue}, 100%, 50%)` }}
+          />
+        </div>
+
+        {mode === 'Linear' && onGradientChange && (
           <div className="space-y-2 rounded-md border border-slate-200 bg-slate-50 p-2">
-            <label className="flex items-center justify-between gap-2 text-[10px] font-medium text-slate-600">
-              <span>Gradient end</span>
-              <input
-                type="color"
-                aria-label="Gradient end color"
-                value={gradient?.endColor ?? '#2563EB'}
-                onChange={(event) => updateGradient({ endColor: event.target.value.toUpperCase() })}
-                className="h-6 w-8 cursor-pointer rounded border border-slate-300"
-              />
-            </label>
             {mode === 'Linear' && (
               <label className="flex items-center gap-2 text-[10px] font-medium text-slate-600">
                 <span>Angle</span>
@@ -3363,12 +3764,12 @@ function AdvancedColorPicker({
               maxLength={6}
               onChange={(e) => {
                 const next = e.target.value.replace(/[^0-9a-f]/gi, '').slice(0, 6).toUpperCase();
-                setHexDraftState({ color, value: next });
-                if (/^[\da-f]{6}$/i.test(next)) onChange(`#${next}`);
+                setHexDraftState({ color: editedColor, value: next });
+                if (/^[\da-f]{6}$/i.test(next)) setEditedColor(`#${next}`);
               }}
               onBlur={() => {
                 if (!/^[\da-f]{6}$/i.test(hexDraft)) {
-                  setHexDraftState({ color, value: color.replace(/^#/, '').toUpperCase() });
+                  setHexDraftState({ color: editedColor, value: editedColor.replace(/^#/, '').toUpperCase() });
                 }
               }}
               className="w-full bg-transparent text-[11px] font-mono text-slate-800 outline-none uppercase"
@@ -3393,7 +3794,7 @@ function AdvancedColorPicker({
                 onChange={(e) => {
                   const num = parseInt(e.target.value) || 0;
                   const newRgb = { ...rgb, [key]: Math.min(255, Math.max(0, num)) };
-                  onChange(rgbToHex(newRgb.r, newRgb.g, newRgb.b));
+                  setEditedColor(rgbToHex(newRgb.r, newRgb.g, newRgb.b));
                 }}
                 className="w-full bg-transparent text-[11px] text-slate-800 outline-none text-right [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
               />
@@ -3408,7 +3809,7 @@ function AdvancedColorPicker({
           </div>
           <div className="flex gap-1.5">
             {brandPalette.map(c => (
-              <button key={c} type="button" onClick={() => onChange(c)} className="h-6 w-6 rounded border border-slate-200" style={{ background: c }} />
+              <button key={c} type="button" onClick={() => setEditedColor(c)} className="h-6 w-6 rounded border border-slate-200" style={{ background: c }} />
             ))}
           </div>
         </div>
@@ -3417,7 +3818,7 @@ function AdvancedColorPicker({
           <span className="mb-1 block text-[9px] font-bold uppercase tracking-wider text-slate-500">Recent Colors</span>
           <div className="flex gap-1.5">
             {recentColors.map(c => (
-              <button key={c} type="button" onClick={() => onChange(c)} className="h-6 w-6 rounded-full border border-slate-200" style={{ background: c }} />
+              <button key={c} type="button" onClick={() => setEditedColor(c)} className="h-6 w-6 rounded-full border border-slate-200" style={{ background: c }} />
             ))}
           </div>
         </div>
@@ -4214,6 +4615,47 @@ function RightPanel({
     }
     e.target.value = '';
   };
+
+  // Text layers (Text tool) open the text formatting panel when selected or clicked.
+  // Closing it shows the layer's regular properties until its text is clicked again.
+  const isTextLayer = !!selectedId?.startsWith('shape-text-');
+  const [textPanelClosed, setTextPanelClosed] = useState(false);
+  const [textPanelFor, setTextPanelFor] = useState(selectedId);
+  if (textPanelFor !== selectedId) {
+    setTextPanelFor(selectedId);
+    setTextPanelClosed(false);
+  }
+  useEffect(() => {
+    const reopen = () => setTextPanelClosed(false);
+    window.addEventListener(TEXT_LAYER_CLICK_EVENT, reopen);
+    return () => window.removeEventListener(TEXT_LAYER_CLICK_EVENT, reopen);
+  }, []);
+
+  if (isTextLayer && !textPanelClosed && !activeTextSlot && selectedId) {
+    return (
+      <aside className="flex w-[270px] shrink-0 flex-col border-l border-slate-200 bg-white">
+        <div className="flex h-10 shrink-0 items-center justify-end border-b border-slate-100 px-2">
+          <button
+            type="button"
+            title="Collapse right panel"
+            aria-label="Collapse right panel"
+            onClick={onCollapse}
+            className="grid h-7 w-7 place-items-center rounded-md text-slate-500 hover:bg-slate-100 hover:text-[#0040DF]"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </button>
+        </div>
+        <TextFormattingPanel
+          textLabel={box.name ?? 'Text layer'}
+          textValue={box.text ?? ''}
+          textStyle={textLayerStyle(box)}
+          onTextChange={(value) => onBoxChange(selectedId, { text: value })}
+          onStyleChange={(patch) => onBoxChange(selectedId, textLayerPatch(box, patch))}
+          onClose={() => setTextPanelClosed(true)}
+        />
+      </aside>
+    );
+  }
 
   // Conditional Render for Text Formatting Panel
   if (activeTextSlot) {
@@ -5337,12 +5779,16 @@ export default function StudioClient() {
           if (!box || moduleId.startsWith('frame-') || !canvasInsertTypeForId(moduleId) || box.frameId) return;
           if (boxEncloses(shapeBox, box)) next[moduleId] = { ...box, frameId: newId };
         });
-        next[newId] = shapeBox;
+        next[newId] = {
+          ...shapeBox,
+          name: nextFrameName([...Object.values(previous), ...workspaceShapes.map((shape) => shape.box)]),
+        };
       } else {
         next[newId] = { ...shapeBox, frameId: frameContaining(pageFrames(previous), shapeBox) };
       }
       return next;
     });
+    return newId;
   };
 
   /**

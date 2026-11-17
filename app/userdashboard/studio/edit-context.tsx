@@ -55,6 +55,13 @@ export const CORNER_HANDLES = [
   { k: 'se', cls: 'bottom-0 right-0 translate-x-1/2 translate-y-1/2 cursor-nwse-resize' },
 ] as const;
 
+export const EDGE_HANDLES = [
+  { k: 'n', cls: 'top-0 inset-x-2 h-2 -translate-y-1/2 cursor-ns-resize' },
+  { k: 's', cls: 'bottom-0 inset-x-2 h-2 translate-y-1/2 cursor-ns-resize' },
+  { k: 'w', cls: 'left-0 inset-y-2 w-2 -translate-x-1/2 cursor-ew-resize' },
+  { k: 'e', cls: 'right-0 inset-y-2 w-2 translate-x-1/2 cursor-ew-resize' },
+] as const;
+
 export interface EditState {
   mode: 'view' | 'edit';
   selectedId: ModuleId | null;
@@ -416,6 +423,19 @@ function applyElementSize(el: HTMLElement, w: number | undefined, h: number | un
 }
 
 /**
+ * The text slot a resize of `el` should scale: the part itself when it is a text field,
+ * or its only text slot when the part holds nothing but that text. Buttons and parts
+ * with icons/images keep their font size when resized.
+ */
+function scalableTextSlot(el: HTMLElement): HTMLElement | null {
+  if (el.dataset.textSlot) return el;
+  if (el.tagName === 'BUTTON' || el.querySelector('svg, img, button')) return null;
+  const slots = el.querySelectorAll<HTMLElement>('[data-text-slot]');
+  if (slots.length !== 1) return null;
+  return slots[0].textContent?.trim() === el.textContent?.trim() ? slots[0] : null;
+}
+
+/**
  * Format a human-friendly display name for an element.
  */
 export function getElementDisplayName(id: string, targetEl?: HTMLElement | null): string {
@@ -699,6 +719,10 @@ export function ElementTinkerHost({
     const baseY = currentBox.y ?? 0;
     const startW = currentBox.w ?? targetEl.offsetWidth;
     const startH = currentBox.h ?? targetEl.offsetHeight;
+    // Resizing a text field from its corners scales the text with the box.
+    const textSlotEl = scalableTextSlot(targetEl);
+    const textSlot = textSlotEl?.dataset.textSlot;
+    const startFontSize = textSlotEl ? Number.parseFloat(window.getComputedStyle(textSlotEl).fontSize) || 14 : 14;
 
     const hostRect = hostRef.current.getBoundingClientRect();
     const scaleX = hostRect.width / hostRef.current.offsetWidth || 1;
@@ -722,6 +746,14 @@ export function ElementTinkerHost({
       if (handle.includes('n')) {
         patch.h = Math.max(16, Math.round(startH - dy));
         patch.y = Math.round(baseY + dy);
+      }
+
+      // Only corner drags scale the text; edges just resize the box.
+      if (textSlot && handle.length === 2 && patch.w !== undefined && patch.h !== undefined) {
+        const ratio = Math.sqrt((patch.w / (startW || 1)) * (patch.h / (startH || 1)));
+        edit?.setTextStyle(moduleId, textSlot, {
+          fontSize: Math.max(4, Math.round(startFontSize * ratio * 10) / 10),
+        });
       }
 
       applyElementSize(targetEl, patch.w, patch.h);
@@ -825,7 +857,15 @@ export function ElementTinkerHost({
             }}
           />
 
-          {/* The 4 corner handles */}
+          {/* Edge strips (resize from any side) and the 4 corner handles */}
+          {EDGE_HANDLES.map((h) => (
+            <span
+              key={h.k}
+              data-corner-handle={h.k}
+              onMouseDown={(e) => handleResize(e, h.k)}
+              className={`pointer-events-auto absolute ${h.cls}`}
+            />
+          ))}
           {CORNER_HANDLES.map((h) => (
             <span
               key={h.k}
