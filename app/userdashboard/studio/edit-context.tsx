@@ -795,15 +795,12 @@ export function ElementTinkerHost({
           .studio-tinker-active [data-studio-element],
           .studio-tinker-active [data-tap-root],
           .studio-tinker-active [role="button"]:not([data-text-slot]) {
-            cursor: grab !important;
+            cursor: move !important;
             transition: outline 0.15s ease !important;
           }
-          .studio-tinker-active button:hover,
-          .studio-tinker-active [data-text-slot]:hover,
-          .studio-tinker-active [data-studio-element]:hover,
-          .studio-tinker-active [data-tap-root]:hover,
-          .studio-tinker-active [role="button"]:not([data-text-slot]):hover {
-            outline: 1.5px dashed rgba(0, 64, 223, 0.45) !important;
+          /* Highlight only the innermost hovered part, like Figma. */
+          .studio-tinker-active :is(button, [data-text-slot], [data-studio-element], [data-tap-root], [role="button"]):hover:not(:has(:is(button, [data-text-slot], [data-studio-element], [data-tap-root], [role="button"]):hover)) {
+            outline: 1.5px solid #0040DF !important;
             outline-offset: 2px !important;
           }
         `}</style>
@@ -974,7 +971,7 @@ export function EditableText({
         }
       }}
       className={`${className ?? ''} transition ${
-        scope.active ? 'cursor-grab' : ''
+        scope.active ? 'cursor-move' : ''
       }`}
       style={resolvedStyle}
     >

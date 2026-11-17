@@ -675,6 +675,52 @@ function PageMenuItem({
   );
 }
 
+/** Width components render at in the hover preview's live render area (320px card minus padding). */
+const COMPONENT_PREVIEW_WIDTH = 288;
+
+/**
+ * A component tile in the library grid. The component renders at the hover preview's
+ * width, then scales down uniformly to fit the tile, so it is never squished.
+ */
+function ComponentThumbnail({ id, ctx }: { id: ModuleId; ctx: ViewCtx }) {
+  const frameRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(0.45);
+
+  useLayoutEffect(() => {
+    const frame = frameRef.current;
+    const content = contentRef.current;
+    if (!frame || !content) return;
+    // The observer also fires once straight away, which sets the initial scale.
+    const observer = new ResizeObserver(() => {
+      const fit = Math.min(
+        frame.clientWidth / COMPONENT_PREVIEW_WIDTH,
+        frame.clientHeight / (content.offsetHeight || 1),
+      );
+      setScale((previous) => (Math.abs(previous - fit) < 0.001 ? previous : fit));
+    });
+    observer.observe(frame);
+    observer.observe(content);
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <div ref={frameRef} className="relative h-full w-full overflow-hidden rounded-md bg-[#F7F8FF]">
+      <div
+        ref={contentRef}
+        className="pointer-events-none absolute left-1/2 top-1/2"
+        style={{
+          width: COMPONENT_PREVIEW_WIDTH,
+          transform: `translate(-50%, -50%) scale(${scale})`,
+          transformOrigin: 'center',
+        }}
+      >
+        <ModuleView id={id} ctx={ctx} passive />
+      </div>
+    </div>
+  );
+}
+
 function LeftPanel({
   appKind, onAppKind, activePage, onSelectPage, expandedPage, onToggleExpand,
   pageModules, accent, onStartDrag, onEndDrag, drag, onAddModule, onRemoveModule,
@@ -781,11 +827,7 @@ function LeftPanel({
           isDragging ? 'opacity-50' : ''
         }`}
       >
-        <div className="flex h-full items-center justify-center overflow-hidden rounded-md bg-[#F7F8FF]">
-          <div className="pointer-events-none origin-center" style={{ transform: 'scale(0.42)', width: '238%' }}>
-            <ModuleView id={mod.id} ctx={previewCtx} passive />
-          </div>
-        </div>
+        <ComponentThumbnail id={mod.id} ctx={previewCtx} />
       </div>
     );
   };
@@ -1127,10 +1169,11 @@ function DeleteBadge({ visible, onDelete }: { visible: boolean; onDelete: () => 
     <button
       type="button"
       aria-label="Delete"
+      data-delete-badge
       title="Delete"
       onMouseDown={(event) => event.stopPropagation()}
       onClick={(event) => { event.stopPropagation(); onDelete(); }}
-      className={`absolute -right-1.5 -top-1.5 z-30 grid h-[18px] w-[18px] place-items-center rounded-full bg-white text-slate-500 shadow-sm ring-1 ring-slate-200 transition hover:bg-rose-50 hover:text-rose-600 ${
+      className={`absolute -right-1.5 -top-1.5 z-30 grid h-[18px] cursor-pointer w-[18px] place-items-center rounded-full bg-white text-slate-500 shadow-sm ring-1 ring-slate-200 transition hover:bg-rose-50 hover:text-rose-600 ${
         visible ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
       }`}
     >
@@ -1877,9 +1920,12 @@ function ModuleWrapper({
         cursor: isDrawing ? 'crosshair' : undefined,
         opacity: isShapeDragSource ? 0 : wrapperStyle.opacity,
       }}
-      className={`group relative cursor-grab active:cursor-grabbing ${
+      className={`group relative cursor-move ${
         isDark ? 'ring-offset-slate-950' : 'ring-offset-[#F7F8FF]'
-      } ${isShape ? 'cursor-move' : ''} ${isSource ? 'opacity-40' : ''}`}
+      } ${
+        // Figma-style hover highlight (the selection outline takes over once selected).
+        !selected && !isDrawing && !drag ? 'hover:outline hover:outline-[1.5px] hover:outline-[#0040DF]' : ''
+      } ${isSource ? 'opacity-40' : ''}`}
     >
       {drag && dropIndex === index && <DropLine side="top" accent={accent} />}
       {drag && dropIndex === total && index === total - 1 && (
@@ -3185,9 +3231,17 @@ function Canvas({
         onContextMenu={openContextMenu}
         data-canvas-drawing={drawTool ? 'true' : undefined}
         className={`relative min-h-0 w-full flex-1 overflow-hidden ${
-          panMode ? 'cursor-grab active:cursor-grabbing' : drawTool ? 'cursor-crosshair' : ''
+          panMode ? 'cursor-grab active:cursor-grabbing' : drawTool === 'shape-text' ? 'cursor-text' : drawTool ? 'cursor-crosshair' : ''
         }`}
       >
+        {/* Inside components and canvas objects the cursor is the move cursor (as over frames),
+            except on resize handles, the delete button and text being edited. */}
+        <style>{`
+          [data-module-content-root] *:not(input):not(textarea):not([contenteditable="true"]):not([class*="-resize"]),
+          [data-workspace-shape-id] *:not(input):not(textarea):not([contenteditable="true"]):not([class*="-resize"]):not([data-delete-badge]):not([data-delete-badge] *) {
+            cursor: inherit;
+          }
+        `}</style>
         {drawTool && (
           <style>{`
             div[data-canvas-drawing] * {
@@ -3251,7 +3305,9 @@ function Canvas({
                 zIndex: shape.type === 'frame' ? 1 : isSelected ? 60 : index + 1,
                 opacity: shapeDragPreview?.items.some((item) => item.id === shape.id) ? 0 : undefined,
               }}
-              className="group pointer-events-auto cursor-move"
+              className={`group pointer-events-auto cursor-move ${
+                !isSelected && !drawTool && !shapeDragPreview ? 'hover:outline hover:outline-[1.5px] hover:outline-offset-2 hover:outline-[#0040DF]' : ''
+              }`}
               title="Drag into the phone canvas or reposition"
             >
               <DeleteBadge visible={isSelected} onDelete={() => removeWorkspaceShape(shape.id)} />
@@ -3378,7 +3434,7 @@ function Canvas({
                   }
                   if (e.target === e.currentTarget) onSelect(null);
                 }}
-                className={`relative min-h-full ${drawTool ? 'cursor-crosshair' : ''}`}
+                className={`relative min-h-full ${drawTool === 'shape-text' ? 'cursor-text' : drawTool ? 'cursor-crosshair' : ''}`}
               >
                 <PageCanvas
                   page={activePage} pageLabel={pageLabel}
