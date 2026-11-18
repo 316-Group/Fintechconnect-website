@@ -14,7 +14,7 @@ import {
   CircleDollarSign, Coins, LayoutGrid, Type, Square, Circle, Minus,
   Sparkles, Sun, Droplet, SlidersHorizontal, Move, MousePointer2, Hand,
   Frame, Star, ArrowRight, Spline, MessageCircle,
-  AlignLeft, AlignCenter, AlignRight, AlignJustify, Underline,
+  AlignLeft, AlignCenter, AlignRight, AlignJustify, Underline, Pencil,
 } from 'lucide-react';
 import {
   PAGES, APP_KINDS, PAGE_TO_TAB, TAB_TO_PAGE, SINGLE_SLOT,
@@ -39,6 +39,13 @@ import {
 } from './edit-context';
 import { EDITABLE_SCHEMA } from './editable-schema';
 import AssetTab, { type AssetItem } from './assettab';
+import {
+  LayoutTab, autoLayoutCss, layoutSize, layoutWrapperStyle, type LayoutFields,
+} from './othertabs';
+import {
+  CREATED_DRAG_TYPE, CreatedComponentsMenuItem, findCreatedComponent, saveCreatedComponent,
+  type LayerNode, type LayerSection,
+} from './createdcomponents';
 
 const urbanist = Urbanist({ subsets: ['latin'], weight: ['400', '500', '600', '700', '800'], display: 'swap' });
 const outfit = Outfit({ subsets: ['latin'], weight: ['400', '500', '600', '700'], display: 'swap' });
@@ -67,6 +74,43 @@ function nextFrameName(boxes: ModuleBox[]): string {
   return `Frame ${highest + 1}`;
 }
 
+/**
+ * Every object nested under `rootId` through `frameId` links: a frame's children, and
+ * objects grouped into a shape (which may itself sit in a frame). Parents come before children.
+ */
+function descendantIds(rootId: string, ids: string[], parentOf: (id: string) => string | undefined): string[] {
+  const result: string[] = [];
+  const seen = new Set([rootId]);
+  const queue = [rootId];
+  while (queue.length) {
+    const parent = queue.shift()!;
+    for (const id of ids) {
+      if (seen.has(id) || parentOf(id) !== parent) continue;
+      seen.add(id);
+      result.push(id);
+      queue.push(id);
+    }
+  }
+  return result;
+}
+
+/** Clipboard entries for an object and its descendants, each child pointing at its parent's entry. */
+function clipboardTree<T extends { id: string; parent?: string }>(
+  items: T[],
+  toItem: (item: T) => ClipboardItem | null,
+): ClipboardItem[] {
+  const index = new Map<string, number>();
+  const result: ClipboardItem[] = [];
+  items.forEach((item) => {
+    const entry = toItem(item);
+    if (!entry) return;
+    const parent = item.parent !== undefined ? index.get(item.parent) : undefined;
+    index.set(item.id, result.length);
+    result.push(parent !== undefined ? { ...entry, parent } : entry);
+  });
+  return result;
+}
+
 /** Small Figma-style name tag above a frame's top-left corner. */
 function FrameLabel({ name, selected }: { name: string; selected: boolean }) {
   return (
@@ -89,11 +133,11 @@ const COMP_LIBRARY_ORDER: CompLibraryId[] = ['banking', 'crypto', 'general'];
 
 const COMP_LIBRARY_META: Record<
   CompLibraryId,
-  { label: string; description: string; Icon: IconType; bg: string; text: string }
+  { label: string; description: string; img: string; bg: string; text: string }
 > = {
-  banking: { label: 'Banking UIs', description: 'Accounts, cards, payments & money movement', Icon: Landmark, bg: 'bg-blue-50', text: 'text-blue-600' },
-  crypto: { label: 'Crypto UIs', description: 'Wallets, tokens, swaps & on-chain activity', Icon: Coins, bg: 'bg-violet-50', text: 'text-violet-600' },
-  general: { label: 'General UIs', description: 'Shared app chrome, alerts, settings & more', Icon: LayoutGrid, bg: 'bg-slate-100', text: 'text-slate-600' },
+  banking: { label: 'Banking UIs', description: 'Accounts, cards, payments & money movement', img: '/dashboard/compstab1.png' , bg: 'bg-blue-50', text: 'text-blue-600' },
+  crypto: { label: 'Crypto UIs', description: 'Wallets, tokens, swaps & on-chain activity', img: '/dashboard/compstab2.png', bg: 'bg-violet-50', text: 'text-violet-600' },
+  general: { label: 'General UIs', description: 'Shared app chrome, alerts, settings & more', img: '/dashboard/compstab3.png', bg: 'bg-slate-100', text: 'text-slate-600' },
 };
 
 const COMP_SUBGROUPS: { id: string; label: string; Icon: IconType; bg: string; text: string }[] = [
@@ -228,8 +272,16 @@ type ContextMenuState = {
   x: number;
   y: number;
   /** What was right-clicked: the part under the cursor (if any) first, then its whole object. */
-  targets: { name: string; copy: () => StudioClipboard | null; remove: () => void }[];
+  targets: {
+    name: string;
+    copy: () => StudioClipboard | null;
+    remove: () => void;
+    /** Frames can be renamed from the menu. */
+    rename?: { value: string; apply: (name: string) => void };
+  }[];
   paste: PasteTarget | null;
+  /** Extra actions such as grouping the Ctrl+clicked selection. */
+  actions?: { label: string; run: () => void; disabled?: boolean }[];
 };
 type ComponentVariant = 'Default' | 'Masked' | 'Negative';
 type FillGradient = {
@@ -251,7 +303,7 @@ type EffectType = 'none' | 'glassmorphism' | 'shadow' | 'blur';
 
 type Insets = { top: number; right: number; bottom: number; left: number };
 
-type ModuleBox = {
+type ModuleBox = LayoutFields & {
   w?: number;
   h?: number;
   x?: number;
@@ -303,6 +355,8 @@ type ModuleBox = {
 
 /** Objects drawn purely as a stroke (they keep a visible line by default). */
 const STROKE_ONLY_TYPES: CanvasInsertType[] = ['shape-line', 'shape-arrow', 'shape-scribble'];
+/** Layers that are grouped into a shape rather than becoming a group's parent. */
+const NON_CONTAINER_TYPES = new Set<string>([...STROKE_ONLY_TYPES, 'shape-text', 'shape-comment']);
 
 function createShapeBox(type: CanvasInsertType, geometry: DrawBox): ModuleBox {
   return {
@@ -331,6 +385,15 @@ function frameContaining(frames: FrameCandidate[], box: ModuleBox): string | und
       return centerX >= x && centerX <= x + (frame.w ?? 0) && centerY >= y && centerY <= y + (frame.h ?? 0);
     })
     .sort((a, b) => (a.box.w ?? 0) * (a.box.h ?? 0) - (b.box.w ?? 0) * (b.box.h ?? 0))[0]?.id;
+}
+
+/** Whether the centre of `inner` lies within `outer` (a grouped layer still sits over its group's shape). */
+function centerInside(outer: ModuleBox, inner: ModuleBox): boolean {
+  const centerX = (inner.x ?? 0) + (inner.w ?? 0) / 2;
+  const centerY = (inner.y ?? 0) + (inner.h ?? 0) / 2;
+  const x = outer.x ?? 0;
+  const y = outer.y ?? 0;
+  return centerX >= x && centerX <= x + (outer.w ?? 0) && centerY >= y && centerY <= y + (outer.h ?? 0);
 }
 
 /** Whether `inner` lies completely within `outer` (used when a frame is drawn around existing objects). */
@@ -721,12 +784,63 @@ function ComponentThumbnail({ id, ctx }: { id: ModuleId; ctx: ViewCtx }) {
   );
 }
 
+type LayerSource = { id: string; key: string; type: string; name: string; parent?: string };
+
+/**
+ * Build a Figma-style layers tree from canvas objects linked by their parent (frame or
+ * group) id. Frontmost layers are listed first. A shape with layers grouped into it is
+ * shown as a group holding the shape and those layers.
+ */
+function buildLayerNodes(items: LayerSource[]): LayerNode[] {
+  const ids = new Set(items.map((item) => item.id));
+  const childrenOf = new Map<string, LayerSource[]>();
+  const roots: LayerSource[] = [];
+  items.forEach((item) => {
+    if (item.parent && item.parent !== item.id && ids.has(item.parent)) {
+      childrenOf.set(item.parent, [...(childrenOf.get(item.parent) ?? []), item]);
+    } else {
+      roots.push(item);
+    }
+  });
+  let groupCount = 0;
+  const visited = new Set<string>();
+  const build = (item: LayerSource): LayerNode => {
+    visited.add(item.id);
+    const children = (childrenOf.get(item.id) ?? [])
+      .filter((child) => !visited.has(child.id))
+      .map(build)
+      .reverse();
+    const node: LayerNode = { key: item.key, name: item.name, kind: item.type, selectKey: item.key, children: [] };
+    if (item.type === 'frame') return { ...node, children };
+    if (children.length === 0) return node;
+    groupCount += 1;
+    return {
+      key: `g:${item.key}`,
+      name: `Group ${groupCount}`,
+      kind: 'group',
+      selectKey: item.key,
+      children: [...children, node],
+    };
+  };
+  return roots.map(build).reverse();
+}
+
+/** The name a canvas object gets in the layers tree. */
+function layerName(type: CanvasInsertType, box: ModuleBox, componentId?: ModuleId): string {
+  if (type === 'shape-text') return box.text?.trim().slice(0, 40) || 'Text';
+  if (type === 'component') return (componentId && moduleFor(componentId)?.title) || 'Component';
+  return canvasObjectTitle(`${type}-layer` as ModuleId, box) ?? 'Shape';
+}
+
 function LeftPanel({
   appKind, onAppKind, activePage, onSelectPage, expandedPage, onToggleExpand,
   pageModules, accent, onStartDrag, onEndDrag, drag, onAddModule, onRemoveModule,
   selectedId, onSelectModule, onAssetClick, onAssetApply, measured,
-  onSelectTextSlot, onCollapse,
+  onSelectTextSlot, onCollapse, layerSections, selectedLayerKey, onSelectLayer,
 }: {
+  layerSections: LayerSection[];
+  selectedLayerKey: string | null;
+  onSelectLayer: (key: string) => void;
   appKind: AppKind; onAppKind: (k: AppKind) => void;
   activePage: PageId; onSelectPage: (p: PageId) => void;
   expandedPage: PageId | null; onToggleExpand: (p: PageId) => void;
@@ -918,6 +1032,12 @@ function LeftPanel({
                 onShowPreview={handleShowPreview}
               />
             ))}
+            <CreatedComponentsMenuItem
+              sections={layerSections}
+              selectedKey={selectedLayerKey}
+              onSelectLayer={onSelectLayer}
+              query={query}
+            />
           </ul>
           <div className="border-t border-slate-200 p-2">
             <button className="flex w-full items-center justify-center gap-1.5 rounded-md border border-dashed border-slate-300 py-1.5 text-[10px] font-semibold text-slate-600 hover:border-[#0040DF] hover:text-[#0040DF]">
@@ -956,8 +1076,8 @@ function LeftPanel({
                     onClick={() => { setCompLibrary(id); setActiveCompSubgroup(null); }}
                     className="group w-full overflow-hidden rounded-xl border border-slate-200 bg-white text-left transition hover:border-[#0040DF]/40 hover:shadow-sm"
                   >
-                    <div className={`flex h-24 items-center justify-center ${meta.bg}`}>
-                      <meta.Icon className={`h-10 w-10 ${meta.text}`} />
+                    <div className={`flex h-24 items-center justify-center overflow-hidden ${meta.bg}`}>
+                      <img src={meta.img} alt={meta.label} className="h-full w-full object-cover" />
                     </div>
                     <div className="flex items-center justify-between px-3 py-2">
                       <div className="min-w-0">
@@ -1165,25 +1285,6 @@ function DropLine({ side, accent }: { side: 'top' | 'bottom'; accent: string }) 
   );
 }
 
-/** Small delete button shown at the top-right corner of a hovered (or selected) canvas object. */
-function DeleteBadge({ visible, onDelete }: { visible: boolean; onDelete: () => void }) {
-  return (
-    <button
-      type="button"
-      aria-label="Delete"
-      data-delete-badge
-      title="Delete"
-      onMouseDown={(event) => event.stopPropagation()}
-      onClick={(event) => { event.stopPropagation(); onDelete(); }}
-      className={`absolute -right-1.5 -top-1.5 z-30 grid h-[18px] cursor-pointer w-[18px] place-items-center rounded-full bg-white text-slate-500 shadow-sm ring-1 ring-slate-200 transition hover:bg-rose-50 hover:text-rose-600 ${
-        visible ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
-      }`}
-    >
-      <Trash2 className="h-2.5 w-2.5" />
-    </button>
-  );
-}
-
 function radiusForBox(box: ModuleBox): string | undefined {
   if (box.shapeType === 'rounded') return '16px';
   if (box.shapeType === 'sharp') return '0px';
@@ -1289,7 +1390,7 @@ function ctxForBox(ctx: ViewCtx, box: ModuleBox): ViewCtx {
     } : undefined,
     customBackground: box.fillType === 'color' ? background : undefined,
     customBackgroundImage: box.fillType === 'image' ? background : undefined,
-    stretchHeight: box.h !== undefined,
+    stretchHeight: box.h !== undefined || box.heightMode === 'fill',
   };
 }
 
@@ -1421,6 +1522,13 @@ function CanvasContextMenu({
 
   const itemClass = 'flex w-full items-center justify-between gap-6 rounded-md px-2.5 py-1.5 text-left text-[11px] font-medium text-slate-700 hover:bg-[#0040DF] hover:text-white disabled:cursor-not-allowed disabled:text-slate-300 disabled:hover:bg-transparent';
   const shortcut = 'text-[10px] opacity-60';
+  const renameTarget = menu.targets.find((item) => item.rename);
+  const [renameDraft, setRenameDraft] = useState<string | null>(null);
+  const saveRename = () => {
+    const name = renameDraft?.trim();
+    if (name && renameTarget?.rename) renameTarget.rename.apply(name);
+    onClose();
+  };
 
   return createPortal(
     <div
@@ -1430,6 +1538,44 @@ function CanvasContextMenu({
       className={`${urbanist.className} fixed z-[200] min-w-[200px] rounded-lg bg-white p-1 shadow-[0_12px_32px_rgba(15,23,42,0.18)] ring-1 ring-slate-200`}
       style={position}
     >
+      {renameTarget?.rename && (
+        renameDraft === null ? (
+          <button type="button" role="menuitem" className={itemClass}
+            onClick={() => setRenameDraft(renameTarget.rename!.value)}>
+            <span className="flex items-center gap-2"><Pencil className="h-3 w-3 shrink-0" /> Rename frame</span>
+          </button>
+        ) : (
+          <form
+            className="flex items-center gap-1 px-1 py-1"
+            onSubmit={(event) => { event.preventDefault(); saveRename(); }}
+          >
+            <input
+              autoFocus
+              aria-label="Frame name"
+              value={renameDraft}
+              onChange={(event) => setRenameDraft(event.target.value)}
+              onFocus={(event) => event.currentTarget.select()}
+              onKeyDown={(event) => {
+                event.stopPropagation();
+                if (event.key === 'Escape') onClose();
+              }}
+              className="h-7 min-w-0 flex-1 rounded-md border border-[#0040DF] px-2 text-[11px] text-slate-800 outline-none"
+            />
+            <button type="submit" className="h-7 rounded-md bg-[#0040DF] px-2 text-[11px] font-semibold text-white hover:bg-[#0036BF]">
+              Save
+            </button>
+          </form>
+        )
+      )}
+      {menu.actions?.map((action) => (
+        <button key={action.label} type="button" role="menuitem" className={itemClass}
+          disabled={action.disabled}
+          onClick={() => { action.run(); onClose(); }}>
+          <span>{action.label}</span>
+          {action.label === 'Group items' && <span className={shortcut}>Ctrl+G</span>}
+        </button>
+      ))}
+      {(renameTarget?.rename || !!menu.actions?.length) && <div className="my-1 h-px bg-slate-100" />}
       {menu.targets.map((item, index) => (
         <button key={`copy-${index}`} type="button" role="menuitem" className={itemClass}
           onClick={() => { onCopy(item.copy); onClose(); }}>
@@ -1584,8 +1730,30 @@ function CanvasTextField({
         setEditing(true);
       }}
       onMouseDown={(event) => {
-        // While editing, clicks place the caret instead of dragging the layer.
-        if (editing) event.stopPropagation();
+        if (!editing || event.button !== 0) return;
+        // While editing, a click places the caret; dragging past a few pixels leaves
+        // edit mode and moves the whole text box instead.
+        event.stopPropagation();
+        const start = { x: event.clientX, y: event.clientY };
+        const field = event.currentTarget;
+        const handleMove = (moveEvent: MouseEvent) => {
+          if (Math.hypot(moveEvent.clientX - start.x, moveEvent.clientY - start.y) < 4) return;
+          cleanup();
+          const layer = field.closest<HTMLElement>('[data-module-id], [data-workspace-shape-id]');
+          window.getSelection()?.removeAllRanges();
+          field.blur();
+          // Start the layer's own drag from where the press began.
+          layer?.dispatchEvent(new MouseEvent('mousedown', {
+            bubbles: true, cancelable: true, button: 0, clientX: start.x, clientY: start.y,
+          }));
+          window.dispatchEvent(new MouseEvent('mousemove', { clientX: moveEvent.clientX, clientY: moveEvent.clientY }));
+        };
+        const cleanup = () => {
+          window.removeEventListener('mousemove', handleMove);
+          window.removeEventListener('mouseup', cleanup);
+        };
+        window.addEventListener('mousemove', handleMove);
+        window.addEventListener('mouseup', cleanup);
       }}
       onKeyDown={(event) => {
         event.stopPropagation();
@@ -1597,8 +1765,10 @@ function CanvasTextField({
       }}
       role="textbox"
       aria-label="Edit text"
-      className={`inline-block whitespace-pre-wrap outline-none ${editing ? 'cursor-text' : ''}`}
+      className="inline-block whitespace-pre-wrap outline-none"
       style={{
+        // Hovering a text box shows the move cursor (as over other objects), even while typing.
+        cursor: 'move',
         minWidth: 2,
         minHeight: '1.2em',
         ...fontStyle,
@@ -1889,28 +2059,40 @@ function ModuleWrapper({
 
   const ctxWithBox = ctxForBox(ctx, box);
 
+  // Layout tab: Fill / Hug sizing, pinning and absolute positioning.
+  const pinned = !!box.pinLeftRight;
+  const fillW = pinned || box.widthMode === 'fill';
+  const fillH = box.heightMode === 'fill';
+  const isAbsolute = isShape || box.position === 'absolute';
+  const isGroupedLayer = !!box.frameId && !box.frameId.startsWith('frame-');
+  const autoLayoutStyle = isShape ? null : autoLayoutCss(id, box);
+
   const wrapperStyle: React.CSSProperties = {
     // Text layers treat their size as a minimum so the box grows with the text.
-    ...(isTextShape ? { minWidth: targetW, minHeight: targetH } : { width: targetW, height: targetH }),
-    position: isShape ? 'absolute' : undefined,
-    left: isShape ? box.x ?? 0 : undefined,
-    top: isShape ? box.y ?? 0 : undefined,
+    ...(isTextShape
+      ? { minWidth: targetW, minHeight: targetH }
+      : { width: layoutSize(box.widthMode, pinned, targetW), height: layoutSize(box.heightMode, false, targetH) }),
+    position: isAbsolute ? 'absolute' : undefined,
+    left: isAbsolute ? (pinned ? 0 : box.x ?? 0) : undefined,
+    top: isAbsolute ? box.y ?? 0 : undefined,
     transform:
-      (!isShape && (box.x !== undefined || box.y !== undefined)) || box.rotation !== undefined
-        ? `${!isShape ? `translate(${box.x ?? 0}px, ${box.y ?? 0}px) ` : ''}rotate(${box.rotation ?? 0}deg)`
+      (!isAbsolute && (box.x !== undefined || box.y !== undefined)) || box.rotation !== undefined
+        ? `${!isAbsolute ? `translate(${box.x ?? 0}px, ${box.y ?? 0}px) ` : ''}rotate(${box.rotation ?? 0}deg)`
         : undefined,
     opacity: box.opacity === undefined ? undefined : box.opacity / 100,
     outline: selected ? '2px solid #0040DF' : undefined,
     outlineOffset: 4,
-    zIndex: isFrame ? (selected ? 15 : 10) : isShape ? (selected ? 30 : 20) : undefined,
+    // Layers grouped into a shape stay above it, even while the shape is selected.
+    zIndex: isFrame ? (selected ? 15 : 10) : isShape ? (isGroupedLayer ? 35 : selected ? 30 : 20) : undefined,
+    ...layoutWrapperStyle(box),
     ...customEffect,
   };
 
   const contentStyle: React.CSSProperties = isTextShape
     ? { display: 'flex', minWidth: targetW, minHeight: targetH }
     : {
-        width: isShape ? targetW : box.w !== undefined ? '100%' : undefined,
-        height: isShape ? targetH : box.h !== undefined ? '100%' : undefined,
+        width: fillW ? '100%' : isShape ? targetW : box.w !== undefined ? '100%' : undefined,
+        height: fillH ? '100%' : isShape ? targetH : box.h !== undefined ? '100%' : undefined,
       };
 
   return (
@@ -1955,8 +2137,8 @@ function ModuleWrapper({
         <DropLine side="bottom" accent={accent} />
       )}
 
-      <DeleteBadge visible={false} onDelete={() => onRemove(id)} />
       {isFrame && <FrameLabel name={box.name ?? 'Frame'} selected={selected} />}
+      {autoLayoutStyle && <style>{autoLayoutStyle}</style>}
 
       <div
         ref={contentRef}
@@ -2251,6 +2433,11 @@ function Canvas({
   const [shapeDragPreview, setShapeDragPreview] = useState<ShapeDragPreview | null>(null);
   const [clipboard, setClipboard] = useState<StudioClipboard | null>(null);
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
+  /** A short message shown over the canvas (e.g. after saving a frame). */
+  const [canvasNotice, setCanvasNotice] = useState<string | null>(null);
+  const canvasNoticeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** Objects picked with Ctrl/Cmd+click, as `p:<phone id>` or `w:<workspace id>` keys. */
+  const [multiSelection, setMultiSelection] = useState<string[]>([]);
   const lastPointerRef = React.useRef<{ x: number; y: number } | null>(null);
 
   /** Convert a screen position to world (workspace) coordinates. */
@@ -2513,11 +2700,19 @@ function Canvas({
     window.addEventListener('mouseup', handleUp);
   };
 
+  /** An object plus everything nested in it (frame children, grouped layers), parents first. */
   const getWorkspaceGroup = (shape: WorkspaceShape, shapes: WorkspaceShape[]) => {
-    return shape.type === 'frame'
-      ? shapes.filter((item) => item.id === shape.id || item.frameId === shape.id)
-      : [shape];
+    const byId = new Map(shapes.map((item) => [item.id, item]));
+    const nested = descendantIds(shape.id, shapes.map((item) => item.id), (id) => byId.get(id)?.frameId);
+    return [shape, ...nested.flatMap((id) => byId.get(id) ?? [])];
   };
+
+  /** Phone objects nested in this one (frame children, grouped layers), parents first. */
+  const phoneDescendants = (id: ModuleId) => descendantIds(
+    id,
+    pageModules[activePage] ?? [],
+    (moduleId) => boxes[moduleId]?.frameId,
+  ) as ModuleId[];
 
   /** Re-check which frame each of these workspace objects sits in (after a move or paste). */
   const assignWorkspaceFrames = (ids: string[]) => {
@@ -2527,6 +2722,9 @@ function Canvas({
       let changed = false;
       const next = shapes.map((shape) => {
         if (!targets.has(shape.id) || shape.type === 'frame') return shape;
+        // A grouped layer stays in its group while it still sits over the group's shape.
+        const groupParent = shapes.find((item) => item.id === shape.frameId && item.type !== 'frame');
+        if (groupParent && centerInside(groupParent.box, shape.box)) return shape;
         const frameId = frameContaining(frames, shape.box);
         if (frameId === shape.frameId) return shape;
         changed = true;
@@ -2539,9 +2737,7 @@ function Canvas({
   const removeWorkspaceShape = (id: string) => {
     const target = workspaceShapes.find((shape) => shape.id === id);
     if (!target) return;
-    const ids = new Set((target.type === 'frame'
-      ? workspaceShapes.filter((shape) => shape.id === target.id || shape.frameId === target.id)
-      : [target]).map((shape) => shape.id));
+    const ids = new Set(getWorkspaceGroup(target, workspaceShapes).map((shape) => shape.id));
     if (selectedWorkspaceShapeId && ids.has(selectedWorkspaceShapeId)) {
       setSelectedWorkspaceShapeId(null);
     }
@@ -2714,14 +2910,13 @@ function Canvas({
 
   const handleShapeBoxChange = (id: ModuleId, patch: ModuleBox) => {
     onBoxChange(id, patch);
-    if (!id.startsWith('frame-')) return;
+    // Frames and grouped shapes carry their children (and their children's children) along.
     const frameBox = boxes[id] ?? {};
     const deltaX = (patch.x ?? frameBox.x ?? 0) - (frameBox.x ?? 0);
     const deltaY = (patch.y ?? frameBox.y ?? 0) - (frameBox.y ?? 0);
     if (!deltaX && !deltaY) return;
-    (pageModules[activePage] ?? []).forEach((moduleId) => {
-      const box = boxes[moduleId];
-      if (box?.frameId !== id) return;
+    phoneDescendants(id).forEach((moduleId) => {
+      const box = boxes[moduleId] ?? {};
       onBoxChange(moduleId, {
         x: (box.x ?? 0) + deltaX,
         y: (box.y ?? 0) + deltaY,
@@ -2758,9 +2953,7 @@ function Canvas({
     const workspaceRect = workspace.getBoundingClientRect();
     const isDroppedInWorkspace = pointer.x >= workspaceRect.left && pointer.x <= workspaceRect.right
       && pointer.y >= workspaceRect.top && pointer.y <= workspaceRect.bottom;
-    const ids = id.startsWith('frame-')
-      ? [id, ...(pageModules[activePage] ?? []).filter((moduleId) => boxes[moduleId]?.frameId === id)]
-      : [id];
+    const ids = [id, ...phoneDescendants(id)];
 
     if (!isDroppedInWorkspace) {
       ids.forEach((moduleId) => {
@@ -2777,22 +2970,21 @@ function Canvas({
     const height = sourceSize.h ?? 100;
     const x = pointerX - width * grabRatio.x;
     const y = pointerY - height * grabRatio.y;
-    const workspaceFrameId = id.startsWith('frame-')
-      ? `workspace-shape-${++workspaceShapeIdRef.current}`
-      : undefined;
-    const movedShapes = ids.flatMap((moduleId) => {
+    // New workspace ids, so nested objects keep pointing at their (moved) parent.
+    const newIds = new Map(ids.map((moduleId) => [moduleId, `workspace-shape-${++workspaceShapeIdRef.current}`]));
+    const movedShapes = ids.flatMap((moduleId): WorkspaceShape[] => {
       const type = canvasInsertTypeForId(moduleId);
       if (!type) return [];
       const box = boxes[moduleId] ?? {};
-      const isFrame = moduleId === id && !!workspaceFrameId;
-      const frameId = isFrame ? undefined : workspaceFrameId;
+      const isRoot = moduleId === id;
+      const frameId = isRoot || !box.frameId ? undefined : newIds.get(box.frameId as ModuleId);
       return [{
-        id: isFrame ? workspaceFrameId : `workspace-shape-${++workspaceShapeIdRef.current}`,
+        id: newIds.get(moduleId)!,
         type,
         box: {
           ...box,
-          x: isFrame ? x : x + (box.x ?? 0) - (sourceBox.x ?? 0),
-          y: isFrame ? y : y + (box.y ?? 0) - (sourceBox.y ?? 0),
+          x: isRoot ? x : x + (box.x ?? 0) - (sourceBox.x ?? 0),
+          y: isRoot ? y : y + (box.y ?? 0) - (sourceBox.y ?? 0),
           frameId,
         },
         frameId,
@@ -2800,7 +2992,8 @@ function Canvas({
     });
     onRemoveMany(ids);
     setWorkspaceShapes((shapes) => [...shapes, ...movedShapes]);
-    if (!workspaceFrameId) assignWorkspaceFrames(movedShapes.map((shape) => shape.id));
+    // A loose object (or group) dropped on a workspace frame joins it.
+    if (!id.startsWith('frame-')) assignWorkspaceFrames([newIds.get(id)!]);
   };
 
   const handlePhoneShapeMove: ShapeMoveUpdate = (id, box, pointer, grabRatio) => {
@@ -2814,24 +3007,21 @@ function Canvas({
       type,
       box,
     }];
-    if (type === 'frame') {
-      (pageModules[activePage] ?? []).forEach((moduleId) => {
-        if (boxes[moduleId]?.frameId !== id) return;
-        const childType = canvasInsertTypeForId(moduleId);
-        if (!childType) return;
-        const childBox = withRenderedSize(moduleId, boxes[moduleId] ?? {});
-        group.push({
-          id: moduleId,
-          type: childType,
-          box: {
-            ...childBox,
-            x: (childBox.x ?? 0) + deltaX,
-            y: (childBox.y ?? 0) + deltaY,
-          },
-          frameId: id,
-        });
+    phoneDescendants(id).forEach((moduleId) => {
+      const childType = canvasInsertTypeForId(moduleId);
+      if (!childType) return;
+      const childBox = withRenderedSize(moduleId, boxes[moduleId] ?? {});
+      group.push({
+        id: moduleId,
+        type: childType,
+        box: {
+          ...childBox,
+          x: (childBox.x ?? 0) + deltaX,
+          y: (childBox.y ?? 0) + deltaY,
+        },
+        frameId: childBox.frameId,
       });
-    }
+    });
     updateShapeDragPreview(group[0], group, pointer, grabRatio);
   };
 
@@ -2898,18 +3088,16 @@ function Canvas({
     const box = boxes[id] ?? {};
     const type = canvasInsertTypeForId(id);
     if (type) {
-      const children = type === 'frame'
-        ? (pageModules[activePage] ?? []).filter((moduleId) => boxes[moduleId]?.frameId === id)
-        : [];
+      const tree = [id, ...phoneDescendants(id)].map((moduleId) => ({
+        id: moduleId as string,
+        parent: moduleId === id ? undefined : boxes[moduleId]?.frameId,
+      }));
       return {
         label: canvasObjectTitle(id, box) ?? 'Shape',
-        items: [
-          { type, box: withoutFrame(box) },
-          ...children.flatMap((childId): ClipboardItem[] => {
-            const childType = canvasInsertTypeForId(childId);
-            return childType ? [{ type: childType, box: withoutFrame(boxes[childId] ?? {}), parent: 0 }] : [];
-          }),
-        ],
+        items: clipboardTree(tree, (item) => {
+          const itemType = canvasInsertTypeForId(item.id as ModuleId);
+          return itemType ? { type: itemType, box: withoutFrame(boxes[item.id] ?? {}) } : null;
+        }),
       };
     }
     const content = findPhoneObject(id)?.querySelector<HTMLElement>(':scope > [data-module-content-root]');
@@ -2933,15 +3121,15 @@ function Canvas({
   const copyWorkspaceShape = (id: string): StudioClipboard | null => {
     const shape = workspaceShapes.find((item) => item.id === id);
     if (!shape) return null;
-    const children = getWorkspaceGroup(shape, workspaceShapes).filter((item) => item.id !== id);
+    const tree = getWorkspaceGroup(shape, workspaceShapes).map((item) => ({
+      ...item,
+      parent: item.id === id ? undefined : item.frameId,
+    }));
     return {
       label: workspaceShapeTitle(shape),
-      items: [
-        { type: shape.type, box: withoutFrame(shape.box), componentId: shape.componentId },
-        ...children.map((item) => ({
-          type: item.type, box: withoutFrame(item.box), componentId: item.componentId, parent: 0,
-        })),
-      ],
+      items: clipboardTree(tree, (item) => ({
+        type: item.type, box: withoutFrame(item.box), componentId: item.componentId,
+      })),
     };
   };
 
@@ -3050,9 +3238,9 @@ function Canvas({
     return null;
   };
 
-  const pasteClipboard = (paste: PasteTarget) => {
-    if (!clipboard || clipboard.items.length === 0) return;
-    const anchor = clipboard.items[0].box;
+  const pasteClipboard = (paste: PasteTarget, source: StudioClipboard | null = clipboard) => {
+    if (!source || source.items.length === 0) return;
+    const anchor = source.items[0].box;
     const placeBox = (box: ModuleBox): ModuleBox => ({
       ...box,
       x: Math.round(paste.point.x + (box.x ?? 0) - (anchor.x ?? 0)),
@@ -3063,8 +3251,8 @@ function Canvas({
       : item.box;
 
     if (paste.target === 'workspace') {
-      const ids = clipboard.items.map(() => `workspace-shape-${++workspaceShapeIdRef.current}`);
-      const pasted = clipboard.items.map((item, index): WorkspaceShape => {
+      const ids = source.items.map(() => `workspace-shape-${++workspaceShapeIdRef.current}`);
+      const pasted = source.items.map((item, index): WorkspaceShape => {
         const frameId = item.parent !== undefined ? ids[item.parent] : undefined;
         return {
           id: ids[index],
@@ -3085,7 +3273,7 @@ function Canvas({
     // Into the phone. A page can hold each library component once, so a component that is
     // already on this page is pasted as a flattened copy instead.
     const onPage = new Set(pageModules[activePage] ?? []);
-    const pasted = clipboard.items.flatMap((item, index): WorkspaceShape[] => {
+    const pasted = source.items.flatMap((item, index): WorkspaceShape[] => {
       const frameId = item.parent !== undefined ? `clipboard-${item.parent}` : undefined;
       if (item.type === 'component') {
         if (item.componentId && !onPage.has(item.componentId)) {
@@ -3113,25 +3301,210 @@ function Canvas({
     return true;
   };
 
+  /* ─────────── Multi-select (Ctrl/Cmd+click) and grouping ─────────── */
+
+  /** The groupable canvas object under an element: a workspace object or a shape/text/asset in the phone. */
+  const groupableKey = (element: HTMLElement): string | null => {
+    const workspaceElement = element.closest<HTMLElement>('[data-workspace-shape-id]');
+    if (workspaceElement) return `w:${workspaceElement.dataset.workspaceShapeId}`;
+    const moduleId = element.closest<HTMLElement>('[data-module-id]')?.dataset.moduleId;
+    return moduleId && canvasInsertTypeForId(moduleId) ? `p:${moduleId}` : null;
+  };
+
+  const currentSelectionKey = (): string | null => {
+    if (selectedWorkspaceShapeId) return `w:${selectedWorkspaceShapeId}`;
+    return selectedId && canvasInsertTypeForId(selectedId) ? `p:${selectedId}` : null;
+  };
+
+  /** Ctrl/Cmd+click adds or removes an object from the multi-selection. */
+  const toggleMultiSelection = (key: string) => {
+    const current = currentSelectionKey();
+    setMultiSelection((previous) => {
+      const base = previous.length ? previous : current && current !== key ? [current] : [];
+      return base.includes(key) ? base.filter((item) => item !== key) : [...base, key];
+    });
+    const id = key.slice(2);
+    if (key.startsWith('w:')) {
+      onSelect(null);
+      setSelectedWorkspaceShapeId(id);
+    } else {
+      setSelectedWorkspaceShapeId(null);
+      onSelect(id as ModuleId);
+    }
+  };
+
+  type GroupEntry = { id: string; type: string; box: ModuleBox; parent?: string };
+
+  const groupEntries = (keys: string[]): { space: 'p' | 'w'; entries: GroupEntry[] } | null => {
+    const space = keys[0]?.[0];
+    if (keys.length < 2 || (space !== 'p' && space !== 'w') || keys.some((key) => key[0] !== space)) return null;
+    const ids = keys.map((key) => key.slice(2));
+    const entries = space === 'w'
+      ? ids.flatMap((id): GroupEntry[] => {
+          const shape = workspaceShapes.find((item) => item.id === id);
+          return shape ? [{ id, type: shape.type, box: shape.box, parent: shape.frameId }] : [];
+        })
+      : ids.flatMap((id): GroupEntry[] => {
+          const type = canvasInsertTypeForId(id);
+          return type ? [{ id, type, box: withRenderedSize(id as ModuleId, boxes[id] ?? {}), parent: boxes[id]?.frameId }] : [];
+        });
+    return entries.length >= 2 ? { space, entries } : null;
+  };
+
+  /** Objects in the phone and on the workspace can't be grouped together. */
+  const canGroup = (keys: string[]) => groupEntries(keys) !== null;
+
+  /**
+   * Group the selected objects: the frame (or else the largest shape) becomes the group's
+   * parent and the other objects (e.g. text) become part of it, moving, copying and
+   * deleting with it.
+   */
+  const groupObjects = (keys: string[]) => {
+    const group = groupEntries(keys);
+    if (!group) return;
+    const area = (box: ModuleBox) => (box.w ?? 0) * (box.h ?? 0);
+    const rank = (entry: GroupEntry) => entry.type === 'frame' ? 2 : NON_CONTAINER_TYPES.has(entry.type) ? 0 : 1;
+    const parent = [...group.entries].sort((a, b) => rank(b) - rank(a) || area(b.box) - area(a.box))[0];
+    // Objects above the parent in its own hierarchy can't become its children.
+    const ancestors = new Set<string>();
+    const parentOf = (id: string) => group.space === 'w'
+      ? workspaceShapes.find((item) => item.id === id)?.frameId
+      : boxes[id]?.frameId;
+    for (let id = parentOf(parent.id); id && !ancestors.has(id); id = parentOf(id)) ancestors.add(id);
+    const children = group.entries.filter((entry) => entry.id !== parent.id && !ancestors.has(entry.id));
+
+    if (group.space === 'w') {
+      const childIds = new Set(children.map((entry) => entry.id));
+      setWorkspaceShapes((shapes) => shapes.map((shape) => childIds.has(shape.id)
+        ? { ...shape, frameId: parent.id, box: { ...shape.box, frameId: parent.id } }
+        : shape));
+      onSelect(null);
+      setSelectedWorkspaceShapeId(parent.id);
+    } else {
+      children.forEach((entry) => onBoxChange(entry.id as ModuleId, { frameId: parent.id }));
+      setSelectedWorkspaceShapeId(null);
+      onSelect(parent.id as ModuleId);
+    }
+    setMultiSelection([]);
+  };
+
+  /** The group (a non-frame object with layers grouped into it) that this object belongs to, if any. */
+  const groupRootOf = (key: string): string | null => {
+    const id = key.slice(2);
+    const isWorkspace = key.startsWith('w:');
+    const hasChildren = (parentId: string) => isWorkspace
+      ? workspaceShapes.some((shape) => shape.frameId === parentId)
+      : (pageModules[activePage] ?? []).some((moduleId) => boxes[moduleId]?.frameId === parentId);
+    const isFrameId = (objectId: string) => isWorkspace
+      ? workspaceShapes.find((shape) => shape.id === objectId)?.type === 'frame'
+      : objectId.startsWith('frame-');
+    if (!isFrameId(id) && hasChildren(id)) return id;
+    const parentId = isWorkspace ? workspaceShapes.find((shape) => shape.id === id)?.frameId : boxes[id]?.frameId;
+    return parentId && !isFrameId(parentId) ? parentId : null;
+  };
+
+  /** Release a group's layers; they rejoin whatever frame the group sits in. */
+  const ungroupObjects = (key: string) => {
+    const rootId = groupRootOf(key);
+    if (!rootId) return;
+    if (key.startsWith('w:')) {
+      setWorkspaceShapes((shapes) => {
+        const parentFrame = shapes.find((shape) => shape.id === rootId)?.frameId;
+        return shapes.map((shape) => shape.frameId === rootId
+          ? { ...shape, frameId: parentFrame, box: { ...shape.box, frameId: parentFrame } }
+          : shape);
+      });
+    } else {
+      const parentFrame = boxes[rootId]?.frameId;
+      (pageModules[activePage] ?? []).forEach((moduleId) => {
+        if (boxes[moduleId]?.frameId === rootId) onBoxChange(moduleId, { frameId: parentFrame });
+      });
+    }
+  };
+
+  /** Menu actions for a right-clicked canvas object: group the multi-selection, or ungroup. */
+  const groupActions = (key: string): ContextMenuState['actions'] => {
+    const actions: NonNullable<ContextMenuState['actions']> = [];
+    const keys = multiSelection.includes(key) ? multiSelection : [];
+    if (keys.length >= 2) {
+      actions.push({ label: 'Group items', run: () => groupObjects(keys), disabled: !canGroup(keys) });
+    }
+    if (groupRootOf(key)) actions.push({ label: 'Ungroup', run: () => ungroupObjects(key) });
+    return actions;
+  };
+
+  /* ─────────── Created components: save a frame, place a saved one ─────────── */
+
+  const showCanvasNotice = (message: string) => {
+    if (canvasNoticeTimerRef.current) clearTimeout(canvasNoticeTimerRef.current);
+    setCanvasNotice(message);
+    canvasNoticeTimerRef.current = setTimeout(() => setCanvasNotice(null), 2600);
+  };
+
+  /** "Save as component" for a right-clicked frame: it is stored in the browser and listed in the left panel. */
+  const saveFrameAction = (
+    name: string,
+    build: () => StudioClipboard | null,
+  ): NonNullable<ContextMenuState['actions']>[number] => ({
+    label: 'Save as component',
+    run: () => {
+      const clip = build();
+      if (!clip) return;
+      const saved = saveCreatedComponent(name, { ...clip, label: name }, clip.items.length);
+      showCanvasNotice(saved
+        ? `Saved “${name}” to Created Components`
+        : 'Couldn’t save: browser storage is full. Try removing large images from the frame.');
+    },
+  });
+
+  /** Drop a saved component from the left panel: it is placed like a paste, at the drop point. */
+  const handleCreatedDrop = (event: React.DragEvent) => {
+    if (!event.dataTransfer.types.includes(CREATED_DRAG_TYPE)) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const saved = findCreatedComponent(event.dataTransfer.getData(CREATED_DRAG_TYPE));
+    const target = resolvePasteTarget(event.clientX, event.clientY);
+    if (!saved || !target) return;
+    pasteClipboard(target, saved.clip as StudioClipboard);
+  };
+
   const openContextMenu = (event: React.MouseEvent<HTMLDivElement>) => {
     event.preventDefault();
     const { clientX, clientY } = event;
     const target = event.target as HTMLElement;
     const paste = resolvePasteTarget(clientX, clientY);
-    const menuAt = (targets: ContextMenuState['targets']) =>
-      setContextMenu({ x: clientX, y: clientY, paste, targets });
+    const menuAt = (targets: ContextMenuState['targets'], actions?: ContextMenuState['actions']) =>
+      setContextMenu({ x: clientX, y: clientY, paste, targets, actions });
+    const key = groupableKey(target);
+    // Rename is offered when a frame alone is right-clicked (not a multi-selection).
+    const isMulti = !!key && multiSelection.length >= 2 && multiSelection.includes(key);
+    // Right-clicking outside the multi-selection drops it.
+    if (!isMulti && multiSelection.length) setMultiSelection([]);
 
     const workspaceShapeElement = target.closest<HTMLElement>('[data-workspace-shape-id]');
     if (workspaceShapeElement) {
       const id = workspaceShapeElement.dataset.workspaceShapeId ?? '';
       const shape = workspaceShapes.find((item) => item.id === id);
-      onSelect(null);
-      setSelectedWorkspaceShapeId(id);
+      if (!isMulti) {
+        onSelect(null);
+        setSelectedWorkspaceShapeId(id);
+      }
       menuAt(shape ? [{
         name: workspaceShapeTitle(shape),
         copy: () => copyWorkspaceShape(id),
         remove: () => removeWorkspaceShape(id),
-      }] : []);
+        rename: shape.type === 'frame' && !isMulti ? {
+          value: shape.box.name ?? 'Frame',
+          apply: (name) => setWorkspaceShapes((shapes) => shapes.map((item) => item.id === id
+            ? { ...item, box: { ...item.box, name } }
+            : item)),
+        } : undefined,
+      }] : [], [
+        ...(shape?.type === 'frame' && !isMulti
+          ? [saveFrameAction(shape.box.name ?? 'Frame', () => copyWorkspaceShape(id))]
+          : []),
+        ...((key && groupActions(key)) || []),
+      ]);
       return;
     }
 
@@ -3148,10 +3521,19 @@ function Canvas({
         : moduleFor(moduleId)?.title ?? 'component',
       copy: () => copyPhoneObject(moduleId),
       remove: () => onRemove(moduleId),
+      rename: moduleId.startsWith('frame-') && !isMulti ? {
+        value: boxes[moduleId]?.name ?? 'Frame',
+        apply: (name: string) => onBoxChange(moduleId, { name }),
+      } : undefined,
     };
-    if (selectedId !== moduleId) onSelect(moduleId);
+    if (selectedId !== moduleId && !isMulti) onSelect(moduleId);
     if (isCanvasObject) {
-      menuAt([wholeObject]);
+      menuAt([wholeObject], [
+        ...(moduleId.startsWith('frame-') && !isMulti
+          ? [saveFrameAction(boxes[moduleId]?.name ?? 'Frame', () => copyPhoneObject(moduleId))]
+          : []),
+        ...((key && groupActions(key)) || []),
+      ]);
       return;
     }
 
@@ -3181,17 +3563,27 @@ function Canvas({
   const closeContextMenu = React.useCallback(() => setContextMenu(null), []);
 
   // Ctrl/Cmd+C copies the selection; Ctrl/Cmd+V pastes it under the cursor.
-  const shortcutsRef = React.useRef({ copySelection, pasteAtPointer });
+  const groupSelection = () => {
+    if (!canGroup(multiSelection)) return false;
+    groupObjects(multiSelection);
+    return true;
+  };
+  const shortcutsRef = React.useRef({ copySelection, pasteAtPointer, groupSelection });
   React.useLayoutEffect(() => {
-    shortcutsRef.current = { copySelection, pasteAtPointer };
+    shortcutsRef.current = { copySelection, pasteAtPointer, groupSelection };
   });
   React.useEffect(() => {
     const handler = (event: KeyboardEvent) => {
       if (!(event.ctrlKey || event.metaKey) || event.altKey || event.shiftKey) return;
       const key = event.key.toLowerCase();
-      if (key !== 'c' && key !== 'v') return;
+      if (key !== 'c' && key !== 'v' && key !== 'g') return;
       const target = event.target as HTMLElement | null;
       if (target?.isContentEditable || target?.closest('input, textarea, select, [contenteditable="true"]')) return;
+      if (key === 'g') {
+        // Ctrl/Cmd+G groups the Ctrl+clicked objects.
+        if (shortcutsRef.current.groupSelection()) event.preventDefault();
+        return;
+      }
       if (key === 'c') {
         if (window.getSelection()?.toString()) return;
         const next = shortcutsRef.current.copySelection();
@@ -3211,6 +3603,14 @@ function Canvas({
       ref={mainRef}
       onMouseMove={(event) => { lastPointerRef.current = { x: event.clientX, y: event.clientY }; }}
       onMouseLeave={() => { lastPointerRef.current = null; }}
+      // Saved components dragged from the left panel are handled here, before any inner drop target.
+      onDragOverCapture={(event) => {
+        if (!event.dataTransfer.types.includes(CREATED_DRAG_TYPE)) return;
+        event.preventDefault();
+        event.stopPropagation();
+        event.dataTransfer.dropEffect = 'copy';
+      }}
+      onDropCapture={handleCreatedDrop}
       className="relative flex min-w-0 flex-1 flex-col items-center overflow-hidden bg-gradient-to-b from-[#EEF0FB] via-[#F6F7FE] to-[#EEF0FB] pb-4"
     >
       <p className="flex items-center gap-1.5 py-3 text-[10px] font-medium text-slate-500">
@@ -3236,6 +3636,18 @@ function Canvas({
         }}
         onDrop={(event) => handleWorkspaceAssetDrop(event)}
         onMouseDownCapture={(event) => {
+          // Ctrl/Cmd+click builds a multi-selection (e.g. a shape and a text to group);
+          // any other click clears it.
+          if (event.button === 0 && !panMode && !drawTool) {
+            const key = groupableKey(event.target as HTMLElement);
+            if ((event.ctrlKey || event.metaKey) && key) {
+              event.preventDefault();
+              event.stopPropagation();
+              toggleMultiSelection(key);
+              return;
+            }
+            if (multiSelection.length) setMultiSelection([]);
+          }
           if ((panMode && event.button === 0) || event.button === 1) {
             startViewportPan(event);
             return;
@@ -3258,13 +3670,21 @@ function Canvas({
         }`}
       >
         {/* Inside components and canvas objects the cursor is the move cursor (as over frames),
-            except on resize handles, the delete button and text being edited. */}
+            except on resize handles and inputs. */}
         <style>{`
           [data-module-content-root] *:not(input):not(textarea):not([contenteditable="true"]):not([class*="-resize"]),
-          [data-workspace-shape-id] *:not(input):not(textarea):not([contenteditable="true"]):not([class*="-resize"]):not([data-delete-badge]):not([data-delete-badge] *) {
+          [data-workspace-shape-id] *:not(input):not(textarea):not([contenteditable="true"]):not([class*="-resize"]) {
             cursor: inherit;
           }
         `}</style>
+        {multiSelection.length > 0 && (
+          <style>{`${multiSelection.map((key) => key.startsWith('w:')
+            ? `[data-workspace-shape-id="${CSS.escape(key.slice(2))}"]`
+            : `[data-module-id="${CSS.escape(key.slice(2))}"]`).join(',\n')} {
+            outline: 2px solid #0040DF !important;
+            outline-offset: 4px !important;
+          }`}</style>
+        )}
         {drawTool && (
           <style>{`
             div[data-canvas-drawing] * {
@@ -3297,6 +3717,11 @@ function Canvas({
         <div className="absolute inset-0 z-0">
           {workspaceShapes.map((shape, index) => {
             const isSelected = selectedWorkspaceShapeId === shape.id;
+            // Layers grouped into a shape stay above it, even while the shape is selected.
+            const isGroupedLayer = !!shape.frameId
+              && workspaceShapes.some((item) => item.id === shape.frameId && item.type !== 'frame');
+            // Grouped layers sit above the hover level (70) so hovering their shape can't cover them.
+            const restingZ = shape.type === 'frame' ? 1 : isGroupedLayer ? 75 : isSelected ? 60 : index + 1;
             return (
               <div
               key={shape.id}
@@ -3309,12 +3734,10 @@ function Canvas({
               }}
               onDrop={(event) => handleWorkspaceAssetDrop(event, shape.id)}
               onMouseEnter={(event) => {
-                event.currentTarget.style.zIndex = shape.type === 'frame' ? '1' : '70';
+                event.currentTarget.style.zIndex = shape.type === 'frame' ? '1' : String(Math.max(70, restingZ));
               }}
               onMouseLeave={(event) => {
-                event.currentTarget.style.zIndex = shape.type === 'frame'
-                  ? '1'
-                  : isSelected ? '60' : String(index + 1);
+                event.currentTarget.style.zIndex = String(restingZ);
               }}
               onMouseDown={(event) => startWorkspaceShapeMove(event, shape)}
               style={{
@@ -3325,7 +3748,7 @@ function Canvas({
                 ...(shape.type === 'shape-text'
                   ? { display: 'flex', minWidth: shape.box.w, minHeight: shape.box.h }
                   : { width: shape.box.w ?? 100, height: shape.box.h ?? 100 }),
-                zIndex: shape.type === 'frame' ? 1 : isSelected ? 60 : index + 1,
+                zIndex: restingZ,
                 opacity: shapeDragPreview?.items.some((item) => item.id === shape.id) ? 0 : undefined,
               }}
               className={`group pointer-events-auto cursor-move ${
@@ -3333,7 +3756,6 @@ function Canvas({
               }`}
               title="Drag into the phone canvas or reposition"
             >
-              <DeleteBadge visible={isSelected} onDelete={() => removeWorkspaceShape(shape.id)} />
               {shape.type === 'frame' && <FrameLabel name={shape.box.name ?? 'Frame'} selected={isSelected} />}
               <CanvasObjectContent
                 type={shape.type}
@@ -3514,6 +3936,7 @@ function Canvas({
 
       {contextMenu && (
         <CanvasContextMenu
+          key={`${contextMenu.x}-${contextMenu.y}`}
           menu={contextMenu}
           clipboard={clipboard}
           onCopy={(build) => {
@@ -3523,6 +3946,14 @@ function Canvas({
           onPaste={pasteClipboard}
           onClose={closeContextMenu}
         />
+      )}
+      {canvasNotice && (
+        <div
+          role="status"
+          className="pointer-events-none absolute bottom-6 left-1/2 z-[90] -translate-x-1/2 rounded-full bg-slate-900 px-4 py-2 text-[11px] font-semibold text-white shadow-lg"
+        >
+          {canvasNotice}
+        </div>
       )}
     </main>
   );
@@ -3908,6 +4339,60 @@ function AdvancedColorPicker({
   return typeof document === 'undefined' ? null : createPortal(picker, document.body);
 }
 
+/**
+ * A swatch button that opens the same color picker the Fills section uses, placed beside
+ * the panel (or popover) it sits in.
+ */
+function ColorPickerButton({
+  color, onChange, title, className, style, children,
+}: {
+  color: string;
+  onChange: (hex: string) => void;
+  title: string;
+  className?: string;
+  style?: React.CSSProperties;
+  children?: React.ReactNode;
+}) {
+  const [position, setPosition] = useState<PickerPosition | null>(null);
+  return (
+    <>
+      <button
+        type="button"
+        title={title}
+        aria-label={title}
+        aria-expanded={!!position}
+        onClick={(event) => {
+          if (position) {
+            setPosition(null);
+            return;
+          }
+          const anchor = event.currentTarget.getBoundingClientRect();
+          const panel = event.currentTarget.closest('aside, [data-picker-panel]')?.getBoundingClientRect();
+          const pickerWidth = 288;
+          const gap = 8;
+          setPosition({
+            top: Math.max(8, Math.min(anchor.top, window.innerHeight - 500)),
+            left: Math.max(8, (panel?.left ?? anchor.left) - pickerWidth - gap),
+          });
+        }}
+        className={className}
+        style={style}
+      >
+        {children}
+      </button>
+      {position && (
+        <AdvancedColorPicker
+          color={color}
+          onChange={onChange}
+          position={position}
+          title={title}
+          onClose={() => setPosition(null)}
+        />
+      )}
+    </>
+  );
+}
+
 function EffectsPanel({
   box, onBoxChange, onClose, position,
 }: {
@@ -3924,6 +4409,7 @@ function EffectsPanel({
 
   const content = (
     <div
+      data-picker-panel
       className="fixed z-[100] w-[320px] overflow-y-auto rounded-xl border border-slate-200 bg-white p-4 shadow-2xl"
       style={{ top: position.top, left: position.left }}
       onClick={(e) => e.stopPropagation()}
@@ -4016,11 +4502,14 @@ function EffectsPanel({
           </div>
           <div className="flex items-center gap-2">
             <span className="text-[10px] font-semibold text-slate-500">Color</span>
-            <input
-              type="color" value={box.shadowColor ?? '#000000'}
-              onChange={(e) => handleChange({ shadowColor: e.target.value })}
+            <ColorPickerButton
+              title="Shadow color"
+              color={box.shadowColor ?? '#000000'}
+              onChange={(hex) => handleChange({ shadowColor: hex })}
               className="h-6 w-6 rounded border border-slate-200"
+              style={{ background: box.shadowColor ?? '#000000' }}
             />
+            <span className="font-mono text-[10px] uppercase text-slate-500">{box.shadowColor ?? '#000000'}</span>
           </div>
         </div>
       )}
@@ -4354,13 +4843,14 @@ function TextFormattingPanel({
             <span className="text-[8px] text-slate-500">Primary Contrast OK</span>
           </div>
           <div className="flex h-8 items-center gap-1.5">
-            <input
-              type="color"
-              aria-label="Text Color"
-              value={textColor}
-              onChange={(event) => onStyleChange({ color: event.target.value })}
+            <ColorPickerButton
+              title="Text color"
+              color={textColor}
+              onChange={(hex) => onStyleChange({ color: hex })}
               className="h-7 w-7 shrink-0 cursor-pointer rounded-md border border-[#c8b7ee] bg-white p-0.5"
-            />
+            >
+              <span className="block h-full w-full rounded" style={{ background: textColor }} />
+            </ColorPickerButton>
             <div className="flex h-7 min-w-0 flex-1 items-center rounded-md bg-[#f1f3ff] px-2">
               <span className="mr-1 text-[9px] text-slate-600">#</span>
               <input
@@ -4412,19 +4902,14 @@ function TextFormattingPanel({
                   )}
                 </button>
               ))}
-              <label
-                aria-label="Choose another text color"
+              <ColorPickerButton
+                title="Choose another text color"
+                color={textColor}
+                onChange={(hex) => onStyleChange({ color: hex })}
                 className="grid h-[22px] w-[22px] shrink-0 cursor-pointer place-items-center rounded-full border border-slate-200 bg-white text-[13px] text-slate-500 hover:border-[#0040DF]"
               >
                 +
-                <input
-                  type="color"
-                  aria-label="Choose another text color"
-                  value={textColor}
-                  onChange={(event) => onStyleChange({ color: event.target.value })}
-                  className="sr-only"
-                />
-              </label>
+              </ColorPickerButton>
             </div>
           </div>
 
@@ -4798,6 +5283,13 @@ function RightPanel({
             <Diamond className="h-6 w-6 text-slate-300" />
             <p className="text-[12px] text-slate-400">Select a component on the phone<br />to edit its properties</p>
           </div>
+        ) : tab === 'layout' ? (
+          <LayoutTab
+            box={box}
+            measured={measured}
+            supportsAutoLayout={!!mod && !workspaceShape}
+            onChange={(patch) => onBoxChange(selectedId!, patch)}
+          />
         ) : (
           <>
             <div className="border-b border-slate-200 px-3 py-2.5">
@@ -4807,9 +5299,13 @@ function RightPanel({
                     <Diamond className="h-3.5 w-3.5 shrink-0 text-indigo-500" />
                     <p className="truncate text-[11px] font-bold">{selectedTitle}</p>
                   </div>
-                  <span className="ml-2 rounded bg-indigo-100 px-1.5 py-0.5 text-[11px] font-bold text-indigo-700">Master</span>
+                  {mod && (
+                    <span className="ml-2 rounded bg-indigo-100 px-1.5 py-0.5 text-[11px] font-bold text-indigo-700">Master</span>
+                  )}
                 </div>
                 <p className="mt-1 truncate text-[9px] text-slate-500">{selectedSubtitle}</p>
+                {/* Variants only exist for library components, not frames, shapes, text or assets. */}
+                {mod && (
                 <div className="mt-2 border-t border-slate-200 pt-2">
                   <div className="mb-1.5 flex items-center justify-between">
                     <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Variant State</span>
@@ -4830,6 +5326,7 @@ function RightPanel({
                     ))}
                   </div>
                 </div>
+                )}
               </div>
             </div>
 
@@ -5221,10 +5718,13 @@ function RightPanel({
                 <span className="text-[8px] text-slate-400">Selected component</span>
               </div>
               <div className="mb-2 flex items-center gap-2 rounded-md border border-slate-100 bg-[#F3F4FF] px-2 py-1.5">
-                <label className="relative h-5 w-5 shrink-0 cursor-pointer overflow-hidden rounded border border-slate-300" title="Stroke color">
-                  <span className="absolute inset-0" style={{ background: box.strokeColor ?? '#6941C6' }} />
-                  <input type="color" value={box.strokeColor ?? '#6941C6'} onChange={(e) => onBoxChange(selectedId!, { strokeColor: e.target.value })} className="absolute inset-0 cursor-pointer opacity-0" />
-                </label>
+                <ColorPickerButton
+                  title="Stroke color"
+                  color={box.strokeColor ?? '#6941C6'}
+                  onChange={(hex) => onBoxChange(selectedId!, { strokeColor: hex })}
+                  className="relative h-5 w-5 shrink-0 cursor-pointer overflow-hidden rounded border border-slate-300"
+                  style={{ background: box.strokeColor ?? '#6941C6' }}
+                />
                 <span className="flex-1 font-mono text-[9px] uppercase text-slate-600">{box.strokeColor ?? '#6941C6'}</span>
                 <label className="flex items-center gap-1 text-[8px] text-slate-400">
                   W
@@ -5827,9 +6327,8 @@ export default function StudioClient() {
     if (selectedId && removed.has(selectedId)) setSelectedId(null);
   };
   const removeModule = (id: ModuleId) => {
-    const ids = id.startsWith('frame-')
-      ? [id, ...currentModules.filter((moduleId) => boxes[moduleId]?.frameId === id)]
-      : [id];
+    // Frames and groups are removed with everything nested in them.
+    const ids = [id, ...descendantIds(id, currentModules, (moduleId) => boxes[moduleId]?.frameId)] as ModuleId[];
     removeModules(ids);
   };
   const quickAdd = (id: ModuleId) => addModule(id);
@@ -5878,6 +6377,10 @@ export default function StudioClient() {
       let next: Record<string, ModuleBox> | null = null;
       ids.forEach((id) => {
         if (id.startsWith('frame-') || !canvasInsertTypeForId(id) || !previous[id]) return;
+        // A grouped layer stays in its group while it still sits over the group's shape.
+        const parentId = previous[id].frameId;
+        if (parentId && !parentId.startsWith('frame-') && previous[parentId]
+          && centerInside(previous[parentId], previous[id])) return;
         const frameId = frameContaining(frames, previous[id]);
         if (frameId === previous[id].frameId) return;
         next ??= { ...previous };
@@ -5981,6 +6484,42 @@ export default function StudioClient() {
 
   const workspaceShapeSelection = workspaceShapes.find((shape) => shape.id === selectedWorkspaceShapeId) ?? null;
 
+  // Layers tree for the left panel: frames, groups and objects in the phone and on the canvas.
+  const layerSections: LayerSection[] = [
+    {
+      title: `Phone · ${currentPageLabel}`,
+      nodes: buildLayerNodes(currentModules.flatMap((id): LayerSource[] => {
+        const type = canvasInsertTypeForId(id);
+        if (!type) return [];
+        const box = boxes[id] ?? {};
+        return [{ id, key: `p:${id}`, type, name: layerName(type, box), parent: box.frameId }];
+      })),
+    },
+    {
+      title: 'Canvas',
+      nodes: buildLayerNodes(workspaceShapes.map((shape) => ({
+        id: shape.id,
+        key: `w:${shape.id}`,
+        type: shape.type,
+        name: layerName(shape.type, shape.box, shape.componentId),
+        parent: shape.frameId,
+      }))),
+    },
+  ];
+  const selectedLayerKey = selectedWorkspaceShapeId
+    ? `w:${selectedWorkspaceShapeId}`
+    : selectedId ? `p:${selectedId}` : null;
+  const selectLayer = (key: string) => {
+    const id = key.slice(2);
+    if (key.startsWith('w:')) {
+      setSelectedId(null);
+      setSelectedWorkspaceShapeId(id);
+      setActiveTextSlot(null);
+    } else {
+      handleSelectModule(id as ModuleId);
+    }
+  };
+
   return (
     <EditProvider value={editState}>
       <div className={`${urbanist.className} flex h-screen w-full flex-col overflow-hidden bg-[#F3F4F8] text-slate-900`}>
@@ -6029,6 +6568,9 @@ export default function StudioClient() {
             ])}
             onAssetApply={applyAssetToSelection}
             onCollapse={() => setLeftPanelCollapsed(true)}
+            layerSections={layerSections}
+            selectedLayerKey={selectedLayerKey}
+            onSelectLayer={selectLayer}
           />}
           <Canvas
             device={device} zoom={zoom} onZoom={setZoom}
