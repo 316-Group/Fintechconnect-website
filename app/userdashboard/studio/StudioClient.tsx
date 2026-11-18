@@ -43,7 +43,7 @@ import {
   LayoutTab, autoLayoutCss, layoutSize, layoutWrapperStyle, type LayoutFields,
 } from './othertabs';
 import {
-  CREATED_DRAG_TYPE, CreatedComponentsMenuItem, findCreatedComponent, saveCreatedComponent,
+  CREATED_DRAG_TYPE, CreatedComponentsMenuItem, findCreatedComponent, saveCreatedComponent, useCreatedComponents,
   type LayerNode, type LayerSection,
 } from './createdcomponents';
 
@@ -415,6 +415,138 @@ function canvasInsertTypeForId(id: string): CanvasInsertType | null {
   return types.find((type) => id.startsWith(`${type}-`)) ?? null;
 }
 
+/** Marks a drag that started in the component library (readable during dragover, unlike the data). */
+const LIBRARY_DRAG_TYPE = 'application/x-pf-from-library';
+
+/**
+ * Hide the browser's own drag image: the studio draws a live preview of the dragged
+ * component under the cursor instead (see LibraryDragPreview).
+ */
+function hideNativeDragImage(event: React.DragEvent) {
+  const blank = document.createElement('div');
+  Object.assign(blank.style, {
+    position: 'fixed', top: '-100px', left: '-100px', width: '1px', height: '1px', opacity: '0',
+  });
+  document.body.appendChild(blank);
+  event.dataTransfer.setDragImage(blank, 0, 0);
+  setTimeout(() => blank.remove(), 0);
+}
+
+/** Width the dragged component preview is drawn at (it renders at preview width, scaled down). */
+const DRAG_PREVIEW_WIDTH = 200;
+
+/** The cursor position during an HTML drag (null until the first drag event). */
+function useDragPoint() {
+  const [point, setPoint] = useState<{ x: number; y: number } | null>(null);
+  useEffect(() => {
+    let frame = 0;
+    const track = (event: DragEvent) => {
+      const { clientX, clientY } = event;
+      // Some browsers report 0,0 for the last events of a drag.
+      if (clientX === 0 && clientY === 0) return;
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => setPoint({ x: clientX, y: clientY }));
+    };
+    window.addEventListener('dragover', track, true);
+    window.addEventListener('drag', track, true);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener('dragover', track, true);
+      window.removeEventListener('drag', track, true);
+    };
+  }, []);
+  return point;
+}
+
+/** Card that follows the cursor while something is dragged, with a label under the preview. */
+function DragFollower({ point, label, children }: {
+  point: { x: number; y: number };
+  label: string;
+  children: React.ReactNode;
+}) {
+  return createPortal(
+    <div
+      aria-hidden
+      className="pointer-events-none fixed z-[300] overflow-hidden rounded-xl bg-white opacity-90 shadow-[0_12px_32px_rgba(15,23,42,0.22)] ring-2 ring-[#0040DF]"
+      style={{ left: point.x + 14, top: point.y + 14, width: DRAG_PREVIEW_WIDTH }}
+    >
+      {children}
+      <p className="truncate border-t border-slate-100 bg-[#F7F8FF] px-2 py-1 text-[10px] font-semibold text-[#0040DF]">
+        {label}
+      </p>
+    </div>,
+    document.body,
+  );
+}
+
+/** A scaled-down render of a saved (created) component's frame and layers, following the cursor. */
+function CreatedDragPreview({ id, ctx }: { id: string; ctx: ViewCtx }) {
+  const point = useDragPoint();
+  const saved = useCreatedComponents().find((item) => item.id === id);
+  const clip = saved?.clip as StudioClipboard | undefined;
+  const anchor = clip?.items[0]?.box;
+  if (!point || !saved || !clip || !anchor || typeof document === 'undefined') return null;
+  const width = Math.max(1, anchor.w ?? 200);
+  const height = Math.max(1, anchor.h ?? 120);
+  const scale = Math.min(1, DRAG_PREVIEW_WIDTH / width, 160 / height);
+  return (
+    <DragFollower point={point} label={saved.name}>
+      <div className="flex justify-center bg-[#F7F8FF] p-2">
+        <div className="relative overflow-hidden" style={{ width: width * scale, height: height * scale }}>
+          <div className="absolute left-0 top-0" style={{ width, height, zoom: scale }}>
+            {clip.items.map((item, index) => (
+              <div
+                key={index}
+                className="absolute"
+                style={{
+                  left: (item.box.x ?? 0) - (anchor.x ?? 0),
+                  top: (item.box.y ?? 0) - (anchor.y ?? 0),
+                  ...(item.type === 'shape-text'
+                    ? { display: 'flex', minWidth: item.box.w, minHeight: item.box.h }
+                    : { width: item.box.w ?? item.size?.w ?? 100, height: item.box.h ?? item.size?.h ?? 100 }),
+                }}
+              >
+                <CanvasObjectContent
+                  type={item.type}
+                  shapeId={`${item.type}-created-drag-${index}`}
+                  box={item.box}
+                  componentId={item.componentId}
+                  ctx={ctx}
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </DragFollower>
+  );
+}
+
+/** A live, scaled-down render of the component being dragged from the library, following the cursor. */
+function LibraryDragPreview({ id, ctx, onMeasure }: {
+  id: ModuleId;
+  ctx: ViewCtx;
+  /** Reports the component's size at preview width, used when it is dropped on the canvas. */
+  onMeasure: (size: { w: number; h: number }) => void;
+}) {
+  const point = useDragPoint();
+  if (!point || typeof document === 'undefined') return null;
+  const scale = DRAG_PREVIEW_WIDTH / COMPONENT_PREVIEW_WIDTH;
+  return (
+    <DragFollower point={point} label={moduleFor(id)?.title ?? 'Component'}>
+      <div
+        ref={(element) => {
+          const height = element ? element.getBoundingClientRect().height / scale : 0;
+          if (height > 0) onMeasure({ w: COMPONENT_PREVIEW_WIDTH, h: Math.round(height) });
+        }}
+        style={{ width: COMPONENT_PREVIEW_WIDTH, zoom: scale }}
+      >
+        <ModuleView id={id} ctx={ctx} passive />
+      </div>
+    </DragFollower>
+  );
+}
+
 function assetDimensions(asset: AssetItem) {
   if (asset.kind === 'logo') return { w: 80, h: 40 };
   if (asset.kind === 'media') return { w: 120, h: 80 };
@@ -771,6 +903,7 @@ function ComponentThumbnail({ id, ctx }: { id: ModuleId; ctx: ViewCtx }) {
     <div ref={frameRef} className="relative h-full w-full overflow-hidden rounded-md bg-[#F7F8FF]">
       <div
         ref={contentRef}
+        data-thumb-content
         className="pointer-events-none absolute left-1/2 top-1/2"
         style={{
           width: COMPONENT_PREVIEW_WIDTH,
@@ -837,10 +970,13 @@ function LeftPanel({
   pageModules, accent, onStartDrag, onEndDrag, drag, onAddModule, onRemoveModule,
   selectedId, onSelectModule, onAssetClick, onAssetApply, measured,
   onSelectTextSlot, onCollapse, layerSections, selectedLayerKey, onSelectLayer,
+  onAddCreatedToPhone, onCreatedDragChange,
 }: {
   layerSections: LayerSection[];
   selectedLayerKey: string | null;
   onSelectLayer: (key: string) => void;
+  onAddCreatedToPhone: (id: string) => void;
+  onCreatedDragChange: (id: string | null) => void;
   appKind: AppKind; onAppKind: (k: AppKind) => void;
   activePage: PageId; onSelectPage: (p: PageId) => void;
   expandedPage: PageId | null; onToggleExpand: (p: PageId) => void;
@@ -948,7 +1084,7 @@ function LeftPanel({
   };
 
   return (
-    <aside className="flex w-[340px] shrink-0 flex-col border-r border-slate-200 bg-[#EDEFFC] scrollbar-thin-blue relative">
+    <aside className="relative flex w-full min-w-0 flex-col border-r border-slate-200 bg-[#EDEFFC] scrollbar-thin-blue">
       <div className="flex items-center border-b border-slate-200 px-2 pt-2">
         <button
           onClick={() => setTab('navigator')}
@@ -1036,6 +1172,8 @@ function LeftPanel({
               sections={layerSections}
               selectedKey={selectedLayerKey}
               onSelectLayer={onSelectLayer}
+              onAddToPhone={onAddCreatedToPhone}
+              onDragChange={onCreatedDragChange}
               query={query}
             />
           </ul>
@@ -2363,7 +2501,7 @@ function Canvas({
   onStartDrag, onEndDrag, onItemDragOver, onDrop, onRemove, onQuickAdd,
   onNavTab, boxes, onMeasure, onBoxChange, onAddShape, onAddWorkspaceShapes, onAssignFrames, onRemoveMany,
   workspaceShapes, setWorkspaceShapes, selectedWorkspaceShapeId, setSelectedWorkspaceShapeId,
-  onAddPhoneAsset, onAddWorkspaceAsset,
+  onAddPhoneAsset, onAddWorkspaceAsset, onAddWorkspaceComponent, onClearDropIndex, placeCreatedRef, createdDragId,
 }: {
   device: DeviceType; zoom: number; onZoom: (z: number) => void;
   pageModules: Record<PageId, ModuleId[]>;
@@ -2394,6 +2532,12 @@ function Canvas({
   selectedWorkspaceShapeId: string | null;
   setSelectedWorkspaceShapeId: (id: string | null) => void;
   onAddPhoneAsset: (assetId: string, position: { x: number; y: number }) => void;
+  onAddWorkspaceComponent: (id: ModuleId, position: { x: number; y: number }) => void;
+  onClearDropIndex: () => void;
+  /** Filled in by the canvas: places a saved component into the phone. */
+  placeCreatedRef: React.MutableRefObject<((id: string) => void) | null>;
+  /** The saved component being dragged from the left panel, if any. */
+  createdDragId: string | null;
   onAddWorkspaceAsset: (assetId: string, position: { x: number; y: number }, frameId?: string) => void;
 }) {
   const dims = device === 'iphone' ? { w: 320, h: 640 }
@@ -3458,15 +3602,29 @@ function Canvas({
   });
 
   /** Drop a saved component from the left panel: it is placed like a paste, at the drop point. */
+  /** A saved component is being dragged: known from the left panel, or (as a backup) from the drag data. */
+  const isCreatedDrag = (event: React.DragEvent) =>
+    !!createdDragId || event.dataTransfer.types.includes(CREATED_DRAG_TYPE);
+
   const handleCreatedDrop = (event: React.DragEvent) => {
-    if (!event.dataTransfer.types.includes(CREATED_DRAG_TYPE)) return;
+    if (!isCreatedDrag(event)) return;
     event.preventDefault();
     event.stopPropagation();
-    const saved = findCreatedComponent(event.dataTransfer.getData(CREATED_DRAG_TYPE));
-    const target = resolvePasteTarget(event.clientX, event.clientY);
-    if (!saved || !target) return;
+    const saved = findCreatedComponent(createdDragId ?? event.dataTransfer.getData(CREATED_DRAG_TYPE));
+    if (!saved) return;
+    // Anywhere that isn't the phone screen (including its bezel) builds on the canvas around it.
+    const target = resolvePasteTarget(event.clientX, event.clientY) ?? {
+      target: 'workspace' as const,
+      point: clientToWorld(event.clientX, event.clientY),
+      clientY: event.clientY,
+    };
     pasteClipboard(target, saved.clip as StudioClipboard);
   };
+
+  /** Library components dragged onto the canvas around the phone become free-floating components there. */
+  const isLibraryDragOutsidePhone = (event: React.DragEvent) =>
+    event.dataTransfer.types.includes(LIBRARY_DRAG_TYPE)
+    && !phoneRef.current?.contains(event.target as Node);
 
   const openContextMenu = (event: React.MouseEvent<HTMLDivElement>) => {
     event.preventDefault();
@@ -3568,6 +3726,31 @@ function Canvas({
     groupObjects(multiSelection);
     return true;
   };
+  /** The left panel's "+" on a saved component: place it in the phone, centred near the top of the visible screen. */
+  const placeCreatedInPhone = (id: string) => {
+    const saved = findCreatedComponent(id);
+    const area = drawAreaRef.current;
+    const body = bodyRef.current;
+    if (!saved || !area || !body) return;
+    const clip = saved.clip as StudioClipboard;
+    const scale = renderScale(area);
+    const areaRect = area.getBoundingClientRect();
+    const bodyRect = body.getBoundingClientRect();
+    const width = clip.items[0]?.box.w ?? 0;
+    pasteClipboard({
+      target: 'phone',
+      point: {
+        x: Math.max(0, Math.round((area.offsetWidth - width) / 2)),
+        y: Math.max(0, Math.round((bodyRect.top - areaRect.top) / scale)) + 16,
+      },
+      // Any library components in it go after the page's existing ones.
+      clientY: bodyRect.bottom,
+    }, clip);
+  };
+  React.useLayoutEffect(() => {
+    placeCreatedRef.current = placeCreatedInPhone;
+  });
+
   const shortcutsRef = React.useRef({ copySelection, pasteAtPointer, groupSelection });
   React.useLayoutEffect(() => {
     shortcutsRef.current = { copySelection, pasteAtPointer, groupSelection };
@@ -3605,10 +3788,15 @@ function Canvas({
       onMouseLeave={() => { lastPointerRef.current = null; }}
       // Saved components dragged from the left panel are handled here, before any inner drop target.
       onDragOverCapture={(event) => {
-        if (!event.dataTransfer.types.includes(CREATED_DRAG_TYPE)) return;
+        if (!isCreatedDrag(event)) return;
         event.preventDefault();
         event.stopPropagation();
         event.dataTransfer.dropEffect = 'copy';
+      }}
+      onDragEnterCapture={(event) => {
+        if (!isCreatedDrag(event)) return;
+        event.preventDefault();
+        event.stopPropagation();
       }}
       onDropCapture={handleCreatedDrop}
       className="relative flex min-w-0 flex-1 flex-col items-center overflow-hidden bg-gradient-to-b from-[#EEF0FB] via-[#F6F7FE] to-[#EEF0FB] pb-4"
@@ -3630,11 +3818,21 @@ function Canvas({
       <div
         ref={workspaceRef}
         onDragOver={(event) => {
-          if (!event.dataTransfer.types.includes('application/x-pf-asset-id')) return;
+          if (!event.dataTransfer.types.includes('application/x-pf-asset-id') && !isLibraryDragOutsidePhone(event)) return;
           event.preventDefault();
           event.dataTransfer.dropEffect = 'copy';
         }}
-        onDrop={(event) => handleWorkspaceAssetDrop(event)}
+        onDrop={(event) => {
+          if (isLibraryDragOutsidePhone(event)) {
+            const id = event.dataTransfer.getData('application/x-pf-module-id') as ModuleId;
+            event.preventDefault();
+            event.stopPropagation();
+            if (id && moduleFor(id)) onAddWorkspaceComponent(id, clientToWorld(event.clientX, event.clientY));
+            onEndDrag();
+            return;
+          }
+          handleWorkspaceAssetDrop(event);
+        }}
         onMouseDownCapture={(event) => {
           // Ctrl/Cmd+click builds a multi-selection (e.g. a shape and a text to group);
           // any other click clears it.
@@ -3863,7 +4061,7 @@ function Canvas({
                 if (drag) autoScroll(e.clientY);
               }}
               onDragLeave={(e) => {
-                if (!e.currentTarget.contains(e.relatedTarget as Node | null)) onEndDrag();
+                if (!e.currentTarget.contains(e.relatedTarget as Node | null)) onClearDropIndex(); // keep the drag itself going (it may end on the canvas around the phone)
               }}
               onDrop={handleCanvasDrop}
               onClick={(e) => { if (e.target === e.currentTarget) onSelect(null); }}
@@ -5197,7 +5395,7 @@ function RightPanel({
 
   if (isTextLayer && !textPanelClosed && !activeTextSlot && selectedId) {
     return (
-      <aside className="flex w-[270px] shrink-0 flex-col border-l border-slate-200 bg-white">
+      <aside className="flex w-full min-w-0 flex-col border-l border-slate-200 bg-white">
         <div className="flex h-10 shrink-0 items-center justify-end border-b border-slate-100 px-2">
           <button
             type="button"
@@ -5224,7 +5422,7 @@ function RightPanel({
   // Conditional Render for Text Formatting Panel
   if (activeTextSlot) {
     return (
-      <aside className="flex w-[270px] shrink-0 flex-col border-l border-slate-200 bg-white">
+      <aside className="flex w-full min-w-0 flex-col border-l border-slate-200 bg-white">
         <div className="flex h-10 shrink-0 items-center justify-end border-b border-slate-100 px-2">
           <button
             type="button"
@@ -5254,7 +5452,7 @@ function RightPanel({
 
   // Standard Right Panel Render
   return (
-    <aside className="flex w-[340px] shrink-0 flex-col border-l border-slate-200 bg-white">
+    <aside className="flex w-full min-w-0 flex-col border-l border-slate-200 bg-white">
       <div className="flex border-b border-slate-200">
         {tabs.map((t) => {
           const active = tab === t.id;
@@ -5996,6 +6194,90 @@ function RightPanel({
   );
 }
 
+/* ═══════════════════════════ Panel resizing ═══════════════════════════ */
+
+const PANEL_DEFAULT_WIDTH = 340;
+const PANEL_MIN_WIDTH = 260;
+const PANEL_MAX_WIDTH = 560;
+
+/**
+ * A side panel with a draggable inner edge: hovering the edge shows the resize cursor,
+ * dragging changes the width, double-clicking resets it.
+ */
+function ResizablePanel({
+  side, width, onWidth, children,
+}: {
+  side: 'left' | 'right';
+  width: number;
+  onWidth: (width: number) => void;
+  children: React.ReactNode;
+}) {
+  const [resizing, setResizing] = useState(false);
+
+  const startResize = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (event.button !== 0) return;
+    event.preventDefault();
+    const handle = event.currentTarget;
+    handle.setPointerCapture(event.pointerId);
+    const startX = event.clientX;
+    const startWidth = width;
+    setResizing(true);
+    const previousCursor = document.body.style.cursor;
+    const previousSelect = document.body.style.userSelect;
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    const move = (moveEvent: PointerEvent) => {
+      const delta = moveEvent.clientX - startX;
+      const next = startWidth + (side === 'left' ? delta : -delta);
+      onWidth(Math.round(Math.min(PANEL_MAX_WIDTH, Math.max(PANEL_MIN_WIDTH, next))));
+    };
+    const end = () => {
+      handle.removeEventListener('pointermove', move);
+      handle.removeEventListener('pointerup', end);
+      handle.removeEventListener('pointercancel', end);
+      document.body.style.cursor = previousCursor;
+      document.body.style.userSelect = previousSelect;
+      setResizing(false);
+    };
+    handle.addEventListener('pointermove', move);
+    handle.addEventListener('pointerup', end);
+    handle.addEventListener('pointercancel', end);
+  };
+
+  return (
+    <div className="relative flex shrink-0" style={{ width }}>
+      {children}
+      <div
+        role="separator"
+        aria-orientation="vertical"
+        aria-label={`Resize ${side} panel`}
+        aria-valuemin={PANEL_MIN_WIDTH}
+        aria-valuemax={PANEL_MAX_WIDTH}
+        aria-valuenow={width}
+        tabIndex={0}
+        title="Drag to resize · double-click to reset"
+        onPointerDown={startResize}
+        onDoubleClick={() => onWidth(PANEL_DEFAULT_WIDTH)}
+        onKeyDown={(event) => {
+          if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+          event.preventDefault();
+          const step = (event.key === 'ArrowRight' ? 16 : -16) * (side === 'left' ? 1 : -1);
+          onWidth(Math.min(PANEL_MAX_WIDTH, Math.max(PANEL_MIN_WIDTH, width + step)));
+        }}
+        className={`group absolute inset-y-0 z-40 w-2 cursor-col-resize touch-none outline-none ${
+          side === 'left' ? '-right-1' : '-left-1'
+        }`}
+      >
+        <span
+          className={`pointer-events-none absolute inset-y-0 left-1/2 w-[2px] -translate-x-1/2 transition-colors ${
+            resizing ? 'bg-[#0040DF]' : 'bg-transparent group-hover:bg-[#0040DF]/60 group-focus-visible:bg-[#0040DF]'
+          }`}
+        />
+      </div>
+    </div>
+  );
+}
+
 /* ═══════════════════════════ StudioClient ═══════════════════════════ */
 
 export default function StudioClient() {
@@ -6007,6 +6289,21 @@ export default function StudioClient() {
   const [workflowOpen, setWorkflowOpen] = useState(true);
   const [leftPanelCollapsed, setLeftPanelCollapsed] = useState(false);
   const [rightPanelCollapsed, setRightPanelCollapsed] = useState(false);
+  const [leftPanelWidth, setLeftPanelWidth] = useState(PANEL_DEFAULT_WIDTH);
+  const [rightPanelWidth, setRightPanelWidth] = useState(PANEL_DEFAULT_WIDTH);
+  const [createdDragId, setCreatedDragId] = useState<string | null>(null);
+  const placeCreatedRef = useRef<((id: string) => void) | null>(null);
+  // Whatever happens to the dragged row, a finished drag always clears the saved-component drag.
+  useEffect(() => {
+    if (!createdDragId) return;
+    const clear = () => setTimeout(() => setCreatedDragId(null), 0);
+    window.addEventListener('dragend', clear, true);
+    window.addEventListener('drop', clear, true);
+    return () => {
+      window.removeEventListener('dragend', clear, true);
+      window.removeEventListener('drop', clear, true);
+    };
+  }, [createdDragId]);
 
   const [appKind, setAppKind] = useState<AppKind>('banking');
   const [activePage, setActivePage] = useState<PageId>('home');
@@ -6146,7 +6443,39 @@ export default function StudioClient() {
     e.dataTransfer.setData('text/plain', id);
     e.dataTransfer.setData('application/x-pf-module-id', id);
     e.dataTransfer.effectAllowed = from === 'library' ? 'copyMove' : 'move';
+    if (from === 'library') {
+      e.dataTransfer.setData(LIBRARY_DRAG_TYPE, id);
+      const source = e.currentTarget as HTMLElement;
+      // A library tile renders the component at preview width; keep that size for a canvas drop.
+      const content = source.querySelector<HTMLElement>('[data-thumb-content]');
+      libraryDragSizeRef.current = content?.offsetHeight
+        ? { w: COMPONENT_PREVIEW_WIDTH, h: content.offsetHeight }
+        : null;
+      hideNativeDragImage(e);
+    }
     setDrag({ id, from });
+  };
+
+  const libraryDragSizeRef = useRef<{ w: number; h: number } | null>(null);
+
+  /** A library component dropped on the canvas around the phone, centred on the drop point. */
+  const addWorkspaceComponent = (id: ModuleId, position: { x: number; y: number }) => {
+    const size = measured[id] ?? libraryDragSizeRef.current ?? { w: COMPONENT_PREVIEW_WIDTH, h: 168 };
+    const shapeId = `workspace-component-${Date.now()}-${++canvasObjectIdRef.current}`;
+    setWorkspaceShapes((shapes) => [...shapes, {
+      id: shapeId,
+      type: 'component',
+      componentId: id,
+      box: {
+        x: Math.round(position.x - size.w / 2),
+        y: Math.round(position.y - size.h / 2),
+        w: size.w,
+        h: size.h,
+      },
+    }]);
+    setSelectedId(null);
+    setSelectedWorkspaceShapeId(shapeId);
+    setActiveTextSlot(null);
   };
   const endDrag = () => { setDrag(null); setDropIndex(null); };
 
@@ -6523,6 +6852,17 @@ export default function StudioClient() {
   return (
     <EditProvider value={editState}>
       <div className={`${urbanist.className} flex h-screen w-full flex-col overflow-hidden bg-[#F3F4F8] text-slate-900`}>
+        {createdDragId && (
+          <CreatedDragPreview key={createdDragId} id={createdDragId} ctx={{ ...liveCtx, interactive: false, actions: noopActions }} />
+        )}
+        {drag?.from === 'library' && (
+          <LibraryDragPreview
+            key={drag.id}
+            id={drag.id}
+            ctx={{ ...liveCtx, interactive: false, actions: noopActions }}
+            onMeasure={(size) => { libraryDragSizeRef.current = size; }}
+          />
+        )}
         <TopBar mode={mode} onMode={setMode} device={device} onDevice={setDevice}
           zoom={zoom} onZoom={setZoom} saveState={saveState} onPublish={() => {}} />
         <div className="flex min-h-0 flex-1">
@@ -6539,7 +6879,7 @@ export default function StudioClient() {
                 <ChevronRight className="h-4 w-4" />
               </button>
             </div>
-          ) : <LeftPanel
+          ) : <ResizablePanel side="left" width={leftPanelWidth} onWidth={setLeftPanelWidth}><LeftPanel
             appKind={appKind} onAppKind={setAppKind}
             activePage={activePage} onSelectPage={(p) => {
               setActivePage(p);
@@ -6571,7 +6911,9 @@ export default function StudioClient() {
             layerSections={layerSections}
             selectedLayerKey={selectedLayerKey}
             onSelectLayer={selectLayer}
-          />}
+            onAddCreatedToPhone={(id) => placeCreatedRef.current?.(id)}
+            onCreatedDragChange={setCreatedDragId}
+          /></ResizablePanel>}
           <Canvas
             device={device} zoom={zoom} onZoom={setZoom}
             pageModules={pageModules} activePage={activePage} pageLabel={currentPageLabel}
@@ -6595,6 +6937,10 @@ export default function StudioClient() {
             setSelectedWorkspaceShapeId={setSelectedWorkspaceShapeId}
             onAddPhoneAsset={addPhoneAsset}
             onAddWorkspaceAsset={addWorkspaceAsset}
+            onAddWorkspaceComponent={addWorkspaceComponent}
+            onClearDropIndex={() => setDropIndex(null)}
+            placeCreatedRef={placeCreatedRef}
+            createdDragId={createdDragId}
           />
           {rightPanelCollapsed ? (
             <div className="flex w-9 shrink-0 justify-center border-l border-slate-200 bg-white pt-3">
@@ -6608,7 +6954,7 @@ export default function StudioClient() {
                 <ChevronLeft className="h-4 w-4" />
               </button>
             </div>
-          ) : <RightPanel
+          ) : <ResizablePanel side="right" width={rightPanelWidth} onWidth={setRightPanelWidth}><RightPanel
             tab={rightTab} onTab={setRightTab}
             selectedId={selectedId} accent={accentColor} wsStatus={wsStatus}
             workflowOpen={workflowOpen} onToggleWorkflow={() => setWorkflowOpen((v) => !v)}
@@ -6637,7 +6983,7 @@ export default function StudioClient() {
             resetElementBoxes={resetElementBoxes}
             deleteElement={deleteElement}
             onCollapse={() => setRightPanelCollapsed(true)}
-          />}
+          /></ResizablePanel>}
         </div>
       </div>
     </EditProvider>

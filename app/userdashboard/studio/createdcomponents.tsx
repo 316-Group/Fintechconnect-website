@@ -204,7 +204,13 @@ function LayerRow({
 
 /* ═══════════════════════════ Left panel menu item ═══════════════════════════ */
 
-function SavedRow({ item }: { item: SavedComponent }) {
+function SavedRow({
+  item, onAddToPhone, onDragChange,
+}: {
+  item: SavedComponent;
+  onAddToPhone: (id: string) => void;
+  onDragChange: (id: string | null) => void;
+}) {
   const [draft, setDraft] = useState<string | null>(null);
 
   const commitRename = () => {
@@ -217,8 +223,20 @@ function SavedRow({ item }: { item: SavedComponent }) {
       draggable={draft === null}
       onDragStart={(event) => {
         event.dataTransfer.setData(CREATED_DRAG_TYPE, item.id);
+        // Plain text too: some browsers only start a drag that carries a standard type.
+        event.dataTransfer.setData('text/plain', item.name);
         event.dataTransfer.effectAllowed = 'copy';
+        // The studio draws a live preview of the frame under the cursor, so hide the browser's image.
+        const blank = document.createElement('div');
+        Object.assign(blank.style, {
+          position: 'fixed', top: '-100px', left: '-100px', width: '1px', height: '1px', opacity: '0',
+        });
+        document.body.appendChild(blank);
+        event.dataTransfer.setDragImage(blank, 0, 0);
+        setTimeout(() => blank.remove(), 0);
+        onDragChange(item.id);
       }}
+      onDragEnd={() => onDragChange(null)}
       title="Drag onto the canvas to use it"
       className="group flex cursor-grab items-center gap-2 rounded-md border border-slate-100 bg-white px-2 py-1.5 hover:border-[#0040DF]/40 active:cursor-grabbing"
     >
@@ -255,6 +273,15 @@ function SavedRow({ item }: { item: SavedComponent }) {
       </div>
       <button
         type="button"
+        title="Add to the phone"
+        aria-label={`Add ${item.name} to the phone`}
+        onClick={() => onAddToPhone(item.id)}
+        className="grid h-5 w-5 shrink-0 place-items-center rounded text-slate-400 hover:bg-[#E8EDFF] hover:text-[#0040DF]"
+      >
+        <Plus className="h-3.5 w-3.5" />
+      </button>
+      <button
+        type="button"
         title="Delete saved component"
         aria-label={`Delete ${item.name}`}
         onClick={() => {
@@ -273,12 +300,16 @@ function SavedRow({ item }: { item: SavedComponent }) {
  * canvas), and a Figma-style layers tree of the frames and groups being built.
  */
 export function CreatedComponentsMenuItem({
-  sections, selectedKey, onSelectLayer, query,
+  sections, selectedKey, onSelectLayer, query, onAddToPhone, onDragChange,
 }: {
   sections: LayerSection[];
   selectedKey: string | null;
   onSelectLayer: (key: string) => void;
   query: string;
+  /** Place a saved component straight into the phone. */
+  onAddToPhone: (id: string) => void;
+  /** The saved component being dragged (null when the drag ends), for the cursor preview. */
+  onDragChange: (id: string | null) => void;
 }) {
   const saved = useCreatedComponents();
   const [expanded, setExpanded] = useState(true);
@@ -327,7 +358,9 @@ export function CreatedComponentsMenuItem({
                     : 'No saved components match your search.'}
                 </p>
               ) : (
-                visibleSaved.map((item) => <SavedRow key={item.id} item={item} />)
+                visibleSaved.map((item) => (
+                  <SavedRow key={item.id} item={item} onAddToPhone={onAddToPhone} onDragChange={onDragChange} />
+                ))
               )}
             </div>
 
