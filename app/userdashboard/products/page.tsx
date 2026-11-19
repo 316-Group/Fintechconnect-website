@@ -20,6 +20,7 @@ import {
   X,
   Pencil,
   ExternalLink,
+  Hammer,
 } from "lucide-react";
 import ProjectDetailsForm from "./projectdetailsform";
 import ArchetypeSelectionForm, {
@@ -33,6 +34,7 @@ import PlatformConfigurationForm, {
 import TeamsForm, { type TeamsFormData } from "./teamsform";
 import { getPath } from "@/utils/helper";
 import StudioLoadingScreen from "./StudioLoadingScreen";
+import { PROJECTS_STORAGE_KEY, rememberActiveProject, studioUrlFor } from "./projectstorage";
 
 type ProjectDetailsData = Parameters<
   React.ComponentProps<typeof ProjectDetailsForm>["onContinue"]
@@ -178,6 +180,8 @@ type Project = {
    * internal defaults (owner + sample collaborators), which is what we want.
    */
   teams?: TeamsFormData;
+  /** When the Studio build was last saved with "Save progress" (set by the Studio). */
+  studioSavedAt?: string;
 };
 
 type PersistedProject = Omit<Project, "details" | "preferences"> & {
@@ -192,7 +196,6 @@ type PersistedProject = Omit<Project, "details" | "preferences"> & {
   preferences: PersistedPlatformConfigurationData;
 };
 
-const PROJECTS_STORAGE_KEY = "fintechconnect:userdashboard:projects";
 
 function generateProjectId() {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
@@ -283,14 +286,22 @@ function useFilePreviewUrl(file: File | null | undefined) {
   return url;
 }
 
+function formatSavedAt(iso: string) {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+}
+
 function ProjectCard({
   project,
   onEdit,
   onOpen,
+  onContinueBuilding,
 }: {
   project: Project;
   onEdit: () => void;
   onOpen: () => void;
+  onContinueBuilding: () => void;
 }) {
   const archetype = archetypes.find(
     (item) => item.id === project.details.archetypeId,
@@ -320,6 +331,12 @@ function ProjectCard({
           <p className="text-xs text-slate-500 mt-0.5 truncate">
             {archetype?.title ?? "Custom Archetype"}
           </p>
+          {project.studioSavedAt && (
+            <p className="mt-1 inline-flex items-center gap-1.5 text-[11px] font-medium text-emerald-700">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+              App build saved {formatSavedAt(project.studioSavedAt)}
+            </p>
+          )}
         </div>
       </div>
 
@@ -338,6 +355,15 @@ function ProjectCard({
         >
           <ExternalLink className="w-3 h-3" /> Open project
         </button>
+        {project.studioSavedAt && (
+          <button
+            type="button"
+            onClick={onContinueBuilding}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 border border-blue-100 rounded-lg hover:bg-blue-100 transition-colors whitespace-nowrap"
+          >
+            <Hammer className="w-3 h-3" /> Continue building
+          </button>
+        )}
       </div>
     </div>
   );
@@ -367,6 +393,8 @@ export default function MyProductsPage() {
   const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
   const [selectedArchetypeId, setSelectedArchetypeId] = useState("");
   const savingProject = useRef(false);
+  /** The project the Studio opens after the loading screen. */
+  const [studioProjectId, setStudioProjectId] = useState<string | null>(null);
 
   useEffect(() => {
     try {
@@ -469,9 +497,11 @@ export default function MyProductsPage() {
         )
       : projects;
 
+    let openedProjectId = editingProjectId;
     if (!editingProjectId && draft.details) {
+      openedProjectId = generateProjectId();
       const newProject: Project = {
-        id: generateProjectId(),
+        id: openedProjectId,
         createdAt: new Date().toISOString(),
         details: draft.details,
         preferences: preferencesData,
@@ -484,6 +514,7 @@ export default function MyProductsPage() {
       const persistedProjects = await Promise.all(updatedProjects.map(serializeProject));
       window.localStorage.setItem(PROJECTS_STORAGE_KEY, JSON.stringify(persistedProjects));
       setProjects(updatedProjects);
+      setStudioProjectId(openedProjectId);
       setProjectStorageError(null);
       resetDraft();
       setView("loading");
@@ -495,8 +526,18 @@ export default function MyProductsPage() {
   };
 
   const handleLoadingDone = useCallback(() => {
-    router.push("/userdashboard/studio");
-  }, [router]);
+    if (studioProjectId) {
+      rememberActiveProject(studioProjectId);
+      router.push(studioUrlFor(studioProjectId));
+    } else {
+      router.push("/userdashboard/studio");
+    }
+  }, [router, studioProjectId]);
+
+  const handleContinueBuilding = (projectId: string) => {
+    rememberActiveProject(projectId);
+    router.push(studioUrlFor(projectId));
+  };
 
   const handleDetailsBack = () => {
     if (editingProjectId) {
@@ -576,6 +617,7 @@ export default function MyProductsPage() {
                   project={project}
                   onEdit={() => handleEditProject(project.id)}
                   onOpen={() => handleOpenProject(project.id)}
+                  onContinueBuilding={() => handleContinueBuilding(project.id)}
                 />
               ))}
             </div>

@@ -210,15 +210,38 @@ const FILTERS: { id: AssetFilter; label: string }[] = [
 
 /* ─────────────────────────── Drag helper ─────────────────────────── */
 
+export const ASSET_DRAG_TYPE = 'application/x-pf-asset-id';
+
+/**
+ * The asset being dragged right now. Drop targets read this first because browsers
+ * don't always expose a custom drag data type during a real (OS-level) drag.
+ */
+let activeAssetDragId: string | null = null;
+
+/** Whether the current drag carries an asset from the Assets tab. */
+export const isAssetDrag = (data: DataTransfer) =>
+  activeAssetDragId !== null || data.types.includes(ASSET_DRAG_TYPE);
+
+/** The id of the dragged asset ('' when the drag isn't an asset). */
+export const draggedAssetId = (data: DataTransfer) =>
+  activeAssetDragId ?? data.getData(ASSET_DRAG_TYPE) ?? '';
+
+const clearAssetDrag = () => { activeAssetDragId = null; };
+
 const attachAssetDrag = (
   e: React.DragEvent,
   asset: AssetItem,
   onAssetDragStart?: (a: AssetItem) => void
 ) => {
   e.stopPropagation();
-  e.dataTransfer.setData('application/x-pf-asset-id', asset.id);
+  activeAssetDragId = asset.id;
+  // dragend always fires on the tile; a drop clears it after the drop handlers have run.
+  window.addEventListener('dragend', clearAssetDrag, { once: true, capture: true });
+  window.addEventListener('drop', () => setTimeout(clearAssetDrag, 0), { once: true, capture: true });
+  e.dataTransfer.setData(ASSET_DRAG_TYPE, asset.id);
   e.dataTransfer.setData('text/plain', `asset:${asset.id}`);
-  e.dataTransfer.effectAllowed = 'copy';
+  // Allow both, so every drop target (phone, canvas, shapes) can accept it.
+  e.dataTransfer.effectAllowed = 'copyMove';
   onAssetDragStart?.(asset);
 };
 

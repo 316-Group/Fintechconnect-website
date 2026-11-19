@@ -111,6 +111,15 @@ export function ModuleScope({
   return <ScopeContext.Provider value={{ moduleId, active, variant: variant ?? 'Default' }}>{children}</ScopeContext.Provider>;
 }
 
+/** Every saveable map owned by useEditOverrides. */
+export type EditOverridesSnapshot = {
+  overrides: Record<string, ModuleOverrides>;
+  textStyles: Record<string, Record<string, EditableTextStyle>>;
+  elementBoxes: Record<string, Record<string, ElementBox>>;
+  placedAssets: Record<string, PlacedAsset[]>;
+  hiddenElements: Record<string, string[]>;
+};
+
 /** Owns the override and element tinkering maps — put one of these at the top of StudioClient. */
 export function useEditOverrides() {
   const [overrides, setOverrides] = useState<Record<string, ModuleOverrides>>({});
@@ -262,7 +271,18 @@ export function useEditOverrides() {
     setActiveElementId(null);
   }, []);
 
+  /** Replaces every map at once (loading a saved build, undo/redo). Missing maps become empty. */
+  const restore = useCallback((saved: Partial<EditOverridesSnapshot>) => {
+    setOverrides(saved.overrides ?? {});
+    setTextStyles(saved.textStyles ?? {});
+    setElementBoxes(saved.elementBoxes ?? {});
+    setPlacedAssets(saved.placedAssets ?? {});
+    setHiddenElements(saved.hiddenElements ?? {});
+    setActiveElementId(null);
+  }, []);
+
   return {
+    restore,
     overrides,
     textStyles,
     elementBoxes,
