@@ -820,7 +820,7 @@ export function ElementTinkerHost({
           }
           /* Highlight only the innermost hovered part, like Figma. */
           .studio-tinker-active :is(button, [data-text-slot], [data-studio-element], [data-tap-root], [role="button"]):hover:not(:has(:is(button, [data-text-slot], [data-studio-element], [data-tap-root], [role="button"]):hover)) {
-            outline: 1.5px solid #0040DF !important;
+            outline: 1px solid #0040DF !important;
             outline-offset: 2px !important;
           }
         `}</style>
@@ -868,7 +868,7 @@ export function ElementTinkerHost({
         >
           {/* Outline around the element */}
           <div
-            className="absolute inset-0 border-2 border-[#0040DF] shadow-[0_0_0_1px_rgba(255,255,255,0.7)]"
+            className="absolute inset-0 border border-[#0040DF] shadow-[0_0_0_1px_rgba(255,255,255,0.7)]"
             style={{
               borderRadius: Math.max(2, overlayRect.borderRadius),
             }}
@@ -888,7 +888,7 @@ export function ElementTinkerHost({
               key={h.k}
               data-corner-handle={h.k}
               onMouseDown={(e) => handleResize(e, h.k)}
-              className={`pointer-events-auto absolute h-2.5 w-2.5 rounded-full border-2 border-[#0040DF] bg-white shadow-sm hover:scale-125 transition-transform ${h.cls}`}
+              className={`pointer-events-auto absolute h-2 w-2 rounded-full border border-[#0040DF] bg-white shadow-sm hover:scale-125 transition-transform ${h.cls}`}
             />
           ))}
 
@@ -959,7 +959,7 @@ export function EditableText({
           if (e.key === 'Escape') setEditing(false);
         }}
         data-text-slot={slot}
-        className={`${className ?? ''} rounded bg-white px-1 outline-none ring-2 ring-[#0040DF]`}
+        className={`${className ?? ''} rounded bg-white px-1 outline-none ring-1 ring-[#0040DF]`}
         style={{ ...resolvedStyle, color: textStyle.color ?? '#0f172a' }}
       />
     );

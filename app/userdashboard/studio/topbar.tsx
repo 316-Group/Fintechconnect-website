@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  ChevronDown, Code2, Expand, Laptop, Landmark, Loader2, Minimize, Minus, MonitorSmartphone,
+  ChevronDown, Code2, Expand, Laptop, Landmark, Minimize, Minus, MonitorSmartphone,
   PenLine, PlayCircle, Plus, Redo2, Rocket, Save, Share2, Smartphone, Tablet, Undo2, Workflow,
   FolderOpen, Check,
 } from 'lucide-react';
@@ -301,12 +301,11 @@ export function TopBar({
         <button
           type="button"
           onClick={onSave}
-          disabled={state === 'saving'}
-          title="Save progress (Ctrl+S)"
+          title="Changes save automatically. Click (or Ctrl+S) to save now."
           className="flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-xl border bg-white px-3 text-[13px] font-semibold transition hover:bg-[#0040DF]/5 disabled:opacity-70"
           style={{ borderColor: `${BLUE}55`, color: BLUE }}
         >
-          {state === 'saving' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+          <Save className="h-4 w-4" />
           Save progress
         </button>
         <button

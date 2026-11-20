@@ -22,6 +22,7 @@ import {
   ShieldCheck,
   Activity,
   Plug,
+  Cable,
   Code2,
   BarChart3,
   UserCog,
@@ -66,6 +67,7 @@ const navSections = [
     items: [
       { label: "Compliance", href: "/userdashboard/compliance", icon: ShieldCheck },
       { label: "Fraud Monitoring", href: "/userdashboard/fraud", icon: Activity },
+      { label: "Connectors", href: "/userdashboard/connectors", icon: Cable },
       { label: "Integrations", href: "/userdashboard/integrations", icon: Plug },
       { label: "Developers", href: "/userdashboard/developers", icon: Code2 },
     ],

@@ -1089,6 +1089,162 @@ export function LogicTab({
   );
 }
 
+/* ═══════════════════════════ Design-tab summary ═══════════════════════════ */
+
+function SummaryStep({ n, text, badge, badgeCls }: { n: number; text: string; badge?: string; badgeCls?: string }) {
+  return (
+    <div className="flex items-center gap-2.5 rounded-md bg-slate-50 px-3 py-2 ring-1 ring-slate-200">
+      <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-white text-[10px] font-bold text-slate-500 ring-1 ring-slate-200">{n}</span>
+      <p className="min-w-0 flex-1 truncate text-[11px] font-semibold text-slate-800" title={text}>{text}</p>
+      {badge && <span className={`shrink-0 rounded px-1.5 py-0.5 text-[9px] font-bold ring-1 ${badgeCls}`}>{badge}</span>}
+    </div>
+  );
+}
+
+/** The ordered steps a trigger runs, as the summary lists them. */
+function triggerSteps(trigger: LogicTrigger) {
+  const steps: { text: string; badge?: string; badgeCls?: string }[] = [];
+  if (trigger.requireKyc) {
+    steps.push({ text: 'Validate KYC Status', badge: 'Guard', badgeCls: 'bg-blue-50 text-[#0040DF] ring-blue-200' });
+  }
+  const animation = trigger.animation && trigger.animation !== 'None' ? trigger.animation.split(' ')[0] : undefined;
+  steps.push({ text: describeTrigger(trigger), badge: animation, badgeCls: 'bg-purple-50 text-purple-700 ring-purple-200' });
+  if (trigger.action === 'dispatchApi' && trigger.throttle && trigger.throttle !== 'None') {
+    steps.push({ text: `Throttle repeat calls: ${trigger.throttle}`, badge: 'Limit', badgeCls: 'bg-emerald-50 text-emerald-700 ring-emerald-200' });
+  }
+  if (trigger.haptic && trigger.haptic !== 'None') {
+    steps.push({ text: `Haptic: ${trigger.haptic}`, badge: 'Haptic', badgeCls: 'bg-slate-100 text-slate-600 ring-slate-200' });
+  }
+  return steps;
+}
+
+/**
+ * A read-only summary of the selected component's (or part's) logic for the Design tab.
+ * Editing happens in the Logic tab, which `onOpenLogic` switches to.
+ */
+export function LogicSummary({
+  moduleId, componentTitle, elementId, logic, state, open, onToggle, onOpenLogic, onSelectElement,
+}: {
+  moduleId: string;
+  componentTitle: string;
+  elementId: string | null;
+  logic: LogicMap;
+  state: LogicState;
+  open: boolean;
+  onToggle: () => void;
+  onOpenLogic: () => void;
+  onSelectElement: (elementId: string | null) => void;
+}) {
+  const key = logicKey(moduleId, elementId);
+  const entry = logic[key] ?? EMPTY_LOGIC;
+  const scopeName = elementId ? getElementDisplayName(elementId) : componentTitle;
+  const rootEntry = elementId ? logic[logicKey(moduleId, null)] : undefined;
+  const parts = Object.entries(logic)
+    .map(([k, value]) => ({ k, value, element: splitKey(k)[1], module: splitKey(k)[0] }))
+    .filter(({ k, module, element }) => module === moduleId && k !== key && element !== null);
+  const total = entry.triggers.length + entry.rules.length;
+  const hasRouting = !!entry.route || !!entry.authGuard;
+
+  return (
+    <section className="border-b border-slate-200 px-4 py-4">
+      <div className="mb-2.5 flex items-center justify-between gap-2">
+        <button type="button" onClick={onToggle} aria-expanded={open}
+          className="flex min-w-0 items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 hover:text-slate-600">
+          <ChevronDown className={`h-3 w-3 shrink-0 transition-transform ${open ? '' : '-rotate-90'}`} />
+          Workflow Triggers
+          {total > 0 && <span className="ml-1 rounded-full bg-blue-50 px-1.5 text-[9px] text-[#0040DF]">{total}</span>}
+        </button>
+        <button type="button" onClick={onOpenLogic} className="flex shrink-0 items-center gap-1 text-[11px] font-semibold text-[#0040DF]">
+          {total > 0 || hasRouting ? <><Pencil className="h-3 w-3" /> Edit Logic</> : <><Plus className="h-3 w-3" /> Add Logic</>}
+        </button>
+      </div>
+
+      {open && (
+        <div className="space-y-3">
+          <p className="truncate text-[10.5px] text-slate-500">
+            For <span className="font-semibold text-slate-700">{scopeName}</span>
+            {elementId && <> in {componentTitle}</>}
+          </p>
+
+          {entry.triggers.map((trigger) => (
+            <div key={trigger.id}>
+              <div className="mb-1.5 flex items-center gap-2 text-[11px] font-semibold text-slate-700">
+                <span className="h-2 w-2 shrink-0 rounded-full bg-amber-500" />
+                WHEN: {EVENTS[trigger.event].label}
+                {!EVENTS[trigger.event].live && (
+                  <span className="rounded bg-slate-100 px-1 text-[9px] font-semibold text-slate-500" title="Saved with the build, but not simulated in Prototype mode">
+                    Config only
+                  </span>
+                )}
+              </div>
+              <div className="space-y-1.5">
+                {triggerSteps(trigger).map((step, i) => <SummaryStep key={i} n={i + 1} {...step} />)}
+              </div>
+            </div>
+          ))}
+
+          {entry.rules.length > 0 && (
+            <div>
+              <div className="mb-1.5 flex items-center gap-2 text-[11px] font-semibold text-slate-700">
+                <span className="h-2 w-2 shrink-0 rounded-full bg-[#0040DF]" /> RULES
+              </div>
+              <div className="space-y-1.5">
+                {entry.rules.map((rule) => {
+                  const active = ruleHolds(rule, state);
+                  const tag = ruleTag(rule);
+                  return (
+                    <button key={rule.id} type="button" onClick={onOpenLogic}
+                      title={`${rule.name ? `${rule.name}: ` : ''}${ruleDescription(rule)}`}
+                      className="flex w-full items-center gap-2.5 rounded-md bg-slate-50 px-3 py-2 text-left ring-1 ring-slate-200 hover:ring-[#0040DF]/40">
+                      <span className={`h-2 w-2 shrink-0 rounded-full ${active ? 'bg-emerald-500' : 'bg-slate-300'}`}
+                        title={active ? 'Active now with sandbox data' : 'Not active with sandbox data'} />
+                      <p className="min-w-0 flex-1 truncate font-mono text-[10.5px] text-slate-700">If {conditionText(rule)}</p>
+                      <span className={`shrink-0 rounded px-1.5 py-0.5 text-[9px] font-bold ${tag.cls}`}>{tag.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {hasRouting && (
+            <div className="flex items-center gap-2 rounded-md bg-slate-50 px-3 py-2 ring-1 ring-slate-200">
+              <span className="min-w-0 flex-1 truncate font-mono text-[10.5px] text-[#0040DF]">{entry.route || 'Default deep link'}</span>
+              {entry.authGuard && (
+                <span className="shrink-0 rounded bg-indigo-50 px-1.5 py-0.5 text-[9px] font-bold text-indigo-600 ring-1 ring-indigo-200">Auth Guard</span>
+              )}
+            </div>
+          )}
+
+          {total === 0 && !hasRouting && (
+            <button type="button" onClick={onOpenLogic}
+              className="w-full rounded-md border border-dashed border-slate-200 px-3 py-3 text-center text-[11px] leading-snug text-slate-400 hover:border-[#0040DF]/40 hover:text-[#0040DF]">
+              No triggers or rules for {scopeName} yet.<br />Add them in the Logic tab.
+            </button>
+          )}
+
+          {(rootEntry || parts.length > 0) && (
+            <div className="flex flex-wrap gap-1">
+              {rootEntry && (
+                <button type="button" onClick={() => onSelectElement(null)}
+                  className="rounded-full bg-white px-2 py-0.5 text-[10px] font-medium text-[#0040DF] ring-1 ring-blue-100 hover:ring-[#0040DF]">
+                  All of {componentTitle} · {countLabel(rootEntry)}
+                </button>
+              )}
+              {parts.map(({ k, value, element }) => (
+                <button key={k} type="button" onClick={() => onSelectElement(element)}
+                  className="rounded-full bg-white px-2 py-0.5 text-[10px] font-medium text-[#0040DF] ring-1 ring-blue-100 hover:ring-[#0040DF]">
+                  {getElementDisplayName(element!)} · {countLabel(value)}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </section>
+  );
+}
+
 /* ═══════════════════════════ Prototype runtime ═══════════════════════════ */
 
 const LONG_PRESS_MS = 500;

@@ -48,7 +48,7 @@ import {
 } from './othertabs';
 import { CodeTab, type CodeSource } from './codetab';
 import {
-  DEFAULT_LOGIC_STATE, LogicRuntime, LogicTab, appSchemeFor, logicKey,
+  DEFAULT_LOGIC_STATE, LogicRuntime, LogicSummary, LogicTab, appSchemeFor, logicKey,
   type LogicMap, type LogicState, type LogicTrigger,
 } from './logictab';
 import { TopBar, type DeviceType, type SaveStatus, type StudioMode } from './topbar';
@@ -78,6 +78,162 @@ const EDGE_HANDLES = [
   { k: 'w', cls: 'left-0 inset-y-2 w-2 -translate-x-1/2 cursor-ew-resize' },
   { k: 'e', cls: 'right-0 inset-y-2 w-2 translate-x-1/2 cursor-ew-resize' },
 ] as const;
+
+/**
+ * Stacking order for canvas objects: an object drawn (or added) later sits above every
+ * object drawn before it, whatever is selected or hovered. A layer grouped into a shape
+ * stays just above that shape, even if it was drawn first.
+ */
+function stackLevels(ids: string[], parentOf: (id: string) => string | undefined, isFrame: (id: string) => boolean) {
+  const index = new Map(ids.map((id, i) => [id, i]));
+  const levels = new Map<string, number>();
+  const levelOf = (id: string, seen: Set<string>): number => {
+    const known = levels.get(id);
+    if (known !== undefined) return known;
+    let level = 2 * (index.get(id) ?? 0);
+    const parent = parentOf(id);
+    if (parent && index.has(parent) && !isFrame(parent) && !seen.has(parent)) {
+      level = Math.max(level, levelOf(parent, new Set(seen).add(id)) + 1);
+    }
+    levels.set(id, level);
+    return level;
+  };
+  ids.forEach((id) => levelOf(id, new Set()));
+  return levels;
+}
+
+/** The groups among these objects: each group's shape and every layer grouped into it. */
+function canvasGroups(ids: string[], parentOf: (id: string) => string | undefined, isFrame: (id: string) => boolean) {
+  const present = new Set(ids);
+  const childrenOf = new Map<string, string[]>();
+  ids.forEach((id) => {
+    const parent = parentOf(id);
+    if (!parent || !present.has(parent) || isFrame(parent)) return;
+    childrenOf.set(parent, [...(childrenOf.get(parent) ?? []), id]);
+  });
+  return [...childrenOf.keys()].map((root) => {
+    const members = [root];
+    for (let i = 0; i < members.length; i += 1) {
+      (childrenOf.get(members[i]) ?? []).forEach((child) => { if (!members.includes(child)) members.push(child); });
+    }
+    return members;
+  });
+}
+
+/**
+ * A light outline around every layer of a group, so grouped objects that are apart still
+ * read as one unit. It measures its sibling objects (by `attr`) in the shared container.
+ */
+function GroupOutline({ ids, attr, active, hidden }: {
+  ids: string[];
+  attr: 'data-module-id' | 'data-workspace-shape-id';
+  active: boolean;
+  hidden: boolean;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const idsKey = ids.join('\n');
+  React.useLayoutEffect(() => {
+    const outline = ref.current;
+    const container = outline?.parentElement;
+    if (!outline || !container) return;
+    const members = () => idsKey.split('\n')
+      .map((id) => container.querySelector<HTMLElement>(`:scope > [${attr}="${CSS.escape(id)}"]`))
+      .filter((el): el is HTMLElement => !!el);
+    const place = () => {
+      const els = members();
+      if (hidden || els.length < 2) {
+        outline.style.display = 'none';
+        return;
+      }
+      let left = Infinity; let top = Infinity; let right = -Infinity; let bottom = -Infinity;
+      els.forEach((el) => {
+        left = Math.min(left, el.offsetLeft);
+        top = Math.min(top, el.offsetTop);
+        right = Math.max(right, el.offsetLeft + el.offsetWidth);
+        bottom = Math.max(bottom, el.offsetTop + el.offsetHeight);
+      });
+      const pad = 6;
+      outline.style.display = 'block';
+      outline.style.left = `${left - pad}px`;
+      outline.style.top = `${top - pad}px`;
+      outline.style.width = `${right - left + pad * 2}px`;
+      outline.style.height = `${bottom - top + pad * 2}px`;
+    };
+    place();
+    const observer = new ResizeObserver(place);
+    members().forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
+  });
+  return (
+    <div
+      ref={ref}
+      aria-hidden
+      data-group-outline
+      className={`pointer-events-none absolute !m-0 rounded-[4px] border transition-colors ${
+        active ? 'border-[#0040DF]/60' : 'border-[#0040DF]/25'
+      }`}
+      style={{ zIndex: 9000 }}
+    />
+  );
+}
+
+/**
+ * The selection border and resize handles, drawn above every object (like Figma) so a
+ * selected object that sits under newer ones can still be resized from any side. It is
+ * rendered in the object's container and follows the object (`attr` = `id`) there.
+ */
+function SelectionChrome({ attr, id, inset, onResizeStart }: {
+  attr: 'data-module-id' | 'data-workspace-shape-id';
+  id: string;
+  inset: number;
+  onResizeStart: (event: React.MouseEvent<HTMLSpanElement>, handle: string) => void;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  React.useLayoutEffect(() => {
+    const chrome = ref.current;
+    const target = chrome?.parentElement?.querySelector<HTMLElement>(`:scope > [${attr}="${CSS.escape(id)}"]`);
+    if (!chrome || !target) {
+      if (chrome) chrome.style.display = 'none';
+      return;
+    }
+    const place = () => {
+      chrome.style.display = 'block';
+      chrome.style.left = `${target.offsetLeft - inset}px`;
+      chrome.style.top = `${target.offsetTop - inset}px`;
+      chrome.style.width = `${target.offsetWidth + inset * 2}px`;
+      chrome.style.height = `${target.offsetHeight + inset * 2}px`;
+      // Same centre as the object, so its rotation (and any offset) applies unchanged.
+      chrome.style.transform = target.style.transform;
+    };
+    place();
+    const observer = new ResizeObserver(place);
+    observer.observe(target);
+    return () => observer.disconnect();
+  });
+  return (
+    <div
+      ref={ref}
+      data-selection-chrome
+      className="pointer-events-none absolute !m-0 border border-[#0040DF]"
+      style={{ zIndex: 9100 }}
+    >
+      {EDGE_HANDLES.map((handle) => (
+        <span
+          key={handle.k}
+          onMouseDown={(event) => onResizeStart(event, handle.k)}
+          className={`pointer-events-auto absolute ${handle.cls}`}
+        />
+      ))}
+      {CORNER_HANDLES.map((handle) => (
+        <span
+          key={handle.k}
+          onMouseDown={(event) => onResizeStart(event, handle.k)}
+          className={`pointer-events-auto absolute h-2 w-2 rounded-full border border-[#0040DF] bg-white shadow-sm ${handle.cls}`}
+        />
+      ))}
+    </div>
+  );
+}
 
 /** Name for a new frame: one more than the highest "Frame N" already used. */
 function nextFrameName(boxes: ModuleBox[]): string {
@@ -236,6 +392,8 @@ type StudioDesign = {
 } & EditOverridesSnapshot;
 type SavedBuildData = { design?: Partial<StudioDesign>; comments?: CanvasComment[] };
 const UNDO_LIMIT = 60;
+/** How long editing must pause before the build is auto-saved. */
+const AUTO_SAVE_DELAY_MS = 1200;
 type RightTab = 'design' | 'layout' | 'logic' | 'data' | 'code';
 type DragState = { id: ModuleId; from: 'library' | 'canvas' } | null;
 type CornerRadii = { topLeft: number; topRight: number; bottomRight: number; bottomLeft: number };
@@ -1185,20 +1343,20 @@ function LeftPanel({
                   <p className="text-[9px] text-slate-500">{compsInLibrary.length} components</p>
                 </div>
               </div>
-              <div className="space-y-2 rounded-xl border border-slate-200 bg-white p-2 shadow-sm">
+              <div className="-mx-3 divide-y divide-slate-200 border-y border-slate-200 bg-white">
                 {groupedComps.map((group) => (
-                  <button key={group.id} type="button" onClick={() => setActiveCompSubgroup(group.id)} className="flex w-full items-center gap-2.5 rounded-lg border border-slate-100 bg-white px-2.5 py-2.5 text-left transition hover:border-[#0040DF]/30 hover:bg-[#F7F8FF]">
-                    <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg ${group.bg} ${group.text}`}>
-                      <group.Icon className="h-4 w-4" />
+                  <button key={group.id} type="button" onClick={() => setActiveCompSubgroup(group.id)} className="group flex w-full items-center gap-3.5 px-3 py-3 text-left transition hover:bg-[#F7F8FF]">
+                    <span className="flex h-[52px] w-[52px] shrink-0 flex-col items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 transition group-hover:border-[#0040DF]/30">
+                      <span className={`grid h-6 w-6 place-items-center rounded-md ${group.bg} ${group.text}`}>
+                        <group.Icon className="h-3.5 w-3.5" />
+                      </span>
+                      <span className="h-1 w-7 rounded-full bg-slate-200" />
                     </span>
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-[10px] font-bold text-slate-800">{group.label}</p>
-                      <p className="mt-0.5 text-[8px] text-slate-500">{group.mods.length} templates</p>
+                      <p className="truncate text-[12.5px] font-semibold text-slate-900">{group.label}</p>
+                      <p className="mt-0.5 text-[10.5px] text-slate-400">{group.mods.length} template{group.mods.length === 1 ? '' : 's'}</p>
                     </div>
-                    <span className="flex items-center gap-1 text-[8px] font-semibold text-slate-400">
-                      {group.mods.length}
-                      <ChevronRight className="h-3.5 w-3.5" />
-                    </span>
+                    <ChevronRight className="h-4 w-4 shrink-0 text-slate-400 transition group-hover:text-[#0040DF]" />
                   </button>
                 ))}
               </div>
@@ -1966,9 +2124,11 @@ function GenericShape({
 function ModuleWrapper({
   id, index, total, selected, drag, dropIndex, accent, isDark, radius, ctx,
   box, onSelect, onStartDrag, onEndDrag, onItemDragOver, onDrop, onRemove,
-  onMeasure, onBoxChange, onShapeMove, onShapeMoveEnd, isDrawing, isShapeDragSource,
+  onMeasure, onBoxChange, onShapeMove, onShapeMoveEnd, isDrawing, isShapeDragSource, stackLevel,
 }: {
   id: ModuleId; index: number; total: number;
+  /** Draw-order level from `stackLevels`: later objects sit above earlier ones. */
+  stackLevel: number;
   selected: boolean; drag: DragState; dropIndex: number | null;
   isDrawing: boolean; isShapeDragSource: boolean;
   accent: string; isDark: boolean; radius: Radius; ctx: ViewCtx;
@@ -1989,6 +2149,12 @@ function ModuleWrapper({
   onShapeMoveEnd: ShapeMoveEnd;
 }) {
   const wrapperRef = useRef<HTMLDivElement>(null);
+  // The selection handles are drawn in the wrapper's container, above every object.
+  const [chromeHost, setChromeHost] = useState<HTMLElement | null>(null);
+  const setWrapper = React.useCallback((element: HTMLDivElement | null) => {
+    wrapperRef.current = element;
+    setChromeHost(element?.parentElement ?? null);
+  }, []);
   const contentRef = useRef<HTMLDivElement>(null);
   const [natural, setNatural] = useState<{ w: number; h: number } | null>(null);
   const isSource = drag?.from === 'canvas' && drag.id === id;
@@ -2145,7 +2311,6 @@ function ModuleWrapper({
   const fillW = pinned || box.widthMode === 'fill';
   const fillH = box.heightMode === 'fill';
   const isAbsolute = isShape || box.position === 'absolute';
-  const isGroupedLayer = !!box.frameId && !box.frameId.startsWith('frame-');
   const autoLayoutStyle = isShape ? null : autoLayoutCss(id, box);
 
   const wrapperStyle: React.CSSProperties = {
@@ -2161,10 +2326,9 @@ function ModuleWrapper({
         ? `${!isAbsolute ? `translate(${box.x ?? 0}px, ${box.y ?? 0}px) ` : ''}rotate(${box.rotation ?? 0}deg)`
         : undefined,
     opacity: box.opacity === undefined ? undefined : box.opacity / 100,
-    outline: selected ? '2px solid #0040DF' : undefined,
-    outlineOffset: 4,
-    // Layers grouped into a shape stay above it, even while the shape is selected.
-    zIndex: isFrame ? (selected ? 15 : 10) : isShape ? (isGroupedLayer ? 35 : selected ? 30 : 20) : undefined,
+    // Frames sit under everything; other objects stack in the order they were drawn
+    // (grouped layers just above their shape), and selecting one doesn't raise it.
+    zIndex: isFrame ? 10 : isShape ? 20 + stackLevel : undefined,
     ...layoutWrapperStyle(box),
     ...customEffect,
   };
@@ -2178,7 +2342,7 @@ function ModuleWrapper({
 
   return (
     <div
-      ref={wrapperRef}
+      ref={setWrapper}
       data-module-id={id}
       draggable={!selected && !isShape && !isDrawing}
       onDragStart={(e) => {
@@ -2210,7 +2374,7 @@ function ModuleWrapper({
         isDark ? 'ring-offset-slate-950' : 'ring-offset-[#F7F8FF]'
       } ${
         // Figma-style hover highlight (the selection outline takes over once selected).
-        !selected && !isDrawing && !drag ? 'hover:outline hover:outline-[1.5px] hover:outline-[#0040DF]' : ''
+        !selected && !isDrawing && !drag ? 'hover:outline hover:outline-1 hover:outline-[#0040DF]' : ''
       } ${isSource ? 'opacity-40' : ''}`}
     >
       {drag && dropIndex === index && <DropLine side="top" accent={accent} />}
@@ -2244,23 +2408,9 @@ function ModuleWrapper({
           : <ModuleView id={id} ctx={ctxWithBox} />}
       </div>
 
-      {selected && !drag && (
-        <div className="pointer-events-none absolute z-30" style={{ inset: -4 }}>
-          {EDGE_HANDLES.map((h) => (
-            <span
-              key={h.k}
-              onMouseDown={(e) => startResize(e, h.k)}
-              className={`pointer-events-auto absolute ${h.cls}`}
-            />
-          ))}
-          {CORNER_HANDLES.map((h) => (
-            <span
-              key={h.k}
-              onMouseDown={(e) => startResize(e, h.k)}
-              className={`pointer-events-auto absolute h-2.5 w-2.5 rounded-full border-2 border-[#0040DF] bg-white shadow-sm ${h.cls}`}
-            />
-          ))}
-        </div>
+      {selected && !drag && !isShapeDragSource && chromeHost && createPortal(
+        <SelectionChrome attr="data-module-id" id={id} inset={4} onResizeStart={startResize} />,
+        chromeHost,
       )}
     </div>
   );
@@ -2270,8 +2420,10 @@ function PageCanvas({
   page, pageLabel, modules, ctx, drag, dropIndex, accent, isDark, radius,
   onStartDrag, onEndDrag, onItemDragOver, onDrop, onRemove, onQuickAdd,
   selectedId, onSelect, boxes, onMeasure, onBoxChange, onShapeMove, onShapeMoveEnd,
-  isDrawing, shapeDragPreviewIds,
+  isDrawing, shapeDragPreviewIds, showGroups,
 }: {
+  /** Outline grouped objects (design mode only). */
+  showGroups: boolean;
   page: PageId; pageLabel: string; modules: ModuleId[];
   ctx: ViewCtx; drag: DragState; dropIndex: number | null; accent: string;
   isDark: boolean; radius: Radius;
@@ -2318,8 +2470,23 @@ function PageCanvas({
     );
   }
 
+  const parentOf = (id: string) => boxes[id]?.frameId;
+  const isFrameId = (id: string) => id.startsWith('frame-');
+  const levels = stackLevels(modules, parentOf, isFrameId);
+  const groups = showGroups ? canvasGroups(modules, parentOf, isFrameId) : [];
+
   return (
-    <div className="relative min-h-full space-y-3 pb-20">
+    // `isolate` keeps the objects' draw-order z-indexes inside the page.
+    <div className="relative isolate min-h-full space-y-3 pb-20">
+      {groups.map((ids) => (
+        <GroupOutline
+          key={ids[0]}
+          ids={ids}
+          attr="data-module-id"
+          active={!!selectedId && ids.includes(selectedId)}
+          hidden={!!drag || ids.some((id) => shapeDragPreviewIds.includes(id))}
+        />
+      ))}
       {modules.map((id, i) => (
         <ModuleWrapper
           key={id}
@@ -2329,6 +2496,7 @@ function PageCanvas({
           selected={selectedId === id}
           isDrawing={isDrawing}
           isShapeDragSource={shapeDragPreviewIds.includes(id)}
+          stackLevel={levels.get(id) ?? 0}
           drag={drag}
           dropIndex={dropIndex}
           accent={accent}
@@ -3747,6 +3915,12 @@ function Canvas({
   React.useLayoutEffect(() => {
     shortcutsRef.current = { copySelection, pasteAtPointer, groupSelection };
   });
+  const workspaceParentOf = (id: string) => workspaceShapes.find((shape) => shape.id === id)?.frameId;
+  const isWorkspaceFrame = (id: string) => workspaceShapes.find((shape) => shape.id === id)?.type === 'frame';
+  const workspaceShapeIds = workspaceShapes.map((shape) => shape.id);
+  const workspaceLevels = stackLevels(workspaceShapeIds, workspaceParentOf, isWorkspaceFrame);
+  const workspaceGroups = edit?.mode === 'edit' ? canvasGroups(workspaceShapeIds, workspaceParentOf, isWorkspaceFrame) : [];
+
   React.useEffect(() => {
     const handler = (event: KeyboardEvent) => {
       if (!(event.ctrlKey || event.metaKey) || event.altKey || event.shiftKey) return;
@@ -3871,7 +4045,7 @@ function Canvas({
           <style>{`${multiSelection.map((key) => key.startsWith('w:')
             ? `[data-workspace-shape-id="${CSS.escape(key.slice(2))}"]`
             : `[data-module-id="${CSS.escape(key.slice(2))}"]`).join(',\n')} {
-            outline: 2px solid #0040DF !important;
+            outline: 1px solid #0040DF !important;
             outline-offset: 4px !important;
           }`}</style>
         )}
@@ -3916,13 +4090,20 @@ function Canvas({
           }}
         >
         <div className="absolute inset-0 z-0">
-          {workspaceShapes.map((shape, index) => {
+          {workspaceGroups.map((ids) => (
+            <GroupOutline
+              key={ids[0]}
+              ids={ids}
+              attr="data-workspace-shape-id"
+              active={!!selectedWorkspaceShapeId && ids.includes(selectedWorkspaceShapeId)}
+              hidden={!!shapeDragPreview?.items.some((item) => ids.includes(item.id))}
+            />
+          ))}
+          {workspaceShapes.map((shape) => {
             const isSelected = selectedWorkspaceShapeId === shape.id;
-            // Layers grouped into a shape stay above it, even while the shape is selected.
-            const isGroupedLayer = !!shape.frameId
-              && workspaceShapes.some((item) => item.id === shape.frameId && item.type !== 'frame');
-            // Grouped layers sit above the hover level (70) so hovering their shape can't cover them.
-            const restingZ = shape.type === 'frame' ? 1 : isGroupedLayer ? 75 : isSelected ? 60 : index + 1;
+            // Frames sit under everything; other objects stack in the order they were drawn
+            // (grouped layers just above their shape). Selecting or hovering doesn't raise them.
+            const restingZ = shape.type === 'frame' ? 1 : 2 + (workspaceLevels.get(shape.id) ?? 0);
             return (
               <div
               key={shape.id}
@@ -3934,12 +4115,6 @@ function Canvas({
                 event.dataTransfer.dropEffect = 'copy';
               }}
               onDrop={(event) => handleWorkspaceAssetDrop(event, shape.id)}
-              onMouseEnter={(event) => {
-                event.currentTarget.style.zIndex = shape.type === 'frame' ? '1' : String(Math.max(70, restingZ));
-              }}
-              onMouseLeave={(event) => {
-                event.currentTarget.style.zIndex = String(restingZ);
-              }}
               onMouseDown={(event) => startWorkspaceShapeMove(event, shape)}
               style={{
                 position: 'absolute',
@@ -3953,7 +4128,7 @@ function Canvas({
                 opacity: shapeDragPreview?.items.some((item) => item.id === shape.id) ? 0 : undefined,
               }}
               className={`group pointer-events-auto cursor-move ${
-                !isSelected && !drawTool && !shapeDragPreview ? 'hover:outline hover:outline-[1.5px] hover:outline-offset-2 hover:outline-[#0040DF]' : ''
+                !isSelected && !drawTool && !shapeDragPreview ? 'hover:outline hover:outline-1 hover:outline-offset-2 hover:outline-[#0040DF]' : ''
               }`}
               title="Drag into the phone canvas or reposition"
             >
@@ -3970,30 +4145,25 @@ function Canvas({
                   : item))}
                 onEmpty={() => removeWorkspaceShape(shape.id)}
               />
-              {isSelected && !drawTool && (
-                <div className="pointer-events-none absolute -inset-1 z-20 border-2 border-[#0040DF]">
-                  {EDGE_HANDLES.map((handle) => (
-                    <span
-                      key={handle.k}
-                      onMouseDown={(event) => startWorkspaceShapeResize(event, shape, handle.k)}
-                      className={`pointer-events-auto absolute ${handle.cls}`}
-                    />
-                  ))}
-                  {CORNER_HANDLES.map((handle) => (
-                    <span
-                      key={handle.k}
-                      onMouseDown={(event) => startWorkspaceShapeResize(event, shape, handle.k)}
-                      className={`pointer-events-auto absolute h-2.5 w-2.5 rounded-full border-2 border-[#0040DF] bg-white shadow-sm ${handle.cls}`}
-                    />
-                  ))}
-                </div>
-              )}
               </div>
             );
           })}
+          {(() => {
+            const selectedShape = workspaceShapes.find((shape) => shape.id === selectedWorkspaceShapeId);
+            if (!selectedShape || drawTool || shapeDragPreview?.items.some((item) => item.id === selectedShape.id)) return null;
+            return (
+              <SelectionChrome
+                key={selectedShape.id}
+                attr="data-workspace-shape-id"
+                id={selectedShape.id}
+                inset={4}
+                onResizeStart={(event, handle) => startWorkspaceShapeResize(event, selectedShape, handle)}
+              />
+            );
+          })()}
           {drawPreview && drawPreviewTarget === 'workspace' && (
             <div
-              className="pointer-events-none absolute z-40"
+              className="pointer-events-none absolute z-[9500]"
               style={{
                 left: drawPreview.box.x,
                 top: drawPreview.box.y,
@@ -4110,6 +4280,7 @@ function Canvas({
                   onShapeMoveEnd={handlePhoneShapeMoveEnd}
                   isDrawing={!!drawTool}
                   shapeDragPreviewIds={shapeDragPreview?.items.map((item) => item.id) ?? []}
+                  showGroups={edit?.mode === 'edit'}
                 />
                 {drawPreview && drawPreviewTarget === 'phone' && (
                   <div
@@ -6191,31 +6362,20 @@ function RightPanel({
             )}
 
             {/* Workflow Triggers */}
-            <section className="border-b border-slate-200 px-4 py-4">
-              <div className="mb-2.5 flex items-center justify-between">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Workflow Triggers</span>
-                <button onClick={onToggleWorkflow} className="flex items-center gap-1 text-[11px] font-semibold text-[#0040DF]">
-                  <Plus className="h-3 w-3" /> Add Action
-                </button>
-              </div>
-              <div className="mb-2 flex items-center gap-2 text-[11px] font-semibold text-slate-700">
-                <span className="h-2 w-2 rounded-full bg-amber-500" /> WHEN: On Tap
-              </div>
-              {workflowOpen && (
-                <div className="space-y-1.5">
-                  <div className="flex items-center gap-2.5 rounded-md bg-slate-50 px-3 py-2 ring-1 ring-slate-200">
-                    <span className="grid h-5 w-5 place-items-center rounded-full bg-white text-[10px] font-bold text-slate-500 ring-1 ring-slate-200">1</span>
-                    <p className="flex-1 text-[11px] font-semibold">Validate KYC Status (Passkey)</p>
-                    <span className="rounded bg-blue-50 px-1.5 py-0.5 text-[9px] font-bold text-[#0040DF] ring-1 ring-blue-200">Rule</span>
-                  </div>
-                  <div className="flex items-center gap-2.5 rounded-md bg-slate-50 px-3 py-2 ring-1 ring-slate-200">
-                    <span className="grid h-5 w-5 place-items-center rounded-full bg-white text-[10px] font-bold text-slate-500 ring-1 ring-slate-200">2</span>
-                    <p className="flex-1 text-[11px] font-semibold">Open BottomSheet: /wallet/details</p>
-                    <span className="rounded bg-purple-50 px-1.5 py-0.5 text-[9px] font-bold text-purple-700 ring-1 ring-purple-200">Spring</span>
-                  </div>
-                </div>
-              )}
-            </section>
+            <LogicSummary
+              moduleId={selectedId!}
+              componentTitle={selectedTitle}
+              elementId={workspaceShape ? null : activeElementId}
+              logic={logic}
+              state={logicState}
+              open={workflowOpen}
+              onToggle={onToggleWorkflow}
+              onOpenLogic={() => onTab('logic')}
+              onSelectElement={(id) => {
+                setActiveElementId(id);
+                setActiveTextSlot(null);
+              }}
+            />
 
             {/* Live Core Data Binding */}
             <section className="px-4 py-4">
@@ -6495,7 +6655,8 @@ export default function StudioClient() {
   const buildJson = `${designJson}|${JSON.stringify(comments)}`;
   const hasUnsavedChanges = baselineJson !== null && buildJson !== baselineJson;
   const saveStatus: SaveStatus = {
-    state: lastSave.failed ? 'error' : hasUnsavedChanges ? 'unsaved' : lastSave.at ? 'saved' : 'never',
+    // Unsaved changes are auto-saved as soon as editing pauses, so they show as "Saving…".
+    state: lastSave.failed ? 'error' : hasUnsavedChanges ? 'saving' : lastSave.at ? 'saved' : 'never',
     savedAt: lastSave.at,
   };
 
@@ -6583,20 +6744,55 @@ export default function StudioClient() {
     window.setTimeout(() => setStudioNotice((current) => (current === message ? null : current)), 3200);
   };
 
-  const saveProgress = () => {
+  /** Store the build in the project. `announce` is for Save progress; auto-saves are silent unless they fail. */
+  const writeBuild = (announce: boolean) => {
+    if (!buildLoaded) return;
     try {
       const data: SavedBuildData = { design, comments };
       const savedAt = Date.parse(saveStudioBuild(project?.id ?? null, data));
       setBaselineJson(buildJson);
       setLastSave({ at: savedAt, failed: false });
-      showStudioNotice(project
-        ? `Progress saved to “${project.name}” in Projects & Deployments.`
-        : 'Progress saved in this browser. Open the Studio from a project in My Products to list it there.');
+      if (announce) {
+        showStudioNotice(project
+          ? `Progress saved to “${project.name}” in Projects & Deployments.`
+          : 'Progress saved in this browser. Open the Studio from a project in My Products to list it there.');
+      }
     } catch {
+      // Tell the user once, not on every auto-save attempt that fails the same way.
+      if (announce || !lastSave.failed) {
+        showStudioNotice(announce
+          ? 'Progress could not be saved. The browser storage may be full.'
+          : 'Auto-save failed. The browser storage may be full. Try Save progress again later.');
+      }
       setLastSave((previous) => ({ ...previous, failed: true }));
-      showStudioNotice('Progress could not be saved. The browser storage may be full.');
     }
   };
+  const saveProgress = () => writeBuild(true);
+
+  // Auto-save: changes are saved to the project once editing pauses, and before the tab
+  // is hidden or closed, so nothing depends on clicking Save progress.
+  const autoSaveRef = useRef({ writeBuild, hasUnsavedChanges });
+  useLayoutEffect(() => {
+    autoSaveRef.current = { writeBuild, hasUnsavedChanges };
+  });
+  useEffect(() => {
+    if (!hasUnsavedChanges) return;
+    const timer = window.setTimeout(() => autoSaveRef.current.writeBuild(false), AUTO_SAVE_DELAY_MS);
+    return () => window.clearTimeout(timer);
+  }, [buildJson, hasUnsavedChanges]);
+  useEffect(() => {
+    const flush = () => {
+      if (autoSaveRef.current.hasUnsavedChanges) autoSaveRef.current.writeBuild(false);
+    };
+    const onVisibility = () => { if (document.visibilityState === 'hidden') flush(); };
+    window.addEventListener('pagehide', flush);
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      flush();
+      window.removeEventListener('pagehide', flush);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
+  }, []);
 
   // Ctrl/Cmd+S saves; Ctrl/Cmd+Z undoes; Ctrl/Cmd+Shift+Z or Ctrl+Y redoes.
   const studioShortcutsRef = useRef({ saveProgress, stepHistory });
