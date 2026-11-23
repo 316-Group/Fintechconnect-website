@@ -68,7 +68,7 @@ const navSections = [
       { label: "Compliance", href: "/userdashboard/compliance", icon: ShieldCheck },
       { label: "Fraud Monitoring", href: "/userdashboard/fraud", icon: Activity },
       { label: "Connectors", href: "/userdashboard/connectors", icon: Cable },
-      { label: "Integrations", href: "/userdashboard/integrations", icon: Plug },
+      { label: "Integrations", href: "/userdashboard/integrators", icon: Plug },
       { label: "Developers", href: "/userdashboard/developers", icon: Code2 },
     ],
   },

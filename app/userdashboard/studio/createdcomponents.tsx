@@ -147,7 +147,8 @@ function LayerRow({
   const Icon = LAYER_ICONS[node.kind] ?? Square;
   const hasChildren = node.children.length > 0;
   const isOpen = hasChildren && !collapsed.has(node.key);
-  // A group row is only lightly marked; its main shape row carries the selection.
+  // A picked group highlights its own row; when only its main shape is selected, the
+  // group row is lightly marked.
   const isSelected = node.key === selectedKey;
   const isGroupOfSelected = !isSelected && node.kind === 'group' && node.selectKey === selectedKey;
   const isContainer = node.kind === 'frame' || node.kind === 'group';
@@ -158,7 +159,8 @@ function LayerRow({
         role="treeitem"
         aria-selected={isSelected}
         aria-expanded={hasChildren ? isOpen : undefined}
-        onClick={() => onSelect(node.selectKey)}
+        // A group row picks the whole group (its own key); other rows pick their object.
+        onClick={() => onSelect(node.kind === 'group' ? node.key : node.selectKey)}
         className={`group flex h-7 cursor-pointer items-center gap-1 rounded-md pr-2 text-[11px] ${
           isSelected
             ? 'bg-[#0040DF] text-white'

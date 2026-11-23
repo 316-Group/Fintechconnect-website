@@ -121,21 +121,42 @@ function canvasGroups(ids: string[], parentOf: (id: string) => string | undefine
 }
 
 /**
- * A light outline around every layer of a group, so grouped objects that are apart still
- * read as one unit. It measures its sibling objects (by `attr`) in the shared container.
+ * A group's area: the box around every layer of the group (it grows and moves with them).
+ *
+ * - When the group is picked as a whole (its Layers row, or the space between its items),
+ *   a solid selection border goes around all of its items. While just one of its items is
+ *   selected, a lighter border shows which group that item belongs to. Otherwise nothing
+ *   is drawn, so no border stays on screen.
+ * - The hit area fills the same box underneath every object (but above frames), so a
+ *   click or drag in the space between the layers picks and moves the group, and a
+ *   right-click there opens the group's menu. It does this by passing the event on to
+ *   the group's shape (`ids[0]`), so it behaves exactly like grabbing that shape.
+ *
+ * Both measure their sibling objects (by `attr`) in the shared container.
  */
-function GroupOutline({ ids, attr, active, hidden }: {
+function GroupOutline({ ids, attr, active, selected, onSelectGroup, hidden, interactive, hitZIndex }: {
   ids: string[];
   attr: 'data-module-id' | 'data-workspace-shape-id';
+  /** One of the group's items is selected. */
   active: boolean;
+  /** The group itself is picked as a whole. */
+  selected: boolean;
+  /** Pick the whole group (after a left-click in the space between its items). */
+  onSelectGroup: () => void;
   hidden: boolean;
+  /** Whether the space between the layers can be clicked (not while drawing, panning or dragging). */
+  interactive: boolean;
+  /** Just above frames and below every other object. */
+  hitZIndex: number;
 }) {
-  const ref = useRef<HTMLDivElement>(null);
+  const outlineRef = useRef<HTMLDivElement>(null);
+  const hitRef = useRef<HTMLDivElement>(null);
   const idsKey = ids.join('\n');
   React.useLayoutEffect(() => {
-    const outline = ref.current;
+    const outline = outlineRef.current;
+    const hit = hitRef.current;
     const container = outline?.parentElement;
-    if (!outline || !container) return;
+    if (!outline || !hit || !container) return;
     const members = () => idsKey.split('\n')
       .map((id) => container.querySelector<HTMLElement>(`:scope > [${attr}="${CSS.escape(id)}"]`))
       .filter((el): el is HTMLElement => !!el);
@@ -143,6 +164,7 @@ function GroupOutline({ ids, attr, active, hidden }: {
       const els = members();
       if (hidden || els.length < 2) {
         outline.style.display = 'none';
+        hit.style.display = 'none';
         return;
       }
       let left = Infinity; let top = Infinity; let right = -Infinity; let bottom = -Infinity;
@@ -153,27 +175,64 @@ function GroupOutline({ ids, attr, active, hidden }: {
         bottom = Math.max(bottom, el.offsetTop + el.offsetHeight);
       });
       const pad = 6;
-      outline.style.display = 'block';
-      outline.style.left = `${left - pad}px`;
-      outline.style.top = `${top - pad}px`;
-      outline.style.width = `${right - left + pad * 2}px`;
-      outline.style.height = `${bottom - top + pad * 2}px`;
+      [outline, hit].forEach((el) => {
+        el.style.left = `${left - pad}px`;
+        el.style.top = `${top - pad}px`;
+        el.style.width = `${right - left + pad * 2}px`;
+        el.style.height = `${bottom - top + pad * 2}px`;
+      });
+      outline.style.display = active || selected ? 'block' : 'none';
+      hit.style.display = 'block';
     };
     place();
     const observer = new ResizeObserver(place);
     members().forEach((el) => observer.observe(el));
     return () => observer.disconnect();
   });
+
+  /** Hand a press in the gap to the group's shape, so it selects / drags / opens the menu for the group. */
+  const forwardToGroup = (event: React.MouseEvent<HTMLDivElement>) => {
+    if (!interactive) return;
+    const root = hitRef.current?.parentElement
+      ?.querySelector<HTMLElement>(`:scope > [${attr}="${CSS.escape(ids[0])}"]`);
+    if (!root) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const { clientX, clientY, screenX, screenY, button, buttons, ctrlKey, metaKey, shiftKey, altKey } = event;
+    root.dispatchEvent(new MouseEvent(event.type, {
+      bubbles: true, cancelable: true, view: window,
+      clientX, clientY, screenX, screenY, button, buttons, ctrlKey, metaKey, shiftKey, altKey,
+    }));
+    // A plain left-click in the gap picks the whole group (Ctrl/Cmd+click adds the shape
+    // to the multi-selection instead).
+    if (event.type === 'mousedown' && button === 0 && !ctrlKey && !metaKey) onSelectGroup();
+  };
+
   return (
-    <div
-      ref={ref}
-      aria-hidden
-      data-group-outline
-      className={`pointer-events-none absolute !m-0 rounded-[4px] border transition-colors ${
-        active ? 'border-[#0040DF]/60' : 'border-[#0040DF]/25'
-      }`}
-      style={{ zIndex: 9000 }}
-    />
+    <>
+      <div
+        ref={hitRef}
+        aria-hidden
+        data-group-hit-area
+        onMouseDown={forwardToGroup}
+        onContextMenu={forwardToGroup}
+        onClick={(event) => { if (interactive) event.stopPropagation(); }}
+        className={`absolute !m-0 rounded-[4px] ${
+          interactive ? 'pointer-events-auto cursor-move' : 'pointer-events-none'
+        } ${interactive && !active && !selected ? 'hover:outline hover:outline-1 hover:outline-[#0040DF]/40' : ''}`}
+        style={{ zIndex: hitZIndex }}
+      />
+      <div
+        ref={outlineRef}
+        aria-hidden
+        data-group-outline
+        data-group-selected={selected ? 'true' : undefined}
+        className={`pointer-events-none absolute !m-0 border ${
+          selected ? 'border-[#0040DF]' : 'rounded-[4px] border-[#0040DF]/60'
+        }`}
+        style={{ zIndex: 9000 }}
+      />
+    </>
   );
 }
 
@@ -564,15 +623,6 @@ function frameContaining(frames: FrameCandidate[], box: ModuleBox): string | und
       return centerX >= x && centerX <= x + (frame.w ?? 0) && centerY >= y && centerY <= y + (frame.h ?? 0);
     })
     .sort((a, b) => (a.box.w ?? 0) * (a.box.h ?? 0) - (b.box.w ?? 0) * (b.box.h ?? 0))[0]?.id;
-}
-
-/** Whether the centre of `inner` lies within `outer` (a grouped layer still sits over its group's shape). */
-function centerInside(outer: ModuleBox, inner: ModuleBox): boolean {
-  const centerX = (inner.x ?? 0) + (inner.w ?? 0) / 2;
-  const centerY = (inner.y ?? 0) + (inner.h ?? 0) / 2;
-  const x = outer.x ?? 0;
-  const y = outer.y ?? 0;
-  return centerX >= x && centerX <= x + (outer.w ?? 0) && centerY >= y && centerY <= y + (outer.h ?? 0);
 }
 
 /** Whether `inner` lies completely within `outer` (used when a frame is drawn around existing objects). */
@@ -2125,8 +2175,11 @@ function ModuleWrapper({
   id, index, total, selected, drag, dropIndex, accent, isDark, radius, ctx,
   box, onSelect, onStartDrag, onEndDrag, onItemDragOver, onDrop, onRemove,
   onMeasure, onBoxChange, onShapeMove, onShapeMoveEnd, isDrawing, isShapeDragSource, stackLevel,
+  hideSelectionChrome = false,
 }: {
   id: ModuleId; index: number; total: number;
+  /** Selected as a group's main shape: the group border marks the selection instead. */
+  hideSelectionChrome?: boolean;
   /** Draw-order level from `stackLevels`: later objects sit above earlier ones. */
   stackLevel: number;
   selected: boolean; drag: DragState; dropIndex: number | null;
@@ -2408,7 +2461,7 @@ function ModuleWrapper({
           : <ModuleView id={id} ctx={ctxWithBox} />}
       </div>
 
-      {selected && !drag && !isShapeDragSource && chromeHost && createPortal(
+      {selected && !hideSelectionChrome && !drag && !isShapeDragSource && chromeHost && createPortal(
         <SelectionChrome attr="data-module-id" id={id} inset={4} onResizeStart={startResize} />,
         chromeHost,
       )}
@@ -2420,10 +2473,16 @@ function PageCanvas({
   page, pageLabel, modules, ctx, drag, dropIndex, accent, isDark, radius,
   onStartDrag, onEndDrag, onItemDragOver, onDrop, onRemove, onQuickAdd,
   selectedId, onSelect, boxes, onMeasure, onBoxChange, onShapeMove, onShapeMoveEnd,
-  isDrawing, shapeDragPreviewIds, showGroups,
+  isDrawing, shapeDragPreviewIds, showGroups, panMode, selectedGroupId, onSelectGroup,
 }: {
   /** Outline grouped objects (design mode only). */
   showGroups: boolean;
+  /** Hand tool active: the space between grouped layers is not clickable. */
+  panMode: boolean;
+  /** The main shape of the group picked as a whole, if any. */
+  selectedGroupId: string | null;
+  /** Pick the whole group whose main shape is `rootId`. */
+  onSelectGroup: (rootId: string) => void;
   page: PageId; pageLabel: string; modules: ModuleId[];
   ctx: ViewCtx; drag: DragState; dropIndex: number | null; accent: string;
   isDark: boolean; radius: Radius;
@@ -2484,7 +2543,12 @@ function PageCanvas({
           ids={ids}
           attr="data-module-id"
           active={!!selectedId && ids.includes(selectedId)}
+          selected={selectedGroupId === ids[0]}
+          onSelectGroup={() => onSelectGroup(ids[0])}
           hidden={!!drag || ids.some((id) => shapeDragPreviewIds.includes(id))}
+          interactive={!drag && !isDrawing && !panMode}
+          // Phone frames sit at z 10 and other objects from z 20.
+          hitZIndex={15}
         />
       ))}
       {modules.map((id, i) => (
@@ -2494,6 +2558,7 @@ function PageCanvas({
           index={i}
           total={modules.length}
           selected={selectedId === id}
+          hideSelectionChrome={selectedGroupId === id}
           isDrawing={isDrawing}
           isShapeDragSource={shapeDragPreviewIds.includes(id)}
           stackLevel={levels.get(id) ?? 0}
@@ -2611,10 +2676,12 @@ function Canvas({
   ctx, accent, isDark, radius, selectedId, onSelect,
   onStartDrag, onEndDrag, onItemDragOver, onDrop, onRemove, onQuickAdd,
   onNavTab, boxes, onMeasure, onBoxChange, onAddShape, onAddWorkspaceShapes, onAssignFrames, onRemoveMany,
-  workspaceShapes, setWorkspaceShapes, selectedWorkspaceShapeId, setSelectedWorkspaceShapeId,
+  workspaceShapes, setWorkspaceShapes, selectedWorkspaceShapeId, setSelectedWorkspaceShapeId, selectedGroupKey, onSelectGroup,
   onAddPhoneAsset, onAddWorkspaceAsset, onAddWorkspaceComponent, onClearDropIndex, placeCreatedRef, createdDragId,
-  comments, setComments, activeCommentId, onActivateComment, onCommentModeChange,
+  comments, setComments, activeCommentId, onActivateComment, onCommentModeChange, leftPanelSpace,
 }: {
+  /** Width taken by the left panel (or its collapsed rail); changes to it must not move the canvas. */
+  leftPanelSpace: number;
   comments: CanvasComment[];
   setComments: React.Dispatch<React.SetStateAction<CanvasComment[]>>;
   activeCommentId: string | null;
@@ -2649,6 +2716,10 @@ function Canvas({
   setWorkspaceShapes: React.Dispatch<React.SetStateAction<WorkspaceShape[]>>;
   selectedWorkspaceShapeId: string | null;
   setSelectedWorkspaceShapeId: (id: string | null) => void;
+  /** The whole group picked, as its main shape's key ('p:<id>' or 'w:<id>'). */
+  selectedGroupKey: string | null;
+  /** Pick a whole group by its main shape's key, or end the group pick (null). */
+  onSelectGroup: (key: string | null) => void;
   onAddPhoneAsset: (assetId: string, position: { x: number; y: number }) => void;
   onAddWorkspaceComponent: (id: ModuleId, position: { x: number; y: number }) => void;
   onClearDropIndex: () => void;
@@ -2682,6 +2753,38 @@ function Canvas({
   const phoneRef = React.useRef<HTMLDivElement>(null);
   const [viewportOffset, setViewportOffset] = useState({ x: 0, y: 0 });
   const viewportScale = zoom / 100;
+
+  /*
+   * Resizing (or collapsing) the side panels must not move anything on the canvas; the
+   * panels just cover or reveal more of it:
+   * - The world keeps the width the canvas had when it appeared, so the phone (centred
+   *   in that width) no longer slides when the canvas area gets wider or narrower.
+   * - When the left panel changes width the canvas area's left edge moves; that change
+   *   (`panelShift`) is cancelled out in the view offset so objects stay put on screen.
+   */
+  const [initialLeftPanelSpace] = useState(leftPanelSpace);
+  const panelShift = initialLeftPanelSpace - leftPanelSpace;
+  const panelShiftRef = React.useRef(panelShift);
+  React.useLayoutEffect(() => { panelShiftRef.current = panelShift; });
+  /** `world`: the width the world was laid out at (fixed); `workspace`: the canvas area's current width. */
+  const [canvasWidths, setCanvasWidths] = useState<{ world: number; workspace: number } | null>(null);
+  React.useEffect(() => {
+    const workspace = workspaceRef.current;
+    if (!workspace) return;
+    const observer = new ResizeObserver(() => {
+      const width = workspace.clientWidth;
+      if (width <= 0) return;
+      setCanvasWidths((previous) => previous?.workspace === width
+        ? previous
+        : { world: previous?.world ?? width, workspace: width });
+    });
+    observer.observe(workspace);
+    return () => observer.disconnect();
+  }, []);
+  /** The on-screen view offset (stored offset plus the left-panel correction). */
+  const viewX = viewportOffset.x + panelShift;
+  /** The stored offset that centres the phone in the canvas area at 100%. */
+  const homeOffsetX = canvasWidths ? (canvasWidths.workspace - canvasWidths.world) / 2 - panelShift : 0;
   const zoomRef = React.useRef(zoom);
   const renderedZoomRef = React.useRef(zoom);
   const zoomAnchorRef = React.useRef<{ x: number; y: number } | null>(null);
@@ -2761,15 +2864,18 @@ function Canvas({
       ? { x: workspace.clientWidth / 2, y: workspace.clientHeight / 2 }
       : { x: 0, y: 0 });
     const ratio = zoom / previous;
+    // The anchor maths works on the on-screen offset, which includes the panel correction.
+    const shift = panelShiftRef.current;
     setViewportOffset((current) => ({
-      x: point.x - (point.x - current.x) * ratio,
+      x: point.x - (point.x - (current.x + shift)) * ratio - shift,
       y: point.y - (point.y - current.y) * ratio,
     }));
   }, [zoom]);
 
+  /** Back to 100% with the phone centred in the canvas area (whatever the panel widths). */
   const resetView = () => {
     skipZoomAnchorRef.current = zoom !== 100;
-    setViewportOffset({ x: 0, y: 0 });
+    setViewportOffset({ x: homeOffsetX, y: 0 });
     onZoom(100);
   };
 
@@ -3026,9 +3132,10 @@ function Canvas({
       let changed = false;
       const next = shapes.map((shape) => {
         if (!targets.has(shape.id) || shape.type === 'frame') return shape;
-        // A grouped layer stays in its group while it still sits over the group's shape.
+        // A grouped layer stays in its group wherever it is moved (the group's area grows
+        // to include it); only "Ungroup" releases it.
         const groupParent = shapes.find((item) => item.id === shape.frameId && item.type !== 'frame');
-        if (groupParent && centerInside(groupParent.box, shape.box)) return shape;
+        if (groupParent) return shape;
         const frameId = frameContaining(frames, shape.box);
         if (frameId === shape.frameId) return shape;
         changed = true;
@@ -3967,10 +4074,12 @@ function Canvas({
       onDropCapture={handleCreatedDrop}
       className="relative flex min-w-0 flex-1 flex-col items-center overflow-hidden bg-gradient-to-b from-[#EEF0FB] via-[#F6F7FE] to-[#EEF0FB] pb-4"
     >
-      <p className="flex items-center gap-1.5 py-3 text-[10px] font-medium text-slate-500">
+      {/* A fixed-height single line: if it wrapped when the canvas gets narrow, or grew when
+          the "Reset view" button appears, it would push the whole canvas down. */}
+      <p className="flex h-10 shrink-0 items-center gap-1.5 whitespace-nowrap text-[10px] font-medium text-slate-500">
         <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" /> Live Sandbox · {Math.round(zoom)}%
         <span className="text-slate-400">· Ctrl+Scroll to zoom · Scroll to pan</span>
-        {(zoom !== 100 || viewportOffset.x !== 0 || viewportOffset.y !== 0) && (
+        {(zoom !== 100 || Math.abs(viewportOffset.x - homeOffsetX) > 0.5 || viewportOffset.y !== 0) && (
           <button
             type="button"
             onClick={resetView}
@@ -4000,6 +4109,9 @@ function Canvas({
           handleWorkspaceAssetDrop(event);
         }}
         onMouseDownCapture={(event) => {
+          // Any press on the canvas ends a whole-group pick; a press in the space between a
+          // group's items picks that group again (see GroupOutline).
+          if (selectedGroupKey) onSelectGroup(null);
           // Ctrl/Cmd+click builds a multi-selection (e.g. a shape and a text to group);
           // any other click clears it.
           if (event.button === 0 && !panMode && !drawTool) {
@@ -4079,13 +4191,15 @@ function Canvas({
         <div
           ref={viewportRef}
           data-canvas-panning={panMode ? 'true' : undefined}
-          className="pointer-events-none absolute inset-0"
+          className="pointer-events-none absolute inset-y-0 left-0"
           // No `will-change: transform`: it makes the browser rasterise the canvas once at
           // 100% and stretch that bitmap when zoomed, which blurs every frame and component.
           // Without it the content is repainted sharply at each zoom level. The offset is
           // snapped to whole device pixels so panning never leaves text on a half pixel.
           style={{
-            transform: `translate(${snapToDevicePixel(viewportOffset.x)}px, ${snapToDevicePixel(viewportOffset.y)}px) scale(${viewportScale})`,
+            // A fixed world width, so resizing the side panels doesn't re-centre the phone.
+            width: canvasWidths?.world ?? '100%',
+            transform: `translate(${snapToDevicePixel(viewX)}px, ${snapToDevicePixel(viewportOffset.y)}px) scale(${viewportScale})`,
             transformOrigin: '0 0',
           }}
         >
@@ -4096,14 +4210,19 @@ function Canvas({
               ids={ids}
               attr="data-workspace-shape-id"
               active={!!selectedWorkspaceShapeId && ids.includes(selectedWorkspaceShapeId)}
+              selected={selectedGroupKey === `w:${ids[0]}`}
+              onSelectGroup={() => onSelectGroup(`w:${ids[0]}`)}
               hidden={!!shapeDragPreview?.items.some((item) => ids.includes(item.id))}
+              interactive={!drawTool && !panMode}
+              // Workspace frames sit at z 1 and other objects from z 3.
+              hitZIndex={2}
             />
           ))}
           {workspaceShapes.map((shape) => {
             const isSelected = selectedWorkspaceShapeId === shape.id;
             // Frames sit under everything; other objects stack in the order they were drawn
             // (grouped layers just above their shape). Selecting or hovering doesn't raise them.
-            const restingZ = shape.type === 'frame' ? 1 : 2 + (workspaceLevels.get(shape.id) ?? 0);
+            const restingZ = shape.type === 'frame' ? 1 : 3 + (workspaceLevels.get(shape.id) ?? 0);
             return (
               <div
               key={shape.id}
@@ -4151,6 +4270,8 @@ function Canvas({
           {(() => {
             const selectedShape = workspaceShapes.find((shape) => shape.id === selectedWorkspaceShapeId);
             if (!selectedShape || drawTool || shapeDragPreview?.items.some((item) => item.id === selectedShape.id)) return null;
+            // A picked group is marked by its group border instead of its main shape's handles.
+            if (selectedGroupKey === `w:${selectedShape.id}`) return null;
             return (
               <SelectionChrome
                 key={selectedShape.id}
@@ -4281,6 +4402,9 @@ function Canvas({
                   isDrawing={!!drawTool}
                   shapeDragPreviewIds={shapeDragPreview?.items.map((item) => item.id) ?? []}
                   showGroups={edit?.mode === 'edit'}
+                  panMode={panMode}
+                  selectedGroupId={selectedGroupKey?.startsWith('p:') ? selectedGroupKey.slice(2) : null}
+                  onSelectGroup={(rootId) => onSelectGroup(`p:${rootId}`)}
                 />
                 {drawPreview && drawPreviewTarget === 'phone' && (
                   <div
@@ -6524,7 +6648,8 @@ export default function StudioClient() {
 
   const [appKind, setAppKind] = useState<AppKind>('banking');
   const [activePage, setActivePage] = useState<PageId>('home');
-  const [expandedPage, setExpandedPage] = useState<PageId | null>('home');
+  // Every page starts collapsed in the left panel.
+  const [expandedPage, setExpandedPage] = useState<PageId | null>(null);
   const [pageModules, setPageModules] = useState<Record<PageId, ModuleId[]>>(buildInitialPages);
   const [histories, setHistories] = useState<Record<PageId, ModuleId[][]>>(() => {
     const out = {} as Record<PageId, ModuleId[][]>;
@@ -6544,6 +6669,12 @@ export default function StudioClient() {
   const [measured, setMeasured] = useState<Record<string, { w: number; h: number }>>({});
   const [workspaceShapes, setWorkspaceShapes] = useState<WorkspaceShape[]>([]);
   const [selectedWorkspaceShapeId, setSelectedWorkspaceShapeId] = useState<string | null>(null);
+  /**
+   * A whole group picked (from its Layers row or the space between its items), as the
+   * key of the group's main shape: 'p:<id>' in the phone, 'w:<id>' on the canvas. The
+   * main shape is also the selection, so moving, copying and deleting act on the group.
+   */
+  const [selectedGroupKey, setSelectedGroupKey] = useState<string | null>(null);
   const canvasObjectIdRef = useRef(0);
 
   const {
@@ -7137,10 +7268,10 @@ export default function StudioClient() {
       let next: Record<string, ModuleBox> | null = null;
       ids.forEach((id) => {
         if (id.startsWith('frame-') || !canvasInsertTypeForId(id) || !previous[id]) return;
-        // A grouped layer stays in its group while it still sits over the group's shape.
+        // A grouped layer stays in its group wherever it is moved (the group's area grows
+        // to include it); only "Ungroup" releases it.
         const parentId = previous[id].frameId;
-        if (parentId && !parentId.startsWith('frame-') && previous[parentId]
-          && centerInside(previous[parentId], previous[id])) return;
+        if (parentId && !parentId.startsWith('frame-') && previous[parentId] && currentModules.includes(parentId as ModuleId)) return;
         const frameId = frameContaining(frames, previous[id]);
         if (frameId === previous[id].frameId) return;
         next ??= { ...previous };
@@ -7272,18 +7403,34 @@ export default function StudioClient() {
   const codeSources: CodeSource[] = currentModules.map((id) => ({
     id, type: canvasInsertTypeForId(id), box: boxes[id] ?? {},
   }));
-  const selectedLayerKey = selectedWorkspaceShapeId
+  const selectionKey = selectedWorkspaceShapeId
     ? `w:${selectedWorkspaceShapeId}`
     : selectedId ? `p:${selectedId}` : null;
+  // The group pick only counts while its main shape is still selected and still has layers
+  // grouped into it (selecting something else, or ungrouping, ends it).
+  const activeGroupKey = (() => {
+    if (!selectedGroupKey || selectedGroupKey !== selectionKey) return null;
+    const rootId = selectedGroupKey.slice(2);
+    const stillGrouped = selectedGroupKey.startsWith('w:')
+      ? workspaceShapes.find((shape) => shape.id === rootId)?.type !== 'frame'
+        && workspaceShapes.some((shape) => shape.frameId === rootId)
+      : !rootId.startsWith('frame-') && currentModules.some((moduleId) => boxes[moduleId]?.frameId === rootId);
+    return stillGrouped ? selectedGroupKey : null;
+  })();
+  const selectedLayerKey = activeGroupKey ? `g:${activeGroupKey}` : selectionKey;
   const selectLayer = (key: string) => {
-    const id = key.slice(2);
-    if (key.startsWith('w:')) {
+    // A group row ('g:<main shape key>') selects the whole group.
+    const isGroup = key.startsWith('g:');
+    const objectKey = isGroup ? key.slice(2) : key;
+    const id = objectKey.slice(2);
+    if (objectKey.startsWith('w:')) {
       setSelectedId(null);
       setSelectedWorkspaceShapeId(id);
       setActiveTextSlot(null);
     } else {
       handleSelectModule(id as ModuleId);
     }
+    setSelectedGroupKey(isGroup ? objectKey : null);
   };
 
   return (
@@ -7364,6 +7511,7 @@ export default function StudioClient() {
             onCreatedDragChange={setCreatedDragId}
           /></ResizablePanel>}
           <Canvas
+            leftPanelSpace={leftPanelCollapsed ? 36 : leftPanelWidth}
             device={device} zoom={zoom} onZoom={setZoom}
             pageModules={pageModules} activePage={activePage} pageLabel={currentPageLabel}
             drag={drag} dropIndex={dropIndex}
@@ -7384,6 +7532,8 @@ export default function StudioClient() {
             setWorkspaceShapes={setWorkspaceShapes}
             selectedWorkspaceShapeId={selectedWorkspaceShapeId}
             setSelectedWorkspaceShapeId={setSelectedWorkspaceShapeId}
+            selectedGroupKey={activeGroupKey}
+            onSelectGroup={(key) => (key ? selectLayer(`g:${key}`) : setSelectedGroupKey(null))}
             onAddPhoneAsset={addPhoneAsset}
             onAddWorkspaceAsset={addWorkspaceAsset}
             onAddWorkspaceComponent={addWorkspaceComponent}

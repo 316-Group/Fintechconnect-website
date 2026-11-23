@@ -613,7 +613,7 @@ export function CommentsPanel({
           ))}
         </div>
       </div>
-      <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-3 pb-4">
+      <div className="min-h-0 flex-1 space-y-3 overflow-y-auto pt-5 px-3 pb-4">
         {shown.length === 0 ? (
           <p className="px-3 py-10 text-center text-[12.5px] leading-relaxed text-slate-500">{emptyText}</p>
         ) : shown.map((comment) => (
