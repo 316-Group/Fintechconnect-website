@@ -29,7 +29,8 @@ import {
 } from '@/app/products/mobile-app/crypto-modules';
 
 import {
-  EditableText, useModuleColor, useModuleText, ModuleScope, ElementTinkerHost,
+  EditableText, useModuleColor, useModuleText, ModuleScope, ElementTinkerHost, StaticEdits,
+  type ModuleEdits,
 } from './edit-context';
 
 /* ─────────────────────────── constants ─────────────────────────── */
@@ -1902,7 +1903,26 @@ export function StatementsExport({ ctx }: { ctx: ViewCtx }) {
 
 /* ─────────────────────────── dispatcher ─────────────────────────── */
 
-export function ModuleView({ id, ctx, passive }: { id: ModuleId; ctx: ViewCtx; passive?: boolean }) {
+/**
+ * Renders a library component. `isolated` renders it as its own copy: with only the
+ * given `edits` (none = the untouched library template), never the live edits made to
+ * the component in the phone. Library tiles, previews and the copies placed on the
+ * canvas around the phone are isolated, so editing the phone's copy changes nothing else.
+ */
+export function ModuleView({ id, ctx, passive, isolated, edits }: {
+  id: ModuleId;
+  ctx: ViewCtx;
+  passive?: boolean;
+  isolated?: boolean;
+  edits?: ModuleEdits;
+}) {
+  if (isolated) {
+    return (
+      <StaticEdits moduleId={id} edits={edits}>
+        <ModuleView id={id} ctx={ctx} passive />
+      </StaticEdits>
+    );
+  }
   const hasCustomFill = !!ctx.customBackground || !!ctx.customBackgroundImage;
   const wrapperStyle: React.CSSProperties = {
     borderRadius: ctx.customRadius,

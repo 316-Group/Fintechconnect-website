@@ -120,6 +120,75 @@ export type EditOverridesSnapshot = {
   hiddenElements: Record<string, string[]>;
 };
 
+/**
+ * One component's edits (text, colours, styles, moved/hidden parts, placed assets),
+ * carried by a copy of it: on the clipboard, in a saved component, or on a copy
+ * placed on the canvas around the phone.
+ */
+export type ModuleEdits = {
+  overrides?: ModuleOverrides;
+  textStyles?: Record<string, EditableTextStyle>;
+  elementBoxes?: Record<string, ElementBox>;
+  placedAssets?: PlacedAsset[];
+  hiddenElements?: string[];
+};
+
+/** The edits stored for one component, or undefined when it is unchanged from the template. */
+export function moduleEditsOf(
+  maps: Pick<EditOverridesSnapshot, keyof EditOverridesSnapshot> | null | undefined,
+  moduleId: string,
+): ModuleEdits | undefined {
+  if (!maps) return undefined;
+  const edits: ModuleEdits = {};
+  const overrides = maps.overrides[moduleId];
+  if (overrides && (Object.keys(overrides.text).length || Object.keys(overrides.colors).length)) {
+    edits.overrides = overrides;
+  }
+  if (maps.textStyles[moduleId] && Object.keys(maps.textStyles[moduleId]).length) edits.textStyles = maps.textStyles[moduleId];
+  if (maps.elementBoxes[moduleId] && Object.keys(maps.elementBoxes[moduleId]).length) edits.elementBoxes = maps.elementBoxes[moduleId];
+  if (maps.placedAssets[moduleId]?.length) edits.placedAssets = maps.placedAssets[moduleId];
+  if (maps.hiddenElements[moduleId]?.length) edits.hiddenElements = maps.hiddenElements[moduleId];
+  return Object.keys(edits).length ? edits : undefined;
+}
+
+const noop = () => undefined;
+
+/**
+ * Renders a component with a fixed set of edits (none = the library template) and
+ * nothing editable, cut off from the live edits of the components on the canvas.
+ * Used for library tiles and previews, and for copies placed around the phone.
+ */
+export function StaticEdits({
+  moduleId, edits, children,
+}: {
+  moduleId: string;
+  edits?: ModuleEdits;
+  children: React.ReactNode;
+}) {
+  const value = useMemo<EditState>(() => ({
+    mode: 'view',
+    selectedId: null,
+    overrides: edits?.overrides ? { [moduleId]: edits.overrides } : {},
+    textStyles: edits?.textStyles ? { [moduleId]: edits.textStyles } : {},
+    elementBoxes: edits?.elementBoxes ? { [moduleId]: edits.elementBoxes } : {},
+    placedAssets: edits?.placedAssets ? { [moduleId]: edits.placedAssets } : {},
+    hiddenElements: edits?.hiddenElements ? { [moduleId]: edits.hiddenElements } : {},
+    addPlacedAsset: noop,
+    deleteElement: noop,
+    activeElementId: null,
+    setActiveElementId: noop,
+    setElementBox: noop,
+    resetElementBoxes: noop,
+    setText: noop,
+    setColor: noop,
+    setTextStyle: noop,
+    reset: noop,
+    activeTextSlot: null,
+    setActiveTextSlot: noop,
+  }), [moduleId, edits]);
+  return <EditContext.Provider value={value}>{children}</EditContext.Provider>;
+}
+
 /** Owns the override and element tinkering maps — put one of these at the top of StudioClient. */
 export function useEditOverrides() {
   const [overrides, setOverrides] = useState<Record<string, ModuleOverrides>>({});
@@ -271,6 +340,25 @@ export function useEditOverrides() {
     setActiveElementId(null);
   }, []);
 
+  /**
+   * Gives one component exactly these edits (null = back to the library template),
+   * e.g. when a copy of it is placed in the phone.
+   */
+  const replaceModuleEdits = useCallback((moduleId: string, edits: ModuleEdits | null) => {
+    const put = <T,>(prev: Record<string, T>, value: T | undefined): Record<string, T> => {
+      if (value !== undefined) return { ...prev, [moduleId]: value };
+      if (!(moduleId in prev)) return prev;
+      const rest = { ...prev };
+      delete rest[moduleId];
+      return rest;
+    };
+    setOverrides((prev) => put(prev, edits?.overrides));
+    setTextStyles((prev) => put(prev, edits?.textStyles));
+    setElementBoxes((prev) => put(prev, edits?.elementBoxes));
+    setPlacedAssets((prev) => put(prev, edits?.placedAssets));
+    setHiddenElements((prev) => put(prev, edits?.hiddenElements));
+  }, []);
+
   /** Replaces every map at once (loading a saved build, undo/redo). Missing maps become empty. */
   const restore = useCallback((saved: Partial<EditOverridesSnapshot>) => {
     setOverrides(saved.overrides ?? {});
@@ -283,6 +371,7 @@ export function useEditOverrides() {
 
   return {
     restore,
+    replaceModuleEdits,
     overrides,
     textStyles,
     elementBoxes,

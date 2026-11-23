@@ -37,6 +37,8 @@ import {
   type EditableTextStyle,
   type EditOverridesSnapshot,
   type ElementBox,
+  type ModuleEdits,
+  moduleEditsOf,
 } from './edit-context';
 import {
   loadStudioBuild, resolveActiveProject, saveStudioBuild, type StudioProjectInfo,
@@ -52,6 +54,10 @@ import {
   type LogicMap, type LogicState, type LogicTrigger,
 } from './logictab';
 import { TopBar, type DeviceType, type SaveStatus, type StudioMode } from './topbar';
+import {
+  AlignmentGuides, SNAP_DISTANCE_PX, createSnapSession, elementRect, unionRect,
+  type Guide, type SnapPointer, type SnapRect, type SnapSession,
+} from './alignment-guides';
 import {
   COMMENT_AUTHOR, COMMENT_CURSOR, COMMENT_UI_ATTR, CommentLayer, CommentsPanel,
   type CanvasComment, type CommentDraft,
@@ -472,6 +478,8 @@ type WorkspaceShape = {
   box: ModuleBox;
   frameId?: string;
   componentId?: ModuleId;
+  /** A component copy's own edits (text, colours, parts), kept apart from the phone's copy. */
+  edits?: ModuleEdits;
 };
 type ShapeMoveEnd = (
   id: ModuleId,
@@ -484,11 +492,14 @@ type ShapeMoveUpdate = (
   pointer: { x: number; y: number },
   grabRatio: { x: number; y: number },
 ) => void;
+/** Starts alignment-guide snapping for a phone object about to be moved or resized. */
+type PhoneSnapStart = (id: ModuleId, mode: 'move' | 'resize') => SnapSession | null;
 type ShapeDragPreviewItem = {
   id: string;
   type: CanvasInsertType;
   box: ModuleBox;
   componentId?: ModuleId;
+  edits?: ModuleEdits;
   left: number;
   top: number;
   scale: number;
@@ -502,6 +513,8 @@ type ClipboardItem = {
   parent?: number;
   /** Rendered size of a copied component, used when it is pasted as a free-floating object. */
   size?: { w: number; h: number };
+  /** A copied component's edits, so the copy looks like the original did. */
+  edits?: ModuleEdits;
 };
 /** items[0] is the anchor: on paste its top-left corner lands at the cursor. */
 type StudioClipboard = { label: string; items: ClipboardItem[] };
@@ -751,6 +764,7 @@ function CreatedDragPreview({ id, ctx }: { id: string; ctx: ViewCtx }) {
                   shapeId={`${item.type}-created-drag-${index}`}
                   box={item.box}
                   componentId={item.componentId}
+                  edits={item.edits}
                   ctx={ctx}
                 />
               </div>
@@ -781,7 +795,7 @@ function LibraryDragPreview({ id, ctx, onMeasure }: {
         }}
         style={{ width: COMPONENT_PREVIEW_WIDTH, zoom: scale }}
       >
-        <ModuleView id={id} ctx={ctx} passive />
+        <ModuleView id={id} ctx={ctx} passive isolated />
       </div>
     </DragFollower>
   );
@@ -1062,7 +1076,7 @@ function ComponentThumbnail({ id, ctx }: { id: ModuleId; ctx: ViewCtx }) {
           transformOrigin: 'center',
         }}
       >
-        <ModuleView id={id} ctx={ctx} passive />
+        <ModuleView id={id} ctx={ctx} passive isolated />
       </div>
     </div>
   );
@@ -1472,7 +1486,7 @@ function LeftPanel({
               </div>
               <div className="flex w-full items-center justify-center">
                  <div className="w-full max-w-[320px] rounded-1lg bg-white p-1 shadow-sm ring-1 ring-slate-900/5">
-                   <ModuleView id={previewInfo.id} ctx={{ ...previewCtx, variant: previewVariant }} passive />
+                   <ModuleView id={previewInfo.id} ctx={{ ...previewCtx, variant: previewVariant }} passive isolated />
                  </div>
               </div>
             </div>
@@ -1701,27 +1715,33 @@ function CanvasElementSnapshot({ box }: { box: ModuleBox }) {
   );
 }
 
-/** A live, read-only instance of a library component placed on the workspace. */
-function CanvasComponentInstance({ box, componentId, ctx }: { box: ModuleBox; componentId?: ModuleId; ctx: ViewCtx }) {
+/**
+ * A live, read-only copy of a library component placed on the workspace. It shows only
+ * its own edits, so editing the component in the phone (or the library template) leaves it alone.
+ */
+function CanvasComponentInstance({ box, componentId, ctx, edits }: {
+  box: ModuleBox; componentId?: ModuleId; ctx: ViewCtx; edits?: ModuleEdits;
+}) {
   if (!componentId) return <CanvasElementSnapshot box={box} />;
   return (
     <div className={`${outfit.className} pointer-events-none h-full w-full text-slate-900`}>
-      <ModuleView id={componentId} ctx={ctxForBox({ ...ctx, interactive: false }, box)} passive />
+      <ModuleView id={componentId} ctx={ctxForBox({ ...ctx, interactive: false }, box)} passive isolated edits={edits} />
     </div>
   );
 }
 
 function CanvasObjectContent({
-  type, shapeId, box, componentId, ctx, objectId, onBoxChange, onEmpty,
+  type, shapeId, box, componentId, edits, ctx, objectId, onBoxChange, onEmpty,
 }: {
   type: CanvasInsertType; shapeId: string; box: ModuleBox; componentId?: ModuleId; ctx: ViewCtx;
+  edits?: ModuleEdits;
   objectId?: string;
   onBoxChange?: (patch: ModuleBox) => void;
   onEmpty?: () => void;
 }) {
   if (type === 'asset') return <CanvasAssetObject box={box} />;
   if (type === 'element') return <CanvasElementSnapshot box={box} />;
-  if (type === 'component') return <CanvasComponentInstance box={box} componentId={componentId} ctx={ctx} />;
+  if (type === 'component') return <CanvasComponentInstance box={box} componentId={componentId} ctx={ctx} edits={edits} />;
   return (
     <GenericShape
       id={shapeId}
@@ -2175,8 +2195,10 @@ function ModuleWrapper({
   id, index, total, selected, drag, dropIndex, accent, isDark, radius, ctx,
   box, onSelect, onStartDrag, onEndDrag, onItemDragOver, onDrop, onRemove,
   onMeasure, onBoxChange, onShapeMove, onShapeMoveEnd, isDrawing, isShapeDragSource, stackLevel,
-  hideSelectionChrome = false,
+  hideSelectionChrome = false, onSnapStart,
 }: {
+  /** Alignment guides: snaps the object to others while it is moved or resized. */
+  onSnapStart?: PhoneSnapStart;
   id: ModuleId; index: number; total: number;
   /** Selected as a group's main shape: the group border marks the selection instead. */
   hideSelectionChrome?: boolean;
@@ -2259,6 +2281,7 @@ function ModuleWrapper({
     const scaleX = bounds && parent ? bounds.width / parent.offsetWidth || 1 : 1;
     const scaleY = bounds && parent ? bounds.height / parent.offsetHeight || 1 : 1;
     const startFontSize = isTextShape ? textFontSize(box, wrapperRef.current) : 0;
+    const snap = onSnapStart?.(id, 'resize') ?? null;
 
     const onMouseMove = (ev: MouseEvent) => {
       const dx = (ev.clientX - startClientX) / scaleX;
@@ -2274,10 +2297,12 @@ function ModuleWrapper({
         patch.h = Math.max(20, Math.round(startH - dy));
         patch.y = Math.round(baseY + dy);
       }
+      if (snap) snapResizePatch(snap, patch, { x: baseX, y: baseY, w: startW, h: startH }, handle, ev, true);
       if (isTextShape && handle.length === 2) patch.fontSize = scaledFontSize(startFontSize, startW, startH, patch);
       onBoxChange(id, patch);
     };
     const onMouseUp = () => {
+      snap?.end();
       window.removeEventListener('mousemove', onMouseMove);
       window.removeEventListener('mouseup', onMouseUp);
     };
@@ -2313,21 +2338,24 @@ function ModuleWrapper({
       h: Math.round(shapeBounds.height / scaleY),
     };
     onShapeMove(id, dragBox, { x: event.clientX, y: event.clientY }, grabRatio);
+    const snap = onSnapStart?.(id, 'move') ?? null;
 
     const handleMove = (moveEvent: MouseEvent) => {
-      const nextBox = {
-        x: baseX + (moveEvent.clientX - startX) / scaleX,
-        y: baseY + (moveEvent.clientY - startY) / scaleY,
-      };
+      const raw = { dx: (moveEvent.clientX - startX) / scaleX, dy: (moveEvent.clientY - startY) / scaleY };
+      // Lined up with another object: snap to it (the guides show what it lines up with).
+      const { dx, dy } = snap ? snap.move(raw.dx, raw.dy, moveEvent) : raw;
+      const nextBox = { x: baseX + dx, y: baseY + dy };
       onBoxChange(id, nextBox);
       onShapeMove(
         id,
         { ...dragBox, ...nextBox },
-        { x: moveEvent.clientX, y: moveEvent.clientY },
+        // The drag preview follows the snapped position, not the raw pointer.
+        { x: startX + dx * scaleX, y: startY + dy * scaleY },
         grabRatio,
       );
     };
     const handleUp = (upEvent: MouseEvent) => {
+      snap?.end();
       window.removeEventListener('mousemove', handleMove);
       window.removeEventListener('mouseup', handleUp);
       onShapeMoveEnd(
@@ -2473,8 +2501,9 @@ function PageCanvas({
   page, pageLabel, modules, ctx, drag, dropIndex, accent, isDark, radius,
   onStartDrag, onEndDrag, onItemDragOver, onDrop, onRemove, onQuickAdd,
   selectedId, onSelect, boxes, onMeasure, onBoxChange, onShapeMove, onShapeMoveEnd,
-  isDrawing, shapeDragPreviewIds, showGroups, panMode, selectedGroupId, onSelectGroup,
+  isDrawing, shapeDragPreviewIds, showGroups, panMode, selectedGroupId, onSelectGroup, onSnapStart,
 }: {
+  onSnapStart?: PhoneSnapStart;
   /** Outline grouped objects (design mode only). */
   showGroups: boolean;
   /** Hand tool active: the space between grouped layers is not clickable. */
@@ -2579,10 +2608,39 @@ function PageCanvas({
           onBoxChange={onBoxChange}
           onShapeMove={onShapeMove}
           onShapeMoveEnd={onShapeMoveEnd}
+          onSnapStart={onSnapStart}
         />
       ))}
     </div>
   );
+}
+
+/**
+ * Snap the dragged edges of a resize `patch` to the alignment guides. `start` is the box
+ * before the resize (for the edges the patch leaves alone).
+ */
+function snapResizePatch(
+  snap: SnapSession,
+  patch: ModuleBox,
+  start: SnapRect,
+  handle: string,
+  pointer: SnapPointer,
+  round: boolean,
+) {
+  const rect: SnapRect = {
+    x: patch.x ?? start.x,
+    y: patch.y ?? start.y,
+    w: patch.w ?? start.w,
+    h: patch.h ?? start.h,
+  };
+  const snapped = snap.resize(rect, handle, pointer);
+  const value = (n: number) => (round ? Math.round(n) : n);
+  if (snapped.w >= 20 && snapped.h >= 20) {
+    if (patch.w !== undefined) patch.w = value(snapped.w);
+    if (patch.h !== undefined) patch.h = value(snapped.h);
+    if (patch.x !== undefined) patch.x = value(snapped.x);
+    if (patch.y !== undefined) patch.y = value(snapped.y);
+  }
 }
 
 function CanvasToolbar({
@@ -2753,6 +2811,8 @@ function Canvas({
   const phoneRef = React.useRef<HTMLDivElement>(null);
   const [viewportOffset, setViewportOffset] = useState({ x: 0, y: 0 });
   const viewportScale = zoom / 100;
+  /** Alignment guide lines being shown while an object is dragged, in canvas coordinates. */
+  const [alignmentGuides, setAlignmentGuides] = useState<Guide[]>([]);
 
   /*
    * Resizing (or collapsing) the side panels must not move anything on the canvas; the
@@ -3155,6 +3215,98 @@ function Canvas({
     setWorkspaceShapes((shapes) => shapes.filter((shape) => !ids.has(shape.id)));
   };
 
+  /* ─────────── Alignment guides (see alignment-guides.tsx) ─────────── */
+
+  /** Whether the pointer is over the phone screen (where objects are dropped into the phone). */
+  const isOverPhoneScreen = (pointer: SnapPointer) => {
+    const rect = bodyRef.current?.getBoundingClientRect();
+    return !!rect && pointer.clientX >= rect.left && pointer.clientX <= rect.right
+      && pointer.clientY >= rect.top && pointer.clientY <= rect.bottom;
+  };
+
+  /**
+   * Snapping for a phone object: it lines up with the other objects and components on the
+   * page and with the phone screen's edges and centre (while the pointer is over the phone).
+   * Works in the phone's own coordinates; the guides are drawn on the canvas above it.
+   */
+  const startPhoneSnap: PhoneSnapStart = (id, mode) => {
+    const area = drawAreaRef.current;
+    const body = bodyRef.current;
+    const viewport = viewportRef.current;
+    if (!area || !body || !viewport) return null;
+    const areaRect = area.getBoundingClientRect();
+    const scale = renderScale(area);
+    const toArea = (clientX: number, clientY: number) => ({
+      x: (clientX - areaRect.left) / scale,
+      y: (clientY - areaRect.top) / scale,
+    });
+    // A moved frame or group carries its layers along; a resized one can line up with them.
+    const own = new Set<string>([id, ...(mode === 'move' ? phoneDescendants(id) : [])]);
+    const ownRects: SnapRect[] = [];
+    const targets: SnapRect[] = [];
+    area.querySelectorAll<HTMLElement>('[data-module-id]').forEach((element) => {
+      // Only the page's objects, not anything rendered inside a component.
+      if (element.parentElement?.parentElement !== area) return;
+      const rect = elementRect(element, toArea);
+      if (!rect) return;
+      (own.has(element.dataset.moduleId ?? '') ? ownRects : targets).push(rect);
+    });
+    const screen = elementRect(body, toArea);
+    if (screen) targets.push(screen);
+    const moving = unionRect(ownRects);
+    if (!moving) return null;
+
+    // Phone coordinates → canvas coordinates, for drawing the guides.
+    const origin = clientToWorld(areaRect.left, areaRect.top);
+    const k = scale / renderScale(viewport);
+    const toWorld = (guide: Guide): Guide => {
+      const along = guide.axis === 'x' ? origin.y : origin.x;
+      const across = guide.axis === 'x' ? origin.x : origin.y;
+      return {
+        ...guide,
+        pos: across + guide.pos * k,
+        from: along + guide.from * k,
+        to: along + guide.to * k,
+        marks: guide.marks.map((m) => along + m * k),
+      };
+    };
+    return createSnapSession({
+      moving,
+      targets,
+      threshold: SNAP_DISTANCE_PX / scale,
+      onGuides: (guides) => setAlignmentGuides(guides.map(toWorld)),
+      // Dragged out of the phone, it no longer lines up with things in it.
+      isActive: mode === 'move' ? isOverPhoneScreen : undefined,
+    });
+  };
+
+  /**
+   * Snapping for objects on the canvas around the phone: they line up with each other and
+   * with the phone (not while the pointer is over the phone screen, where they drop in).
+   */
+  const startWorkspaceSnap = (ids: Set<string>, mode: 'move' | 'resize'): SnapSession | null => {
+    const workspace = workspaceRef.current;
+    if (!workspace) return null;
+    const ownRects: SnapRect[] = [];
+    const targets: SnapRect[] = [];
+    workspace.querySelectorAll<HTMLElement>('[data-workspace-shape-id]').forEach((element) => {
+      const rect = elementRect(element, clientToWorld);
+      if (!rect) return;
+      (ids.has(element.dataset.workspaceShapeId ?? '') ? ownRects : targets).push(rect);
+    });
+    const phone = phoneRef.current ? elementRect(phoneRef.current, clientToWorld) : null;
+    if (phone) targets.push(phone);
+    const moving = unionRect(ownRects);
+    if (!moving) return null;
+    return createSnapSession({
+      moving,
+      targets,
+      threshold: SNAP_DISTANCE_PX / viewportScale,
+      onGuides: setAlignmentGuides,
+      isActive: mode === 'move' ? (pointer) => !isOverPhoneScreen(pointer) : undefined,
+    });
+  };
+
   const startWorkspaceShapeResize = (
     event: React.MouseEvent<HTMLSpanElement>,
     shape: WorkspaceShape,
@@ -3175,6 +3327,7 @@ function Canvas({
     const startFontSize = isText ? textFontSize(shape.box, shapeEl) : 0;
     const baseX = shape.box.x ?? 0;
     const baseY = shape.box.y ?? 0;
+    const snap = startWorkspaceSnap(new Set([shape.id]), 'resize');
 
     const handleMove = (moveEvent: MouseEvent) => {
       const dx = (moveEvent.clientX - startX) / scaleX;
@@ -3190,6 +3343,7 @@ function Canvas({
         patch.h = Math.max(20, startH - dy);
         patch.y = baseY + dy;
       }
+      if (snap) snapResizePatch(snap, patch, { x: baseX, y: baseY, w: startW, h: startH }, handle, moveEvent, false);
       // Resizing a text layer from a corner scales the text with it; edges only resize the box.
       if (isText && handle.length === 2) patch.fontSize = scaledFontSize(startFontSize, startW, startH, patch);
       setWorkspaceShapes((shapes) => shapes.map((item) => item.id === shape.id
@@ -3197,6 +3351,7 @@ function Canvas({
         : item));
     };
     const handleUp = () => {
+      snap?.end();
       window.removeEventListener('mousemove', handleMove);
       window.removeEventListener('mouseup', handleUp);
     };
@@ -3238,12 +3393,18 @@ function Canvas({
       grabRatio,
     );
 
-    const getDelta = (clientX: number, clientY: number) => ({
-      x: (clientX - startX) / scaleX,
-      y: (clientY - startY) / scaleY,
-    });
-    const updateWorkspacePositions = (clientX: number, clientY: number) => {
-      const delta = getDelta(clientX, clientY);
+    const snap = startWorkspaceSnap(groupIds, 'move');
+    const getDelta = (pointer: SnapPointer) => {
+      const raw = { dx: (pointer.clientX - startX) / scaleX, dy: (pointer.clientY - startY) / scaleY };
+      // Lined up with another object: snap to it (the guides show what it lines up with).
+      const { dx, dy } = snap ? snap.move(raw.dx, raw.dy, pointer) : raw;
+      return { x: dx, y: dy };
+    };
+    const updateWorkspacePositions = (pointer: SnapPointer) => {
+      const delta = getDelta(pointer);
+      // The drag preview follows the snapped position, not the raw pointer.
+      const clientX = startX + delta.x * scaleX;
+      const clientY = startY + delta.y * scaleY;
       setWorkspaceShapes((shapes) => shapes.map((item) => {
         if (!groupIds.has(item.id)) return item;
         const original = group.find((member) => member.id === item.id);
@@ -3275,9 +3436,10 @@ function Canvas({
       return delta;
     };
 
-    const handleMove = (moveEvent: MouseEvent) => updateWorkspacePositions(moveEvent.clientX, moveEvent.clientY);
+    const handleMove = (moveEvent: MouseEvent) => updateWorkspacePositions(moveEvent);
     const handleUp = (upEvent: MouseEvent) => {
-      const delta = updateWorkspacePositions(upEvent.clientX, upEvent.clientY);
+      const delta = updateWorkspacePositions(upEvent);
+      snap?.end();
       window.removeEventListener('mousemove', handleMove);
       window.removeEventListener('mouseup', handleUp);
       setShapeDragPreview(null);
@@ -3521,6 +3683,7 @@ function Canvas({
       items: [{
         type: 'component',
         componentId: id,
+        edits: moduleEditsOf(edit, id),
         size: { w: content.offsetWidth, h: content.offsetHeight },
         // The snapshot is used when the component can't be placed live (e.g. it is already on that page).
         box: { ...componentBox, html: snapshotHtml(root), textColor: style.color, fontFamily: style.fontFamily },
@@ -3539,7 +3702,7 @@ function Canvas({
     return {
       label: workspaceShapeTitle(shape),
       items: clipboardTree(tree, (item) => ({
-        type: item.type, box: withoutFrame(item.box), componentId: item.componentId,
+        type: item.type, box: withoutFrame(item.box), componentId: item.componentId, edits: item.edits,
       })),
     };
   };
@@ -3669,6 +3832,7 @@ function Canvas({
           id: ids[index],
           type: item.type,
           componentId: item.componentId,
+          edits: item.edits,
           frameId,
           box: { ...placeBox(sized(item)), frameId },
         };
@@ -3688,7 +3852,9 @@ function Canvas({
       const frameId = item.parent !== undefined ? `clipboard-${item.parent}` : undefined;
       if (item.type === 'component') {
         if (item.componentId && !onPage.has(item.componentId)) {
-          return [{ id: `clipboard-${index}`, type: 'component', componentId: item.componentId, frameId, box: placeBox(item.box) }];
+          return [{
+            id: `clipboard-${index}`, type: 'component', componentId: item.componentId, edits: item.edits, frameId, box: placeBox(item.box),
+          }];
         }
         if (!item.box.html) return [];
         return [{ id: `clipboard-${index}`, type: 'element', frameId, box: placeBox(sized(item)) }];
@@ -4257,6 +4423,7 @@ function Canvas({
                 shapeId={shape.type}
                 box={shape.box}
                 componentId={shape.componentId}
+                edits={shape.edits}
                 ctx={ctx}
                 objectId={shape.id}
                 onBoxChange={(patch) => setWorkspaceShapes((shapes) => shapes.map((item) => item.id === shape.id
@@ -4319,10 +4486,12 @@ function Canvas({
               shapeId={`${item.type}-${item.id}-drag-preview`}
               box={item.box}
               componentId={item.componentId}
+              edits={item.edits}
               ctx={ctx}
             />
           </div>
         ))}
+        <AlignmentGuides guides={alignmentGuides} scale={viewportScale} />
         <CommentLayer
           comments={comments}
           draft={drawTool === 'shape-comment' ? commentDraft : null}
@@ -4399,6 +4568,7 @@ function Canvas({
                   onBoxChange={handleShapeBoxChange}
                   onShapeMove={handlePhoneShapeMove}
                   onShapeMoveEnd={handlePhoneShapeMoveEnd}
+                  onSnapStart={startPhoneSnap}
                   isDrawing={!!drawTool}
                   shapeDragPreviewIds={shapeDragPreview?.items.map((item) => item.id) ?? []}
                   showGroups={edit?.mode === 'edit'}
@@ -6679,6 +6849,7 @@ export default function StudioClient() {
 
   const {
     restore: restoreEdits,
+    replaceModuleEdits,
     overrides,
     textStyles,
     setText,
@@ -7183,6 +7354,7 @@ export default function StudioClient() {
     const id = (drag?.id ?? e.dataTransfer.getData('application/x-pf-module-id')) as ModuleId | '';
     if (!id) { endDrag(); return; }
     if (!allModulesFor().some((m) => m.id === id) && !id.startsWith('shape-')) { endDrag(); return; }
+    if (drag?.from === 'library' || e.dataTransfer.types.includes(LIBRARY_DRAG_TYPE)) startFromTemplate(id);
 
     if (SINGLE_SLOT[activePage]) {
       commit([id]);
@@ -7201,9 +7373,24 @@ export default function StudioClient() {
     endDrag();
   };
 
+  /** Whether a component is in use on any page of the app. */
+  const isOnAnyPage = (id: ModuleId) => Object.values(pageModules).some((ids) => ids?.includes(id));
+
+  /**
+   * A component taken from the library arrives as the library template. Edits left from
+   * an earlier copy that has since been removed are dropped, so they never carry over.
+   * (A component still in use on another page is the same component, so it keeps them.)
+   */
+  const startFromTemplate = (id: ModuleId) => {
+    if (isOnAnyPage(id)) return;
+    replaceModuleEdits(id, null);
+    onResetBox(id);
+  };
+
   const addModule = (id: ModuleId) => {
-    if (SINGLE_SLOT[activePage]) { commit([id]); setSelectedId(id); return; }
+    if (SINGLE_SLOT[activePage]) { startFromTemplate(id); commit([id]); setSelectedId(id); return; }
     if (currentModules.includes(id)) return;
+    startFromTemplate(id);
     commit([...currentModules, id]);
     setSelectedId(id);
   };
@@ -7331,6 +7518,8 @@ export default function StudioClient() {
       if (canPlaceLive) {
         const { x: _x, y: _y, frameId: _frameId, html: _html, ...box } = shape.box;
         components.push({ id: componentId, box });
+        // The placed copy looks like the one that was copied (or the template, if that was unchanged).
+        if (!isOnAnyPage(componentId)) replaceModuleEdits(componentId, shape.edits ?? null);
       } else if (shape.box.html) {
         objects.push({ ...shape, type: 'element', componentId: undefined });
       }
