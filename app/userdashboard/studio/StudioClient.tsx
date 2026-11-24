@@ -14,7 +14,7 @@ import {
   CircleDollarSign, Coins, LayoutGrid, Type, Square, Circle, Minus,
   Sparkles, Sun, Droplet, SlidersHorizontal, Move, MousePointer2, Hand,
   Frame, Star, ArrowRight, Spline, MessageCircle,
-  AlignLeft, AlignCenter, AlignRight, AlignJustify, Underline, Pencil,
+  AlignLeft, AlignCenter, AlignRight, AlignJustify, Underline, Pencil, Puzzle,
 } from 'lucide-react';
 import {
   PAGES, APP_KINDS, PAGE_TO_TAB, TAB_TO_PAGE, SINGLE_SLOT,
@@ -45,6 +45,7 @@ import {
 } from '../products/projectstorage';
 import { EDITABLE_SCHEMA } from './editable-schema';
 import AssetTab, { draggedAssetId, isAssetDrag, type AssetItem } from './assettab';
+import { PluginsPanel } from './plugins';
 import {
   LayoutTab, autoLayoutCss, layoutSize, layoutWrapperStyle, type LayoutFields,
 } from './othertabs';
@@ -718,8 +719,10 @@ function DragFollower({ point, label, children }: {
   children: React.ReactNode;
 }) {
   return createPortal(
+    // data-theme-keep: components are previewed in their real (light) colours in dark mode too.
     <div
       aria-hidden
+      data-theme-keep
       className="pointer-events-none fixed z-[300] overflow-hidden rounded-xl bg-white opacity-90 shadow-[0_12px_32px_rgba(15,23,42,0.22)] ring-2 ring-[#0040DF]"
       style={{ left: point.x + 14, top: point.y + 14, width: DRAG_PREVIEW_WIDTH }}
     >
@@ -810,23 +813,30 @@ function assetDimensions(asset: AssetItem) {
 
 /* ═══════════════════════════ IconRail ═══════════════════════════ */
 
-function IconRail() {
-  const items = [
-    { Icon: Layers, label: 'Navigator', active: true },
-    { Icon: Box, label: 'Components' },
+/** What the left pane shows: the navigator (pages, components, assets) or the plugins panel. */
+type LeftView = 'navigator' | 'plugins';
+
+function IconRail({ view, onView }: { view: LeftView; onView: (view: LeftView) => void }) {
+  const items: { Icon: IconType; label: string; view?: LeftView; badge?: number }[] = [
+    { Icon: Layers, label: 'Navigator', view: 'navigator' },
+    { Icon: Puzzle, label: 'Plugins', view: 'plugins' },
     { Icon: Workflow, label: 'App flow' },
     { Icon: Palette, label: 'Theme' },
     { Icon: ShieldCheck, label: 'Compliance', badge: 2 },
   ];
   return (
     <aside className="flex w-14 shrink-0 flex-col items-center border-r border-slate-200 bg-white py-2">
-      {items.map(({ Icon, label, active, badge }) => (
-        <button key={label} title={label} aria-label={label}
+      {items.map(({ Icon, label, view: target, badge }) => {
+        const active = !!target && target === view;
+        return (
+        <button key={label} type="button" title={label} aria-label={label} aria-pressed={target ? active : undefined}
+          onClick={target ? () => onView(target) : undefined}
           className={`relative mb-0.5 grid h-9 w-9 place-items-center rounded-lg ${active ? 'bg-[#E8EEFF] text-[#0040DF]' : 'text-slate-400 hover:bg-slate-100 hover:text-slate-700'}`}>
           <Icon className="h-4 w-4" />
           {badge ? (<span className="absolute -right-0.5 -top-0.5 grid h-3.5 min-w-3.5 place-items-center rounded-full bg-rose-500 px-0.5 text-[8px] font-bold text-white">{badge}</span>) : null}
         </button>
-      ))}
+        );
+      })}
       <div className="mt-auto flex flex-col items-center gap-1">
         <button title="Settings" className="grid h-9 w-9 place-items-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700">
           <Settings className="h-4 w-4" />
@@ -1065,7 +1075,7 @@ function ComponentThumbnail({ id, ctx }: { id: ModuleId; ctx: ViewCtx }) {
   }, []);
 
   return (
-    <div ref={frameRef} className="relative h-full w-full overflow-hidden rounded-md bg-[#F7F8FF]">
+    <div ref={frameRef} data-theme-keep className="relative h-full w-full overflow-hidden rounded-md bg-[#F7F8FF]">
       <div
         ref={contentRef}
         data-thumb-content
@@ -4393,6 +4403,7 @@ function Canvas({
               <div
               key={shape.id}
               data-workspace-shape-id={shape.id}
+              data-theme-keep
               onDragOver={(event) => {
                 if (!isAssetDrag(event.dataTransfer)) return;
                 event.preventDefault();
@@ -4451,6 +4462,7 @@ function Canvas({
           })()}
           {drawPreview && drawPreviewTarget === 'workspace' && (
             <div
+              data-theme-keep
               className="pointer-events-none absolute z-[9500]"
               style={{
                 left: drawPreview.box.x,
@@ -4470,6 +4482,7 @@ function Canvas({
         {shapeDragPreview?.items.map((item) => (
           <div
             key={item.id}
+            data-theme-keep
             className="pointer-events-none absolute"
             style={{
               left: item.left,
@@ -4506,7 +4519,8 @@ function Canvas({
           onActivate={onActivateComment}
         />
         <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex justify-center">
-        <div ref={phoneRef} className="pointer-events-auto relative shrink-0">
+        {/* data-theme-keep: the phone shows the app's own colours, even in the studio's dark mode. */}
+        <div ref={phoneRef} data-theme-keep className="pointer-events-auto relative shrink-0">
         <div className={`relative border-[3px] border-[#1d2b52] bg-[#101c3a] p-[9px] shadow-2xl ring-1 ring-white/10 ${frameRadius}`} style={{ width: dims.w + 18 }}>
           {device === 'iphone' ? (
             <div className="absolute left-1/2 top-[16px] z-30 h-[22px] w-[84px] -translate-x-1/2 rounded-full bg-black" />
@@ -6915,9 +6929,10 @@ export default function StudioClient() {
     });
   }, []);
 
-  const [accentColor] = useState('#0040DF');
-  const [buttonRadius] = useState<RadiusMode>('rounded');
-  const isDark = false;
+  // The project's look from the Product Builder guide (if any) is applied when it loads.
+  const [accentColor, setAccentColor] = useState('#0040DF');
+  const [buttonRadius, setButtonRadius] = useState<RadiusMode>('rounded');
+  const [isDark, setIsDark] = useState(false);
   const radius = RADII[buttonRadius];
 
   const [balance] = useState(INITIAL_BALANCE);
@@ -6944,6 +6959,7 @@ export default function StudioClient() {
   /** The build as it was when loaded or last saved; anything else is an unsaved change. */
   const [baselineJson, setBaselineJson] = useState<string | null>(null);
   const [studioNotice, setStudioNotice] = useState<string | null>(null);
+  const [leftView, setLeftView] = useState<LeftView>('navigator');
   // Logic tab: triggers, rules and routing per component / sub-component.
   const [logic, setLogic] = useState<LogicMap>({});
 
@@ -6979,6 +6995,12 @@ export default function StudioClient() {
     const saved = loadStudioBuild(active?.id ?? null);
     /* eslint-disable react-hooks/set-state-in-effect -- one-time load from browser storage */
     setProject(active);
+    if (active?.look) {
+      setAccentColor(active.look.primary);
+      setButtonRadius(active.look.shape);
+      // "Dual" apps open in light mode.
+      setIsDark(active.look.appearance === 'dark');
+    }
     const data = saved?.data as SavedBuildData | undefined;
     if (data && typeof data === 'object') {
       if (data.design && typeof data.design === 'object') applyDesign(data.design);
@@ -7651,7 +7673,13 @@ export default function StudioClient() {
           </div>
         )}
         <div className="flex min-h-0 flex-1">
-          <IconRail />
+          <IconRail
+            view={leftView}
+            onView={(view) => {
+              setLeftView(view);
+              setLeftPanelCollapsed(false);
+            }}
+          />
           {leftPanelCollapsed ? (
             <div className="flex w-9 shrink-0 justify-center border-r border-slate-200 bg-white pt-3">
               <button
@@ -7664,7 +7692,13 @@ export default function StudioClient() {
                 <ChevronRight className="h-4 w-4" />
               </button>
             </div>
-          ) : <ResizablePanel side="left" width={leftPanelWidth} onWidth={setLeftPanelWidth}><LeftPanel
+          ) : <ResizablePanel side="left" width={leftPanelWidth} onWidth={setLeftPanelWidth}>{leftView === 'plugins' ? (
+            <PluginsPanel
+              onNotice={showStudioNotice}
+              onCollapse={() => setLeftPanelCollapsed(true)}
+              modalClassName={urbanist.className}
+            />
+          ) : <LeftPanel
             appKind={appKind} onAppKind={setAppKind}
             activePage={activePage} onSelectPage={(p) => {
               setActivePage(p);
@@ -7698,7 +7732,7 @@ export default function StudioClient() {
             onSelectLayer={selectLayer}
             onAddCreatedToPhone={(id) => placeCreatedRef.current?.(id)}
             onCreatedDragChange={setCreatedDragId}
-          /></ResizablePanel>}
+          />}</ResizablePanel>}
           <Canvas
             leftPanelSpace={leftPanelCollapsed ? 36 : leftPanelWidth}
             device={device} zoom={zoom} onZoom={setZoom}

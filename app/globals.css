@@ -3,6 +3,8 @@
 @import "shadcn/tailwind.css";
 
 @custom-variant dark (&:is(.dark *));
+/* The user dashboard's own dark mode (see app/userdashboard/theme.ts), e.g. dashdark:text-blue-400 */
+@custom-variant dashdark (&:where(html[data-dashboard-theme="dark"] *));
 
 :root {
   --color-background: var(--background);

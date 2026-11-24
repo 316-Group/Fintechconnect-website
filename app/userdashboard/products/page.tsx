@@ -28,17 +28,18 @@ import ArchetypeSelectionForm, {
 } from "./archetypeselectionform";
 import PlatformConfigurationForm, {
   PlatformConfigurationData,
-  restorePlatformConfigurationData,
-  type PersistedPlatformConfigurationData,
 } from "./platformconfigurationform";
 import TeamsForm, { type TeamsFormData } from "./teamsform";
 import { getPath } from "@/utils/helper";
 import StudioLoadingScreen from "./StudioLoadingScreen";
-import { PROJECTS_STORAGE_KEY, rememberActiveProject, studioUrlFor } from "./projectstorage";
-
-type ProjectDetailsData = Parameters<
-  React.ComponentProps<typeof ProjectDetailsForm>["onContinue"]
->[0];
+import { rememberActiveProject, studioUrlFor } from "./projectstorage";
+import {
+  generateProjectId,
+  loadProjects,
+  saveProjects,
+  type Project,
+  type ProjectDetailsData,
+} from "./projectrecords";
 
 /* --------------------------- Full Screen Build Options --------------------------- */
 
@@ -169,106 +170,6 @@ function BuildOptionsView({
 
 /* ------------------------------- Helpers -------------------------------- */
 
-type Project = {
-  id: string;
-  createdAt: string;
-  details: ProjectDetailsData;
-  preferences: PlatformConfigurationData;
-  /**
-   * Optional because projects saved before the teams step existed won't have it.
-   * On open/edit, an undefined value causes TeamsForm to fall back to its own
-   * internal defaults (owner + sample collaborators), which is what we want.
-   */
-  teams?: TeamsFormData;
-  /** When the Studio build was last saved with "Save progress" (set by the Studio). */
-  studioSavedAt?: string;
-};
-
-type PersistedProject = Omit<Project, "details" | "preferences"> & {
-  details: Omit<ProjectDetailsData, "brandMark"> & {
-    brandMark: {
-      name: string;
-      type: string;
-      lastModified: number;
-      dataUrl: string;
-    } | null;
-  };
-  preferences: PersistedPlatformConfigurationData;
-};
-
-
-function generateProjectId() {
-  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
-    return crypto.randomUUID();
-  }
-  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
-}
-
-function fileToDataUrl(file: File) {
-  return new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onerror = () => reject(reader.error ?? new Error("Unable to read the project brand mark."));
-    reader.onload = () => {
-      if (typeof reader.result !== "string") {
-        reject(new Error("Unable to encode the project brand mark."));
-        return;
-      }
-      resolve(reader.result);
-    };
-    reader.readAsDataURL(file);
-  });
-}
-
-async function serializeProject(project: Project): Promise<PersistedProject> {
-  const { brandMark, ...details } = project.details;
-  return {
-    // `...project` carries `teams` through untouched — every field on
-    // TeamsFormData/Collaborator is JSON-safe.
-    ...project,
-    details: {
-      ...details,
-      brandMark: brandMark
-        ? {
-            name: brandMark.name,
-            type: brandMark.type,
-            lastModified: brandMark.lastModified,
-            dataUrl: await fileToDataUrl(brandMark),
-          }
-        : null,
-    },
-    preferences: {
-      ...project.preferences,
-      capabilities: project.preferences.capabilities.map(
-        ({ id, title, desc, selected }) => ({ id, title, desc, selected }),
-      ),
-    },
-  };
-}
-
-function deserializeProject(project: PersistedProject): Project {
-  const { brandMark, ...details } = project.details;
-  let restoredBrandMark: File | null = null;
-  if (brandMark) {
-    const [header, encodedData] = brandMark.dataUrl.split(",");
-    const mimeType = /^data:(.*?);base64$/.exec(header)?.[1];
-    if (!encodedData || !mimeType) {
-      throw new Error(`The saved brand mark for "${project.details.projectName}" is invalid.`);
-    }
-    const bytes = Uint8Array.from(atob(encodedData), (character) => character.charCodeAt(0));
-    restoredBrandMark = new File([bytes], brandMark.name, {
-      type: brandMark.type || mimeType,
-      lastModified: brandMark.lastModified,
-    });
-  }
-
-  return {
-    ...project,
-    details: { ...details, brandMark: restoredBrandMark },
-    preferences: restorePlatformConfigurationData(project.preferences),
-    // `teams` passes through as-is; undefined for older saved projects.
-  };
-}
-
 /** Creates a fresh object URL for the given File and revokes it on cleanup. */
 function useFilePreviewUrl(file: File | null | undefined) {
   const [url, setUrl] = useState<string | null>(null);
@@ -330,6 +231,7 @@ function ProjectCard({
           </h3>
           <p className="text-xs text-slate-500 mt-0.5 truncate">
             {archetype?.title ?? "Custom Archetype"}
+            {project.design && ` · ${project.design.themeName}`}
           </p>
           {project.studioSavedAt && (
             <p className="mt-1 inline-flex items-center gap-1.5 text-[11px] font-medium text-emerald-700">
@@ -398,12 +300,8 @@ export default function MyProductsPage() {
 
   useEffect(() => {
     try {
-      const savedProjects = window.localStorage.getItem(PROJECTS_STORAGE_KEY);
-      if (savedProjects) {
-        const parsedProjects = JSON.parse(savedProjects) as PersistedProject[];
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        setProjects(parsedProjects.map(deserializeProject));
-      }
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setProjects(loadProjects());
     } catch {
       setProjectStorageError("Saved projects could not be loaded from this browser.");
     } finally {
@@ -511,8 +409,7 @@ export default function MyProductsPage() {
     }
 
     try {
-      const persistedProjects = await Promise.all(updatedProjects.map(serializeProject));
-      window.localStorage.setItem(PROJECTS_STORAGE_KEY, JSON.stringify(persistedProjects));
+      await saveProjects(updatedProjects);
       setProjects(updatedProjects);
       setStudioProjectId(openedProjectId);
       setProjectStorageError(null);

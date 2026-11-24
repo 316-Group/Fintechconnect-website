@@ -230,9 +230,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const theme = useDashboardTheme();
   const isStudio = pathname.replace(/\/+$/, "") === "/userdashboard/studio";
 
-  // Dark mode lives on <html> only while a dashboard page is open (the studio keeps its own look).
+  // Dark mode lives on <html> only while a dashboard page is open (the studio gets its own palette).
   useLayoutEffect(() => {
-    applyDashboardTheme(isStudio ? null : theme);
+    applyDashboardTheme(theme, isStudio ? "studio" : null);
     return () => applyDashboardTheme(null);
   }, [isStudio, theme]);
 

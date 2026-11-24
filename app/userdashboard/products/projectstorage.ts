@@ -22,13 +22,34 @@ export type StudioProjectInfo = {
   archetypeId: string;
   jurisdiction: string;
   studioSavedAt?: string;
+  /** The look picked in the Product Builder guide, which the Studio applies to the phone. */
+  look?: StudioLook;
+};
+
+export type StudioLook = {
+  primary: string;
+  appearance: 'light' | 'dark' | 'dual';
+  shape: 'sharp' | 'rounded' | 'pill';
 };
 
 type StoredProject = {
   id: string;
   details?: { projectName?: string; archetypeId?: string; jurisdiction?: string };
+  design?: { look?: Partial<StudioLook> };
   studioSavedAt?: string;
 };
+
+const HEX_COLOR = /^#[0-9a-f]{6}$/i;
+
+function lookOf(project: StoredProject): StudioLook | undefined {
+  const look = project.design?.look;
+  if (!look) return undefined;
+  return {
+    primary: typeof look.primary === 'string' && HEX_COLOR.test(look.primary) ? look.primary : '#0040DF',
+    appearance: look.appearance === 'dark' || look.appearance === 'dual' ? look.appearance : 'light',
+    shape: look.shape === 'sharp' || look.shape === 'pill' ? look.shape : 'rounded',
+  };
+}
 
 function readStoredProjects(): StoredProject[] {
   try {
@@ -46,6 +67,7 @@ const toInfo = (project: StoredProject): StudioProjectInfo => ({
   archetypeId: project.details?.archetypeId ?? '',
   jurisdiction: project.details?.jurisdiction ?? '',
   studioSavedAt: project.studioSavedAt,
+  look: lookOf(project),
 });
 
 export function listStudioProjects(): StudioProjectInfo[] {

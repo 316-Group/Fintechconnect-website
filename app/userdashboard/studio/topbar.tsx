@@ -6,6 +6,7 @@ import {
   PenLine, PlayCircle, Plus, Redo2, Rocket, Save, Share2, Smartphone, Tablet, Undo2, Workflow,
   FolderOpen, Check,
 } from 'lucide-react';
+import ThemeToggle from '../ThemeToggle';
 import { archetypes } from '../products/archetypeselectionform';
 import { listStudioProjects, studioUrlFor, type StudioProjectInfo } from '../products/projectstorage';
 
@@ -210,6 +211,8 @@ export function TopBar({
         <a href="/userdashboard/products" aria-label="FintechConnect projects" className="shrink-0">
           <Logo />
         </a>
+        {/* The dashboard's light / dark switch, as next to the logo in the dashboard sidebar. */}
+        <ThemeToggle />
         <ProjectSwitcher project={project} />
         <span className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap text-[12.5px] font-medium ${status.color}`} role="status" title={status.text}>
           <span className={`h-1.5 w-1.5 rounded-full ${status.dot}`} /><span className="hidden min-[1440px]:inline">{status.text}</span>

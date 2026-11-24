@@ -206,12 +206,16 @@ function WelcomeModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => voi
 
 /** Replace this with the path (or imported image src) you want to use as the banner background. */
 const BANNER_IMAGE = "/dashboard/bannerbackground.jpg";
+/** The same banner with its colours flipped, shown in dark mode. */
+const BANNER_IMAGE_DARK = "/dashboard/bannerbackground-dark.jpg";
 
 const NEXT_STEPS: {
   title: string;
   description: string;
   type: "guided" | "modules" | "launch";
   image: string;
+  /** Shown in dark mode: the same picture without its white backdrop. */
+  darkImage: string;
 }[] = [
   {
     title: "Create your first Product",
@@ -219,6 +223,7 @@ const NEXT_STEPS: {
       "Define the pages and flow of the financial product you want to launch. Use a guided starting point or build your own.",
     type: "guided",
     image: "/dashboard/homecard1.png",
+    darkImage: "/dashboard/homecard1-dark.png",
   },
   {
     title: "Connect your infrastructure",
@@ -226,6 +231,7 @@ const NEXT_STEPS: {
       "Add the banking, ledger and payments modules your product runs on.",
     type: "modules",
     image: "/dashboard/homecard2.png",
+    darkImage: "/dashboard/homecard2-dark.png",
   },
   {
     title: "Design your experience",
@@ -233,6 +239,7 @@ const NEXT_STEPS: {
       "Shape how customers see and use your product in White-label Studio.",
     type: "launch",
     image: "/dashboard/homecard3.png",
+    darkImage: "/dashboard/homecard3-dark.png",
   },
 ];
 
@@ -307,38 +314,42 @@ export default function DashboardHome() {
 
       <div className="space-y-8">
         {/* ---------------- Hero banner with background image ---------------- */}
-        {/* data-theme-keep: the banner photo is light, so the banner keeps its light colours in dark mode. */}
-        <div data-theme-keep className="relative overflow-hidden rounded-2xl border border-slate-200">
-          {/* Background image layer */}
+        <div className="relative overflow-hidden rounded-2xl border border-slate-200 dashdark:border-[#1f2533]">
+          {/* Background image layer (a dark version of the same banner in dark mode) */}
           <div
-            className="absolute inset-0 bg-cover bg-center"
+            className="absolute inset-0 bg-cover bg-center dashdark:hidden"
             style={{ backgroundImage: `url("${getPath(BANNER_IMAGE)}")` }}
+            aria-hidden
+           />
+          <div
+            className="absolute inset-0 hidden bg-cover bg-center dashdark:block"
+            style={{ backgroundImage: `url("${getPath(BANNER_IMAGE_DARK)}")` }}
             aria-hidden
            />
           {/* Readability overlay — lightens only the left side where the text lives */}
 <div className="absolute inset-0" aria-hidden />
 
           <div className="relative px-6 md:px-10 py-8 md:py-12">
-            <div className="flex items-center gap-2 mb-3">
+            <div className="flex items-center gap-2 mb-3 dashdark:w-fit dashdark:rounded-full dashdark:border dashdark:border-white/15 dashdark:bg-white/5 dashdark:px-3 dashdark:py-1">
               <Sparkles className="w-3.5 h-3.5 text-blue-600" />
-              <span className="text-[10px] font-bold tracking-widest text-blue-700 uppercase">
+              <span className="text-[10px] font-bold tracking-widest text-blue-700 uppercase dashdark:text-slate-800!">
                 Your financial infrastructure workspace
               </span>
             </div>
-            <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight leading-tight">
+            <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight leading-tight dashdark:text-[#2f6bff]">
               Build your next financial product.
             </h1>
-            <p className="text-sm text-slate-600 mt-2 max-w-2xl leading-relaxed">
+            <p className="text-sm text-slate-600 mt-2 max-w-2xl leading-relaxed dashdark:text-slate-700">
               Everything you need to launch, configure, and scale financial products. Start with an architectural template or orchestrate your own custom core primitives from the ground up.
             </p>
             <div className="flex flex-wrap items-center gap-3 mt-5">
               <button
                 onClick={() => setShowWelcomeModal(true)}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 hover:bg-slate-50 rounded-lg text-xs font-semibold text-slate-800 shadow-sm transition-colors"
+                className="group/build inline-flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 hover:bg-slate-50 rounded-lg text-xs font-semibold text-slate-800 shadow-sm transition-colors dashdark:bg-[#2457d6]! dashdark:border-[#2457d6] dashdark:text-white dashdark:hover:bg-[#1d48b8]!"
               >
-                <LayoutGrid className="w-3.5 h-3.5 text-blue-600" /> Build a Platform
+                <LayoutGrid className="w-3.5 h-3.5 text-blue-600 dashdark:text-white!" /> Build a Platform
               </button>
-              <button className="inline-flex items-center gap-1.5 px-2 py-2 text-xs font-semibold text-blue-600 hover:text-blue-700 transition-colors">
+              <button className="inline-flex items-center gap-1.5 px-2 py-2 text-xs font-semibold text-blue-600 hover:text-blue-700 transition-colors dashdark:rounded-lg dashdark:border dashdark:border-[#2f6bff]/70 dashdark:px-3 dashdark:hover:bg-[#2f6bff]/10">
                 <Sparkles className="w-3.5 h-3.5" /> Explore Modules <ArrowRight className="w-3.5 h-3.5" />
               </button>
             </div>
@@ -358,11 +369,16 @@ export default function DashboardHome() {
                 className="group rounded-xl border border-slate-200 bg-white overflow-hidden flex flex-col hover:border-slate-300 hover:shadow-sm transition-all"
               >
                 {/* ---- Image ---- */}
-<div className="relative h-44 border-b border-slate-100">
+<div className="relative h-44 border-b border-slate-100 dashdark:bg-[#0d1118]">
   <img
     src={getPath(step.image)}
     alt={step.title}
-    className="w-full h-full object-contain"
+    className="w-full h-full object-contain dashdark:hidden"
+  />
+  <img
+    src={getPath(step.darkImage)}
+    alt={step.title}
+    className="hidden w-full h-full object-contain dashdark:block"
   />
 </div>
 

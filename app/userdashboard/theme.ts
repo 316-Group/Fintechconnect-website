@@ -1,7 +1,7 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
-import { THEME_ATTRIBUTE, THEME_STORAGE_KEY } from "./theme-boot";
+import { THEME_AREA_ATTRIBUTE, THEME_ATTRIBUTE, THEME_STORAGE_KEY } from "./theme-boot";
 
 /*
  * Light / dark theme for the user dashboard only.
@@ -43,19 +43,27 @@ export function useDashboardTheme(): DashboardTheme {
   return useSyncExternalStore(subscribe, read, () => "light");
 }
 
+/** Which part of the dashboard is open: the studio has its own dark palette. */
+export type DashboardArea = "studio" | null;
+
+let currentArea: DashboardArea = null;
+
 export function setDashboardTheme(theme: DashboardTheme) {
   try {
     window.localStorage.setItem(THEME_STORAGE_KEY, theme);
   } catch {
     /* Storage unavailable (private mode): the choice lasts until reload. */
   }
-  applyDashboardTheme(theme);
+  applyDashboardTheme(theme, currentArea);
   listeners.forEach((listener) => listener());
 }
 
 /** Puts the theme on <html> (or removes it, for light / when leaving the dashboard). */
-export function applyDashboardTheme(theme: DashboardTheme | null) {
+export function applyDashboardTheme(theme: DashboardTheme | null, area: DashboardArea = null) {
   const root = document.documentElement;
+  currentArea = area;
   if (theme === "dark") root.setAttribute(THEME_ATTRIBUTE, "dark");
   else root.removeAttribute(THEME_ATTRIBUTE);
+  if (theme === "dark" && area) root.setAttribute(THEME_AREA_ATTRIBUTE, area);
+  else root.removeAttribute(THEME_AREA_ATTRIBUTE);
 }
