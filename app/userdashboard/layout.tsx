@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useLayoutEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation"; // Import usePathname
 import {
@@ -34,6 +34,9 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
 } from "lucide-react";
+import ThemeToggle from "./ThemeToggle";
+import { applyDashboardTheme, useDashboardTheme } from "./theme";
+import "./dashboard-theme.css";
 
 /* ----------------------------- Nav Data ----------------------------- */
 
@@ -117,11 +120,14 @@ function Sidebar({ collapsed = false, onClose }: { collapsed?: boolean; onClose?
             </svg>
           )}
         </Link>
-        {!collapsed && onClose && (
-          <button onClick={onClose} className="lg:hidden text-slate-400 hover:text-slate-700">
-            <X className="w-4 h-4" />
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          <ThemeToggle compact={collapsed} />
+          {!collapsed && onClose && (
+            <button onClick={onClose} className="lg:hidden text-slate-400 hover:text-slate-700">
+              <X className="w-4 h-4" />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Workspace selector */}
@@ -221,8 +227,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const pathname = usePathname();
+  const theme = useDashboardTheme();
+  const isStudio = pathname.replace(/\/+$/, "") === "/userdashboard/studio";
 
-  if (pathname.replace(/\/+$/, "") === "/userdashboard/studio") {
+  // Dark mode lives on <html> only while a dashboard page is open (the studio keeps its own look).
+  useLayoutEffect(() => {
+    applyDashboardTheme(isStudio ? null : theme);
+    return () => applyDashboardTheme(null);
+  }, [isStudio, theme]);
+
+  if (isStudio) {
     return <>{children}</>;
   }
 

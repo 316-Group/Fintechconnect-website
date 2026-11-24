@@ -352,6 +352,7 @@ export default function PlatformConfigurationForm({
                       }`}
                     >
                       <span
+                        data-theme-keep
                         className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform duration-200 ease-in-out ${
                           curr.enabled ? "translate-x-5" : "translate-x-0"
                         }`}

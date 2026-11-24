@@ -1,0 +1,433 @@
+/*
+ * Dark mode for the user dashboard.
+ *
+ * Active only while <html data-dashboard-theme="dark"> is set, which the dashboard
+ * layout does on dashboard pages when dark mode is on (see theme.ts). Nothing here
+ * touches the rest of the site.
+ *
+ * How it works:
+ *  1. Tailwind colours are CSS variables, so the neutral (slate) scale is flipped and
+ *     the pale tints (blue-50, rose-100, …) become dark tints. Every class that uses
+ *     them (hover:, focus:, /50 opacity, …) follows automatically.
+ *  2. A few classes need a direct override: white surfaces (bg-white is also the
+ *     colour of text-white, which must stay white), dark overlays and code blocks
+ *     that must stay dark, strong text colours that need to be lighter on a dark
+ *     background, and the custom hex colours used by some pages.
+ *  3. Anything inside [data-theme-keep] keeps its normal light colours: the phone
+ *     mock-ups and the white switch knobs.
+ *
+ * Generated from Tailwind's palette; edit the values here freely.
+ */
+
+html[data-dashboard-theme="dark"] {
+  color-scheme: dark;
+  background-color: #0e121a;
+
+  /* shadcn tokens (default borders, inputs, focus rings) */
+  --background: #0e121a;
+  --foreground: #eef2f7;
+  --card: #151a24;
+  --card-foreground: #eef2f7;
+  --popover: #151a24;
+  --popover-foreground: #eef2f7;
+  --muted: #1c2230;
+  --muted-foreground: #8c97ac;
+  --border: #283042;
+  --input: #283042;
+  --ring: #3b5bdb;
+
+  --color-slate-50: #0e121a;
+  --color-slate-100: #1c2230;
+  --color-slate-200: #283042;
+  --color-slate-300: #364057;
+  --color-slate-400: #6e7a91;
+  --color-slate-500: #8c97ac;
+  --color-slate-600: #a7b1c3;
+  --color-slate-700: #c3cbd8;
+  --color-slate-800: #dce2eb;
+  --color-slate-900: #eef2f7;
+  --color-slate-950: #f8fafc;
+  --color-blue-50: #16203a;
+  --color-blue-100: #1a2850;
+  --color-blue-200: #233a6e;
+  --color-blue-300: #2f4e92;
+  --color-indigo-50: #1b1d3c;
+  --color-indigo-100: #22254f;
+  --color-indigo-200: #2e3270;
+  --color-indigo-300: #3b4196;
+  --color-red-50: color-mix(in oklab, oklch(63.7% 0.237 25.331) 13%, #151a24);
+  --color-red-100: color-mix(in oklab, oklch(63.7% 0.237 25.331) 20%, #151a24);
+  --color-red-200: color-mix(in oklab, oklch(63.7% 0.237 25.331) 32%, #151a24);
+  --color-red-300: color-mix(in oklab, oklch(63.7% 0.237 25.331) 45%, #151a24);
+  --color-orange-50: color-mix(in oklab, oklch(70.5% 0.213 47.604) 13%, #151a24);
+  --color-orange-100: color-mix(in oklab, oklch(70.5% 0.213 47.604) 20%, #151a24);
+  --color-orange-200: color-mix(in oklab, oklch(70.5% 0.213 47.604) 32%, #151a24);
+  --color-orange-300: color-mix(in oklab, oklch(70.5% 0.213 47.604) 45%, #151a24);
+  --color-amber-50: color-mix(in oklab, oklch(76.9% 0.188 70.08) 13%, #151a24);
+  --color-amber-100: color-mix(in oklab, oklch(76.9% 0.188 70.08) 20%, #151a24);
+  --color-amber-200: color-mix(in oklab, oklch(76.9% 0.188 70.08) 32%, #151a24);
+  --color-amber-300: color-mix(in oklab, oklch(76.9% 0.188 70.08) 45%, #151a24);
+  --color-yellow-50: color-mix(in oklab, oklch(79.5% 0.184 86.047) 13%, #151a24);
+  --color-yellow-100: color-mix(in oklab, oklch(79.5% 0.184 86.047) 20%, #151a24);
+  --color-yellow-200: color-mix(in oklab, oklch(79.5% 0.184 86.047) 32%, #151a24);
+  --color-yellow-300: color-mix(in oklab, oklch(79.5% 0.184 86.047) 45%, #151a24);
+  --color-green-50: color-mix(in oklab, oklch(72.3% 0.219 149.579) 13%, #151a24);
+  --color-green-100: color-mix(in oklab, oklch(72.3% 0.219 149.579) 20%, #151a24);
+  --color-green-200: color-mix(in oklab, oklch(72.3% 0.219 149.579) 32%, #151a24);
+  --color-green-300: color-mix(in oklab, oklch(72.3% 0.219 149.579) 45%, #151a24);
+  --color-emerald-50: color-mix(in oklab, oklch(69.6% 0.17 162.48) 13%, #151a24);
+  --color-emerald-100: color-mix(in oklab, oklch(69.6% 0.17 162.48) 20%, #151a24);
+  --color-emerald-200: color-mix(in oklab, oklch(69.6% 0.17 162.48) 32%, #151a24);
+  --color-emerald-300: color-mix(in oklab, oklch(69.6% 0.17 162.48) 45%, #151a24);
+  --color-teal-50: color-mix(in oklab, oklch(70.4% 0.14 182.503) 13%, #151a24);
+  --color-teal-100: color-mix(in oklab, oklch(70.4% 0.14 182.503) 20%, #151a24);
+  --color-teal-200: color-mix(in oklab, oklch(70.4% 0.14 182.503) 32%, #151a24);
+  --color-teal-300: color-mix(in oklab, oklch(70.4% 0.14 182.503) 45%, #151a24);
+  --color-sky-50: color-mix(in oklab, oklch(68.5% 0.169 237.323) 13%, #151a24);
+  --color-sky-100: color-mix(in oklab, oklch(68.5% 0.169 237.323) 20%, #151a24);
+  --color-sky-200: color-mix(in oklab, oklch(68.5% 0.169 237.323) 32%, #151a24);
+  --color-sky-300: color-mix(in oklab, oklch(68.5% 0.169 237.323) 45%, #151a24);
+  --color-violet-50: color-mix(in oklab, oklch(60.6% 0.25 292.717) 13%, #151a24);
+  --color-violet-100: color-mix(in oklab, oklch(60.6% 0.25 292.717) 20%, #151a24);
+  --color-violet-200: color-mix(in oklab, oklch(60.6% 0.25 292.717) 32%, #151a24);
+  --color-violet-300: color-mix(in oklab, oklch(60.6% 0.25 292.717) 45%, #151a24);
+  --color-purple-50: color-mix(in oklab, oklch(62.7% 0.265 303.9) 13%, #151a24);
+  --color-purple-100: color-mix(in oklab, oklch(62.7% 0.265 303.9) 20%, #151a24);
+  --color-purple-200: color-mix(in oklab, oklch(62.7% 0.265 303.9) 32%, #151a24);
+  --color-purple-300: color-mix(in oklab, oklch(62.7% 0.265 303.9) 45%, #151a24);
+  --color-pink-50: color-mix(in oklab, oklch(65.6% 0.241 354.308) 13%, #151a24);
+  --color-pink-100: color-mix(in oklab, oklch(65.6% 0.241 354.308) 20%, #151a24);
+  --color-pink-200: color-mix(in oklab, oklch(65.6% 0.241 354.308) 32%, #151a24);
+  --color-pink-300: color-mix(in oklab, oklch(65.6% 0.241 354.308) 45%, #151a24);
+  --color-rose-50: color-mix(in oklab, oklch(64.5% 0.246 16.439) 13%, #151a24);
+  --color-rose-100: color-mix(in oklab, oklch(64.5% 0.246 16.439) 20%, #151a24);
+  --color-rose-200: color-mix(in oklab, oklch(64.5% 0.246 16.439) 32%, #151a24);
+  --color-rose-300: color-mix(in oklab, oklch(64.5% 0.246 16.439) 45%, #151a24);
+}
+
+/* Mock-ups and knobs keep their light colours. */
+html[data-dashboard-theme="dark"] [data-theme-keep] {
+  color-scheme: light;
+  --color-slate-50: oklch(98.4% 0.003 247.858);
+  --color-slate-100: oklch(96.8% 0.007 247.896);
+  --color-slate-200: oklch(92.9% 0.013 255.508);
+  --color-slate-300: oklch(86.9% 0.022 252.894);
+  --color-slate-400: oklch(70.4% 0.04 256.788);
+  --color-slate-500: oklch(55.4% 0.046 257.417);
+  --color-slate-600: oklch(44.6% 0.043 257.281);
+  --color-slate-700: oklch(37.2% 0.044 257.287);
+  --color-slate-800: oklch(27.9% 0.041 260.031);
+  --color-slate-900: oklch(20.8% 0.042 265.755);
+  --color-slate-950: oklch(12.9% 0.042 264.695);
+  --color-blue-50: oklch(97% 0.014 254.604);
+  --color-blue-100: oklch(93.2% 0.032 255.585);
+  --color-blue-200: oklch(88.2% 0.059 254.128);
+  --color-blue-300: oklch(80.9% 0.105 251.813);
+  --color-indigo-50: oklch(96.2% 0.018 272.314);
+  --color-indigo-100: oklch(93% 0.034 272.788);
+  --color-indigo-200: oklch(87% 0.065 274.039);
+  --color-indigo-300: oklch(78.5% 0.115 274.713);
+  --color-red-50: oklch(97.1% 0.013 17.38);
+  --color-red-100: oklch(93.6% 0.032 17.717);
+  --color-red-200: oklch(88.5% 0.062 18.334);
+  --color-red-300: oklch(80.8% 0.114 19.571);
+  --color-orange-50: oklch(98% 0.016 73.684);
+  --color-orange-100: oklch(95.4% 0.038 75.164);
+  --color-orange-200: oklch(90.1% 0.076 70.697);
+  --color-orange-300: oklch(83.7% 0.128 66.29);
+  --color-amber-50: oklch(98.7% 0.022 95.277);
+  --color-amber-100: oklch(96.2% 0.059 95.617);
+  --color-amber-200: oklch(92.4% 0.12 95.746);
+  --color-amber-300: oklch(87.9% 0.169 91.605);
+  --color-yellow-50: oklch(98.7% 0.026 102.212);
+  --color-yellow-100: oklch(97.3% 0.071 103.193);
+  --color-yellow-200: oklch(94.5% 0.129 101.54);
+  --color-yellow-300: oklch(90.5% 0.182 98.111);
+  --color-green-50: oklch(98.2% 0.018 155.826);
+  --color-green-100: oklch(96.2% 0.044 156.743);
+  --color-green-200: oklch(92.5% 0.084 155.995);
+  --color-green-300: oklch(87.1% 0.15 154.449);
+  --color-emerald-50: oklch(97.9% 0.021 166.113);
+  --color-emerald-100: oklch(95% 0.052 163.051);
+  --color-emerald-200: oklch(90.5% 0.093 164.15);
+  --color-emerald-300: oklch(84.5% 0.143 164.978);
+  --color-teal-50: oklch(98.4% 0.014 180.72);
+  --color-teal-100: oklch(95.3% 0.051 180.801);
+  --color-teal-200: oklch(91% 0.096 180.426);
+  --color-teal-300: oklch(85.5% 0.138 181.071);
+  --color-sky-50: oklch(97.7% 0.013 236.62);
+  --color-sky-100: oklch(95.1% 0.026 236.824);
+  --color-sky-200: oklch(90.1% 0.058 230.902);
+  --color-sky-300: oklch(82.8% 0.111 230.318);
+  --color-violet-50: oklch(96.9% 0.016 293.756);
+  --color-violet-100: oklch(94.3% 0.029 294.588);
+  --color-violet-200: oklch(89.4% 0.057 293.283);
+  --color-violet-300: oklch(81.1% 0.111 293.571);
+  --color-purple-50: oklch(97.7% 0.014 308.299);
+  --color-purple-100: oklch(94.6% 0.033 307.174);
+  --color-purple-200: oklch(90.2% 0.063 306.703);
+  --color-purple-300: oklch(82.7% 0.119 306.383);
+  --color-pink-50: oklch(97.1% 0.014 343.198);
+  --color-pink-100: oklch(94.8% 0.028 342.258);
+  --color-pink-200: oklch(89.9% 0.061 343.231);
+  --color-pink-300: oklch(82.3% 0.12 346.018);
+  --color-rose-50: oklch(96.9% 0.015 12.422);
+  --color-rose-100: oklch(94.1% 0.03 12.58);
+  --color-rose-200: oklch(89.2% 0.058 10.001);
+  --color-rose-300: oklch(81% 0.117 11.638);
+}
+
+/*
+ * Direct overrides. They sit in the utilities layer with the same weight as Tailwind's
+ * own classes (the :where() parts add none), so hover:/focus: classes still win as usual.
+ */
+@layer utilities {
+  /* White surfaces become the dark card colour (text-white stays white). */
+  :where(html[data-dashboard-theme="dark"]) .bg-white:where(:not([data-theme-keep], [data-theme-keep] *)) { background-color: #151a24; }
+  :where(html[data-dashboard-theme="dark"]) .hover\:bg-white:where(:not([data-theme-keep], [data-theme-keep] *)):hover { background-color: #151a24; }
+  :where(html[data-dashboard-theme="dark"]) .focus\:bg-white:where(:not([data-theme-keep], [data-theme-keep] *)):focus { background-color: #151a24; }
+  :where(html[data-dashboard-theme="dark"]) .bg-white\/80:where(:not([data-theme-keep], [data-theme-keep] *)) { background-color: color-mix(in oklab, #151a24 80%, transparent); }
+  :where(html[data-dashboard-theme="dark"]) .bg-white\/90:where(:not([data-theme-keep], [data-theme-keep] *)) { background-color: color-mix(in oklab, #151a24 90%, transparent); }
+  :where(html[data-dashboard-theme="dark"]) .bg-white\/95:where(:not([data-theme-keep], [data-theme-keep] *)) { background-color: color-mix(in oklab, #151a24 95%, transparent); }
+  :where(html[data-dashboard-theme="dark"]) .border-white:where(:not([data-theme-keep], [data-theme-keep] *)) { border-color: #151a24; }
+  :where(html[data-dashboard-theme="dark"]) .ring-white:where(:not([data-theme-keep], [data-theme-keep] *)) { --tw-ring-color: #151a24; }
+  :where(html[data-dashboard-theme="dark"]) .from-white:where(:not([data-theme-keep], [data-theme-keep] *)) { --tw-gradient-from: #151a24; }
+  :where(html[data-dashboard-theme="dark"]) .to-white:where(:not([data-theme-keep], [data-theme-keep] *)) { --tw-gradient-to: #151a24; }
+
+  /* Dark chips, code blocks and overlays stay dark. */
+  :where(html[data-dashboard-theme="dark"]) .bg-slate-700:where(:not([data-theme-keep], [data-theme-keep] *)) { background-color: oklch(37.2% 0.044 257.287); }
+  :where(html[data-dashboard-theme="dark"]) .hover\:bg-slate-700:where(:not([data-theme-keep], [data-theme-keep] *)):hover { background-color: oklch(37.2% 0.044 257.287); }
+  :where(html[data-dashboard-theme="dark"]) .bg-slate-800:where(:not([data-theme-keep], [data-theme-keep] *)) { background-color: oklch(27.9% 0.041 260.031); }
+  :where(html[data-dashboard-theme="dark"]) .hover\:bg-slate-800:where(:not([data-theme-keep], [data-theme-keep] *)):hover { background-color: oklch(27.9% 0.041 260.031); }
+  :where(html[data-dashboard-theme="dark"]) .bg-slate-900:where(:not([data-theme-keep], [data-theme-keep] *)) { background-color: oklch(20.8% 0.042 265.755); }
+  :where(html[data-dashboard-theme="dark"]) .hover\:bg-slate-900:where(:not([data-theme-keep], [data-theme-keep] *)):hover { background-color: oklch(20.8% 0.042 265.755); }
+  :where(html[data-dashboard-theme="dark"]) .bg-slate-950:where(:not([data-theme-keep], [data-theme-keep] *)) { background-color: oklch(12.9% 0.042 264.695); }
+  :where(html[data-dashboard-theme="dark"]) .hover\:bg-slate-950:where(:not([data-theme-keep], [data-theme-keep] *)):hover { background-color: oklch(12.9% 0.042 264.695); }
+  :where(html[data-dashboard-theme="dark"]) .bg-slate-900\/20:where(:not([data-theme-keep], [data-theme-keep] *)) { background-color: rgb(0 0 0 / 45%); }
+  :where(html[data-dashboard-theme="dark"]) .bg-slate-900\/30:where(:not([data-theme-keep], [data-theme-keep] *)) { background-color: rgb(0 0 0 / 55%); }
+  :where(html[data-dashboard-theme="dark"]) .bg-slate-900\/40:where(:not([data-theme-keep], [data-theme-keep] *)) { background-color: rgb(0 0 0 / 65%); }
+  :where(html[data-dashboard-theme="dark"]) .bg-slate-900\/50:where(:not([data-theme-keep], [data-theme-keep] *)) { background-color: rgb(0 0 0 / 75%); }
+  :where(html[data-dashboard-theme="dark"]) .bg-slate-900\/60:where(:not([data-theme-keep], [data-theme-keep] *)) { background-color: rgb(0 0 0 / 85%); }
+  :where(html[data-dashboard-theme="dark"]) .bg-slate-900\/70:where(:not([data-theme-keep], [data-theme-keep] *)) { background-color: rgb(0 0 0 / 85%); }
+  :where(html[data-dashboard-theme="dark"]) .bg-slate-900\/80:where(:not([data-theme-keep], [data-theme-keep] *)) { background-color: rgb(0 0 0 / 85%); }
+  :where(html[data-dashboard-theme="dark"]) .text-slate-100:where(:not([data-theme-keep], [data-theme-keep] *)) { color: oklch(96.8% 0.007 247.896); }
+  :where(html[data-dashboard-theme="dark"]) .text-slate-200:where(:not([data-theme-keep], [data-theme-keep] *)) { color: oklch(92.9% 0.013 255.508); }
+
+  /* Strong text colours, lightened to read on dark. */
+  :where(html[data-dashboard-theme="dark"]) .text-blue-600:where(:not([data-theme-keep], [data-theme-keep] *)) { color: #6b9bff; }
+  :where(html[data-dashboard-theme="dark"]) .hover\:text-blue-600:where(:not([data-theme-keep], [data-theme-keep] *)):hover { color: #6b9bff; }
+  :where(html[data-dashboard-theme="dark"]) .group:hover .group-hover\:text-blue-600:where(:not([data-theme-keep], [data-theme-keep] *)) { color: #6b9bff; }
+  :where(html[data-dashboard-theme="dark"]) .text-blue-700:where(:not([data-theme-keep], [data-theme-keep] *)) { color: #8ab0ff; }
+  :where(html[data-dashboard-theme="dark"]) .hover\:text-blue-700:where(:not([data-theme-keep], [data-theme-keep] *)):hover { color: #8ab0ff; }
+  :where(html[data-dashboard-theme="dark"]) .group:hover .group-hover\:text-blue-700:where(:not([data-theme-keep], [data-theme-keep] *)) { color: #8ab0ff; }
+  :where(html[data-dashboard-theme="dark"]) .text-blue-800:where(:not([data-theme-keep], [data-theme-keep] *)) { color: #a9c4ff; }
+  :where(html[data-dashboard-theme="dark"]) .hover\:text-blue-800:where(:not([data-theme-keep], [data-theme-keep] *)):hover { color: #a9c4ff; }
+  :where(html[data-dashboard-theme="dark"]) .group:hover .group-hover\:text-blue-800:where(:not([data-theme-keep], [data-theme-keep] *)) { color: #a9c4ff; }
+  :where(html[data-dashboard-theme="dark"]) .text-blue-900:where(:not([data-theme-keep], [data-theme-keep] *)) { color: #c2d5ff; }
+  :where(html[data-dashboard-theme="dark"]) .hover\:text-blue-900:where(:not([data-theme-keep], [data-theme-keep] *)):hover { color: #c2d5ff; }
+  :where(html[data-dashboard-theme="dark"]) .group:hover .group-hover\:text-blue-900:where(:not([data-theme-keep], [data-theme-keep] *)) { color: #c2d5ff; }
+  :where(html[data-dashboard-theme="dark"]) .text-indigo-500:where(:not([data-theme-keep], [data-theme-keep] *)) { color: #8c95ff; }
+  :where(html[data-dashboard-theme="dark"]) .hover\:text-indigo-500:where(:not([data-theme-keep], [data-theme-keep] *)):hover { color: #8c95ff; }
+  :where(html[data-dashboard-theme="dark"]) .group:hover .group-hover\:text-indigo-500:where(:not([data-theme-keep], [data-theme-keep] *)) { color: #8c95ff; }
+  :where(html[data-dashboard-theme="dark"]) .text-indigo-600:where(:not([data-theme-keep], [data-theme-keep] *)) { color: #a3abff; }
+  :where(html[data-dashboard-theme="dark"]) .hover\:text-indigo-600:where(:not([data-theme-keep], [data-theme-keep] *)):hover { color: #a3abff; }
+  :where(html[data-dashboard-theme="dark"]) .group:hover .group-hover\:text-indigo-600:where(:not([data-theme-keep], [data-theme-keep] *)) { color: #a3abff; }
+  :where(html[data-dashboard-theme="dark"]) .text-indigo-700:where(:not([data-theme-keep], [data-theme-keep] *)) { color: #a3abff; }
+  :where(html[data-dashboard-theme="dark"]) .hover\:text-indigo-700:where(:not([data-theme-keep], [data-theme-keep] *)):hover { color: #a3abff; }
+  :where(html[data-dashboard-theme="dark"]) .group:hover .group-hover\:text-indigo-700:where(:not([data-theme-keep], [data-theme-keep] *)) { color: #a3abff; }
+  :where(html[data-dashboard-theme="dark"]) .text-indigo-800:where(:not([data-theme-keep], [data-theme-keep] *)) { color: #a3abff; }
+  :where(html[data-dashboard-theme="dark"]) .hover\:text-indigo-800:where(:not([data-theme-keep], [data-theme-keep] *)):hover { color: #a3abff; }
+  :where(html[data-dashboard-theme="dark"]) .group:hover .group-hover\:text-indigo-800:where(:not([data-theme-keep], [data-theme-keep] *)) { color: #a3abff; }
+  :where(html[data-dashboard-theme="dark"]) .text-red-600:where(:not([data-theme-keep], [data-theme-keep] *)) { color: oklch(70.4% 0.191 22.216); }
+  :where(html[data-dashboard-theme="dark"]) .hover\:text-red-600:where(:not([data-theme-keep], [data-theme-keep] *)):hover { color: oklch(70.4% 0.191 22.216); }
+  :where(html[data-dashboard-theme="dark"]) .group:hover .group-hover\:text-red-600:where(:not([data-theme-keep], [data-theme-keep] *)) { color: oklch(70.4% 0.191 22.216); }
+  :where(html[data-dashboard-theme="dark"]) .text-red-700:where(:not([data-theme-keep], [data-theme-keep] *)) { color: oklch(80.8% 0.114 19.571); }
+  :where(html[data-dashboard-theme="dark"]) .hover\:text-red-700:where(:not([data-theme-keep], [data-theme-keep] *)):hover { color: oklch(80.8% 0.114 19.571); }
+  :where(html[data-dashboard-theme="dark"]) .group:hover .group-hover\:text-red-700:where(:not([data-theme-keep], [data-theme-keep] *)) { color: oklch(80.8% 0.114 19.571); }
+  :where(html[data-dashboard-theme="dark"]) .text-red-800:where(:not([data-theme-keep], [data-theme-keep] *)) { color: oklch(80.8% 0.114 19.571); }
+  :where(html[data-dashboard-theme="dark"]) .hover\:text-red-800:where(:not([data-theme-keep], [data-theme-keep] *)):hover { color: oklch(80.8% 0.114 19.571); }
+  :where(html[data-dashboard-theme="dark"]) .group:hover .group-hover\:text-red-800:where(:not([data-theme-keep], [data-theme-keep] *)) { color: oklch(80.8% 0.114 19.571); }
+  :where(html[data-dashboard-theme="dark"]) .text-red-900:where(:not([data-theme-keep], [data-theme-keep] *)) { color: oklch(80.8% 0.114 19.571); }
+  :where(html[data-dashboard-theme="dark"]) .hover\:text-red-900:where(:not([data-theme-keep], [data-theme-keep] *)):hover { color: oklch(80.8% 0.114 19.571); }
+  :where(html[data-dashboard-theme="dark"]) .group:hover .group-hover\:text-red-900:where(:not([data-theme-keep], [data-theme-keep] *)) { color: oklch(80.8% 0.114 19.571); }
+  :where(html[data-dashboard-theme="dark"]) .text-orange-600:where(:not([data-theme-keep], [data-theme-keep] *)) { color: oklch(75% 0.183 55.934); }
+  :where(html[data-dashboard-theme="dark"]) .hover\:text-orange-600:where(:not([data-theme-keep], [data-theme-keep] *)):hover { color: oklch(75% 0.183 55.934); }
+  :where(html[data-dashboard-theme="dark"]) .group:hover .group-hover\:text-orange-600:where(:not([data-theme-keep], [data-theme-keep] *)) { color: oklch(75% 0.183 55.934); }
+  :where(html[data-dashboard-theme="dark"]) .text-orange-700:where(:not([data-theme-keep], [data-theme-keep] *)) { color: oklch(83.7% 0.128 66.29); }
+  :where(html[data-dashboard-theme="dark"]) .hover\:text-orange-700:where(:not([data-theme-keep], [data-theme-keep] *)):hover { color: oklch(83.7% 0.128 66.29); }
+  :where(html[data-dashboard-theme="dark"]) .group:hover .group-hover\:text-orange-700:where(:not([data-theme-keep], [data-theme-keep] *)) { color: oklch(83.7% 0.128 66.29); }
+  :where(html[data-dashboard-theme="dark"]) .text-orange-800:where(:not([data-theme-keep], [data-theme-keep] *)) { color: oklch(83.7% 0.128 66.29); }
+  :where(html[data-dashboard-theme="dark"]) .hover\:text-orange-800:where(:not([data-theme-keep], [data-theme-keep] *)):hover { color: oklch(83.7% 0.128 66.29); }
+  :where(html[data-dashboard-theme="dark"]) .group:hover .group-hover\:text-orange-800:where(:not([data-theme-keep], [data-theme-keep] *)) { color: oklch(83.7% 0.128 66.29); }
+  :where(html[data-dashboard-theme="dark"]) .text-orange-900:where(:not([data-theme-keep], [data-theme-keep] *)) { color: oklch(83.7% 0.128 66.29); }
+  :where(html[data-dashboard-theme="dark"]) .hover\:text-orange-900:where(:not([data-theme-keep], [data-theme-keep] *)):hover { color: oklch(83.7% 0.128 66.29); }
+  :where(html[data-dashboard-theme="dark"]) .group:hover .group-hover\:text-orange-900:where(:not([data-theme-keep], [data-theme-keep] *)) { color: oklch(83.7% 0.128 66.29); }
+  :where(html[data-dashboard-theme="dark"]) .text-amber-600:where(:not([data-theme-keep], [data-theme-keep] *)) { color: oklch(82.8% 0.189 84.429); }
+  :where(html[data-dashboard-theme="dark"]) .hover\:text-amber-600:where(:not([data-theme-keep], [data-theme-keep] *)):hover { color: oklch(82.8% 0.189 84.429); }
+  :where(html[data-dashboard-theme="dark"]) .group:hover .group-hover\:text-amber-600:where(:not([data-theme-keep], [data-theme-keep] *)) { color: oklch(82.8% 0.189 84.429); }
+  :where(html[data-dashboard-theme="dark"]) .text-amber-700:where(:not([data-theme-keep], [data-theme-keep] *)) { color: oklch(87.9% 0.169 91.605); }
+  :where(html[data-dashboard-theme="dark"]) .hover\:text-amber-700:where(:not([data-theme-keep], [data-theme-keep] *)):hover { color: oklch(87.9% 0.169 91.605); }
+  :where(html[data-dashboard-theme="dark"]) .group:hover .group-hover\:text-amber-700:where(:not([data-theme-keep], [data-theme-keep] *)) { color: oklch(87.9% 0.169 91.605); }
+  :where(html[data-dashboard-theme="dark"]) .text-amber-800:where(:not([data-theme-keep], [data-theme-keep] *)) { color: oklch(87.9% 0.169 91.605); }
+  :where(html[data-dashboard-theme="dark"]) .hover\:text-amber-800:where(:not([data-theme-keep], [data-theme-keep] *)):hover { color: oklch(87.9% 0.169 91.605); }
+  :where(html[data-dashboard-theme="dark"]) .group:hover .group-hover\:text-amber-800:where(:not([data-theme-keep], [data-theme-keep] *)) { color: oklch(87.9% 0.169 91.605); }
+  :where(html[data-dashboard-theme="dark"]) .text-amber-900:where(:not([data-theme-keep], [data-theme-keep] *)) { color: oklch(87.9% 0.169 91.605); }
+  :where(html[data-dashboard-theme="dark"]) .hover\:text-amber-900:where(:not([data-theme-keep], [data-theme-keep] *)):hover { color: oklch(87.9% 0.169 91.605); }
+  :where(html[data-dashboard-theme="dark"]) .group:hover .group-hover\:text-amber-900:where(:not([data-theme-keep], [data-theme-keep] *)) { color: oklch(87.9% 0.169 91.605); }
+  :where(html[data-dashboard-theme="dark"]) .text-yellow-600:where(:not([data-theme-keep], [data-theme-keep] *)) { color: oklch(85.2% 0.199 91.936); }
+  :where(html[data-dashboard-theme="dark"]) .hover\:text-yellow-600:where(:not([data-theme-keep], [data-theme-keep] *)):hover { color: oklch(85.2% 0.199 91.936); }
+  :where(html[data-dashboard-theme="dark"]) .group:hover .group-hover\:text-yellow-600:where(:not([data-theme-keep], [data-theme-keep] *)) { color: oklch(85.2% 0.199 91.936); }
+  :where(html[data-dashboard-theme="dark"]) .text-yellow-700:where(:not([data-theme-keep], [data-theme-keep] *)) { color: oklch(90.5% 0.182 98.111); }
+  :where(html[data-dashboard-theme="dark"]) .hover\:text-yellow-700:where(:not([data-theme-keep], [data-theme-keep] *)):hover { color: oklch(90.5% 0.182 98.111); }
+  :where(html[data-dashboard-theme="dark"]) .group:hover .group-hover\:text-yellow-700:where(:not([data-theme-keep], [data-theme-keep] *)) { color: oklch(90.5% 0.182 98.111); }
+  :where(html[data-dashboard-theme="dark"]) .text-yellow-800:where(:not([data-theme-keep], [data-theme-keep] *)) { color: oklch(90.5% 0.182 98.111); }
+  :where(html[data-dashboard-theme="dark"]) .hover\:text-yellow-800:where(:not([data-theme-keep], [data-theme-keep] *)):hover { color: oklch(90.5% 0.182 98.111); }
+  :where(html[data-dashboard-theme="dark"]) .group:hover .group-hover\:text-yellow-800:where(:not([data-theme-keep], [data-theme-keep] *)) { color: oklch(90.5% 0.182 98.111); }
+  :where(html[data-dashboard-theme="dark"]) .text-yellow-900:where(:not([data-theme-keep], [data-theme-keep] *)) { color: oklch(90.5% 0.182 98.111); }
+  :where(html[data-dashboard-theme="dark"]) .hover\:text-yellow-900:where(:not([data-theme-keep], [data-theme-keep] *)):hover { color: oklch(90.5% 0.182 98.111); }
+  :where(html[data-dashboard-theme="dark"]) .group:hover .group-hover\:text-yellow-900:where(:not([data-theme-keep], [data-theme-keep] *)) { color: oklch(90.5% 0.182 98.111); }
+  :where(html[data-dashboard-theme="dark"]) .text-green-600:where(:not([data-theme-keep], [data-theme-keep] *)) { color: oklch(79.2% 0.209 151.711); }
+  :where(html[data-dashboard-theme="dark"]) .hover\:text-green-600:where(:not([data-theme-keep], [data-theme-keep] *)):hover { color: oklch(79.2% 0.209 151.711); }
+  :where(html[data-dashboard-theme="dark"]) .group:hover .group-hover\:text-green-600:where(:not([data-theme-keep], [data-theme-keep] *)) { color: oklch(79.2% 0.209 151.711); }
+  :where(html[data-dashboard-theme="dark"]) .text-green-700:where(:not([data-theme-keep], [data-theme-keep] *)) { color: oklch(87.1% 0.15 154.449); }
+  :where(html[data-dashboard-theme="dark"]) .hover\:text-green-700:where(:not([data-theme-keep], [data-theme-keep] *)):hover { color: oklch(87.1% 0.15 154.449); }
+  :where(html[data-dashboard-theme="dark"]) .group:hover .group-hover\:text-green-700:where(:not([data-theme-keep], [data-theme-keep] *)) { color: oklch(87.1% 0.15 154.449); }
+  :where(html[data-dashboard-theme="dark"]) .text-green-800:where(:not([data-theme-keep], [data-theme-keep] *)) { color: oklch(87.1% 0.15 154.449); }
+  :where(html[data-dashboard-theme="dark"]) .hover\:text-green-800:where(:not([data-theme-keep], [data-theme-keep] *)):hover { color: oklch(87.1% 0.15 154.449); }
+  :where(html[data-dashboard-theme="dark"]) .group:hover .group-hover\:text-green-800:where(:not([data-theme-keep], [data-theme-keep] *)) { color: oklch(87.1% 0.15 154.449); }
+  :where(html[data-dashboard-theme="dark"]) .text-green-900:where(:not([data-theme-keep], [data-theme-keep] *)) { color: oklch(87.1% 0.15 154.449); }
+  :where(html[data-dashboard-theme="dark"]) .hover\:text-green-900:where(:not([data-theme-keep], [data-theme-keep] *)):hover { color: oklch(87.1% 0.15 154.449); }
+  :where(html[data-dashboard-theme="dark"]) .group:hover .group-hover\:text-green-900:where(:not([data-theme-keep], [data-theme-keep] *)) { color: oklch(87.1% 0.15 154.449); }
+  :where(html[data-dashboard-theme="dark"]) .text-emerald-600:where(:not([data-theme-keep], [data-theme-keep] *)) { color: oklch(76.5% 0.177 163.223); }
+  :where(html[data-dashboard-theme="dark"]) .hover\:text-emerald-600:where(:not([data-theme-keep], [data-theme-keep] *)):hover { color: oklch(76.5% 0.177 163.223); }
+  :where(html[data-dashboard-theme="dark"]) .group:hover .group-hover\:text-emerald-600:where(:not([data-theme-keep], [data-theme-keep] *)) { color: oklch(76.5% 0.177 163.223); }
+  :where(html[data-dashboard-theme="dark"]) .text-emerald-700:where(:not([data-theme-keep], [data-theme-keep] *)) { color: oklch(84.5% 0.143 164.978); }
+  :where(html[data-dashboard-theme="dark"]) .hover\:text-emerald-700:where(:not([data-theme-keep], [data-theme-keep] *)):hover { color: oklch(84.5% 0.143 164.978); }
+  :where(html[data-dashboard-theme="dark"]) .group:hover .group-hover\:text-emerald-700:where(:not([data-theme-keep], [data-theme-keep] *)) { color: oklch(84.5% 0.143 164.978); }
+  :where(html[data-dashboard-theme="dark"]) .text-emerald-800:where(:not([data-theme-keep], [data-theme-keep] *)) { color: oklch(84.5% 0.143 164.978); }
+  :where(html[data-dashboard-theme="dark"]) .hover\:text-emerald-800:where(:not([data-theme-keep], [data-theme-keep] *)):hover { color: oklch(84.5% 0.143 164.978); }
+  :where(html[data-dashboard-theme="dark"]) .group:hover .group-hover\:text-emerald-800:where(:not([data-theme-keep], [data-theme-keep] *)) { color: oklch(84.5% 0.143 164.978); }
+  :where(html[data-dashboard-theme="dark"]) .text-emerald-900:where(:not([data-theme-keep], [data-theme-keep] *)) { color: oklch(84.5% 0.143 164.978); }
+  :where(html[data-dashboard-theme="dark"]) .hover\:text-emerald-900:where(:not([data-theme-keep], [data-theme-keep] *)):hover { color: oklch(84.5% 0.143 164.978); }
+  :where(html[data-dashboard-theme="dark"]) .group:hover .group-hover\:text-emerald-900:where(:not([data-theme-keep], [data-theme-keep] *)) { color: oklch(84.5% 0.143 164.978); }
+  :where(html[data-dashboard-theme="dark"]) .text-teal-600:where(:not([data-theme-keep], [data-theme-keep] *)) { color: oklch(77.7% 0.152 181.912); }
+  :where(html[data-dashboard-theme="dark"]) .hover\:text-teal-600:where(:not([data-theme-keep], [data-theme-keep] *)):hover { color: oklch(77.7% 0.152 181.912); }
+  :where(html[data-dashboard-theme="dark"]) .group:hover .group-hover\:text-teal-600:where(:not([data-theme-keep], [data-theme-keep] *)) { color: oklch(77.7% 0.152 181.912); }
+  :where(html[data-dashboard-theme="dark"]) .text-teal-700:where(:not([data-theme-keep], [data-theme-keep] *)) { color: oklch(85.5% 0.138 181.071); }
+  :where(html[data-dashboard-theme="dark"]) .hover\:text-teal-700:where(:not([data-theme-keep], [data-theme-keep] *)):hover { color: oklch(85.5% 0.138 181.071); }
+  :where(html[data-dashboard-theme="dark"]) .group:hover .group-hover\:text-teal-700:where(:not([data-theme-keep], [data-theme-keep] *)) { color: oklch(85.5% 0.138 181.071); }
+  :where(html[data-dashboard-theme="dark"]) .text-teal-800:where(:not([data-theme-keep], [data-theme-keep] *)) { color: oklch(85.5% 0.138 181.071); }
+  :where(html[data-dashboard-theme="dark"]) .hover\:text-teal-800:where(:not([data-theme-keep], [data-theme-keep] *)):hover { color: oklch(85.5% 0.138 181.071); }
+  :where(html[data-dashboard-theme="dark"]) .group:hover .group-hover\:text-teal-800:where(:not([data-theme-keep], [data-theme-keep] *)) { color: oklch(85.5% 0.138 181.071); }
+  :where(html[data-dashboard-theme="dark"]) .text-teal-900:where(:not([data-theme-keep], [data-theme-keep] *)) { color: oklch(85.5% 0.138 181.071); }
+  :where(html[data-dashboard-theme="dark"]) .hover\:text-teal-900:where(:not([data-theme-keep], [data-theme-keep] *)):hover { color: oklch(85.5% 0.138 181.071); }
+  :where(html[data-dashboard-theme="dark"]) .group:hover .group-hover\:text-teal-900:where(:not([data-theme-keep], [data-theme-keep] *)) { color: oklch(85.5% 0.138 181.071); }
+  :where(html[data-dashboard-theme="dark"]) .text-sky-600:where(:not([data-theme-keep], [data-theme-keep] *)) { color: oklch(74.6% 0.16 232.661); }
+  :where(html[data-dashboard-theme="dark"]) .hover\:text-sky-600:where(:not([data-theme-keep], [data-theme-keep] *)):hover { color: oklch(74.6% 0.16 232.661); }
+  :where(html[data-dashboard-theme="dark"]) .group:hover .group-hover\:text-sky-600:where(:not([data-theme-keep], [data-theme-keep] *)) { color: oklch(74.6% 0.16 232.661); }
+  :where(html[data-dashboard-theme="dark"]) .text-sky-700:where(:not([data-theme-keep], [data-theme-keep] *)) { color: oklch(82.8% 0.111 230.318); }
+  :where(html[data-dashboard-theme="dark"]) .hover\:text-sky-700:where(:not([data-theme-keep], [data-theme-keep] *)):hover { color: oklch(82.8% 0.111 230.318); }
+  :where(html[data-dashboard-theme="dark"]) .group:hover .group-hover\:text-sky-700:where(:not([data-theme-keep], [data-theme-keep] *)) { color: oklch(82.8% 0.111 230.318); }
+  :where(html[data-dashboard-theme="dark"]) .text-sky-800:where(:not([data-theme-keep], [data-theme-keep] *)) { color: oklch(82.8% 0.111 230.318); }
+  :where(html[data-dashboard-theme="dark"]) .hover\:text-sky-800:where(:not([data-theme-keep], [data-theme-keep] *)):hover { color: oklch(82.8% 0.111 230.318); }
+  :where(html[data-dashboard-theme="dark"]) .group:hover .group-hover\:text-sky-800:where(:not([data-theme-keep], [data-theme-keep] *)) { color: oklch(82.8% 0.111 230.318); }
+  :where(html[data-dashboard-theme="dark"]) .text-sky-900:where(:not([data-theme-keep], [data-theme-keep] *)) { color: oklch(82.8% 0.111 230.318); }
+  :where(html[data-dashboard-theme="dark"]) .hover\:text-sky-900:where(:not([data-theme-keep], [data-theme-keep] *)):hover { color: oklch(82.8% 0.111 230.318); }
+  :where(html[data-dashboard-theme="dark"]) .group:hover .group-hover\:text-sky-900:where(:not([data-theme-keep], [data-theme-keep] *)) { color: oklch(82.8% 0.111 230.318); }
+  :where(html[data-dashboard-theme="dark"]) .text-violet-600:where(:not([data-theme-keep], [data-theme-keep] *)) { color: oklch(70.2% 0.183 293.541); }
+  :where(html[data-dashboard-theme="dark"]) .hover\:text-violet-600:where(:not([data-theme-keep], [data-theme-keep] *)):hover { color: oklch(70.2% 0.183 293.541); }
+  :where(html[data-dashboard-theme="dark"]) .group:hover .group-hover\:text-violet-600:where(:not([data-theme-keep], [data-theme-keep] *)) { color: oklch(70.2% 0.183 293.541); }
+  :where(html[data-dashboard-theme="dark"]) .text-violet-700:where(:not([data-theme-keep], [data-theme-keep] *)) { color: oklch(81.1% 0.111 293.571); }
+  :where(html[data-dashboard-theme="dark"]) .hover\:text-violet-700:where(:not([data-theme-keep], [data-theme-keep] *)):hover { color: oklch(81.1% 0.111 293.571); }
+  :where(html[data-dashboard-theme="dark"]) .group:hover .group-hover\:text-violet-700:where(:not([data-theme-keep], [data-theme-keep] *)) { color: oklch(81.1% 0.111 293.571); }
+  :where(html[data-dashboard-theme="dark"]) .text-violet-800:where(:not([data-theme-keep], [data-theme-keep] *)) { color: oklch(81.1% 0.111 293.571); }
+  :where(html[data-dashboard-theme="dark"]) .hover\:text-violet-800:where(:not([data-theme-keep], [data-theme-keep] *)):hover { color: oklch(81.1% 0.111 293.571); }
+  :where(html[data-dashboard-theme="dark"]) .group:hover .group-hover\:text-violet-800:where(:not([data-theme-keep], [data-theme-keep] *)) { color: oklch(81.1% 0.111 293.571); }
+  :where(html[data-dashboard-theme="dark"]) .text-violet-900:where(:not([data-theme-keep], [data-theme-keep] *)) { color: oklch(81.1% 0.111 293.571); }
+  :where(html[data-dashboard-theme="dark"]) .hover\:text-violet-900:where(:not([data-theme-keep], [data-theme-keep] *)):hover { color: oklch(81.1% 0.111 293.571); }
+  :where(html[data-dashboard-theme="dark"]) .group:hover .group-hover\:text-violet-900:where(:not([data-theme-keep], [data-theme-keep] *)) { color: oklch(81.1% 0.111 293.571); }
+  :where(html[data-dashboard-theme="dark"]) .text-purple-600:where(:not([data-theme-keep], [data-theme-keep] *)) { color: oklch(71.4% 0.203 305.504); }
+  :where(html[data-dashboard-theme="dark"]) .hover\:text-purple-600:where(:not([data-theme-keep], [data-theme-keep] *)):hover { color: oklch(71.4% 0.203 305.504); }
+  :where(html[data-dashboard-theme="dark"]) .group:hover .group-hover\:text-purple-600:where(:not([data-theme-keep], [data-theme-keep] *)) { color: oklch(71.4% 0.203 305.504); }
+  :where(html[data-dashboard-theme="dark"]) .text-purple-700:where(:not([data-theme-keep], [data-theme-keep] *)) { color: oklch(82.7% 0.119 306.383); }
+  :where(html[data-dashboard-theme="dark"]) .hover\:text-purple-700:where(:not([data-theme-keep], [data-theme-keep] *)):hover { color: oklch(82.7% 0.119 306.383); }
+  :where(html[data-dashboard-theme="dark"]) .group:hover .group-hover\:text-purple-700:where(:not([data-theme-keep], [data-theme-keep] *)) { color: oklch(82.7% 0.119 306.383); }
+  :where(html[data-dashboard-theme="dark"]) .text-purple-800:where(:not([data-theme-keep], [data-theme-keep] *)) { color: oklch(82.7% 0.119 306.383); }
+  :where(html[data-dashboard-theme="dark"]) .hover\:text-purple-800:where(:not([data-theme-keep], [data-theme-keep] *)):hover { color: oklch(82.7% 0.119 306.383); }
+  :where(html[data-dashboard-theme="dark"]) .group:hover .group-hover\:text-purple-800:where(:not([data-theme-keep], [data-theme-keep] *)) { color: oklch(82.7% 0.119 306.383); }
+  :where(html[data-dashboard-theme="dark"]) .text-purple-900:where(:not([data-theme-keep], [data-theme-keep] *)) { color: oklch(82.7% 0.119 306.383); }
+  :where(html[data-dashboard-theme="dark"]) .hover\:text-purple-900:where(:not([data-theme-keep], [data-theme-keep] *)):hover { color: oklch(82.7% 0.119 306.383); }
+  :where(html[data-dashboard-theme="dark"]) .group:hover .group-hover\:text-purple-900:where(:not([data-theme-keep], [data-theme-keep] *)) { color: oklch(82.7% 0.119 306.383); }
+  :where(html[data-dashboard-theme="dark"]) .text-pink-600:where(:not([data-theme-keep], [data-theme-keep] *)) { color: oklch(71.8% 0.202 349.761); }
+  :where(html[data-dashboard-theme="dark"]) .hover\:text-pink-600:where(:not([data-theme-keep], [data-theme-keep] *)):hover { color: oklch(71.8% 0.202 349.761); }
+  :where(html[data-dashboard-theme="dark"]) .group:hover .group-hover\:text-pink-600:where(:not([data-theme-keep], [data-theme-keep] *)) { color: oklch(71.8% 0.202 349.761); }
+  :where(html[data-dashboard-theme="dark"]) .text-pink-700:where(:not([data-theme-keep], [data-theme-keep] *)) { color: oklch(82.3% 0.12 346.018); }
+  :where(html[data-dashboard-theme="dark"]) .hover\:text-pink-700:where(:not([data-theme-keep], [data-theme-keep] *)):hover { color: oklch(82.3% 0.12 346.018); }
+  :where(html[data-dashboard-theme="dark"]) .group:hover .group-hover\:text-pink-700:where(:not([data-theme-keep], [data-theme-keep] *)) { color: oklch(82.3% 0.12 346.018); }
+  :where(html[data-dashboard-theme="dark"]) .text-pink-800:where(:not([data-theme-keep], [data-theme-keep] *)) { color: oklch(82.3% 0.12 346.018); }
+  :where(html[data-dashboard-theme="dark"]) .hover\:text-pink-800:where(:not([data-theme-keep], [data-theme-keep] *)):hover { color: oklch(82.3% 0.12 346.018); }
+  :where(html[data-dashboard-theme="dark"]) .group:hover .group-hover\:text-pink-800:where(:not([data-theme-keep], [data-theme-keep] *)) { color: oklch(82.3% 0.12 346.018); }
+  :where(html[data-dashboard-theme="dark"]) .text-pink-900:where(:not([data-theme-keep], [data-theme-keep] *)) { color: oklch(82.3% 0.12 346.018); }
+  :where(html[data-dashboard-theme="dark"]) .hover\:text-pink-900:where(:not([data-theme-keep], [data-theme-keep] *)):hover { color: oklch(82.3% 0.12 346.018); }
+  :where(html[data-dashboard-theme="dark"]) .group:hover .group-hover\:text-pink-900:where(:not([data-theme-keep], [data-theme-keep] *)) { color: oklch(82.3% 0.12 346.018); }
+  :where(html[data-dashboard-theme="dark"]) .text-rose-600:where(:not([data-theme-keep], [data-theme-keep] *)) { color: oklch(71.2% 0.194 13.428); }
+  :where(html[data-dashboard-theme="dark"]) .hover\:text-rose-600:where(:not([data-theme-keep], [data-theme-keep] *)):hover { color: oklch(71.2% 0.194 13.428); }
+  :where(html[data-dashboard-theme="dark"]) .group:hover .group-hover\:text-rose-600:where(:not([data-theme-keep], [data-theme-keep] *)) { color: oklch(71.2% 0.194 13.428); }
+  :where(html[data-dashboard-theme="dark"]) .text-rose-700:where(:not([data-theme-keep], [data-theme-keep] *)) { color: oklch(81% 0.117 11.638); }
+  :where(html[data-dashboard-theme="dark"]) .hover\:text-rose-700:where(:not([data-theme-keep], [data-theme-keep] *)):hover { color: oklch(81% 0.117 11.638); }
+  :where(html[data-dashboard-theme="dark"]) .group:hover .group-hover\:text-rose-700:where(:not([data-theme-keep], [data-theme-keep] *)) { color: oklch(81% 0.117 11.638); }
+  :where(html[data-dashboard-theme="dark"]) .text-rose-800:where(:not([data-theme-keep], [data-theme-keep] *)) { color: oklch(81% 0.117 11.638); }
+  :where(html[data-dashboard-theme="dark"]) .hover\:text-rose-800:where(:not([data-theme-keep], [data-theme-keep] *)):hover { color: oklch(81% 0.117 11.638); }
+  :where(html[data-dashboard-theme="dark"]) .group:hover .group-hover\:text-rose-800:where(:not([data-theme-keep], [data-theme-keep] *)) { color: oklch(81% 0.117 11.638); }
+  :where(html[data-dashboard-theme="dark"]) .text-rose-900:where(:not([data-theme-keep], [data-theme-keep] *)) { color: oklch(81% 0.117 11.638); }
+  :where(html[data-dashboard-theme="dark"]) .hover\:text-rose-900:where(:not([data-theme-keep], [data-theme-keep] *)):hover { color: oklch(81% 0.117 11.638); }
+  :where(html[data-dashboard-theme="dark"]) .group:hover .group-hover\:text-rose-900:where(:not([data-theme-keep], [data-theme-keep] *)) { color: oklch(81% 0.117 11.638); }
+
+  /* Brand blue text. */
+  :where(html[data-dashboard-theme="dark"]) .text-\[\#0040DF\]:where(:not([data-theme-keep], [data-theme-keep] *)) { color: #7c97ff; }
+  :where(html[data-dashboard-theme="dark"]) .hover\:text-\[\#0040DF\]:where(:not([data-theme-keep], [data-theme-keep] *)):hover { color: #7c97ff; }
+  :where(html[data-dashboard-theme="dark"]) .group:hover .group-hover\:text-\[\#0040DF\]:where(:not([data-theme-keep], [data-theme-keep] *)) { color: #7c97ff; }
+
+  /* Custom light colours used by the team, connectors, integrations and overview pages. */
+  :where(html[data-dashboard-theme="dark"]) .bg-\[\#EEF2FF\]:where(:not([data-theme-keep], [data-theme-keep] *)) { background-color: #1a2140; }
+  :where(html[data-dashboard-theme="dark"]) .hover\:bg-\[\#EEF2FF\]:where(:not([data-theme-keep], [data-theme-keep] *)):hover { background-color: #1a2140; }
+  :where(html[data-dashboard-theme="dark"]) .bg-\[\#F1F3FD\]:where(:not([data-theme-keep], [data-theme-keep] *)) { background-color: #1c2232; }
+  :where(html[data-dashboard-theme="dark"]) .hover\:bg-\[\#F1F3FD\]:where(:not([data-theme-keep], [data-theme-keep] *)):hover { background-color: #1c2232; }
+  :where(html[data-dashboard-theme="dark"]) .bg-\[\#F5F6FC\]:where(:not([data-theme-keep], [data-theme-keep] *)) { background-color: #181d29; }
+  :where(html[data-dashboard-theme="dark"]) .hover\:bg-\[\#F5F6FC\]:where(:not([data-theme-keep], [data-theme-keep] *)):hover { background-color: #181d29; }
+  :where(html[data-dashboard-theme="dark"]) .bg-\[\#EEF1FD\]:where(:not([data-theme-keep], [data-theme-keep] *)) { background-color: #1b2236; }
+  :where(html[data-dashboard-theme="dark"]) .hover\:bg-\[\#EEF1FD\]:where(:not([data-theme-keep], [data-theme-keep] *)):hover { background-color: #1b2236; }
+  :where(html[data-dashboard-theme="dark"]) .bg-\[\#F8F9FE\]:where(:not([data-theme-keep], [data-theme-keep] *)) { background-color: #171c27; }
+  :where(html[data-dashboard-theme="dark"]) .hover\:bg-\[\#F8F9FE\]:where(:not([data-theme-keep], [data-theme-keep] *)):hover { background-color: #171c27; }
+  :where(html[data-dashboard-theme="dark"]) .bg-\[\#E8EDFB\]:where(:not([data-theme-keep], [data-theme-keep] *)) { background-color: #1e2742; }
+  :where(html[data-dashboard-theme="dark"]) .hover\:bg-\[\#E8EDFB\]:where(:not([data-theme-keep], [data-theme-keep] *)):hover { background-color: #1e2742; }
+  :where(html[data-dashboard-theme="dark"]) .bg-\[\#DDE4FB\]:where(:not([data-theme-keep], [data-theme-keep] *)) { background-color: #243056; }
+  :where(html[data-dashboard-theme="dark"]) .hover\:bg-\[\#DDE4FB\]:where(:not([data-theme-keep], [data-theme-keep] *)):hover { background-color: #243056; }
+  :where(html[data-dashboard-theme="dark"]) .bg-\[\#E3E8FA\]:where(:not([data-theme-keep], [data-theme-keep] *)) { background-color: #222c4a; }
+  :where(html[data-dashboard-theme="dark"]) .hover\:bg-\[\#E3E8FA\]:where(:not([data-theme-keep], [data-theme-keep] *)):hover { background-color: #222c4a; }
+  :where(html[data-dashboard-theme="dark"]) .bg-\[\#EFE4FF\]:where(:not([data-theme-keep], [data-theme-keep] *)) { background-color: #2a2045; }
+  :where(html[data-dashboard-theme="dark"]) .hover\:bg-\[\#EFE4FF\]:where(:not([data-theme-keep], [data-theme-keep] *)):hover { background-color: #2a2045; }
+  :where(html[data-dashboard-theme="dark"]) .bg-\[\#FDE2E2\]:where(:not([data-theme-keep], [data-theme-keep] *)) { background-color: #3a1c20; }
+  :where(html[data-dashboard-theme="dark"]) .hover\:bg-\[\#FDE2E2\]:where(:not([data-theme-keep], [data-theme-keep] *)):hover { background-color: #3a1c20; }
+  :where(html[data-dashboard-theme="dark"]) .bg-\[\#F7F8FE\]:where(:not([data-theme-keep], [data-theme-keep] *)) { background-color: #1a1f2b; }
+  :where(html[data-dashboard-theme="dark"]) .hover\:bg-\[\#F7F8FE\]:where(:not([data-theme-keep], [data-theme-keep] *)):hover { background-color: #1a1f2b; }
+  :where(html[data-dashboard-theme="dark"]) .bg-\[\#FBD0D0\]:where(:not([data-theme-keep], [data-theme-keep] *)) { background-color: #4a2227; }
+  :where(html[data-dashboard-theme="dark"]) .hover\:bg-\[\#FBD0D0\]:where(:not([data-theme-keep], [data-theme-keep] *)):hover { background-color: #4a2227; }
+  :where(html[data-dashboard-theme="dark"]) .bg-\[\#EEF0FF\]:where(:not([data-theme-keep], [data-theme-keep] *)) { background-color: #1a1f3a; }
+  :where(html[data-dashboard-theme="dark"]) .hover\:bg-\[\#EEF0FF\]:where(:not([data-theme-keep], [data-theme-keep] *)):hover { background-color: #1a1f3a; }
+  :where(html[data-dashboard-theme="dark"]) .bg-\[\#E8F4FF\]:where(:not([data-theme-keep], [data-theme-keep] *)) { background-color: #16263a; }
+  :where(html[data-dashboard-theme="dark"]) .hover\:bg-\[\#E8F4FF\]:where(:not([data-theme-keep], [data-theme-keep] *)):hover { background-color: #16263a; }
+  :where(html[data-dashboard-theme="dark"]) .border-\[\#F1F3FD\]:where(:not([data-theme-keep], [data-theme-keep] *)) { border-color: #262d3d; }
+  :where(html[data-dashboard-theme="dark"]) .border-\[\#D6DEFA\]:where(:not([data-theme-keep], [data-theme-keep] *)) { border-color: #2d3a63; }
+  :where(html[data-dashboard-theme="dark"]) .text-\[\#3A4A7A\]:where(:not([data-theme-keep], [data-theme-keep] *)) { color: #aebbe6; }
+  :where(html[data-dashboard-theme="dark"]) .text-\[\#8B3FD9\]:where(:not([data-theme-keep], [data-theme-keep] *)) { color: #c9a6f7; }
+  :where(html[data-dashboard-theme="dark"]) .text-\[\#C81E1E\]:where(:not([data-theme-keep], [data-theme-keep] *)) { color: #f59c9c; }
+  :where(html[data-dashboard-theme="dark"]) .text-\[\#0F1218\]:where(:not([data-theme-keep], [data-theme-keep] *)) { color: #eef2f7; }
+  :where(html[data-dashboard-theme="dark"]) .text-\[\#111\]:where(:not([data-theme-keep], [data-theme-keep] *)) { color: #eef2f7; }
+  :where(html[data-dashboard-theme="dark"]) .from-\[\#EEF0FF\]:where(:not([data-theme-keep], [data-theme-keep] *)) { --tw-gradient-from: #1a1f3a; }
+  :where(html[data-dashboard-theme="dark"]) .via-\[\#F5F2FF\]:where(:not([data-theme-keep], [data-theme-keep] *)) { --tw-gradient-via: #1c1b36; }
+
+  /* Black logo lettering and marks (the Fintech Connect wordmark, connector logos). */
+  :where(html[data-dashboard-theme="dark"]) svg [fill="black"]:where(:not([data-theme-keep], [data-theme-keep] *)), :where(html[data-dashboard-theme="dark"]) svg [fill="#111"]:where(:not([data-theme-keep], [data-theme-keep] *)) { fill: #eef2f7; }
+  :where(html[data-dashboard-theme="dark"]) svg [stroke="#111"]:where(:not([data-theme-keep], [data-theme-keep] *)) { stroke: #eef2f7; }
+}

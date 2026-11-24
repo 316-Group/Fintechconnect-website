@@ -1639,7 +1639,7 @@ export default function AnimatedCanvas({ className = '' }: { className?: string 
   };
 
   return (
-    <div className={`w-full ${className}`}>
+    <div data-theme-keep className={`w-full ${className}`}>
       <div
         ref={canvasRef}
         className={`relative w-full select-none overflow-hidden cursor-none [&_*]:!cursor-none h-[560px] sm:h-[620px] lg:h-auto lg:aspect-[1000/720] ${

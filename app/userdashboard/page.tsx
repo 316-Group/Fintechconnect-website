@@ -307,7 +307,8 @@ export default function DashboardHome() {
 
       <div className="space-y-8">
         {/* ---------------- Hero banner with background image ---------------- */}
-        <div className="relative overflow-hidden rounded-2xl border border-slate-200">
+        {/* data-theme-keep: the banner photo is light, so the banner keeps its light colours in dark mode. */}
+        <div data-theme-keep className="relative overflow-hidden rounded-2xl border border-slate-200">
           {/* Background image layer */}
           <div
             className="absolute inset-0 bg-cover bg-center"

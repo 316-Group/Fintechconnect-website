@@ -25,6 +25,7 @@ function Toggle({ checked, onChange, label, disabled }: { checked: boolean; onCh
       }`}
     >
       <span
+        data-theme-keep
         className={`absolute top-1/2 h-4 w-4 -translate-y-1/2 rounded-full bg-white shadow-[0_1px_2px_rgba(15,23,42,0.25)] transition-all ${
           checked ? "left-[18px]" : "left-[2px]"
         }`}
