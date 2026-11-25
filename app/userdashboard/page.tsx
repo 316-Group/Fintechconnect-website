@@ -207,7 +207,8 @@ function WelcomeModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => voi
 /** Replace this with the path (or imported image src) you want to use as the banner background. */
 const BANNER_IMAGE = "/dashboard/bannerbackground.jpg";
 /** The same banner with its colours flipped, shown in dark mode. */
-const BANNER_IMAGE_DARK = "/dashboard/bannerbackground-dark.jpg";
+/** Dark mode banner, shown at 24% opacity over the charcoal page. */
+const BANNER_IMAGE_DARK = "/dashboard/darkbannerimage.png";
 
 const NEXT_STEPS: {
   title: string;
@@ -322,7 +323,7 @@ export default function DashboardHome() {
             aria-hidden
            />
           <div
-            className="absolute inset-0 hidden bg-cover bg-center dashdark:block"
+            className="absolute inset-0 hidden bg-cover bg-center opacity-[0.24] dashdark:block"
             style={{ backgroundImage: `url("${getPath(BANNER_IMAGE_DARK)}")` }}
             aria-hidden
            />
