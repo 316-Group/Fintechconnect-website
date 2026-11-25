@@ -4,6 +4,9 @@
  * Studio plugins: the left-hand Plugins panel (opened from the icon rail) listing the
  * installed plugins, and the "Plugins & Integrations Browser" modal opened by
  * "Add more Plugins", where plugins are installed, run and removed.
+ *
+ * A plugin with a working integration opens its own view in the panel when it is run
+ * (see PLUGIN_VIEWS); the others still show a short simulated run.
  */
 
 import React, { useEffect, useRef, useState } from 'react';
@@ -16,6 +19,12 @@ import {
   PLUGINS, installPlugin, pluginMatches, uninstallPlugin, useInstalledPlugins,
   type Plugin, type PluginId,
 } from './plugins-data';
+import { IconifyPlugin, type PluginImage } from './plugin-iconify';
+
+export type { PluginImage };
+
+/** Plugins that are fully built: running one opens its view in the panel. */
+const PLUGIN_VIEWS = new Set<PluginId>(['iconify']);
 
 /* ---------------------------------- Logos ---------------------------------- */
 
@@ -101,10 +110,16 @@ function useSearchShortcut(input: React.RefObject<HTMLInputElement | null>, enab
 /* ------------------------------- Left panel -------------------------------- */
 
 export function PluginsPanel({
+  accent,
+  onInsertImage,
   onNotice,
   onCollapse,
   modalClassName = '',
 }: {
+  /** The project's brand colour (the default colour for icons). */
+  accent: string;
+  /** Adds an image (an icon, a photo) to the current page. */
+  onInsertImage: (image: PluginImage) => void;
   /** Shows a short message at the bottom of the studio. */
   onNotice: (message: string) => void;
   onCollapse: () => void;
@@ -114,14 +129,40 @@ export function PluginsPanel({
   const installedIds = useInstalledPlugins();
   const [query, setQuery] = useState('');
   const [browserOpen, setBrowserOpen] = useState(false);
-  const { runningId, run } = useRunner(onNotice);
+  const { runningId, run: simulateRun } = useRunner(onNotice);
+  /** The plugin whose view is open in the panel. */
+  const [openId, setOpenId] = useState<PluginId | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
-  useSearchShortcut(searchRef, !browserOpen);
+  const viewOpen = !!openId && installedIds.includes(openId);
+  useSearchShortcut(searchRef, !browserOpen && !viewOpen);
+
+  const run = (plugin: Plugin) => {
+    if (!PLUGIN_VIEWS.has(plugin.id)) {
+      simulateRun(plugin);
+      return;
+    }
+    setBrowserOpen(false);
+    setOpenId(plugin.id);
+  };
 
   const installed = installedIds
     .map((id) => PLUGINS.find((plugin) => plugin.id === id))
     .filter((plugin): plugin is Plugin => !!plugin);
   const shown = installed.filter((plugin) => pluginMatches(plugin, query));
+
+  if (viewOpen && openId === 'iconify') {
+    return (
+      <aside className="relative flex w-full min-w-0 flex-col border-r border-slate-200 bg-[#EDEFFC]">
+        <IconifyPlugin
+          accent={accent}
+          onBack={() => setOpenId(null)}
+          onCollapse={onCollapse}
+          onInsert={onInsertImage}
+          onNotice={onNotice}
+        />
+      </aside>
+    );
+  }
 
   return (
     <aside className="relative flex w-full min-w-0 flex-col border-r border-slate-200 bg-[#EDEFFC]">

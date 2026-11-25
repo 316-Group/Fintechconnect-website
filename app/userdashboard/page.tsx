@@ -314,7 +314,7 @@ export default function DashboardHome() {
 
       <div className="space-y-8">
         {/* ---------------- Hero banner with background image ---------------- */}
-        <div className="relative overflow-hidden rounded-2xl border border-slate-200 dashdark:border-[#1f2533]">
+        <div className="relative overflow-hidden rounded-2xl border border-slate-200 dashdark:border-[#3e3e3e]">
           {/* Background image layer (a dark version of the same banner in dark mode) */}
           <div
             className="absolute inset-0 bg-cover bg-center dashdark:hidden"
@@ -336,7 +336,7 @@ export default function DashboardHome() {
                 Your financial infrastructure workspace
               </span>
             </div>
-            <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight leading-tight dashdark:text-[#2f6bff]">
+            <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight leading-tight dashdark:text-[#a3b6dc]">
               Build your next financial product.
             </h1>
             <p className="text-sm text-slate-600 mt-2 max-w-2xl leading-relaxed dashdark:text-slate-700">
@@ -345,11 +345,11 @@ export default function DashboardHome() {
             <div className="flex flex-wrap items-center gap-3 mt-5">
               <button
                 onClick={() => setShowWelcomeModal(true)}
-                className="group/build inline-flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 hover:bg-slate-50 rounded-lg text-xs font-semibold text-slate-800 shadow-sm transition-colors dashdark:bg-[#2457d6]! dashdark:border-[#2457d6] dashdark:text-white dashdark:hover:bg-[#1d48b8]!"
+                className="group/build inline-flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 hover:bg-slate-50 rounded-lg text-xs font-semibold text-slate-800 shadow-sm transition-colors dashdark:bg-[#4b6aa8]! dashdark:border-[#4b6aa8] dashdark:text-white dashdark:hover:bg-[#425e96]!"
               >
                 <LayoutGrid className="w-3.5 h-3.5 text-blue-600 dashdark:text-white!" /> Build a Platform
               </button>
-              <button className="inline-flex items-center gap-1.5 px-2 py-2 text-xs font-semibold text-blue-600 hover:text-blue-700 transition-colors dashdark:rounded-lg dashdark:border dashdark:border-[#2f6bff]/70 dashdark:px-3 dashdark:hover:bg-[#2f6bff]/10">
+              <button className="inline-flex items-center gap-1.5 px-2 py-2 text-xs font-semibold text-blue-600 hover:text-blue-700 transition-colors dashdark:rounded-lg dashdark:border dashdark:border-[#5d7bb5]/70 dashdark:px-3 dashdark:hover:bg-[#5d7bb5]/10">
                 <Sparkles className="w-3.5 h-3.5" /> Explore Modules <ArrowRight className="w-3.5 h-3.5" />
               </button>
             </div>
@@ -369,7 +369,7 @@ export default function DashboardHome() {
                 className="group rounded-xl border border-slate-200 bg-white overflow-hidden flex flex-col hover:border-slate-300 hover:shadow-sm transition-all"
               >
                 {/* ---- Image ---- */}
-<div className="relative h-44 border-b border-slate-100 dashdark:bg-[#0d1118]">
+<div className="relative h-44 border-b border-slate-100 dashdark:bg-[#262626]">
   <img
     src={getPath(step.image)}
     alt={step.title}

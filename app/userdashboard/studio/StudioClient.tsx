@@ -45,7 +45,7 @@ import {
 } from '../products/projectstorage';
 import { EDITABLE_SCHEMA } from './editable-schema';
 import AssetTab, { draggedAssetId, isAssetDrag, type AssetItem } from './assettab';
-import { PluginsPanel } from './plugins';
+import { PluginsPanel, type PluginImage } from './plugins';
 import {
   LayoutTab, autoLayoutCss, layoutSize, layoutWrapperStyle, type LayoutFields,
 } from './othertabs';
@@ -803,6 +803,17 @@ function LibraryDragPreview({ id, ctx, onMeasure }: {
     </DragFollower>
   );
 }
+
+/** The screen size of each preview device, in canvas pixels. */
+function deviceDimensions(device: DeviceType) {
+  return device === 'iphone' ? { w: 320, h: 640 }
+    : device === 'pixel' ? { w: 340, h: 640 }
+    : device === 'desktop' ? { w: 960, h: 600 }
+    : { w: 700, h: 680 };
+}
+
+/** Height of the phone's status bar, above the page body that objects are placed in. */
+const STATUS_BAR_HEIGHT = 32;
 
 function assetDimensions(asset: AssetItem) {
   if (asset.kind === 'logo') return { w: 80, h: 40 };
@@ -2797,10 +2808,7 @@ function Canvas({
   createdDragId: string | null;
   onAddWorkspaceAsset: (assetId: string, position: { x: number; y: number }, frameId?: string) => void;
 }) {
-  const dims = device === 'iphone' ? { w: 320, h: 640 }
-    : device === 'pixel' ? { w: 340, h: 640 }
-    : device === 'desktop' ? { w: 960, h: 600 }
-    : { w: 700, h: 680 };
+  const dims = deviceDimensions(device);
   const frameRadius  = device === 'iphone' ? 'rounded-[42px]' : device === 'pixel' ? 'rounded-[32px]' : 'rounded-[24px]';
   const screenRadius = device === 'iphone' ? 'rounded-[32px]' : device === 'pixel' ? 'rounded-[24px]' : 'rounded-[18px]';
 
@@ -7334,6 +7342,25 @@ export default function StudioClient() {
     setActiveTextSlot(null);
   };
 
+  /** Adds an image from a plugin (e.g. an Iconify icon) to the middle of the current page. */
+  const insertPluginImage = (image: PluginImage) => {
+    const screen = deviceDimensions(device);
+    const id = `asset-plugin-${uniqueIdPart()}-${++canvasObjectIdRef.current}` as ModuleId;
+    const box: ModuleBox = {
+      x: Math.round(screen.w / 2 - image.w / 2),
+      y: Math.round((screen.h - STATUS_BAR_HEIGHT) / 2 - image.h / 2),
+      w: image.w,
+      h: image.h,
+      assetUrl: image.url,
+      assetName: image.name,
+    };
+    commit([...currentModules, id]);
+    onBoxChange(id, { ...box, frameId: frameContaining(pageFrames(boxes), box) });
+    setSelectedId(id);
+    setSelectedWorkspaceShapeId(null);
+    setActiveTextSlot(null);
+  };
+
   const handleDrop = (
     e: React.DragEvent,
     targetId?: ModuleId,
@@ -7694,6 +7721,8 @@ export default function StudioClient() {
             </div>
           ) : <ResizablePanel side="left" width={leftPanelWidth} onWidth={setLeftPanelWidth}>{leftView === 'plugins' ? (
             <PluginsPanel
+              accent={accentColor}
+              onInsertImage={insertPluginImage}
               onNotice={showStudioNotice}
               onCollapse={() => setLeftPanelCollapsed(true)}
               modalClassName={urbanist.className}

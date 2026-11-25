@@ -94,6 +94,16 @@ export function rememberActiveProject(projectId: string) {
   try { window.localStorage.setItem(ACTIVE_PROJECT_KEY, projectId); } catch { /* storage blocked */ }
 }
 
+/** Removes what the Studio stored for a deleted project: its saved build, and the "last opened" mark. */
+export function forgetStudioProject(projectId: string) {
+  try {
+    window.localStorage.removeItem(STUDIO_BUILD_PREFIX + projectId);
+    if (window.localStorage.getItem(ACTIVE_PROJECT_KEY) === projectId) {
+      window.localStorage.removeItem(ACTIVE_PROJECT_KEY);
+    }
+  } catch { /* storage blocked */ }
+}
+
 /** A saved Studio build. `data` is whatever the Studio stored; it checks the shape itself. */
 export type SavedStudioBuild = { version: 1; savedAt: string; data: unknown };
 

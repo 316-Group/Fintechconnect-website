@@ -120,7 +120,7 @@ function ProjectSwitcher({ project }: { project: StudioProjectInfo | null }) {
                   <span className="block truncate text-[12.5px] font-semibold text-slate-800">{item.name}</span>
                   <span className="block truncate text-[10.5px] text-slate-500">{projectSubtitle(item)}</span>
                 </span>
-                {item.id === project?.id && <Check className="h-3.5 w-3.5 shrink-0" style={{ color: BLUE }} />}
+                {item.id === project?.id && <Check className="h-3.5 w-3.5 shrink-0 dashdark:text-[#7ea6ff]!" style={{ color: BLUE }} />}
               </a>
             ))}
           </div>
@@ -235,7 +235,7 @@ export function TopBar({
               aria-label={label}
               title={label}
               onClick={() => onMode(id)}
-              className={`flex items-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-1.5 text-[13px] font-medium transition ${active ? 'bg-white shadow-[0_1px_3px_rgba(15,23,42,0.12)]' : 'text-slate-500 hover:text-slate-800'}`}
+              className={`flex items-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-1.5 text-[13px] font-medium transition ${active ? 'bg-white shadow-[0_1px_3px_rgba(15,23,42,0.12)] dashdark:text-[#7ea6ff]!' : 'text-slate-500 hover:text-slate-800'}`}
               style={active ? { color: BLUE } : undefined}
             >
               <Icon className="h-3.5 w-3.5" strokeWidth={2} />
@@ -305,7 +305,7 @@ export function TopBar({
           type="button"
           onClick={onSave}
           title="Changes save automatically. Click (or Ctrl+S) to save now."
-          className="flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-xl border bg-white px-3 text-[13px] font-semibold transition hover:bg-[#0040DF]/5 disabled:opacity-70"
+          className="flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-xl border bg-white px-3 text-[13px] font-semibold transition hover:bg-[#0040DF]/5 disabled:opacity-70 dashdark:border-[#4a7cf2]/60! dashdark:text-[#7ea6ff]!"
           style={{ borderColor: `${BLUE}55`, color: BLUE }}
         >
           <Save className="h-4 w-4" />
@@ -314,7 +314,7 @@ export function TopBar({
         <button
           type="button"
           onClick={onPublish}
-          className="flex h-9 shrink-0 items-center gap-2 whitespace-nowrap rounded-xl px-4 text-[13px] font-semibold text-white shadow-[0_2px_6px_rgba(0,64,223,0.3)] transition hover:brightness-110"
+          className="flex h-9 shrink-0 items-center gap-2 whitespace-nowrap rounded-xl px-4 text-[13px] font-semibold text-white shadow-[0_2px_6px_rgba(0,64,223,0.3)] transition hover:brightness-110 dashdark:bg-[#3a6ff0]! dashdark:shadow-none"
           style={{ background: BLUE }}
         >
           <Rocket className="h-4 w-4" />

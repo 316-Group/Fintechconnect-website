@@ -471,7 +471,7 @@ function CommentCard({
     >
       <header className="flex items-center gap-2">
         <span
-          className="grid h-5 min-w-5 shrink-0 place-items-center rounded-full px-1 text-[10px] font-bold text-white"
+          className="grid h-5 min-w-5 shrink-0 place-items-center rounded-full px-1 text-[10px] font-bold text-white dashdark:bg-[#3a6ff0]!"
           style={{ background: PANEL_BLUE }}
         >
           {number}
@@ -605,7 +605,7 @@ export function CommentsPanel({
               role="tab"
               aria-selected={filter === item.id}
               onClick={() => setFilter(item.id)}
-              className={`h-7 shrink-0 whitespace-nowrap rounded-full px-3 text-[11.5px] font-medium transition ${filter === item.id ? 'text-white' : 'bg-[#EEF0F8] text-slate-700 hover:bg-[#E2E6F5]'}`}
+              className={`h-7 shrink-0 whitespace-nowrap rounded-full px-3 text-[11.5px] font-medium transition ${filter === item.id ? 'text-white dashdark:bg-[#3a6ff0]!' : 'bg-[#EEF0F8] text-slate-700 hover:bg-[#E2E6F5]'}`}
               style={filter === item.id ? { background: PANEL_BLUE } : undefined}
             >
               {item.label}

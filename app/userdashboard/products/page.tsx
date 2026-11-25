@@ -21,6 +21,8 @@ import {
   Pencil,
   ExternalLink,
   Hammer,
+  Trash2,
+  LoaderCircle,
 } from "lucide-react";
 import ProjectDetailsForm from "./projectdetailsform";
 import ArchetypeSelectionForm, {
@@ -32,7 +34,7 @@ import PlatformConfigurationForm, {
 import TeamsForm, { type TeamsFormData } from "./teamsform";
 import { getPath } from "@/utils/helper";
 import StudioLoadingScreen from "./StudioLoadingScreen";
-import { rememberActiveProject, studioUrlFor } from "./projectstorage";
+import { forgetStudioProject, rememberActiveProject, studioUrlFor } from "./projectstorage";
 import {
   generateProjectId,
   loadProjects,
@@ -198,11 +200,13 @@ function ProjectCard({
   onEdit,
   onOpen,
   onContinueBuilding,
+  onDelete,
 }: {
   project: Project;
   onEdit: () => void;
   onOpen: () => void;
   onContinueBuilding: () => void;
+  onDelete: () => void;
 }) {
   const archetype = archetypes.find(
     (item) => item.id === project.details.archetypeId,
@@ -266,6 +270,84 @@ function ProjectCard({
             <Hammer className="w-3 h-3" /> Continue building
           </button>
         )}
+        <button
+          type="button"
+          onClick={onDelete}
+          title="Delete project"
+          aria-label={`Delete ${project.details.projectName || "Untitled Project"}`}
+          className="grid h-[30px] w-[30px] place-items-center rounded-lg border border-slate-200 bg-white text-slate-400 transition-colors hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600"
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/** Asks before a project is deleted; Escape or the backdrop cancels. */
+function DeleteProjectDialog({
+  name,
+  deleting,
+  onCancel,
+  onConfirm,
+}: {
+  name: string;
+  deleting: boolean;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  const cancelRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    cancelRef.current?.focus();
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onCancel();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onCancel]);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-[2px]" onClick={onCancel} />
+      <div
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby="delete-project-title"
+        aria-describedby="delete-project-body"
+        className="relative w-full max-w-sm rounded-xl border border-slate-200 bg-white p-5 shadow-[0_24px_64px_rgba(15,23,42,0.24)]"
+      >
+        <div className="flex items-start gap-3">
+          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-rose-50 text-rose-600">
+            <Trash2 className="h-4 w-4" />
+          </span>
+          <div className="min-w-0">
+            <h2 id="delete-project-title" className="text-sm font-bold text-slate-900">
+              Delete {name}?
+            </h2>
+            <p id="delete-project-body" className="mt-1 text-xs leading-relaxed text-slate-500">
+              This removes the project and its saved app build from this browser. It can&apos;t be undone.
+            </p>
+          </div>
+        </div>
+        <div className="mt-5 flex justify-end gap-2">
+          <button
+            ref={cancelRef}
+            type="button"
+            onClick={onCancel}
+            className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-50"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            disabled={deleting}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-rose-600 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-rose-700 disabled:opacity-70"
+          >
+            {deleting ? <LoaderCircle className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
+            Delete project
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -297,6 +379,9 @@ export default function MyProductsPage() {
   const savingProject = useRef(false);
   /** The project the Studio opens after the loading screen. */
   const [studioProjectId, setStudioProjectId] = useState<string | null>(null);
+  /** The project waiting for delete confirmation. */
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     try {
@@ -436,6 +521,26 @@ export default function MyProductsPage() {
     router.push(studioUrlFor(projectId));
   };
 
+  const pendingDelete = projects.find((project) => project.id === pendingDeleteId) ?? null;
+  const closeDeleteDialog = useCallback(() => setPendingDeleteId(null), []);
+
+  const handleDeleteProject = async () => {
+    if (!pendingDelete || deleting) return;
+    setDeleting(true);
+    const remaining = projects.filter((project) => project.id !== pendingDelete.id);
+    try {
+      await saveProjects(remaining);
+      forgetStudioProject(pendingDelete.id);
+      setProjects(remaining);
+      setProjectStorageError(null);
+      setPendingDeleteId(null);
+    } catch {
+      setProjectStorageError("The project could not be deleted from this browser's storage. Please try again.");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const handleDetailsBack = () => {
     if (editingProjectId) {
       resetDraft();
@@ -447,6 +552,14 @@ export default function MyProductsPage() {
 
   return (
     <div className="w-full h-full">
+      {pendingDelete && (
+        <DeleteProjectDialog
+          name={pendingDelete.details.projectName || "Untitled Project"}
+          deleting={deleting}
+          onCancel={closeDeleteDialog}
+          onConfirm={handleDeleteProject}
+        />
+      )}
       {projectStorageError && (
         <p role="alert" className="mb-4 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
           {projectStorageError}
@@ -515,6 +628,7 @@ export default function MyProductsPage() {
                   onEdit={() => handleEditProject(project.id)}
                   onOpen={() => handleOpenProject(project.id)}
                   onContinueBuilding={() => handleContinueBuilding(project.id)}
+                  onDelete={() => setPendingDeleteId(project.id)}
                 />
               ))}
             </div>
