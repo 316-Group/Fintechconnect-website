@@ -21,6 +21,11 @@ export type AssetItem = {
   inUse?: boolean;
   color?: string;
   dataUrl?: string;
+  /** Size to place it at, when it isn't the default for its kind (plugin icons and photos). */
+  w?: number;
+  h?: number;
+  /** A single-colour icon: placed recolourable, in this colour (see ModuleBox.iconColor). */
+  iconColor?: string;
   preview: React.ReactNode;
 };
 
@@ -228,20 +233,28 @@ export const draggedAssetId = (data: DataTransfer) =>
 
 const clearAssetDrag = () => { activeAssetDragId = null; };
 
+/**
+ * Starts dragging an asset onto the phone or canvas. The asset must already be in the
+ * Studio's asset lookup (plugins register theirs just before calling this).
+ */
+export const startAssetDrag = (e: React.DragEvent, assetId: string) => {
+  e.stopPropagation();
+  activeAssetDragId = assetId;
+  // dragend always fires on the tile; a drop clears it after the drop handlers have run.
+  window.addEventListener('dragend', clearAssetDrag, { once: true, capture: true });
+  window.addEventListener('drop', () => setTimeout(clearAssetDrag, 0), { once: true, capture: true });
+  e.dataTransfer.setData(ASSET_DRAG_TYPE, assetId);
+  e.dataTransfer.setData('text/plain', `asset:${assetId}`);
+  // Allow both, so every drop target (phone, canvas, shapes) can accept it.
+  e.dataTransfer.effectAllowed = 'copyMove';
+};
+
 const attachAssetDrag = (
   e: React.DragEvent,
   asset: AssetItem,
   onAssetDragStart?: (a: AssetItem) => void
 ) => {
-  e.stopPropagation();
-  activeAssetDragId = asset.id;
-  // dragend always fires on the tile; a drop clears it after the drop handlers have run.
-  window.addEventListener('dragend', clearAssetDrag, { once: true, capture: true });
-  window.addEventListener('drop', () => setTimeout(clearAssetDrag, 0), { once: true, capture: true });
-  e.dataTransfer.setData(ASSET_DRAG_TYPE, asset.id);
-  e.dataTransfer.setData('text/plain', `asset:${asset.id}`);
-  // Allow both, so every drop target (phone, canvas, shapes) can accept it.
-  e.dataTransfer.effectAllowed = 'copyMove';
+  startAssetDrag(e, asset.id);
   onAssetDragStart?.(asset);
 };
 

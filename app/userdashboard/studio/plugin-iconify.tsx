@@ -1,52 +1,75 @@
 'use client';
 
 /**
- * The Iconify plugin: searches the public Iconify API (open-source icon sets such as Lucide,
- * Material Symbols, Tabler and Phosphor) and adds the chosen icon to the current page as an
- * SVG image, or copies it as SVG markup or a React component.
+ * The Iconify plugin: browse and search the open-source icon sets on the public Iconify API
+ * (Lucide, Material Symbols, Tabler, Phosphor, MDI and 250+ more), then drag an icon onto the
+ * canvas, add it to the page, or copy it as SVG markup or a React component.
  *
- * Requests stay few, because the API rate-limits: one search request, then one request per
- * icon set for the shapes of every icon shown (`/{prefix}.json?icons=…`). SVGs are then built
- * here, so previews, colours, sizes and copies need no further requests.
+ * How icons are found:
+ * - With a set picked, its full list of names is downloaded once (`/collection?prefix=`) and
+ *   searched here, so every icon in the set is available (Lucide 2,000+, MDI 7,000+, ...).
+ * - With "All sets", typing uses `/search`, which the public API caps at 128 matches.
+ * Icons are drawn as they scroll into view; their shapes come from `/{prefix}.json?icons=…`,
+ * one request per set per batch of names, and the SVGs are then built here.
  * API reference: https://iconify.design/docs/api/
  */
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Box, Check, ChevronLeft, ClipboardCopy, Code2, LoaderCircle, PanelLeftClose, Plus, RefreshCw, Search } from 'lucide-react';
+import { startAssetDrag } from './assettab';
 
-/** An image a plugin adds to the page. `url` is a data URL so the build keeps working offline. */
-export type PluginImage = { name: string; url: string; w: number; h: number };
+/**
+ * An image a plugin adds to the page. `url` is a data URL (icons, so the build works offline)
+ * or an https link to a hotlinked stock photo.
+ */
+export type PluginImage = {
+  name: string;
+  url: string;
+  w: number;
+  h: number;
+  /** Set for single-colour icons: they are placed recolourable, starting in this colour. */
+  iconColor?: string;
+};
 
 const API = 'https://api.iconify.design';
-const RESULT_LIMIT = 96;
+/** The most results the public API's search returns, whatever `limit` asks for. */
+const SEARCH_LIMIT = 128;
 const SEARCH_DELAY_MS = 300;
+/** Icons drawn per step as the list scrolls. */
+const PAGE_SIZE = 160;
 /** Icon names per shapes request, to keep URLs short. */
-const NAMES_PER_REQUEST = 80;
+const NAMES_PER_REQUEST = 100;
+/** Shape requests in flight at once: the API rate-limits bursts. */
+const MAX_PARALLEL = 4;
 
-const SETS: { prefix: string; label: string }[] = [
+const POPULAR_SETS: { prefix: string; label: string }[] = [
   { prefix: '', label: 'All sets' },
   { prefix: 'lucide', label: 'Lucide' },
-  { prefix: 'material-symbols', label: 'Material Symbols' },
+  { prefix: 'material-symbols', label: 'Material' },
   { prefix: 'tabler', label: 'Tabler' },
   { prefix: 'ph', label: 'Phosphor' },
-  { prefix: 'feather', label: 'Feather' },
+  { prefix: 'mdi', label: 'MDI' },
   { prefix: 'fa6-solid', label: 'Font Awesome' },
+  { prefix: 'logos', label: 'Brand logos' },
 ];
 
-/** Shown before the user searches: icons a banking or payments app usually needs. */
+/** Browsed when "All sets" is picked and the search box is empty. */
+const BROWSE_SET = 'lucide';
+
+/** Shown first while browsing: icons a banking or payments app usually needs. */
 const STARTER_ICONS = [
-  'lucide:wallet', 'lucide:credit-card', 'lucide:landmark', 'lucide:banknote', 'lucide:piggy-bank',
-  'lucide:send', 'lucide:arrow-left-right', 'lucide:arrow-down-left', 'lucide:arrow-up-right', 'lucide:receipt',
-  'lucide:chart-line', 'lucide:chart-pie', 'lucide:shield-check', 'lucide:lock', 'lucide:fingerprint',
-  'lucide:scan-face', 'lucide:qr-code', 'lucide:bell', 'lucide:user', 'lucide:users',
-  'lucide:globe', 'lucide:coins', 'lucide:bitcoin', 'lucide:hand-coins', 'lucide:circle-dollar-sign',
-  'lucide:euro', 'lucide:pound-sterling', 'lucide:percent', 'lucide:calendar', 'lucide:settings',
+  'wallet', 'credit-card', 'landmark', 'banknote', 'piggy-bank',
+  'send', 'arrow-left-right', 'arrow-down-left', 'arrow-up-right', 'receipt',
+  'chart-line', 'chart-pie', 'shield-check', 'lock', 'fingerprint',
+  'scan-face', 'qr-code', 'bell', 'user', 'users',
+  'globe', 'coins', 'bitcoin', 'hand-coins', 'circle-dollar-sign',
+  'euro', 'pound-sterling', 'percent', 'calendar', 'settings',
 ];
 
 const SIZES = [16, 20, 24, 32, 48, 64];
 const HEX = /^#[0-9a-f]{6}$/i;
 
-type Collection = { name: string; license?: { title?: string; url?: string } };
+type Collection = { name: string; total?: number; hidden?: boolean; license?: { title?: string; url?: string } };
 
 /** An icon's shape: its SVG body and view box. */
 type IconShape = { body: string; left: number; top: number; width: number; height: number };
@@ -58,15 +81,48 @@ type IconSetResponse = {
   left?: number; top?: number; width?: number; height?: number;
 };
 
+/** Every icon name in a set, plus its aliases (alias → icon), for searching. */
+type SetIndex = { prefix: string; names: string[]; aliases: Record<string, string> };
+
+/* --------------------------------- Requests --------------------------------- */
+
+let inFlight = 0;
+const waiting: (() => void)[] = [];
+
+/** Fetches JSON, at most MAX_PARALLEL at a time, retrying once after a pause if it fails. */
+async function getJson<T>(url: string, signal?: AbortSignal): Promise<T> {
+  if (inFlight >= MAX_PARALLEL) await new Promise<void>((resolve) => waiting.push(resolve));
+  inFlight += 1;
+  try {
+    for (let attempt = 0; ; attempt += 1) {
+      try {
+        const response = await fetch(url, { signal });
+        if (!response.ok) throw new Error(`Iconify returned ${response.status}`);
+        return (await response.json()) as T;
+      } catch (caught) {
+        // A rate-limited request reaches the browser as a network error (no CORS header).
+        if ((caught as Error).name === 'AbortError' || attempt > 0) throw caught;
+        await new Promise((resolve) => setTimeout(resolve, 1200));
+        if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
+      }
+    }
+  } finally {
+    inFlight -= 1;
+    waiting.shift()?.();
+  }
+}
+
 /** Shapes already downloaded this session (null = the set has no such icon). */
 const shapeCache = new Map<string, IconShape | null>();
+const setIndexCache = new Map<string, SetIndex>();
+let collectionsCache: Record<string, Collection> | null = null;
 
 function splitId(id: string) {
   const at = id.indexOf(':');
   return { prefix: id.slice(0, at), name: id.slice(at + 1) };
 }
 
-/** Downloads the shapes of any icons not yet cached: one request per icon set. */
+/** Downloads the shapes of any icons not yet cached; returns only the newly loaded ones. */
 async function loadShapes(ids: string[], signal: AbortSignal) {
   const missing = new Map<string, string[]>();
   ids.forEach((id) => {
@@ -74,15 +130,14 @@ async function loadShapes(ids: string[], signal: AbortSignal) {
     const { prefix, name } = splitId(id);
     missing.set(prefix, [...(missing.get(prefix) ?? []), name]);
   });
+  const loaded: Record<string, IconShape | null> = {};
   const requests: Promise<void>[] = [];
   missing.forEach((names, prefix) => {
     for (let start = 0; start < names.length; start += NAMES_PER_REQUEST) {
       const batch = names.slice(start, start + NAMES_PER_REQUEST);
       requests.push((async () => {
         const params = new URLSearchParams({ icons: batch.join(',') });
-        const response = await fetch(`${API}/${encodeURIComponent(prefix)}.json?${params}`, { signal });
-        if (!response.ok) throw new Error(`Iconify returned ${response.status}`);
-        const data = (await response.json()) as IconSetResponse;
+        const data = await getJson<IconSetResponse>(`${API}/${encodeURIComponent(prefix)}.json?${params}`, signal);
         const resolve = (name: string, depth = 0): RawIcon | null => {
           const icon = data.icons?.[name];
           if (icon) return icon;
@@ -93,20 +148,57 @@ async function loadShapes(ids: string[], signal: AbortSignal) {
         };
         batch.forEach((name) => {
           const icon = resolve(name);
-          shapeCache.set(`${prefix}:${name}`, icon?.body ? {
+          const shape = icon?.body ? {
             body: icon.body,
             left: icon.left ?? data.left ?? 0,
             top: icon.top ?? data.top ?? 0,
             width: icon.width ?? data.width ?? 16,
             height: icon.height ?? data.height ?? 16,
-          } : null);
+          } : null;
+          shapeCache.set(`${prefix}:${name}`, shape);
+          loaded[`${prefix}:${name}`] = shape;
         });
       })());
     }
   });
   await Promise.all(requests);
-  return Object.fromEntries(ids.map((id) => [id, shapeCache.get(id) ?? null]));
+  return loaded;
 }
+
+/** Every icon in a set (hidden ones left out), downloaded once per session. */
+async function loadSetIndex(prefix: string, signal: AbortSignal): Promise<SetIndex> {
+  const cached = setIndexCache.get(prefix);
+  if (cached) return cached;
+  const data = await getJson<{
+    uncategorized?: string[]; categories?: Record<string, string[]>; hidden?: string[]; aliases?: Record<string, string>;
+  }>(`${API}/collection?${new URLSearchParams({ prefix })}`, signal);
+  const hidden = new Set(data.hidden ?? []);
+  const names = [...new Set([...(data.uncategorized ?? []), ...Object.values(data.categories ?? {}).flat()])]
+    .filter((name) => !hidden.has(name))
+    .sort();
+  const index = { prefix, names, aliases: data.aliases ?? {} };
+  setIndexCache.set(prefix, index);
+  return index;
+}
+
+/** Icons in a set matching every word of the query, best matches first. */
+function searchSet(index: SetIndex, query: string) {
+  const words = query.toLowerCase().split(/[\s_-]+/).filter(Boolean);
+  if (words.length === 0) return index.names;
+  const phrase = words.join('-');
+  const matches = (name: string) => words.every((word) => name.includes(word));
+  const found = new Set(index.names.filter(matches));
+  Object.entries(index.aliases).forEach(([alias, parent]) => {
+    if (matches(alias)) found.add(parent);
+  });
+  const rank = (name: string) => (name === phrase ? 0 : name.startsWith(phrase) ? 1 : name.includes(phrase) ? 2 : 3);
+  return [...found].sort((a, b) => rank(a) - rank(b) || a.length - b.length || a.localeCompare(b));
+}
+
+/* ----------------------------------- SVGs ----------------------------------- */
+
+/** Single-colour icons use `currentColor`; multicolour ones (logos, emoji) keep their own colours. */
+const isMonochrome = (shape: IconShape) => shape.body.includes('currentColor');
 
 /** The icon as standalone SVG markup, `currentColor` replaced by `color` when given. */
 function buildSvg(shape: IconShape, size: number, color?: string) {
@@ -150,20 +242,26 @@ function toJsx(svg: string, componentName: string) {
 }
 
 /**
- * One icon drawn through a CSS mask of its SVG, so it takes the text colour (and works in
- * dark mode). The markup is never put in the page, so nothing in it can run.
+ * One icon. Single-colour icons are drawn through a CSS mask of their SVG, so they take the
+ * text colour (and work in dark mode); multicolour ones as an image. Either way the markup
+ * is never put in the page, so nothing in it can run.
  */
-function MaskedIcon({ shape, className }: { shape: IconShape | null | undefined; className: string }) {
+function IconGlyph({ shape, className }: { shape: IconShape | null | undefined; className: string }) {
   if (!shape) {
     return <span aria-hidden="true" className={`block rounded bg-current opacity-15 ${shape === undefined ? 'animate-pulse' : ''} ${className}`} />;
   }
-  const url = `url("${svgDataUrl(buildSvg(shape, 24))}")`;
+  const url = svgDataUrl(buildSvg(shape, 24));
+  if (!isMonochrome(shape)) {
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img src={url} alt="" aria-hidden="true" draggable={false} className={`block object-contain ${className}`} />;
+  }
+  const mask = `url("${url}")`;
   return (
     <span
       aria-hidden="true"
       className={`block bg-current ${className}`}
       style={{
-        maskImage: url, WebkitMaskImage: url,
+        maskImage: mask, WebkitMaskImage: mask,
         maskRepeat: 'no-repeat', WebkitMaskRepeat: 'no-repeat',
         maskPosition: 'center', WebkitMaskPosition: 'center',
         maskSize: 'contain', WebkitMaskSize: 'contain',
@@ -172,11 +270,14 @@ function MaskedIcon({ shape, className }: { shape: IconShape | null | undefined;
   );
 }
 
+/* --------------------------------- The panel -------------------------------- */
+
 export function IconifyPlugin({
   accent,
   onBack,
   onCollapse,
   onInsert,
+  onDragImageStart,
   onNotice,
 }: {
   /** Starting icon colour: the project's brand colour. */
@@ -184,48 +285,94 @@ export function IconifyPlugin({
   onBack: () => void;
   onCollapse: () => void;
   onInsert: (image: PluginImage) => void;
+  /** Registers the icon for a drag onto the canvas; returns the id to drag it by. */
+  onDragImageStart: (image: PluginImage) => string;
   onNotice: (message: string) => void;
 }) {
   const [query, setQuery] = useState('');
   const [prefix, setPrefix] = useState('');
-  const [results, setResults] = useState<string[] | null>(null);
-  const [total, setTotal] = useState(0);
-  const [collections, setCollections] = useState<Record<string, Collection>>({});
+  const [remote, setRemote] = useState<{ query: string; icons: string[]; total: number } | null>(null);
+  const [setIndex, setSetIndex] = useState<SetIndex | null>(null);
+  const [collections, setCollections] = useState<Record<string, Collection>>(() => collectionsCache ?? {});
   const [shapes, setShapes] = useState<Record<string, IconShape | null>>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [retry, setRetry] = useState(0);
+  const [visible, setVisible] = useState({ key: '', count: PAGE_SIZE });
   const [selected, setSelected] = useState<string | null>(null);
   const [color, setColor] = useState(HEX.test(accent) ? accent : '#0040DF');
   const [hexDraft, setHexDraft] = useState(color);
   const [size, setSize] = useState(24);
   const searchRef = useRef<HTMLInputElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const sentinelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     searchRef.current?.focus();
   }, []);
 
-  // Search as the user types (after a short pause); an empty box shows the starter icons.
-  const trimmed = query.trim();
+  // Set names and licences, for "More sets" and the selected icon's credit.
   useEffect(() => {
-    if (!trimmed) return;
+    if (collectionsCache) return;
+    const controller = new AbortController();
+    getJson<Record<string, Collection>>(`${API}/collections`, controller.signal)
+      .then((data) => {
+        collectionsCache = data;
+        setCollections(data);
+      })
+      .catch(() => undefined);
+    return () => controller.abort();
+  }, []);
+
+  const trimmed = query.trim();
+  /** The set whose full list is used: the picked one, or Lucide while browsing "All sets". */
+  const listPrefix = prefix || (trimmed ? '' : BROWSE_SET);
+
+  // Download the set's names.
+  useEffect(() => {
+    if (!listPrefix) return;
+    const controller = new AbortController();
+    const cached = setIndexCache.get(listPrefix);
+    const timer = window.setTimeout(async () => {
+      if (cached) {
+        setSetIndex(cached);
+        return;
+      }
+      setLoading(true);
+      setError(null);
+      try {
+        setSetIndex(await loadSetIndex(listPrefix, controller.signal));
+      } catch (caught) {
+        if ((caught as Error).name === 'AbortError') return;
+        setError("Couldn't load this icon set from Iconify. Check your connection and try again.");
+      } finally {
+        if (!controller.signal.aborted) setLoading(false);
+      }
+    }, 0);
+    return () => {
+      controller.abort();
+      window.clearTimeout(timer);
+    };
+  }, [listPrefix, retry]);
+
+  // Search every set (after a short pause).
+  useEffect(() => {
+    if (listPrefix || !trimmed) return;
     const controller = new AbortController();
     const timer = window.setTimeout(async () => {
       setLoading(true);
       setError(null);
       try {
-        const params = new URLSearchParams({ query: trimmed, limit: String(RESULT_LIMIT) });
-        if (prefix) params.set('prefixes', prefix);
-        const response = await fetch(`${API}/search?${params}`, { signal: controller.signal });
-        if (!response.ok) throw new Error(`Iconify returned ${response.status}`);
-        const data = (await response.json()) as { icons?: string[]; total?: number; collections?: Record<string, Collection> };
-        setResults(Array.isArray(data.icons) ? data.icons : []);
-        setTotal(typeof data.total === 'number' ? data.total : 0);
-        if (data.collections) setCollections((current) => ({ ...current, ...data.collections }));
+        const params = new URLSearchParams({ query: trimmed, limit: String(SEARCH_LIMIT) });
+        const data = await getJson<{ icons?: string[]; total?: number; collections?: Record<string, Collection> }>(
+          `${API}/search?${params}`, controller.signal,
+        );
+        const icons = Array.isArray(data.icons) ? data.icons : [];
+        setRemote({ query: trimmed, icons, total: typeof data.total === 'number' ? data.total : icons.length });
+        if (data.collections) setCollections((current) => ({ ...data.collections, ...current }));
       } catch (caught) {
         if ((caught as Error).name === 'AbortError') return;
         setError("Couldn't reach Iconify. Check your connection and try again.");
-        setResults(null);
       } finally {
         if (!controller.signal.aborted) setLoading(false);
       }
@@ -234,50 +381,117 @@ export function IconifyPlugin({
       controller.abort();
       window.clearTimeout(timer);
     };
-  }, [trimmed, prefix, retry]);
+  }, [listPrefix, trimmed, retry]);
 
-  const showingStarter = !trimmed;
-  // A search cancelled by clearing the box leaves `loading` set; it only counts while searching.
-  const searching = loading && !showingStarter;
-  const icons = showingStarter ? STARTER_ICONS : results ?? [];
+  // The icons to show, in order.
+  const indexReady = !!listPrefix && setIndex?.prefix === listPrefix;
+  const icons = useMemo(() => {
+    if (listPrefix) {
+      if (!indexReady || !setIndex) return [];
+      const names = searchSet(setIndex, trimmed);
+      if (prefix || trimmed) return names.map((name) => `${listPrefix}:${name}`);
+      // Browsing "All sets": banking favourites first, then the rest of the set.
+      const known = new Set(setIndex.names);
+      const starters = STARTER_ICONS.filter((name) => known.has(name));
+      const starterSet = new Set(starters);
+      return [...starters, ...names.filter((name) => !starterSet.has(name))].map((name) => `${listPrefix}:${name}`);
+    }
+    return remote?.query === trimmed ? remote.icons : [];
+  }, [listPrefix, indexReady, setIndex, prefix, trimmed, remote]);
 
-  // Fetch the shapes of the icons on screen.
-  const iconsKey = icons.join(',');
+  // Draw the list in steps as it scrolls.
+  const listKey = `${listPrefix}|${trimmed}|${icons.length}`;
+  const count = visible.key === listKey ? visible.count : PAGE_SIZE;
+  const shown = useMemo(() => icons.slice(0, count), [icons, count]);
+  const hasMore = shown.length < icons.length;
+
   useEffect(() => {
-    if (!iconsKey) return;
+    const sentinel = sentinelRef.current;
+    if (!sentinel || !hasMore) return;
+    const observer = new IntersectionObserver((entries) => {
+      if (entries.some((entry) => entry.isIntersecting)) {
+        setVisible({ key: listKey, count: count + PAGE_SIZE });
+      }
+    }, { root: scrollRef.current, rootMargin: '240px' });
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [hasMore, listKey, count]);
+
+  // A new list starts at the top.
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ top: 0 });
+  }, [listPrefix, trimmed]);
+
+  // Fetch the shapes of the icons drawn.
+  const shownKey = shown.join(',');
+  useEffect(() => {
+    if (!shownKey) return;
     const controller = new AbortController();
-    loadShapes(iconsKey.split(','), controller.signal)
-      .then((loaded) => setShapes((current) => ({ ...current, ...loaded })))
+    loadShapes(shownKey.split(','), controller.signal)
+      .then((loaded) => {
+        if (Object.keys(loaded).length > 0) setShapes((current) => ({ ...current, ...loaded }));
+      })
       .catch((caught: Error) => {
         if (caught.name !== 'AbortError') setError("Couldn't load icons from Iconify. Check your connection and try again.");
       });
     return () => controller.abort();
-  }, [iconsKey, retry]);
+  }, [shownKey, retry]);
 
-  const selectedShape = selected ? shapes[selected] : null;
+  const shapeOf = (id: string) => shapes[id] ?? shapeCache.get(id);
+  const selectedShape = selected ? shapeOf(selected) : null;
+  const selectedMono = !!selectedShape && isMonochrome(selectedShape);
   const selectedPrefix = selected ? splitId(selected).prefix : '';
-  const selectedSet = collections[selectedPrefix]?.name ?? SETS.find((set) => set.prefix === selectedPrefix)?.label ?? selectedPrefix;
+  const selectedSet = collections[selectedPrefix]?.name ?? selectedPrefix;
   const license = collections[selectedPrefix]?.license;
+  const setName = collections[listPrefix]?.name ?? POPULAR_SETS.find((set) => set.prefix === listPrefix)?.label ?? listPrefix;
+
+  const moreSets = useMemo(() => Object.entries(collections)
+    .filter(([key, info]) => !info.hidden && !POPULAR_SETS.some((set) => set.prefix === key))
+    .sort(([, a], [, b]) => a.name.localeCompare(b.name)), [collections]);
 
   const pickColor = (next: string) => {
     setHexDraft(next);
     if (HEX.test(next)) setColor(next);
   };
 
+  /** The icon as it goes on the page: single-colour icons stay recolourable. */
+  const imageFor = (id: string): PluginImage | null => {
+    const shape = shapeOf(id);
+    if (!shape) return null;
+    const mono = isMonochrome(shape);
+    return {
+      name: `${labelFor(id)} icon`,
+      url: svgDataUrl(buildSvg(shape, size, mono ? color : undefined)),
+      w: size,
+      h: size,
+      iconColor: mono ? color : undefined,
+    };
+  };
+
   const insert = (id: string) => {
-    const shape = shapes[id];
-    if (!shape) {
+    const image = imageFor(id);
+    if (!image) {
       onNotice('That icon is still loading. Try again in a moment.');
       return;
     }
-    onInsert({ name: `${labelFor(id)} icon`, url: svgDataUrl(buildSvg(shape, size, color)), w: size, h: size });
+    onInsert(image);
     onNotice(`Added the ${labelFor(id)} icon to this page`);
   };
 
+  const startDrag = (event: React.DragEvent, id: string) => {
+    const image = imageFor(id);
+    if (!image) {
+      event.preventDefault();
+      return;
+    }
+    setSelected(id);
+    startAssetDrag(event, onDragImageStart(image));
+  };
+
   const copy = async (id: string, as: 'svg' | 'jsx') => {
-    const shape = shapes[id];
+    const shape = shapeOf(id);
     if (!shape) return;
-    const svg = buildSvg(shape, size, color);
+    const svg = buildSvg(shape, size, isMonochrome(shape) ? color : undefined);
     try {
       await navigator.clipboard.writeText(as === 'svg' ? svg : toJsx(svg, componentNameFor(id)));
       onNotice(as === 'svg' ? 'SVG copied to the clipboard' : `${componentNameFor(id)} copied as a React component`);
@@ -285,6 +499,27 @@ export function IconifyPlugin({
       onNotice("Couldn't copy the icon. Check clipboard permissions and try again.");
     }
   };
+
+  const status = (() => {
+    if (error) return '';
+    if (listPrefix) {
+      if (!indexReady || !setIndex) return `Loading ${setName}…`;
+      const all = setIndex.names.length.toLocaleString();
+      if (trimmed) return `${icons.length.toLocaleString()} of ${all} ${setName} icons`;
+      return prefix
+        ? `${all} icons in ${setName}`
+        : `Banking picks, then all ${all} ${setName} icons · type to search every set`;
+    }
+    if (remote?.query !== trimmed) return 'Searching…';
+    return remote.total >= SEARCH_LIMIT
+      ? `Top ${SEARCH_LIMIT} matches · pick a set to see every match`
+      : `${remote.total} match${remote.total === 1 ? '' : 'es'} across all sets`;
+  })();
+
+  const chip = (active: boolean) => `rounded-full px-2 py-0.5 text-[10px] font-medium transition-colors ${
+    active ? 'bg-[#0040DF] text-white' : 'bg-white text-slate-600 hover:bg-slate-100'
+  }`;
+  const otherSetPicked = !!prefix && !POPULAR_SETS.some((set) => set.prefix === prefix);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -322,44 +557,46 @@ export function IconifyPlugin({
             ref={searchRef}
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search 200,000+ icons…"
+            placeholder={prefix ? `Search ${setName}…` : 'Search 200,000+ icons…'}
             aria-label="Search icons"
             className="min-w-0 flex-1 bg-transparent text-[11px] text-slate-800 outline-none placeholder:text-slate-400"
           />
-          {searching && <LoaderCircle className="h-3.5 w-3.5 shrink-0 animate-spin text-slate-400" />}
+          {loading && <LoaderCircle className="h-3.5 w-3.5 shrink-0 animate-spin text-slate-400" />}
         </label>
         <div role="radiogroup" aria-label="Icon set" className="flex flex-wrap gap-1">
-          {SETS.map((set) => {
-            const active = prefix === set.prefix;
-            return (
-              <button
-                key={set.prefix || 'all'}
-                type="button"
-                role="radio"
-                aria-checked={active}
-                onClick={() => setPrefix(set.prefix)}
-                className={`rounded-full px-2 py-0.5 text-[10px] font-medium transition-colors ${
-                  active ? 'bg-[#0040DF] text-white' : 'bg-white text-slate-600 hover:bg-slate-100'
-                }`}
-              >
-                {set.label}
-              </button>
-            );
-          })}
+          {POPULAR_SETS.map((set) => (
+            <button
+              key={set.prefix || 'all'}
+              type="button"
+              role="radio"
+              aria-checked={prefix === set.prefix}
+              onClick={() => setPrefix(set.prefix)}
+              className={chip(prefix === set.prefix)}
+            >
+              {set.label}
+            </button>
+          ))}
+          {moreSets.length > 0 && (
+            <select
+              value={otherSetPicked ? prefix : ''}
+              onChange={(event) => setPrefix(event.target.value)}
+              aria-label="More icon sets"
+              className={`max-w-[132px] cursor-pointer appearance-none truncate outline-none ${chip(otherSetPicked)}`}
+            >
+              <option value="">More sets ({moreSets.length})…</option>
+              {moreSets.map(([key, info]) => (
+                <option key={key} value={key}>
+                  {info.name}{info.total ? ` (${info.total.toLocaleString()})` : ''}
+                </option>
+              ))}
+            </select>
+          )}
         </div>
-        <p className="text-[10px] text-slate-500" aria-live="polite">
-          {showingStarter
-            ? 'Popular for banking apps · type to search every set'
-            : error
-              ? ''
-              : searching && results === null
-                ? 'Searching…'
-                : `${total.toLocaleString()} result${total === 1 ? '' : 's'}${total > icons.length ? ` · showing ${icons.length}` : ''}`}
-        </p>
+        <p className="truncate text-[10px] text-slate-500" aria-live="polite">{status}</p>
       </div>
 
       {/* Results */}
-      <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-3 [scrollbar-width:thin] [scrollbar-color:#0040DF_transparent]">
+      <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto px-3 pb-3 [scrollbar-width:thin] [scrollbar-color:#0040DF_transparent]">
         {error ? (
           <div className="flex flex-col items-center px-4 py-10 text-center">
             <p className="text-[11.5px] text-slate-600">{error}</p>
@@ -367,41 +604,50 @@ export function IconifyPlugin({
               type="button"
               onClick={() => {
                 setError(null);
-                setRetry((count) => count + 1);
+                setRetry((value) => value + 1);
               }}
               className="mt-3 inline-flex items-center gap-1 rounded-md bg-white px-2.5 py-1 text-[11px] font-semibold text-[#0040DF] hover:bg-slate-100"
             >
               <RefreshCw className="h-3 w-3" /> Try again
             </button>
           </div>
-        ) : icons.length === 0 && !searching ? (
+        ) : icons.length === 0 && !loading && (indexReady || remote?.query === trimmed) ? (
           <p className="px-4 py-10 text-center text-[11.5px] text-slate-500">
             No icons match “{trimmed}”{prefix ? ' in this set' : ''}. Try another word{prefix ? ' or All sets' : ''}.
           </p>
         ) : (
-          <div className="grid grid-cols-[repeat(auto-fill,minmax(40px,1fr))] gap-1">
-            {icons.map((id) => {
-              const active = id === selected;
-              return (
-                <button
-                  key={id}
-                  type="button"
-                  title={`${id} · double-click to add`}
-                  aria-label={labelFor(id)}
-                  aria-pressed={active}
-                  onClick={() => setSelected(id)}
-                  onDoubleClick={() => insert(id)}
-                  className={`grid aspect-square place-items-center rounded-lg border transition-colors ${
-                    active
-                      ? 'border-[#0040DF] bg-white text-[#0040DF]'
-                      : 'border-transparent text-slate-700 hover:border-slate-200 hover:bg-white'
-                  }`}
-                >
-                  <MaskedIcon shape={shapes[id]} className="h-5 w-5" />
-                </button>
-              );
-            })}
-          </div>
+          <>
+            <div className="grid grid-cols-[repeat(auto-fill,minmax(40px,1fr))] gap-1">
+              {shown.map((id) => {
+                const active = id === selected;
+                return (
+                  <button
+                    key={id}
+                    type="button"
+                    draggable
+                    title={`${id} · drag onto the canvas or double-click to add`}
+                    aria-label={labelFor(id)}
+                    aria-pressed={active}
+                    onClick={() => setSelected(id)}
+                    onDoubleClick={() => insert(id)}
+                    onDragStart={(event) => startDrag(event, id)}
+                    className={`grid aspect-square cursor-grab place-items-center rounded-lg border transition-colors active:cursor-grabbing ${
+                      active
+                        ? 'border-[#0040DF] bg-white text-[#0040DF]'
+                        : 'border-transparent text-slate-700 hover:border-slate-200 hover:bg-white'
+                    }`}
+                  >
+                    <IconGlyph shape={shapeOf(id)} className="h-5 w-5" />
+                  </button>
+                );
+              })}
+            </div>
+            {hasMore && (
+              <div ref={sentinelRef} className="flex justify-center py-3 text-slate-400" aria-hidden="true">
+                <LoaderCircle className="h-4 w-4 animate-spin" />
+              </div>
+            )}
+          </>
         )}
       </div>
 
@@ -410,7 +656,7 @@ export function IconifyPlugin({
         <div className="space-y-2.5 border-t border-slate-200 p-3">
           <div className="flex items-center gap-2.5">
             <span className="grid h-11 w-11 shrink-0 place-items-center rounded-lg border border-slate-200 bg-white" style={{ color }}>
-              <MaskedIcon shape={selectedShape} className="h-6 w-6" />
+              <IconGlyph shape={selectedShape} className="h-6 w-6" />
             </span>
             <div className="min-w-0">
               <p className="truncate text-[12px] font-semibold text-slate-900">{labelFor(selected)}</p>
@@ -431,23 +677,27 @@ export function IconifyPlugin({
           </div>
 
           <div className="flex items-center gap-2">
-            <label className="flex min-w-0 flex-1 items-center gap-1.5 rounded-md border border-slate-200 bg-white px-1.5 py-1">
-              <input
-                type="color"
-                value={color}
-                onChange={(event) => pickColor(event.target.value)}
-                aria-label="Icon colour"
-                className="h-5 w-5 shrink-0 cursor-pointer rounded border-0 bg-transparent p-0"
-              />
-              <input
-                value={hexDraft}
-                onChange={(event) => pickColor(event.target.value.trim())}
-                onBlur={() => setHexDraft(color)}
-                aria-label="Icon colour hex code"
-                spellCheck={false}
-                className="min-w-0 flex-1 bg-transparent font-mono text-[10.5px] uppercase text-slate-700 outline-none"
-              />
-            </label>
+            {selectedMono || !selectedShape ? (
+              <label className="flex min-w-0 flex-1 items-center gap-1.5 rounded-md border border-slate-200 bg-white px-1.5 py-1">
+                <input
+                  type="color"
+                  value={color}
+                  onChange={(event) => pickColor(event.target.value)}
+                  aria-label="Icon colour"
+                  className="h-5 w-5 shrink-0 cursor-pointer rounded border-0 bg-transparent p-0"
+                />
+                <input
+                  value={hexDraft}
+                  onChange={(event) => pickColor(event.target.value.trim())}
+                  onBlur={() => setHexDraft(color)}
+                  aria-label="Icon colour hex code"
+                  spellCheck={false}
+                  className="min-w-0 flex-1 bg-transparent font-mono text-[10.5px] uppercase text-slate-700 outline-none"
+                />
+              </label>
+            ) : (
+              <p className="min-w-0 flex-1 text-[10px] leading-tight text-slate-500">Multicolour icon: keeps its own colours</p>
+            )}
             <label className="flex shrink-0 items-center gap-1 rounded-md border border-slate-200 bg-white px-1.5 py-1 text-[10.5px] text-slate-500">
               Size
               <select
@@ -491,7 +741,7 @@ export function IconifyPlugin({
       ) : (
         <p className="flex items-center gap-1.5 border-t border-slate-200 px-3 py-2.5 text-[10px] text-slate-500">
           <Check className="h-3 w-3 shrink-0 text-emerald-600" />
-          Pick an icon to colour, size and add it. Double-click adds it straight away.
+          Drag an icon onto the canvas, or pick one to colour, size and add it.
         </p>
       )}
     </div>

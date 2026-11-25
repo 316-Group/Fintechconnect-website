@@ -4,8 +4,9 @@
 import React, { useCallback, useEffect, useLayoutEffect, useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Urbanist, Outfit } from 'next/font/google';
+import Link from 'next/link';
 import {
-  ChevronDown, ChevronUp, ChevronLeft, ChevronRight, ChevronsUpDown,
+  ArrowLeft, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, ChevronsUpDown,
   Layers, Box, Workflow, Palette, ShieldCheck, Settings, Plus, PlusCircle,
   Trash2, Undo2, Home, Wallet,
   BarChart3, User, Play, Code2, Check, Braces, X, Diamond, CreditCard,
@@ -595,6 +596,11 @@ type ModuleBox = LayoutFields & {
   imageFill?: ImageFill;
   assetUrl?: string;
   assetName?: string;
+  /**
+   * Set on single-colour icons (e.g. from Iconify): the icon is drawn in this colour, using
+   * its image as a mask, and the right panel's Icon color edits it.
+   */
+  iconColor?: string;
   effectType?: EffectType;
   glassBlur?: number;
   glassSaturation?: number;
@@ -816,11 +822,16 @@ function deviceDimensions(device: DeviceType) {
 const STATUS_BAR_HEIGHT = 32;
 
 function assetDimensions(asset: AssetItem) {
+  if (asset.w && asset.h) return { w: asset.w, h: asset.h };
   if (asset.kind === 'logo') return { w: 80, h: 40 };
   if (asset.kind === 'media') return { w: 120, h: 80 };
   if (asset.kind === 'token') return { w: 48, h: 48 };
   return { w: 36, h: 36 };
 }
+
+/** The right panel's colour picker key for an icon's own colour (other keys are schema colour slots). */
+const ICON_COLOR_PICKER = '__icon-color';
+const CSS_HEX_COLOR = /^#(?:[0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i;
 
 /* ═══════════════════════════ IconRail ═══════════════════════════ */
 
@@ -849,6 +860,14 @@ function IconRail({ view, onView }: { view: LeftView; onView: (view: LeftView) =
         );
       })}
       <div className="mt-auto flex flex-col items-center gap-1">
+        <Link
+          href="/userdashboard/"
+          title="Back to dashboard"
+          aria-label="Back to dashboard"
+          className="grid h-9 w-9 place-items-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+        >
+          <ArrowLeft className="h-4 w-4" />
+        </Link>
         <button title="Settings" className="grid h-9 w-9 place-items-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700">
           <Settings className="h-4 w-4" />
         </button>
@@ -1667,12 +1686,25 @@ function CanvasAssetObject({ box }: { box: ModuleBox }) {
         role="img"
         aria-label={box.assetName ?? 'Canvas asset'}
         className="h-full w-full"
-        style={{
-          backgroundImage: box.assetUrl ? `url("${box.assetUrl}")` : undefined,
-          backgroundPosition: 'center',
-          backgroundRepeat: 'no-repeat',
-          backgroundSize: 'contain',
-        }}
+        style={box.iconColor && box.assetUrl
+          ? {
+              // A recolourable icon: its shape cut out of a block of the chosen colour.
+              backgroundColor: box.iconColor,
+              maskImage: `url("${box.assetUrl}")`,
+              WebkitMaskImage: `url("${box.assetUrl}")`,
+              maskPosition: 'center',
+              WebkitMaskPosition: 'center',
+              maskRepeat: 'no-repeat',
+              WebkitMaskRepeat: 'no-repeat',
+              maskSize: 'contain',
+              WebkitMaskSize: 'contain',
+            }
+          : {
+              backgroundImage: box.assetUrl ? `url("${box.assetUrl}")` : undefined,
+              backgroundPosition: 'center',
+              backgroundRepeat: 'no-repeat',
+              backgroundSize: 'contain',
+            }}
       />
     </div>
   );
@@ -6281,6 +6313,47 @@ function RightPanel({
               </div>
 
               <div className="space-y-2">
+                {/* 0. A recolourable icon's own colour (the fills below sit behind it) */}
+                {box.iconColor && (
+                  <div className="relative flex items-center gap-2 rounded-lg border border-white bg-white p-2 shadow-sm">
+                    <button
+                      type="button"
+                      aria-label="Choose icon color"
+                      onClick={(e) => toggleColorPicker(e, ICON_COLOR_PICKER)}
+                      className="h-7 w-7 shrink-0 rounded border border-slate-300 shadow-sm"
+                      style={{ background: box.iconColor }}
+                    />
+                    <div className="flex min-w-0 flex-1 flex-col">
+                      <span className="text-[11px] font-semibold text-slate-700">Icon color</span>
+                      <input
+                        key={box.iconColor}
+                        type="text"
+                        defaultValue={box.iconColor}
+                        aria-label="Icon color hex code"
+                        spellCheck={false}
+                        onBlur={(e) => {
+                          const value = e.target.value.trim();
+                          if (CSS_HEX_COLOR.test(value)) onBoxChange(selectedId!, { iconColor: value });
+                          else e.target.value = box.iconColor ?? '';
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') e.currentTarget.blur();
+                        }}
+                        className="bg-transparent font-mono text-[9px] uppercase text-slate-500 outline-none"
+                      />
+                    </div>
+                    {showSchemaColorPicker === ICON_COLOR_PICKER && colorPickerPosition && (
+                      <AdvancedColorPicker
+                        color={box.iconColor}
+                        position={colorPickerPosition}
+                        title="Icon color"
+                        onClose={closeColorPicker}
+                        onChange={(hex) => onBoxChange(selectedId!, { iconColor: hex })}
+                      />
+                    )}
+                  </div>
+                )}
+
                 {/* 1. Generic Color Fill */}
                 {box.fillType === 'color' && (
                   <div className="relative flex items-center gap-2 rounded-lg border border-white bg-white p-2 shadow-sm">
@@ -6438,9 +6511,11 @@ function RightPanel({
                     <button
                       key={name}
                       type="button"
-                      aria-label={`Apply ${name} fill`}
+                      aria-label={`Apply ${name} ${box.iconColor ? 'icon color' : 'fill'}`}
                       title={`${name} ${color}`}
-                      onClick={() => onBoxChange(selectedId!, { fillType: 'color', fillColor: color })}
+                      onClick={() => onBoxChange(selectedId!, box.iconColor
+                        ? { iconColor: color }
+                        : { fillType: 'color', fillColor: color })}
                       className="h-5 w-5 rounded-full border border-slate-300 shadow-sm transition hover:scale-110"
                       style={{ backgroundColor: color }}
                     />
@@ -6853,6 +6928,10 @@ export default function StudioClient() {
   const [drag, setDrag] = useState<DragState>(null);
   const [dropIndex, setDropIndex] = useState<number | null>(null);
   const [allAssetsForLookup, setAllAssetsForLookup] = useState<AssetItem[]>([]);
+  /** Icons and photos being dragged in from plugins (a ref, so a drop sees them straight away). */
+  const pluginAssetsRef = useRef(new Map<string, AssetItem>());
+  const findAsset = (assetId: string) =>
+    pluginAssetsRef.current.get(assetId) ?? allAssetsForLookup.find((item) => item.id === assetId);
 
   // Add state for active text slot
   const [activeTextSlot, setActiveTextSlot] = useState<string | null>(null);
@@ -7262,7 +7341,7 @@ export default function StudioClient() {
 
   const handleAssetDrop = (assetId: string, moduleId: ModuleId | null) => {
     if (!moduleId) return;
-    const asset = (allAssetsForLookup || []).find((a) => a.id === assetId);
+    const asset = findAsset(assetId);
     if (!asset?.dataUrl) return;
     onBoxChange(moduleId, {
       fillType: 'image',
@@ -7324,7 +7403,7 @@ export default function StudioClient() {
     position: { x: number; y: number },
     frameId?: string,
   ) => {
-    const asset = allAssetsForLookup.find((item) => item.id === assetId);
+    const asset = findAsset(assetId);
     if (!asset?.dataUrl) return;
     const dimensions = assetDimensions(asset);
     const id = `asset-${asset.id}-${Date.now()}-${++canvasObjectIdRef.current}` as ModuleId;
@@ -7336,6 +7415,7 @@ export default function StudioClient() {
       frameId,
       assetUrl: asset.dataUrl,
       assetName: asset.name,
+      iconColor: asset.iconColor,
     });
     setSelectedId(id);
     setSelectedWorkspaceShapeId(null);
@@ -7353,12 +7433,38 @@ export default function StudioClient() {
       h: image.h,
       assetUrl: image.url,
       assetName: image.name,
+      iconColor: image.iconColor,
     };
     commit([...currentModules, id]);
     onBoxChange(id, { ...box, frameId: frameContaining(pageFrames(boxes), box) });
     setSelectedId(id);
     setSelectedWorkspaceShapeId(null);
     setActiveTextSlot(null);
+  };
+
+  /**
+   * Makes a plugin's icon or photo available to the canvas's asset drop handlers, so it can be
+   * dragged from the plugin panel like an asset. Returns the id to drag it by.
+   */
+  const registerPluginAsset = (image: PluginImage) => {
+    const id = `plugin-${uniqueIdPart()}-${++canvasObjectIdRef.current}`;
+    const asset: AssetItem = {
+      id,
+      name: image.name,
+      kind: image.iconColor ? 'icon' : 'media',
+      filters: [],
+      format: 'SVG',
+      dataUrl: image.url,
+      w: image.w,
+      h: image.h,
+      iconColor: image.iconColor,
+      preview: null,
+    };
+    // Keep only the last few plugin drags: each holds its image.
+    const assets = pluginAssetsRef.current;
+    assets.set(id, asset);
+    if (assets.size > 10) assets.delete(assets.keys().next().value!);
+    return id;
   };
 
   const handleDrop = (
@@ -7370,7 +7476,7 @@ export default function StudioClient() {
     const assetId = draggedAssetId(e.dataTransfer);
     if (assetId) {
       const targetIsComponent = !!targetId && allModulesFor().some((module) => module.id === targetId);
-      const asset = allAssetsForLookup.find((item) => item.id === assetId);
+      const asset = findAsset(assetId);
       if (targetIsComponent && position && asset?.dataUrl) {
         const dimensions = assetDimensions(asset);
         const instance = {
@@ -7474,7 +7580,7 @@ export default function StudioClient() {
     position: { x: number; y: number },
     frameId?: string,
   ) => {
-    const asset = allAssetsForLookup.find((item) => item.id === assetId);
+    const asset = findAsset(assetId);
     if (!asset?.dataUrl) return;
     const dimensions = assetDimensions(asset);
     const id = `workspace-asset-${uniqueIdPart()}-${++canvasObjectIdRef.current}`;
@@ -7485,6 +7591,7 @@ export default function StudioClient() {
       frameId,
       assetUrl: asset.dataUrl,
       assetName: asset.name,
+      iconColor: asset.iconColor,
     };
     setWorkspaceShapes((shapes) => [...shapes, { id, type: 'asset', box, frameId }]);
     setSelectedId(null);
@@ -7723,6 +7830,7 @@ export default function StudioClient() {
             <PluginsPanel
               accent={accentColor}
               onInsertImage={insertPluginImage}
+              onDragImageStart={registerPluginAsset}
               onNotice={showStudioNotice}
               onCollapse={() => setLeftPanelCollapsed(true)}
               modalClassName={urbanist.className}

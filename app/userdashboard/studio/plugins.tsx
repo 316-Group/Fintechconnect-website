@@ -20,11 +20,12 @@ import {
   type Plugin, type PluginId,
 } from './plugins-data';
 import { IconifyPlugin, type PluginImage } from './plugin-iconify';
+import { PhotosPlugin } from './plugin-photos';
 
 export type { PluginImage };
 
 /** Plugins that are fully built: running one opens its view in the panel. */
-const PLUGIN_VIEWS = new Set<PluginId>(['iconify']);
+const PLUGIN_VIEWS = new Set<PluginId>(['iconify', 'unsplash', 'pexels']);
 
 /* ---------------------------------- Logos ---------------------------------- */
 
@@ -112,6 +113,7 @@ function useSearchShortcut(input: React.RefObject<HTMLInputElement | null>, enab
 export function PluginsPanel({
   accent,
   onInsertImage,
+  onDragImageStart,
   onNotice,
   onCollapse,
   modalClassName = '',
@@ -120,6 +122,8 @@ export function PluginsPanel({
   accent: string;
   /** Adds an image (an icon, a photo) to the current page. */
   onInsertImage: (image: PluginImage) => void;
+  /** Makes an icon or photo draggable onto the canvas; returns the asset id to drag it by. */
+  onDragImageStart: (image: PluginImage) => string;
   /** Shows a short message at the bottom of the studio. */
   onNotice: (message: string) => void;
   onCollapse: () => void;
@@ -158,6 +162,24 @@ export function PluginsPanel({
           onBack={() => setOpenId(null)}
           onCollapse={onCollapse}
           onInsert={onInsertImage}
+          onDragImageStart={onDragImageStart}
+          onNotice={onNotice}
+        />
+      </aside>
+    );
+  }
+
+  if (viewOpen && (openId === 'unsplash' || openId === 'pexels')) {
+    return (
+      <aside className="relative flex w-full min-w-0 flex-col border-r border-slate-200 bg-[#EDEFFC]">
+        <PhotosPlugin
+          key={openId}
+          provider={openId}
+          logo={<PluginLogo id={openId} size={20} />}
+          onBack={() => setOpenId(null)}
+          onCollapse={onCollapse}
+          onInsert={onInsertImage}
+          onDragImageStart={onDragImageStart}
           onNotice={onNotice}
         />
       </aside>

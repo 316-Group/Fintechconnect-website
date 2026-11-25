@@ -217,6 +217,8 @@ const NEXT_STEPS: {
   image: string;
   /** Shown in dark mode: the same picture without its white backdrop. */
   darkImage: string;
+  /** Extra classes for the dark image, e.g. padding for a picture that has no margin of its own. */
+  darkImageClassName?: string;
 }[] = [
   {
     title: "Create your first Product",
@@ -232,7 +234,9 @@ const NEXT_STEPS: {
       "Add the banking, ledger and payments modules your product runs on.",
     type: "modules",
     image: "/dashboard/homecard2.png",
-    darkImage: "/dashboard/homecard2-dark.png",
+    darkImage: "/dashboard/darkimg2.png",
+    // This picture runs edge to edge; inset it like the artwork in the other two cards.
+    darkImageClassName: "px-6 pt-6",
   },
   {
     title: "Design your experience",
@@ -370,16 +374,16 @@ export default function DashboardHome() {
                 className="group rounded-xl border border-slate-200 bg-white overflow-hidden flex flex-col hover:border-slate-300 hover:shadow-sm transition-all"
               >
                 {/* ---- Image ---- */}
-<div className="relative h-44 border-b border-slate-100 dashdark:bg-[#262626]">
+<div className="relative h-36 border-slate-100 bg-[#FBFCFD] dashdark:bg-[#262626]">
   <img
     src={getPath(step.image)}
     alt={step.title}
-    className="w-full h-full object-contain dashdark:hidden"
+    className="w-full h-full object-contain object-bottom dashdark:hidden"
   />
   <img
     src={getPath(step.darkImage)}
     alt={step.title}
-    className="hidden w-full h-full object-contain dashdark:block"
+    className={`hidden w-full h-full object-contain object-bottom dashdark:block ${step.darkImageClassName ?? ""}`}
   />
 </div>
 
@@ -430,7 +434,7 @@ export default function DashboardHome() {
         {/* ------------- Pre-integrated Connectors + AML Setup ------------- */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Connectors — single card, spans 2 columns */}
-          <div className="lg:col-span-2 relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#EEF0FF] via-[#F5F2FF] to-white border border-slate-200/70 min-h-[240px]">
+          <div className="lg:col-span-2 relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#EEF0FF] via-[#F5F2FF] to-white border border-slate-200/70 min-h-[240px] dashdark:bg-none! dashdark:bg-(--dash-surface)!">
             {/* ---- Background image placeholder on the right ---- */}
             {/* ---- Background image on the right ---- */}
 <div className="absolute inset-y-0 right-0 w-[55%] pointer-events-none">
