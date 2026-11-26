@@ -21,11 +21,13 @@ import {
 } from './plugins-data';
 import { IconifyPlugin, type PluginImage } from './plugin-iconify';
 import { PhotosPlugin } from './plugin-photos';
+import { LottiePlugin } from './plugin-lottie';
+import { MockDataPlugin } from './plugin-mockdata';
 
 export type { PluginImage };
 
 /** Plugins that are fully built: running one opens its view in the panel. */
-const PLUGIN_VIEWS = new Set<PluginId>(['iconify', 'unsplash', 'pexels']);
+const PLUGIN_VIEWS = new Set<PluginId>(['iconify', 'unsplash', 'pexels', 'lottie', 'mock-data']);
 
 /* ---------------------------------- Logos ---------------------------------- */
 
@@ -114,6 +116,9 @@ export function PluginsPanel({
   accent,
   onInsertImage,
   onDragImageStart,
+  textTarget,
+  onInsertText,
+  onFillText,
   onNotice,
   onCollapse,
   modalClassName = '',
@@ -124,6 +129,12 @@ export function PluginsPanel({
   onInsertImage: (image: PluginImage) => void;
   /** Makes an icon or photo draggable onto the canvas; returns the asset id to drag it by. */
   onDragImageStart: (image: PluginImage) => string;
+  /** The selected text on the canvas that mock data would fill (null if none). */
+  textTarget: string | null;
+  /** Adds text to the current page as a new text layer. */
+  onInsertText: (text: string) => void;
+  /** Puts text into the selected text; false if there's no text selected. */
+  onFillText: (text: string) => boolean;
   /** Shows a short message at the bottom of the studio. */
   onNotice: (message: string) => void;
   onCollapse: () => void;
@@ -163,6 +174,38 @@ export function PluginsPanel({
           onCollapse={onCollapse}
           onInsert={onInsertImage}
           onDragImageStart={onDragImageStart}
+          onNotice={onNotice}
+        />
+      </aside>
+    );
+  }
+
+  if (viewOpen && openId === 'lottie') {
+    return (
+      <aside className="relative flex w-full min-w-0 flex-col border-r border-slate-200 bg-[#EDEFFC]">
+        <LottiePlugin
+          accent={accent}
+          logo={<PluginLogo id="lottie" size={20} />}
+          onBack={() => setOpenId(null)}
+          onCollapse={onCollapse}
+          onInsert={onInsertImage}
+          onDragImageStart={onDragImageStart}
+          onNotice={onNotice}
+        />
+      </aside>
+    );
+  }
+
+  if (viewOpen && openId === 'mock-data') {
+    return (
+      <aside className="relative flex w-full min-w-0 flex-col border-r border-slate-200 bg-[#EDEFFC]">
+        <MockDataPlugin
+          logo={<PluginLogo id="mock-data" size={20} />}
+          textTarget={textTarget}
+          onBack={() => setOpenId(null)}
+          onCollapse={onCollapse}
+          onInsertText={onInsertText}
+          onFillText={onFillText}
           onNotice={onNotice}
         />
       </aside>

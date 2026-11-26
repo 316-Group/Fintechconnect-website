@@ -100,13 +100,17 @@ function messageFor(code: PhotoErrorCode, provider: PhotoProvider) {
   const { site, keyName } = PROVIDERS[provider];
   switch (code) {
     case 'not_configured':
-      return `${site} isn't connected yet. Add ${keyName} to the server's .env file, then restart the server.`;
+      return `${site} isn't connected yet. Add ${keyName} to client/.env, then restart npm run dev.`;
     case 'bad_key':
-      return `${site} refused the API key. Check ${keyName} in the server's .env file.`;
+      return `${site} refused the API key. Check ${keyName} in client/.env, then restart npm run dev.`;
     case 'rate_limited':
       return `${site}'s hourly search limit has been reached. Try again later.`;
     case 'no_server':
-      return 'Photo search runs through the app server, which isn\'t running on this site.';
+      // In development the route exists, so a 404 means the dev server missed it when starting
+      // (it sometimes does on Windows); any change under app/api makes it look again.
+      return process.env.NODE_ENV === 'development'
+        ? 'The dev server didn\'t load the photo search route. Stop npm run dev and start it again (or save app/api/plugins/photos/route.ts).'
+        : 'Photo search runs through the app server, which isn\'t running on this site.';
     case 'offline':
       return 'Couldn\'t reach the app server. Check your connection and try again.';
     default:

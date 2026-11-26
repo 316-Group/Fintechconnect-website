@@ -97,23 +97,41 @@ export function findPlugin(id: PluginId) {
 
 /* ------------------------------ Installed list ------------------------------ */
 
-const STORAGE_KEY = 'fintechconnect:studio:plugins:v1';
-/** Installed until the user changes anything. */
-const DEFAULT_INSTALLED: PluginId[] = ['contrast-auditor', 'lottie', 'mock-data'];
+const STORAGE_KEY = 'fintechconnect:studio:plugins:v2';
+/**
+ * v1 came with Color Contrast, Lottie and Mock Data pre-installed. Nothing is pre-installed
+ * now, so those three are dropped when a v1 list is carried over.
+ */
+const LEGACY_STORAGE_KEY = 'fintechconnect:studio:plugins:v1';
+const LEGACY_DEFAULTS: string[] = ['contrast-auditor', 'lottie', 'mock-data'];
 
 const listeners = new Set<() => void>();
 let cache: PluginId[] | null = null;
 
+function readIds(key: string): string[] | null {
+  const raw = window.localStorage.getItem(key);
+  const saved = raw ? (JSON.parse(raw) as { installed?: unknown }).installed : null;
+  return Array.isArray(saved) ? saved.filter((id): id is string => typeof id === 'string') : null;
+}
+
+const known = (ids: string[]) => ids.filter((id): id is PluginId => PLUGINS.some((p) => p.id === id));
+
 function load(): PluginId[] {
   if (cache) return cache;
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    const saved = raw ? (JSON.parse(raw) as { installed?: unknown }).installed : null;
-    cache = Array.isArray(saved)
-      ? saved.filter((id): id is PluginId => typeof id === 'string' && PLUGINS.some((p) => p.id === id))
-      : DEFAULT_INSTALLED;
+    const saved = readIds(STORAGE_KEY);
+    if (saved) {
+      cache = known(saved);
+    } else {
+      const legacy = readIds(LEGACY_STORAGE_KEY);
+      cache = legacy ? known(legacy.filter((id) => !LEGACY_DEFAULTS.includes(id))) : [];
+      if (legacy) {
+        window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ installed: cache }));
+        window.localStorage.removeItem(LEGACY_STORAGE_KEY);
+      }
+    }
   } catch {
-    cache = DEFAULT_INSTALLED;
+    cache = [];
   }
   return cache;
 }

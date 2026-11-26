@@ -4,12 +4,12 @@ import React, { useEffect, useRef, useState } from "react";
 import { Check, ChevronDown, Ellipsis, Info, Plus, Search, TriangleAlert, UserPlus, Users, X } from "lucide-react";
 import { ROLES, STATUSES, firstName, type Member, type MemberStatus, type RoleId } from "./team-data";
 import { inviteMember, removeMember, updateMember, useTeamMembers } from "./team-store";
-import { Avatar, RolePill, StatusPill } from "./team-ui";
+import { Avatar, Drawer, DrawerHeader, RolePill, StatusPill } from "./team-ui";
 import { InvitePanel } from "./InvitePanel";
 import { MemberPanel } from "./MemberPanel";
 
 type Notice = { text: string; tone: "success" | "error"; undo?: () => void };
-type Panel = { kind: "invite" } | { kind: "member"; id: string; changeRole?: boolean } | null;
+type Panel = { kind: "invite" } | { kind: "roles" } | { kind: "member"; id: string; changeRole?: boolean } | null;
 
 const STORAGE_ERROR = "Couldn't save this change. Browser storage may be full.";
 
@@ -19,7 +19,6 @@ export default function TeamPage() {
   const [roleFilter, setRoleFilter] = useState<RoleId | "all">("all");
   const [statusFilter, setStatusFilter] = useState<MemberStatus | "all">("all");
   const [panel, setPanel] = useState<Panel>(null);
-  const [rolesOpen, setRolesOpen] = useState(false);
   const [menuFor, setMenuFor] = useState<string | null>(null);
   const [notice, setNotice] = useState<Notice | null>(null);
   const noticeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -31,8 +30,6 @@ export default function TeamPage() {
   };
 
   const closePanel = React.useCallback(() => setPanel(null), []);
-  const closeRoles = React.useCallback(() => setRolesOpen(false), []);
-  const rolesButtonRef = useRef<HTMLButtonElement>(null);
 
   const invite = (email: string, role: RoleId, message: string) => {
     const { ok } = inviteMember(email, role, message);
@@ -113,17 +110,14 @@ export default function TeamPage() {
             </span>
           </div>
           <button
-            ref={rolesButtonRef}
             type="button"
-            onClick={() => setRolesOpen((v) => !v)}
-            aria-expanded={rolesOpen}
+            onClick={() => setPanel({ kind: "roles" })}
+            aria-haspopup="dialog"
             className="flex items-center gap-1.5 whitespace-nowrap text-[13px] font-semibold text-[#0040DF] hover:underline"
           >
             <Info className="h-3.5 w-3.5" /> View Role Info
           </button>
         </div>
-
-        {rolesOpen && <RolesPopover onClose={closeRoles} toggleRef={rolesButtonRef} />}
 
         {/* Search + filters */}
         <div className="mb-3 flex flex-col gap-2 sm:flex-row">
@@ -260,6 +254,13 @@ export default function TeamPage() {
       </section>
 
       {panel?.kind === "invite" && <InvitePanel members={members} onClose={closePanel} onInvite={invite} />}
+      {panel?.kind === "roles" && (
+        <RolesPanel
+          members={members}
+          onClose={closePanel}
+          onInvite={() => setPanel({ kind: "invite" })}
+        />
+      )}
       {openMember && panel?.kind === "member" && (
         <MemberPanel
           key={openMember.id}
@@ -328,54 +329,43 @@ function FilterSelect({
 
 /* ------------------------- Roles & permissions ------------------------- */
 
-function RolesPopover({ onClose, toggleRef }: { onClose: () => void; toggleRef: React.RefObject<HTMLButtonElement | null> }) {
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const onDown = (e: MouseEvent) => {
-      const target = e.target as Node;
-      // The "View Role Info" link toggles it itself.
-      if (ref.current?.contains(target) || toggleRef.current?.contains(target)) return;
-      onClose();
-    };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    document.addEventListener("mousedown", onDown);
-    window.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("mousedown", onDown);
-      window.removeEventListener("keydown", onKey);
-    };
-  }, [onClose, toggleRef]);
-
+/** "View Role Info": what each role can access, in the same side panel as "Invite member". */
+function RolesPanel({ members, onClose, onInvite }: { members: Member[]; onClose: () => void; onInvite: () => void }) {
   return (
-    <div
-      ref={ref}
-      role="dialog"
-      aria-label="Roles and permissions"
-      className="absolute left-3 right-3 top-3 z-20 max-h-[calc(100%-1.5rem)] overflow-y-auto rounded-xl border border-slate-200 bg-white p-4 shadow-[0_12px_32px_-12px_rgba(15,23,42,0.3)] sm:left-auto sm:w-[270px]"
-    >
-      <div className="flex items-start justify-between gap-2">
-        <div>
-          <h3 className="text-[16px] font-semibold text-slate-900">Roles &amp; permissions</h3>
-          <p className="mt-0.5 text-[10px] text-slate-500">Understand what each role can access.</p>
-        </div>
-        <button type="button" aria-label="Close" onClick={onClose} className="-mr-1 rounded-md p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-800">
-          <X className="h-4 w-4" />
+    <Drawer label="Roles and permissions" onClose={onClose}>
+      <DrawerHeader title="Roles & permissions" subtitle="Understand what each role can access." onClose={onClose} />
+      <ul className="flex-1 space-y-2.5 overflow-y-auto px-5 py-5">
+        {ROLES.map((r) => {
+          const count = members.filter((m) => m.role === r.id).length;
+          return (
+            <li key={r.id} className="rounded-xl border border-slate-100 bg-[#F8F9FE] p-3.5">
+              <div className="flex items-center gap-2.5">
+                <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-[#E3E8FA] text-[#0040DF]">
+                  <r.icon className="h-4 w-4" />
+                </span>
+                <p className="min-w-0 flex-1 text-[13px] font-semibold text-slate-900">{r.name}</p>
+                <span className="shrink-0 text-[10.5px] font-medium text-slate-500">
+                  {count} {count === 1 ? "member" : "members"}
+                </span>
+              </div>
+              <p className="mt-2 text-[11.5px] leading-relaxed text-slate-600">{r.description}</p>
+            </li>
+          );
+        })}
+      </ul>
+      <div className="flex items-center justify-between gap-2 border-t border-slate-100 px-5 py-4">
+        <button type="button" onClick={onClose} className="h-9 rounded-lg px-3 text-[12px] font-medium text-slate-700 hover:bg-slate-100">
+          Close
+        </button>
+        <button
+          type="button"
+          onClick={onInvite}
+          className="flex h-9 items-center gap-2 rounded-lg bg-[#0040DF] px-4 text-[12px] font-semibold text-white shadow-sm hover:bg-[#0035b8]"
+        >
+          <UserPlus className="h-3.5 w-3.5" /> Invite member
         </button>
       </div>
-      <ul className="mt-4 space-y-4">
-        {ROLES.map((r) => (
-          <li key={r.id}>
-            <p className="flex items-center gap-1.5 text-[12px] font-semibold text-slate-900">
-              <r.icon className="h-3.5 w-3.5 shrink-0 text-[#0040DF]" /> {r.name}
-            </p>
-            <p className="mt-1 text-[10px] leading-relaxed text-slate-600">{r.description}</p>
-          </li>
-        ))}
-      </ul>
-    </div>
+    </Drawer>
   );
 }
 

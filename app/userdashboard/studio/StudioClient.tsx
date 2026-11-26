@@ -47,6 +47,8 @@ import {
 import { EDITABLE_SCHEMA } from './editable-schema';
 import AssetTab, { draggedAssetId, isAssetDrag, type AssetItem } from './assettab';
 import { PluginsPanel, type PluginImage } from './plugins';
+import { LottiePlayer } from './lottie-player';
+import { lottieDataFor, type LottieSpec } from './lottie-presets';
 import {
   LayoutTab, autoLayoutCss, layoutSize, layoutWrapperStyle, type LayoutFields,
 } from './othertabs';
@@ -55,6 +57,7 @@ import {
   DEFAULT_LOGIC_STATE, LogicRuntime, LogicSummary, LogicTab, appSchemeFor, logicKey,
   type LogicMap, type LogicState, type LogicTrigger,
 } from './logictab';
+import { getPath } from '@/utils/helper';
 import { TopBar, type DeviceType, type SaveStatus, type StudioMode } from './topbar';
 import {
   AlignmentGuides, SNAP_DISTANCE_PX, createSnapSession, elementRect, unionRect,
@@ -372,9 +375,9 @@ const COMP_LIBRARY_META: Record<
   CompLibraryId,
   { label: string; description: string; img: string; bg: string; text: string }
 > = {
-  banking: { label: 'Banking UIs', description: 'Accounts, cards, payments & money movement', img: '/dashboard/compstab1.png' , bg: 'bg-blue-50', text: 'text-blue-600' },
-  crypto: { label: 'Crypto UIs', description: 'Wallets, tokens, swaps & on-chain activity', img: '/dashboard/compstab2.png', bg: 'bg-violet-50', text: 'text-violet-600' },
-  general: { label: 'General UIs', description: 'Shared app chrome, alerts, settings & more', img: '/dashboard/compstab3.png', bg: 'bg-slate-100', text: 'text-slate-600' },
+  banking: { label: 'Banking UIs', description: 'Accounts, cards, payments & money movement', img: getPath('/dashboard/compstab1.png'), bg: 'bg-blue-50', text: 'text-blue-600' },
+  crypto: { label: 'Crypto UIs', description: 'Wallets, tokens, swaps & on-chain activity', img: getPath('/dashboard/compstab2.png'), bg: 'bg-violet-50', text: 'text-violet-600' },
+  general: { label: 'General UIs', description: 'Shared app chrome, alerts, settings & more', img: getPath('/dashboard/compstab3.png'), bg: 'bg-slate-100', text: 'text-slate-600' },
 };
 
 const COMP_SUBGROUPS: { id: string; label: string; Icon: IconType; bg: string; text: string }[] = [
@@ -601,6 +604,8 @@ type ModuleBox = LayoutFields & {
    * its image as a mask, and the right panel's Icon color edits it.
    */
   iconColor?: string;
+  /** A Lottie animation (from the Lottie plugin), played in place of the asset image. */
+  lottie?: LottieSpec;
   effectType?: EffectType;
   glassBlur?: number;
   glassSaturation?: number;
@@ -831,6 +836,8 @@ function assetDimensions(asset: AssetItem) {
 
 /** The right panel's colour picker key for an icon's own colour (other keys are schema colour slots). */
 const ICON_COLOR_PICKER = '__icon-color';
+/** Ids of Lottie animations being dragged in from the plugin start with this. */
+const LOTTIE_DRAG_PREFIX = 'plugin-lottie-';
 const CSS_HEX_COLOR = /^#(?:[0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i;
 
 /* ═══════════════════════════ IconRail ═══════════════════════════ */
@@ -1419,8 +1426,9 @@ function LeftPanel({
                     onClick={() => { setCompLibrary(id); setActiveCompSubgroup(null); }}
                     className="group w-full overflow-hidden rounded-xl border border-slate-200 bg-white text-left transition hover:border-[#0040DF]/40 hover:shadow-sm"
                   >
-                    <div className={`flex h-24 items-center justify-center overflow-hidden ${meta.bg}`}>
-                      <img src={meta.img} alt={meta.label} className="h-full w-full object-cover" />
+                    {/* The preview keeps its own shape (344×180), so none of it is cut off. */}
+                    <div className={`aspect-[344/180] w-full overflow-hidden border-b border-slate-100 ${meta.bg}`}>
+                      <img src={meta.img} alt={meta.label} draggable={false} className="block h-full w-full object-contain" />
                     </div>
                     <div className="flex items-center justify-between px-3 py-2">
                       <div className="min-w-0">
@@ -1667,6 +1675,13 @@ function canvasObjectTitle(id: ModuleId | null, box?: ModuleBox): string | null 
  * and padding.
  */
 function CanvasAssetObject({ box }: { box: ModuleBox }) {
+  const { lottie, iconColor } = box;
+  // Rebuilt only when the animation or its colour changes, so playback doesn't restart on moves.
+  const lottieData = React.useMemo(
+    () => (lottie ? lottieDataFor(lottie, iconColor) : null),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [lottie?.preset, lottie?.json, iconColor],
+  );
   return (
     <div
       className="h-full w-full overflow-hidden"
@@ -1682,7 +1697,17 @@ function CanvasAssetObject({ box }: { box: ModuleBox }) {
           : undefined,
       }}
     >
-      <div
+      {lottie ? (
+        <LottiePlayer
+          data={lottieData}
+          src={lottie.src}
+          poster={lottie.src ? box.assetUrl : undefined}
+          loop={lottie.loop !== false}
+          speed={lottie.speed ?? 1}
+          label={box.assetName ?? 'Animation'}
+          className="pointer-events-none h-full w-full"
+        />
+      ) : <div
         role="img"
         aria-label={box.assetName ?? 'Canvas asset'}
         className="h-full w-full"
@@ -1705,7 +1730,7 @@ function CanvasAssetObject({ box }: { box: ModuleBox }) {
               backgroundRepeat: 'no-repeat',
               backgroundSize: 'contain',
             }}
-      />
+      />}
     </div>
   );
 }
@@ -2730,7 +2755,7 @@ function CanvasToolbar({
         <div className="absolute bottom-full left-1/2 mb-3 w-max max-w-[calc(100vw-24px)] -translate-x-1/2 rounded-xl bg-white px-3 pb-2.5 pt-2 shadow-[0_8px_24px_rgba(0,0,0,0.1)] ring-1 ring-slate-100">
           <div className="mb-1.5 flex items-center justify-between gap-5">
             <span className="text-[9px] font-medium uppercase tracking-wide text-slate-500">Lines &amp; Shapes</span>
-            <span className="text-[9px] text-slate-400">Choose a tool, then drag to draw</span>
+            <span className="text-[9px] text-slate-400">Choose a tool, then drag to draw · Shift for a circle or square</span>
           </div>
           <div className="flex items-center gap-1.5">
             {shapes.map(({ id, icon: Icon, label }) => (
@@ -3140,14 +3165,34 @@ function Canvas({
       return box;
     };
 
+    // Holding Shift keeps the shape's sides equal, like Figma: an ellipse becomes a circle,
+    // a rectangle or frame a square. It can be pressed or released mid-drag.
+    const keepsProportions = drawTool === 'shape-circle' || drawTool === 'shape-rect' || drawTool === 'frame'
+      || drawTool === 'shape-triangle' || drawTool === 'shape-star';
+    let shiftHeld = event.shiftKey;
+    let lastPoint = start;
+    const constrain = (point: { x: number; y: number }) => {
+      if (!shiftHeld || !keepsProportions) return point;
+      const dx = point.x - start.x;
+      const dy = point.y - start.y;
+      const size = Math.max(Math.abs(dx), Math.abs(dy));
+      return { x: start.x + (dx < 0 ? -size : size), y: start.y + (dy < 0 ? -size : size) };
+    };
+
     updatePreview(start);
     const handleMove = (moveEvent: MouseEvent) => {
-      const point = getPoint(moveEvent.clientX, moveEvent.clientY);
-      updatePreview(point);
+      shiftHeld = moveEvent.shiftKey;
+      lastPoint = getPoint(moveEvent.clientX, moveEvent.clientY);
+      updatePreview(constrain(lastPoint));
+    };
+    const handleShift = (keyEvent: KeyboardEvent) => {
+      if (keyEvent.key !== 'Shift' || shiftHeld === (keyEvent.type === 'keydown')) return;
+      shiftHeld = keyEvent.type === 'keydown';
+      updatePreview(constrain(lastPoint));
     };
     const handleUp = (upEvent: MouseEvent) => {
-      const point = getPoint(upEvent.clientX, upEvent.clientY);
-      const box = updatePreview(point);
+      shiftHeld = upEvent.shiftKey;
+      const box = updatePreview(constrain(getPoint(upEvent.clientX, upEvent.clientY)));
       if (drawTool === 'shape-scribble' && points.length < 2) {
         box.freehandPath = 'M5 50 L95 50';
       }
@@ -3215,9 +3260,13 @@ function Canvas({
       setDrawTool(null);
       window.removeEventListener('mousemove', handleMove);
       window.removeEventListener('mouseup', handleUp);
+      window.removeEventListener('keydown', handleShift);
+      window.removeEventListener('keyup', handleShift);
     };
     window.addEventListener('mousemove', handleMove);
     window.addEventListener('mouseup', handleUp);
+    window.addEventListener('keydown', handleShift);
+    window.addEventListener('keyup', handleShift);
   };
 
   /** An object plus everything nested in it (frame children, grouped layers), parents first. */
@@ -3654,7 +3703,8 @@ function Canvas({
     position?: { x: number; y: number },
   ) => {
     const assetId = draggedAssetId(event.dataTransfer);
-    if (assetId && !targetId) {
+    // Animations are placed where they're dropped, even over a component.
+    if (assetId && (!targetId || assetId.startsWith(LOTTIE_DRAG_PREFIX))) {
       const area = drawAreaRef.current;
       const body = bodyRef.current;
       if (!area || !body) return;
@@ -6324,7 +6374,7 @@ function RightPanel({
                       style={{ background: box.iconColor }}
                     />
                     <div className="flex min-w-0 flex-1 flex-col">
-                      <span className="text-[11px] font-semibold text-slate-700">Icon color</span>
+                      <span className="text-[11px] font-semibold text-slate-700">{box.lottie ? 'Animation color' : 'Icon color'}</span>
                       <input
                         key={box.iconColor}
                         type="text"
@@ -6346,11 +6396,34 @@ function RightPanel({
                       <AdvancedColorPicker
                         color={box.iconColor}
                         position={colorPickerPosition}
-                        title="Icon color"
+                        title={box.lottie ? 'Animation color' : 'Icon color'}
                         onClose={closeColorPicker}
                         onChange={(hex) => onBoxChange(selectedId!, { iconColor: hex })}
                       />
                     )}
+                  </div>
+                )}
+
+                {/* A Lottie animation's playback */}
+                {box.lottie && (
+                  <div className="flex items-center gap-2 rounded-lg border border-white bg-white p-2 shadow-sm">
+                    <label className="flex flex-1 cursor-pointer items-center gap-1.5 text-[11px] font-semibold text-slate-700">
+                      <input
+                        type="checkbox"
+                        checked={box.lottie.loop !== false}
+                        onChange={(e) => onBoxChange(selectedId!, { lottie: { ...box.lottie, loop: e.target.checked } })}
+                        className="accent-[#0040DF]"
+                      />
+                      Loop animation
+                    </label>
+                    <select
+                      value={box.lottie.speed ?? 1}
+                      onChange={(e) => onBoxChange(selectedId!, { lottie: { ...box.lottie, speed: Number(e.target.value) } })}
+                      aria-label="Animation speed"
+                      className="rounded border border-slate-200 bg-white px-1 py-0.5 text-[10.5px] font-semibold text-slate-700 outline-none"
+                    >
+                      {[0.5, 0.75, 1, 1.5, 2].map((value) => <option key={value} value={value}>{value}×</option>)}
+                    </select>
                   </div>
                 )}
 
@@ -7342,7 +7415,8 @@ export default function StudioClient() {
   const handleAssetDrop = (assetId: string, moduleId: ModuleId | null) => {
     if (!moduleId) return;
     const asset = findAsset(assetId);
-    if (!asset?.dataUrl) return;
+    // An animation can't be an image fill.
+    if (!asset?.dataUrl || asset.lottie) return;
     onBoxChange(moduleId, {
       fillType: 'image',
       imageFill: {
@@ -7416,6 +7490,7 @@ export default function StudioClient() {
       assetUrl: asset.dataUrl,
       assetName: asset.name,
       iconColor: asset.iconColor,
+      lottie: asset.lottie,
     });
     setSelectedId(id);
     setSelectedWorkspaceShapeId(null);
@@ -7434,6 +7509,7 @@ export default function StudioClient() {
       assetUrl: image.url,
       assetName: image.name,
       iconColor: image.iconColor,
+      lottie: image.lottie,
     };
     commit([...currentModules, id]);
     onBoxChange(id, { ...box, frameId: frameContaining(pageFrames(boxes), box) });
@@ -7442,22 +7518,81 @@ export default function StudioClient() {
     setActiveTextSlot(null);
   };
 
+  /** Adds text from a plugin (e.g. mock data) to the middle of the current page as a text layer. */
+  const insertPluginText = (text: string) => {
+    const screen = deviceDimensions(device);
+    const lines = text.split('\n');
+    const longest = Math.max(...lines.map((line) => line.length));
+    // A rough size for centring; the layer then grows to fit its text.
+    const width = Math.min(screen.w - 32, longest * 8.5);
+    const height = lines.length * 22;
+    const id = handleAddShape('shape-text', {
+      x: Math.max(16, Math.round(screen.w / 2 - width / 2)),
+      y: Math.round((screen.h - STATUS_BAR_HEIGHT) / 2 - height / 2),
+    });
+    onBoxChange(id, { text });
+    setSelectedWorkspaceShapeId(null);
+    setActiveTextSlot(null);
+  };
+
+  /** The selected text that plugin text would fill: a component's text field or a text layer. */
+  const pluginTextTarget = (() => {
+    if (selectedWorkspaceShapeId) {
+      const shape = workspaceShapes.find((item) => item.id === selectedWorkspaceShapeId);
+      if (shape?.type !== 'shape-text') return null;
+      return shape.box.name ?? (shape.box.text?.trim().slice(0, 32) || 'Text');
+    }
+    if (!selectedId) return null;
+    if (activeTextSlot) {
+      return EDITABLE_SCHEMA[selectedId]?.text?.find((field) => field.slot === activeTextSlot)?.label ?? activeTextSlot;
+    }
+    if (selectedId.startsWith('shape-text-')) {
+      const box = boxes[selectedId];
+      return box?.name ?? (box?.text?.trim().slice(0, 32) || 'Text');
+    }
+    return null;
+  })();
+
+  /** Puts plugin text into the selected text; false if no text is selected. */
+  const fillPluginText = (text: string) => {
+    if (selectedWorkspaceShapeId) {
+      const shape = workspaceShapes.find((item) => item.id === selectedWorkspaceShapeId);
+      if (shape?.type !== 'shape-text') return false;
+      setWorkspaceShapes((shapes) => shapes.map((item) => item.id === shape.id
+        ? { ...item, box: { ...item.box, text } }
+        : item));
+      return true;
+    }
+    if (!selectedId) return false;
+    if (activeTextSlot) {
+      setText(selectedId, activeTextSlot, text);
+      return true;
+    }
+    if (selectedId.startsWith('shape-text-')) {
+      onBoxChange(selectedId, { text });
+      return true;
+    }
+    return false;
+  };
+
   /**
    * Makes a plugin's icon or photo available to the canvas's asset drop handlers, so it can be
    * dragged from the plugin panel like an asset. Returns the id to drag it by.
    */
   const registerPluginAsset = (image: PluginImage) => {
-    const id = `plugin-${uniqueIdPart()}-${++canvasObjectIdRef.current}`;
+    // Animations get their own prefix: the canvas places them as objects, never inside components.
+    const id = `${image.lottie ? LOTTIE_DRAG_PREFIX : 'plugin-'}${uniqueIdPart()}-${++canvasObjectIdRef.current}`;
     const asset: AssetItem = {
       id,
       name: image.name,
-      kind: image.iconColor ? 'icon' : 'media',
+      kind: image.iconColor && !image.lottie ? 'icon' : 'media',
       filters: [],
       format: 'SVG',
       dataUrl: image.url,
       w: image.w,
       h: image.h,
       iconColor: image.iconColor,
+      lottie: image.lottie,
       preview: null,
     };
     // Keep only the last few plugin drags: each holds its image.
@@ -7477,7 +7612,7 @@ export default function StudioClient() {
     if (assetId) {
       const targetIsComponent = !!targetId && allModulesFor().some((module) => module.id === targetId);
       const asset = findAsset(assetId);
-      if (targetIsComponent && position && asset?.dataUrl) {
+      if (targetIsComponent && position && asset?.dataUrl && !asset.lottie) {
         const dimensions = assetDimensions(asset);
         const instance = {
           id: `asset-${asset.id}-${uniqueIdPart()}-${++canvasObjectIdRef.current}`,
@@ -7592,6 +7727,7 @@ export default function StudioClient() {
       assetUrl: asset.dataUrl,
       assetName: asset.name,
       iconColor: asset.iconColor,
+      lottie: asset.lottie,
     };
     setWorkspaceShapes((shapes) => [...shapes, { id, type: 'asset', box, frameId }]);
     setSelectedId(null);
@@ -7831,6 +7967,9 @@ export default function StudioClient() {
               accent={accentColor}
               onInsertImage={insertPluginImage}
               onDragImageStart={registerPluginAsset}
+              textTarget={pluginTextTarget}
+              onInsertText={insertPluginText}
+              onFillText={fillPluginText}
               onNotice={showStudioNotice}
               onCollapse={() => setLeftPanelCollapsed(true)}
               modalClassName={urbanist.className}

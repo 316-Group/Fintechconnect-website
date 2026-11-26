@@ -2,6 +2,7 @@
 'use client';
 
 import React, { useMemo, useRef, useState } from 'react';
+import type { LottieSpec } from './lottie-presets';
 import {
   Search, Upload, RefreshCw, GripVertical,
   Send, Inbox, Lock, Shield, Fingerprint, Nfc, Landmark, ArrowLeftRight,
@@ -26,6 +27,8 @@ export type AssetItem = {
   h?: number;
   /** A single-colour icon: placed recolourable, in this colour (see ModuleBox.iconColor). */
   iconColor?: string;
+  /** A Lottie animation from the Lottie plugin (see ModuleBox.lottie). */
+  lottie?: LottieSpec;
   preview: React.ReactNode;
 };
 

@@ -17,6 +17,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Box, Check, ChevronLeft, ClipboardCopy, Code2, LoaderCircle, PanelLeftClose, Plus, RefreshCw, Search } from 'lucide-react';
 import { startAssetDrag } from './assettab';
+import type { LottieSpec } from './lottie-presets';
 
 /**
  * An image a plugin adds to the page. `url` is a data URL (icons, so the build works offline)
@@ -27,8 +28,13 @@ export type PluginImage = {
   url: string;
   w: number;
   h: number;
-  /** Set for single-colour icons: they are placed recolourable, starting in this colour. */
+  /**
+   * Set for single-colour icons: they are placed recolourable, starting in this colour.
+   * On a built-in Lottie animation it is the colour the animation is drawn in.
+   */
   iconColor?: string;
+  /** Set for Lottie animations: the canvas plays this instead of showing `url`. */
+  lottie?: LottieSpec;
 };
 
 const API = 'https://api.iconify.design';
